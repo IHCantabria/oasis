@@ -86,6 +86,6 @@ void CatLine::initLine (void) {
 	xF=sqrt(pow((posFair[0]-posAnch[0]),2)+pow((posFair[1]-posAnch[1]),2));
 	zF=(posFair[2]-posAnch[2]);
 
-	qs_GetTen();
+	this->qs_GetTen();
 
 }

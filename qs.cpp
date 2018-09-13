@@ -9,6 +9,7 @@ Libreria de método Quasi Static
 #include <string>
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "CatLine.h"
 
 
@@ -19,14 +20,135 @@ extern double rhoW;
 extern double t_max;
 extern double dt;
 
+
+void CatLine::qs_Functions(double& ff,double& gg,double& DfDH,double& DfDV,double& DgDH,double& DgDV){
+
+	/*
+    This function evaluates functions f and g definned by:
+    f(H_{F},V_{F}) = x_{F}(H_{F},V_{F}) - x_{end} 
+    g(H_{F},V_{F}) = z_{F}(H_{F},V_{F}) - z_{end}
+    It also evaluates their derivatives with respect to H_{F} and V_{F}.
+    Taken from qs_GetTen which replicates Jonkman's PhD [Jonkman-2007]
+    equations (2-35a) - (2.40)
+	*/
+
+	double om, temp, temp2, tempSq, tempLg, tempOm, tempOm2, tempOmSq, tempOmLg, LmVFpOm;
+
+	om = (rho0-rhoW*A)*g;
+	temp = VF/HF;
+	tempOm = ( VF - om*L) / HF;
+	temp2 = temp*temp;
+	tempOm2 = tempOm*tempOm;
+	tempSq = sqrt(1.0 + temp2);
+	tempOmSq = sqrt(1.0 + tempOm2);
+	tempLg = log(temp+tempSq);
+	tempOmLg = log(tempOm+tempOmSq);
+
+	if((CB < 0.0) || (om < 0.0) || (VF - om*L > 0.0)){
+
+		ff = HF*L/EA + (HF/om) * (tempLg-tempOmLg)- xF;
+		gg = (1.0/EA) * (VF * L - 0.5*om*L*L) + (HF/om) * (tempSq - tempOmSq)-zF;
+
+		DfDH = L/EA + (tempLg - tempOmLg) / om  - ((temp + temp2/tempSq) / (temp + tempSq)  -  (tempOm + tempOm2/tempOmSq) / (tempOm + tempOmSq) ) / om;
+		DfDV = ((1 + temp/tempSq) / (temp + tempSq)  - (1 + tempOm/tempOmSq) / (tempOm + tempOmSq)) / om;
+		DgDH = (tempSq - tempOmSq) / om - ((temp2/tempSq) - (tempOm2 / tempOmSq)) / om;
+		DgDV = L/EA + ( (temp / tempSq) - (tempOm / tempOmSq)) / om;
+
+	}else if(-CB*(VF - om*L) < HF){
+
+		LmVFpOm = L - (VF/om);
+
+		ff = HF*L/EA + ((HF/om) * tempLg) + LmVFpOm +  CB * om *0.5 /(EA) * ( -LmVFpOm*LmVFpOm)-xF;
+		gg = (1.0/EA) * (VF * L - 0.5*om*L*L) + (HF/om) * (tempSq - 1.0)-zF;
+
+		DfDH = L/EA + (tempLg) / om  - ((temp + temp2/tempSq) / (temp + tempSq) ) / om;
+		DfDV = ((1.0 + temp/tempSq) / (temp + tempSq) ) / om  + (CB/EA) * LmVFpOm - 1.0/om;
+		DgDH = (tempSq - 1.0 - (temp2/tempSq) ) / om;
+		DgDV = L/EA + (temp / tempSq) / om;
+
+	}else{
+
+		LmVFpOm = L - (VF/om);
+
+		ff = HF*L/(EA) + (HF/om) * tempLg + LmVFpOm  + CB * om *0.5 /(EA) * ( -LmVFpOm*LmVFpOm + (LmVFpOm - HF/(CB*om)) * (LmVFpOm - HF/(CB*om)))-xF;
+		gg = (1.0/EA) * (VF * L - 0.5*om*L*L) + (HF/om) * (tempSq - 1.0)-zF;
+
+		DfDH = L/(EA) + (tempLg) / om  - ((temp + temp2/tempSq) / (temp + tempSq) ) / om  - (LmVFpOm - (HF/(CB*om))) / (EA);
+		DfDV = ((1.0 + temp/tempSq) / (temp + tempSq) ) / om  + HF/(om*EA)  - 1.0/om;
+		DgDH = (tempSq - 1.0 - (temp2/tempSq) ) / om;
+		DgDV = L/EA + (temp / tempSq) / om;
+
+	};
+}
+
+
+
+
 void CatLine::qs_GetTen(void){
 
-	double om = (rho0-rhoW*A);
+	/*
+    This function provides the fairlead's tension of the catenary.
+    The method of Newton-Raphson is employed here. Functions f and g, and their
+    derivatives are evaluated by function qs_Functions.
+    Taken from GetFairlairTensions.m which replicates Jonkman's PhD [Jonkman-2007]
+    equations (2-35a) - (2.40)
+	*/
+
+	double lambda, dH, deter, dV;
+	double tol=1.0e-5;
+	int nIter=0;
+	int nMaxIter=1000;
+	double om = (rho0-rhoW*A)*g;
+	double ff, gg, DfDH, DfDV, DgDH, DgDV;
+
+	//Initial condition
+	if(abs(xF)<tol){
+			lambda=1.0e6;
+	}else if(sqrt(xF*xF+zF*zF)){
+		lambda=0.2;
+	}else{
+		lambda=sqrt(3.0*((L*L-zF*zF)/(xF*xF)-1.0));
+	};
+
+	HF=abs(om*xF*0.5/lambda);
+	VF=0.5*om*(zF/tanh(lambda)+L);
+
+	//Using Newton-Raphso
+	dH=xF;
+	while((nIter<=nMaxIter)&&(abs(dH)>tol)){
+
+		nIter++;
+		this->qs_Functions(ff,gg,DfDH,DfDV,DgDH,DgDV);
+
+		//Compute the determinant of the Jacobian matrix
+		deter = DfDH * DgDV - DfDV * DgDH;
+		if (abs(deter) < tol*1.0E-5){
+			break;
+		};
+
+		//Apply that the increment in the iterant is \De x_{n} = - inv(Jac) * f(x_{n})
+		dH = ( - DgDV * ff + DfDV * gg ) / deter;
+		dV =   ( DgDH * ff - DfDH * gg ) / deter;
+		dH = dH * (1.0 - nIter*tol);
+		dV = dV * (1.0 - nIter*tol);
+		dH = std::max(dH,(tol-1.0)*HF);
+
+		//Update the iterant 
+		HF = HF + dH;
+		VF = VF + dV;
+
+		//To avoid problems, we impose Tol as the lower limit
+		HF = std::max(HF, tol);
+		VF = std::max(VF, tol);
 
 
+	};
 
-
-
+	//Compruebo que la funcion se aplica al objeto adecuado y que las variables 
+	//globales realmente son globales
 	std::cout << "rhoW "  <<  rhoW << std::endl;
 	std::cout << "nNodos " << this->nNodos << std::endl << std::endl;
 }
+
+
+

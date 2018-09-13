@@ -12,6 +12,7 @@ public:
 	void set_nLine(int n){nLine=n;}
 	void leer_datosMoorings(void);
 	void initLine(void);
+	void qs_Functions(double& ff,double& gg,double& DfDH,double& DfDV,double& DgDH,double& DgDV);
 	void qs_GetTen(void);
 };
 
