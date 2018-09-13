@@ -112,9 +112,9 @@ void CatLine::initLine (void) {
 
 	for(int ii=0;ii<nNodos;ii++) {
 
-		pos[3*ii] = cosa*xc[ii];
-		pos[3*ii+1] = sina*xc[ii];
-		pos[3*ii+2] = zc[ii];
+		pos[3*ii] = posAnch[0]+cosa*xc[ii];
+		pos[3*ii+1] = posAnch[1]+sina*xc[ii];
+		pos[3*ii+2] = posAnch[2]+zc[ii];
 
 		vel[3*ii] = 0.0;
 		vel[3*ii+1] = 0.0;
