@@ -151,4 +151,120 @@ void CatLine::qs_GetTen(void){
 }
 
 
+void CatLine::qs_Solution(void){
+
+	int ii, jj, nIter, nNodosFondo;
+	double om = (rho0-rhoW*A)*g;
+	double temp1[nNodos];
+	double temp2;
+
+
+	if ( (CB < 0.0) || (om < 0.0) || (VF > om*L) ) {
+
+		HA=HF;
+		VA=VF;
+
+		for(ii=0;ii<nNodos;ii++){
+
+			temp1[ii] = ( VF - om*L + om*s[ii]) / HF;
+			temp2 = ( VF - om*L) / HF;
+
+			xc[ii] = HF*s[ii]/EA + (HF/om) * (log(temp1[ii] + sqrt(1.0+temp1[ii]*temp1[ii]))-log(temp2 + sqrt(1.0+temp2*temp2)));
+			zc[ii] = s[ii]/(EA) * (VF - om*L + 0.5*om*s[ii]) +  (HF/om) * (sqrt(1.0+temp1[ii]*temp1[ii]) - sqrt(1.0+temp2*temp2));
+
+			dxcds[ii] = HF/EA + (HF/om)*( (om/HF + om*temp1[ii]/(HF*sqrt(1.0+temp1[ii]*temp1[ii])) ) / (temp1[ii]+sqrt(1.0+temp1[ii]*temp1[ii])));
+			dzcds[ii] = (VF - om*L + om*s[ii])/EA + (HF/om)*(om*temp1[ii]/(HF*sqrt(1.0+temp1[ii]*temp1[ii])));
+
+			Te[ii] = sqrt(HF*HF + (VF - om*L + om*s[ii])*(VF - om*L + om*s[ii]));
+
+		}
+
+	} else if (-CB * (VF - om*L) < HF) {
+
+		HA = HF + CB * (VF - om*L);
+		VA = 0.0;
+
+
+		for(ii=0;ii<nNodos;ii++){
+
+			temp1[ii] = ( VF - om*L + om*s[ii]) / HF;
+			temp2 = ( VF - om*L) / HF;
+
+			if( s[ii] <= L - VF/om ) {
+
+				xc[ii] = s[ii] + (s[ii] / EA) * (HF + CB * (VF-om*L +0.5*om*s[ii]*CB));
+				zc[ii] = 0.0;
+
+				dxcds[ii] = 1.0 +(HF + CB*( VF - om*L + om*s[ii]*CB) )/EA;
+				dzcds[ii] = 0.0;
+
+				Te[ii] = HF + CB * (VF-om*L  + om*s[ii]);
+
+			} else {
+
+				xc[ii] = HF*s[ii]/EA + (HF/om) * (log(temp1[ii] + sqrt(1.0+temp1[ii]*temp1[ii])))  + L - VF/om - 0.5*CB*( VF - om*L)*( VF - om*L)/(om*EA);
+				zc[ii] = (HF/om) * (-1.0+sqrt(1.0+temp1[ii]*temp1[ii])) + s[ii]/(EA) * (VF - om*L + 0.5*om*s[ii]) + 0.5 * ( VF - om*L)*( VF - om*L)/(om*EA);
+
+				dxcds[ii] = HF/EA + (HF/om)*( (om/HF + om*temp1[ii]/(HF*sqrt(1.0+temp1[ii]*temp1[ii])) ) / (temp1[ii]+sqrt(1.0+temp1[ii]*temp1[ii])) );
+				dzcds[ii] = (HF/om)*(om*temp1[ii]/(HF*sqrt(1.0+temp1[ii]*temp1[ii]))) + (VF - om*L + om*s[ii])/EA;
+
+				Te[ii] = sqrt(HF*HF + (VF - om*L + om*s[ii])*(VF - om*L + om*s[ii]));
+
+			}
+
+		}
+
+
+
+
+	} else {
+
+		HA = 0.0;
+		VA = 0.0;
+
+		for(ii=0;ii<nNodos;ii++){
+
+			temp1[ii] = ( VF - om*L + om*s[ii]) / HF;
+			temp2 = ( VF - om*L) / HF;
+
+			if (s[ii] <= L - VF/om - HF/(om*CB)) {
+
+				xc[ii]=s[ii];
+				zc[ii] = 0.0;
+
+				dxcds[ii] = 1.0;
+				dzcds[ii] = 0.0;
+
+				Te[ii] = 0.0;
+
+			} else if (s[ii] <= L - VF/om) {
+
+				xc[ii] = s[ii] - (L - (VF/om) -0.5*HF/(om*CB) ) * (HF/EA) + (s[ii] / EA ) * (HF + CB * (VF-om*L) +0.5*om*s[ii]*CB) + 0.5 * CB*(VF-om*L)*(VF-om*L)/(om*EA);
+				zc[ii] = 0.0;
+				
+				dxcds[ii] = 1.0 + (HF + CB*( VF - om*L ) + om*s[ii]*CB )/EA;
+				dzcds[ii] = 0.0;
+
+				Te[ii] = HF + CB * (VF-om*L  + om*s[ii]);
+
+			} else {
+
+				xc[ii] = HF*s[ii]/(EA) + (HF/om) * (log(temp1[ii] + sqrt(1.0+temp1[ii]*temp1[ii]))) + L - VF/om - ( L - VF/om - 0.5 * HF / (om*CB))* HF/(EA);
+				zc[ii] = (HF/om) * (-1.0+sqrt(1.0+temp1[ii]*temp1[ii])) + s[ii]/(EA) * (VF - om*L + 0.5*om*s[ii]) + 0.5 * ( VF - om*L)*( VF - om*L)/(om*EA);
+
+				dxcds[ii] = HF/EA + (HF/om)*( (om/HF + om*temp1[ii]/(HF*sqrt(1.0+temp1[ii]*temp1[ii])) ) / (temp1[ii]+sqrt(1.0+temp1[ii]*temp1[ii])) );
+				dzcds[ii] = (HF/om)*(om*temp1[ii]/(HF*sqrt(1.0+temp1[ii]*temp1[ii]))) + (VF - om*L + om*s[ii])/EA;
+
+				Te[ii] = sqrt(HF*HF + (VF - om*L + om*s[ii])*(VF - om*L + om*s[ii]));
+
+			}
+
+		}
+
+	}
+
+}
+
+
+
 

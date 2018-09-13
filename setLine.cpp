@@ -70,10 +70,20 @@ void CatLine::leer_datosMoorings () {
 	datosMoorings.close();
 
 	A=PI*d*d*0.25;
-	dL=L/nNodos;
-	pos = new double[3*2*nNodos];
-	vel = new double[3*2*nNodos];
-	acc = new double[3*2*nNodos];
+	dL=L/(nNodos-1);
+
+	pos = new double[3*nNodos];
+	vel = new double[3*nNodos];
+	acc = new double[3*nNodos];
+	s = new double[nNodos];
+	xc = new double[nNodos];
+	zc = new double[nNodos];
+	dxcds = new double[nNodos];
+	dzcds = new double[nNodos];
+	Te = new double[nNodos];
+
+
+	for(ii=0;ii<nNodos;ii++) s[ii]=ii*dL;
 }
 
 /*  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -81,11 +91,37 @@ void CatLine::leer_datosMoorings () {
 */
 void CatLine::initLine (void) {
 
-	int jj;
+	double cosa, sina;
 
 	xF=sqrt(pow((posFair[0]-posAnch[0]),2)+pow((posFair[1]-posAnch[1]),2));
 	zF=(posFair[2]-posAnch[2]);
 
+	cosa=(posFair[0]-posAnch[0])/xF;
+	sina=(posFair[1]-posAnch[1])/xF;
+
 	this->qs_GetTen();
+	this->qs_Solution();
+
+	tenAnch[0] = cosa*HA;
+	tenAnch[1] = sina*HA;
+	tenAnch[2] = VA;
+
+	tenFair[0] = cosa*HF;
+	tenFair[1] = sina*HF;
+	tenFair[2] = VF;
+
+	for(int ii=0;ii<nNodos;ii++) {
+
+		pos[3*ii] = cosa*xc[ii];
+		pos[3*ii+1] = sina*xc[ii];
+		pos[3*ii+2] = zc[ii];
+
+		vel[3*ii] = 0.0;
+		vel[3*ii+1] = 0.0;
+		vel[3*ii+2] = 0.0;
+
+	}
+
+	acc = vel;
 
 }
