@@ -16,15 +16,15 @@ double PI;
 int nLines;
 double g;
 double rhoW;
+double t;
 double t_max;
 double dt;
 
 
 int main () {
 
-	double t;
-
 	PI=acos(-1.0);
+	t=0.0;
 
  	std::ifstream datosProblema ("datosProblema.dat");
 	datosProblema >> g;    datosProblema.ignore(std::numeric_limits<int>::max(), '\n');
@@ -69,6 +69,7 @@ int main () {
 		std::cout << "posAnch  " << Line[ii].posAnch[0] << " " << Line[ii].posAnch[1] << " " << Line[ii].posAnch[2] << std::endl << std::endl;
 
 		Line[ii].initLine();
+		Line[ii].write_out();
 	}
 
 

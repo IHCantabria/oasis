@@ -9,13 +9,14 @@ Libreria para iniciar la linea, menos set_nLine que se define en la clase
 #include <string>
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "CatLine.h"
-
 
 extern double PI;
 extern int nLines;
 extern double g;
 extern double rhoW;
+extern double t;
 extern double t_max;
 extern double dt;
 
@@ -91,8 +92,6 @@ void CatLine::leer_datosMoorings () {
 */
 void CatLine::initLine (void) {
 
-	double cosa, sina;
-
 	xF=sqrt(pow((posFair[0]-posAnch[0]),2)+pow((posFair[1]-posAnch[1]),2));
 	zF=(posFair[2]-posAnch[2]);
 
@@ -123,5 +122,43 @@ void CatLine::initLine (void) {
 	}
 
 	acc = vel;
+
+}
+
+
+void CatLine::write_out (void) {
+
+	int ii, nn1, nn2, nn3, nn4;
+
+	char buffer1[50], buffer2[50], buffer3[50], buffer4[50];
+
+
+	nn1=sprintf(buffer1,"NodePosX_%d.dat", nLine);
+	std::ofstream xpos(buffer1);
+		xpos << t << "    ";
+		for(ii=0;ii<nNodos;ii++) xpos <<  posAnch[0]+cosa*xc[ii] << "    ";
+		xpos << std::endl;
+	xpos.close();
+
+	nn2=sprintf(buffer2,"NodePosY_%d.dat", nLine);
+	std::ofstream ypos(buffer2);
+		ypos << t << "    ";
+		for(ii=0;ii<nNodos;ii++) ypos <<  posAnch[1]+sina*xc[ii] << "    ";
+		ypos << std::endl;
+	ypos.close();
+
+	nn3=sprintf(buffer3,"NodePosZ_%d.dat", nLine);
+	std::ofstream zpos(buffer3);
+		zpos << t << "    ";
+		for(ii=0;ii<nNodos;ii++) zpos << posAnch[2]+zc[ii] << "    ";
+		zpos << std::endl;
+	zpos.close();
+
+	nn4=sprintf(buffer4,"CatTen_%d.dat", nLine);
+	std::ofstream ten(buffer4);
+		ten << t << "    " << tenAnch[0] << "    " << tenAnch[1] << "    " << tenAnch[2] << "    "
+		     << tenFair[0] << "    " << tenFair[1] << "    " << tenFair[2] << "    " << std::endl;
+	ten.close();
+
 
 }

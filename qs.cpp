@@ -17,6 +17,7 @@ extern double PI;
 extern int nLines;
 extern double g;
 extern double rhoW;
+extern double t;
 extern double t_max;
 extern double dt;
 
@@ -144,10 +145,6 @@ void CatLine::qs_GetTen(void){
 
 	};
 
-	//Compruebo que la funcion se aplica al objeto adecuado y que las variables 
-	//globales realmente son globales
-	std::cout << "rhoW "  <<  rhoW << std::endl;
-	std::cout << "nNodos " << this->nNodos << std::endl << std::endl;
 }
 
 
