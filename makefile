@@ -1,7 +1,7 @@
 CC = g++                # Compiler macro
 CFLAGS = -I.            # List of flags to pass to the compilation command macro (. -> directorio)
-DEPS = Catline.h        # Set of .h files on which the .cpp files depend macro
-OBJ = Moorings.o setLine.o qs.o  # Object files macro
+DEPS = classes.h        # Set of .h files on which the .cpp files depend macro
+OBJ = main.o SetLine_lib.o QS_lib.o  # Object files macro
 
 %.o: %.cpp $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)

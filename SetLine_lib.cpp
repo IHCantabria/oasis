@@ -10,12 +10,13 @@ Libreria para iniciar la linea, menos set_nLine que se define en la clase
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "CatLine.h"
+#include "classes.h"
 
 extern double PI;
 extern int nLines;
 extern double g;
 extern double rhoW;
+extern double fondo;
 extern double t;
 extern double t_max;
 extern double dt;
@@ -24,7 +25,7 @@ extern double dt;
 /*  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	FUNCION DE CatLine PARA LEER datosMoorings.dat!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 */
-void CatLine::leer_datosMoorings () {
+void MotherLine::leer_datosMoorings () {
 
 	int ii, jj; 
 	std::string Dummy; 
@@ -33,8 +34,10 @@ void CatLine::leer_datosMoorings () {
 	//Abro el fichero
 	std::ifstream datosMoorings ("datosMoorings.dat");
 
-	//Ignoro la primera linea del fichero, que contiene el numero de lineas de mooring a estudiar
-	datosMoorings >> Dummy; datosMoorings.ignore(std::numeric_limits<int>::max(), '\n'); // El ignore sirve para ignorar el texto de la linea
+	//Ignoro las tres primeras lineas del fichero, que contiene el numero de lineas a estudiar
+	for(ii=1;ii<=3;ii++){
+		datosMoorings >> Dummy; datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');  // El ignore sirve para ignorar el texto de la linea
+	}
 
 	//Ignoro las lineas que ya se han leido
 	for(ii=1;ii<nLine;ii++){
@@ -87,10 +90,34 @@ void CatLine::leer_datosMoorings () {
 	for(ii=0;ii<nNodos;ii++) s[ii]=ii*dL;
 }
 
+
+void MotherLine::print_out (void) {
+
+		std::cout << "Para la linea " << this->nLine << " , se ha leido:" << std::endl << std::endl;
+		std::cout << "nNodos   " << this->nNodos << std::endl;
+		std::cout << "L        " << this->L << std::endl;
+		std::cout << "rho0     " << this->rho0 << std::endl;
+		std::cout << "d        " << this->d << std::endl;
+		std::cout << "EA       " << this->EA << std::endl;
+		std::cout << "beta     " << this->beta << std::endl;
+		std::cout << "CB       " << this->CB << std::endl;
+		std::cout << "Cmn      " << this->Cmn << std::endl;
+		std::cout << "Cdn      " << this->Cdn << std::endl;
+		std::cout << "Cdt      " << this->Cdt << std::endl;
+		std::cout << "GK       " << this->GK << std::endl;
+		std::cout << "GC       " << this->GC << std::endl;
+		std::cout << "Gmu      " << this->Gmu << std::endl;
+		std::cout << "Gvc      " << this->Gvc << std::endl;
+		std::cout << "Dz       " << this->Dz << std::endl;
+		std::cout << "posFair  " << this->posFair[0] << " " << this->posFair[1] << " " << this->posFair[2] << std::endl;
+		std::cout << "posAnch  " << this->posAnch[0] << " " << this->posAnch[1] << " " << this->posAnch[2] << std::endl << std::endl;
+
+	}
+
 /*  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	FUNCION DE CatLine PARA INICIAR LA LINEA CON EL METODO QS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 */
-void CatLine::initLine (void) {
+void MooringLine::initLine (void) {
 
 	xF=sqrt(pow((posFair[0]-posAnch[0]),2)+pow((posFair[1]-posAnch[1]),2));
 	zF=(posFair[2]-posAnch[2]);
@@ -126,35 +153,88 @@ void CatLine::initLine (void) {
 }
 
 
-void CatLine::write_out (void) {
+
+void TensorLine::initLine (void) {
+
+	xF=sqrt(pow((posFair[0]-posAnch[0]),2)+pow((posFair[1]-posAnch[1]),2));
+	zF=(posFair[2]-posAnch[2]);
+
+	double Li= sqrt(pow(xF,2)+pow(zF,2));
+	if (Li<L) {
+		try
+		{
+			throw 1;
+		}
+		catch (int e) 
+		{
+			std::cout<< "EL TENSOR NO ESTÁ TENSO" << std::endl;
+		}
+	}
+
+	cosa=(posFair[0]-posAnch[0])/xF;
+	sina=(posFair[1]-posAnch[1])/xF;
+
+	double cost=xF/Li;
+	double sint=zF/Li;
+
+	tenAnch[0] = 0;
+	tenAnch[1] = 0;
+	tenAnch[2] = 0;
+
+	tenFair[0] = 0;
+	tenFair[1] = 0;
+	tenFair[2] = 0;
+
+	for(int ii=0;ii<nNodos;ii++) {
+
+		xc[ii]=cost*ii*Li/(nNodos-1);
+		zc[ii]=sint*ii*Li/(nNodos-1);
+
+
+		pos[3*ii] = posAnch[0]+cosa*xc[ii];
+		pos[3*ii+1] = posAnch[1]+sina*xc[ii];
+		pos[3*ii+2] = posAnch[2]+zc[ii];
+
+		vel[3*ii] = 0.0;
+		vel[3*ii+1] = 0.0;
+		vel[3*ii+2] = 0.0;
+
+	}
+
+	acc = vel;
+
+}
+
+
+void MotherLine::write_out (void) {
 
 	int ii, nn1, nn2, nn3, nn4;
 
 	char buffer1[50], buffer2[50], buffer3[50], buffer4[50];
 
 
-	nn1=sprintf(buffer1,"NodePosX_%d.dat", nLine);
+	nn1=sprintf(buffer1,"NodePosX_%d.txt", nLine);
 	std::ofstream xpos(buffer1);
 		xpos << t << "    ";
 		for(ii=0;ii<nNodos;ii++) xpos <<  posAnch[0]+cosa*xc[ii] << "    ";
 		xpos << std::endl;
 	xpos.close();
 
-	nn2=sprintf(buffer2,"NodePosY_%d.dat", nLine);
+	nn2=sprintf(buffer2,"NodePosY_%d.txt", nLine);
 	std::ofstream ypos(buffer2);
 		ypos << t << "    ";
 		for(ii=0;ii<nNodos;ii++) ypos <<  posAnch[1]+sina*xc[ii] << "    ";
 		ypos << std::endl;
 	ypos.close();
 
-	nn3=sprintf(buffer3,"NodePosZ_%d.dat", nLine);
+	nn3=sprintf(buffer3,"NodePosZ_%d.txt", nLine);
 	std::ofstream zpos(buffer3);
 		zpos << t << "    ";
 		for(ii=0;ii<nNodos;ii++) zpos << posAnch[2]+zc[ii] << "    ";
 		zpos << std::endl;
 	zpos.close();
 
-	nn4=sprintf(buffer4,"CatTen_%d.dat", nLine);
+	nn4=sprintf(buffer4,"CatTen_%d.txt", nLine);
 	std::ofstream ten(buffer4);
 		ten << t << "    " << tenAnch[0] << "    " << tenAnch[1] << "    " << tenAnch[2] << "    "
 		     << tenFair[0] << "    " << tenFair[1] << "    " << tenFair[2] << "    " << std::endl;

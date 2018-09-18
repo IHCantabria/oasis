@@ -10,19 +10,20 @@ Libreria de método Quasi Static
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "CatLine.h"
+#include "classes.h"
 
 
 extern double PI;
 extern int nLines;
 extern double g;
 extern double rhoW;
+extern double fondo;
 extern double t;
 extern double t_max;
 extern double dt;
 
 
-void CatLine::qs_Functions(double& ff,double& gg,double& DfDH,double& DfDV,double& DgDH,double& DgDV){
+void MooringLine::qs_Functions(double& ff,double& gg,double& DfDH,double& DfDV,double& DgDH,double& DgDV){
 
 	/*
     This function evaluates functions f and g definned by:
@@ -85,7 +86,7 @@ void CatLine::qs_Functions(double& ff,double& gg,double& DfDH,double& DfDV,doubl
 
 
 
-void CatLine::qs_GetTen(void){
+void MooringLine::qs_GetTen(void){
 
 	/*
     This function provides the fairlead's tension of the catenary.
@@ -148,7 +149,7 @@ void CatLine::qs_GetTen(void){
 }
 
 
-void CatLine::qs_Solution(void){
+void MooringLine::qs_Solution(void){
 
 	int ii, jj, nIter, nNodosFondo;
 	double om = (rho0-rhoW*A)*g;
