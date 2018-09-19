@@ -70,6 +70,8 @@ void MotherLine::leer_datosMoorings () {
 	datosMoorings >> posFair[0]; datosMoorings >> posFair[1]; datosMoorings >> posFair[2];  datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
 	datosMoorings >> posAnch[0]; datosMoorings >> posAnch[1]; datosMoorings >> posAnch[2];  datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
 
+	if (posFair[2]<fondo || posAnch[2]<fondo) throw 0;
+
 	//Cierro el fichero
 	datosMoorings.close();
 
@@ -117,7 +119,9 @@ void MotherLine::print_out (void) {
 /*  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	FUNCION DE CatLine PARA INICIAR LA LINEA CON EL METODO QS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 */
-void MooringLine::initLine (void) {
+void TowingLine::initLine (void) {
+
+	floor_flag = -1;
 
 	xF=sqrt(pow((posFair[0]-posAnch[0]),2)+pow((posFair[1]-posAnch[1]),2));
 	zF=(posFair[2]-posAnch[2]);
@@ -125,31 +129,186 @@ void MooringLine::initLine (void) {
 	cosa=(posFair[0]-posAnch[0])/xF;
 	sina=(posFair[1]-posAnch[1])/xF;
 
-	this->qs_GetTen();
-	this->qs_Solution();
+	double Li= sqrt(pow(xF,2)+pow(zF,2));
 
-	tenAnch[0] = cosa*HA;
-	tenAnch[1] = sina*HA;
-	tenAnch[2] = VA;
+	if ( Li>=L) {
+		double cost=xF/Li;
+		double sint=zF/Li;
 
-	tenFair[0] = cosa*HF;
-	tenFair[1] = sina*HF;
-	tenFair[2] = VF;
+		tenAnch[0] = 0;
+		tenAnch[1] = 0;
+		tenAnch[2] = 0;
+
+		tenFair[0] = 0;
+		tenFair[1] = 0;
+		tenFair[2] = 0;
+
+		for(int ii=0;ii<nNodos;ii++) {
+
+			xc[ii]=cost*ii*Li/(nNodos-1);
+			zc[ii]=sint*ii*Li/(nNodos-1);
+		}
+
+		for(int ii=0;ii<nNodos;ii++) {
+
+			pos[3*ii] = posAnch[0]+cosa*xc[ii];
+			pos[3*ii+1] = posAnch[1]+sina*xc[ii];
+			pos[3*ii+2] = posAnch[2]+zc[ii];
+
+		}
+
+
+		std::cout << "WARNING: Towing line " << nLine << " tension is high. " << std::endl;
+
+	}else{
+
+		this->qs_GetTen();
+		this->qs_Solution();
+
+		if(isnan(xc[0])) throw 5;
+
+		std::cout << std::endl << "xc    " << xc[0] << "  " << xc[1] << "  " << xc[2] << "  " << xc[3] << "  " << xc[4] << "  " << xc[5] << std::endl;
+		std::cout << std::endl << "zc    " << zc[0] << "  " << zc[1] << "  " << zc[2] << "  " << zc[3] << "  " << zc[4] << "  " << zc[5] << std::endl << std::endl;
+
+
+		tenAnch[0] = cosa*HA;
+		tenAnch[1] = sina*HA;
+		tenAnch[2] = VA;
+
+		tenFair[0] = cosa*HF;
+		tenFair[1] = sina*HF;
+		tenFair[2] = VF;
+
+		for(int ii=0;ii<nNodos;ii++) {
+
+			pos[3*ii] = posAnch[0]+cosa*xc[ii];
+			pos[3*ii+1] = posAnch[1]+sina*xc[ii];
+			pos[3*ii+2] = posAnch[2]+zc[ii];
+
+			if (pos[3*ii+2]<=fondo) throw 1;
+		
+		}
+	}
 
 	for(int ii=0;ii<nNodos;ii++) {
-
-		pos[3*ii] = posAnch[0]+cosa*xc[ii];
-		pos[3*ii+1] = posAnch[1]+sina*xc[ii];
-		pos[3*ii+2] = posAnch[2]+zc[ii];
-
 		vel[3*ii] = 0.0;
 		vel[3*ii+1] = 0.0;
 		vel[3*ii+2] = 0.0;
-
 	}
 
 	acc = vel;
 
+}
+
+
+void MooringLine::initLine (void) {
+
+	int flag = 0;
+
+	xF=sqrt(pow((posFair[0]-posAnch[0]),2)+pow((posFair[1]-posAnch[1]),2));
+	zF=(posFair[2]-posAnch[2]);
+	cosa=(posFair[0]-posAnch[0])/xF;
+	sina=(posFair[1]-posAnch[1])/xF;
+
+	double Li= sqrt(pow(xF,2)+pow(zF,2));
+
+	if ( Li>=L) {
+		double cost=xF/Li;
+		double sint=zF/Li;
+
+		tenAnch[0] = 0;
+		tenAnch[1] = 0;
+		tenAnch[2] = 0;
+
+		tenFair[0] = 0;
+		tenFair[1] = 0;
+		tenFair[2] = 0;
+
+		for(int ii=0;ii<nNodos;ii++) {
+
+			xc[ii]=cost*ii*Li/(nNodos-1);
+			zc[ii]=sint*ii*Li/(nNodos-1);
+		}
+
+		for(int ii=0;ii<nNodos;ii++) {
+
+			pos[3*ii] = posAnch[0]+cosa*xc[ii];
+			pos[3*ii+1] = posAnch[1]+sina*xc[ii];
+			pos[3*ii+2] = posAnch[2]+zc[ii];
+
+		}
+
+		if ( Li==L && posAnch[2]==fondo && posFair[2]==fondo ) {
+			std::cout << "WARNING: Mooring line " << nLine << " is laying on the floor " << std::endl;
+		}else if (xF<1e-5){
+			std::cout << "WARNING: Mooring line " << nLine << " is vertical. " << std::endl;
+		}else{
+			std::cout << "WARNING: Mooring line " << nLine << " tension is high. " << std::endl;
+		}
+
+	} else {
+
+		if ( posAnch[2]==fondo && posFair[2]==fondo ) throw 2;
+		if (xF<1e-5) throw 3;
+
+		floor_flag = -1;
+
+		this->qs_GetTen();
+		this->qs_Solution();
+
+		if(isnan(xc[0])) throw 5;
+
+		tenAnch[0] = cosa*HA;
+		tenAnch[1] = sina*HA;
+		tenAnch[2] = VA;
+
+		tenFair[0] = cosa*HF;
+		tenFair[1] = sina*HF;
+		tenFair[2] = VF;
+
+		for(int ii=0;ii<nNodos;ii++) {
+
+			pos[3*ii] = posAnch[0]+cosa*xc[ii];
+			pos[3*ii+1] = posAnch[1]+sina*xc[ii];
+			pos[3*ii+2] = posAnch[2]+zc[ii];
+			if (pos[3*ii+2]<=fondo && ii>=1) flag = 1; 
+		}
+
+		if (flag == 1) {
+
+			floor_flag = 1;
+
+			this->qs_GetTen();
+			this->qs_Solution();
+
+			if(isnan(xc[0])) throw 5;
+
+
+			tenAnch[0] = cosa*HA;
+			tenAnch[1] = sina*HA;
+			tenAnch[2] = VA;
+
+			tenFair[0] = cosa*HF;
+			tenFair[1] = sina*HF;
+			tenFair[2] = VF;
+
+			for(int ii=0;ii<nNodos;ii++) {
+				pos[3*ii] = posAnch[0]+cosa*xc[ii];
+				pos[3*ii+1] = posAnch[1]+sina*xc[ii];
+				pos[3*ii+2] = posAnch[2]+zc[ii];
+			}
+		}
+	}
+
+
+
+
+	for(int ii=0;ii<nNodos;ii++) {
+		vel[3*ii] = 0.0;
+		vel[3*ii+1] = 0.0;
+		vel[3*ii+2] = 0.0;
+	}
+	acc = vel;
 }
 
 
@@ -160,16 +319,8 @@ void TensorLine::initLine (void) {
 	zF=(posFair[2]-posAnch[2]);
 
 	double Li= sqrt(pow(xF,2)+pow(zF,2));
-	if (Li<L) {
-		try
-		{
-			throw 1;
-		}
-		catch (int e) 
-		{
-			std::cout<< "EL TENSOR NO ESTÁ TENSO" << std::endl;
-		}
-	}
+
+	if (Li<L) throw 4;
 
 	cosa=(posFair[0]-posAnch[0])/xF;
 	sina=(posFair[1]-posAnch[1])/xF;

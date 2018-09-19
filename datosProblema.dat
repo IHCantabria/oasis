@@ -1,5 +1,5 @@
 9.81 !Gravity acceleration
 1000.0 !Water density
-10.0 !Profundidad
+-10.0 !Coordenada vertical del suelo
 0.01 !Time step
 10.0 !Total time of simulation

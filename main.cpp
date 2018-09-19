@@ -52,11 +52,22 @@ int main () {
 
 	//INICIO LAS LINEAS Y PINTO RESULTADOS POR PANTALLA
 	for(int ii=0; ii<nMoorLines; ii++){
-
 		MoorLine[ii].set_nLine(ii+1);
+		try
+		{
 		MoorLine[ii].leer_datosMoorings();
-		MoorLine[ii].print_out();
 		MoorLine[ii].initLine();
+		}
+		catch (int e) 
+		{
+			if (e==0) std::cout<< "ERROR: Line " << MoorLine[ii].nLine << " is under the floor level." << std::endl << std::endl;
+			if (e==2) std::cout<< "ERROR: Mooring line " << MoorLine[ii].nLine << " is not tense and laying on the seafloor. It should be pretensed. " << std::endl << std::endl;
+			if (e==3) std::cout<< "ERROR: Mooring line " << MoorLine[ii].nLine << " is not tense and vertical. It should be pretensed. " << std::endl << std::endl;
+			if (e==5) {std::cout<< "ERROR: Mooring line " << MoorLine[ii].nLine << " initial shape can't be computed with QS method. " << std::endl;
+			std::cout<< "Try reaching the desired initial condition with the dynamic method from a different initial condition " << std::endl << std::endl;}
+			return 0;
+		}
+		MoorLine[ii].print_out();
 		MoorLine[ii].write_out();
 	}
 
@@ -67,9 +78,20 @@ int main () {
 	for(int ii=0; ii<nTowLines; ii++){
 
 		TowLine[ii].set_nLine(ii+1+nMoorLines);
+		try
+		{
 		TowLine[ii].leer_datosMoorings();
-		TowLine[ii].print_out();
 		TowLine[ii].initLine();
+		}
+		catch (int e) 
+		{
+			if (e==0) std::cout<< "ERROR: Line " << TowLine[ii].nLine << " is under the floor level. " << std::endl << std::endl;
+			if (e==1) std::cout<< "ERROR: Towing line " << TowLine[ii].nLine << " touches the seafloor. " << std::endl << std::endl;
+			if (e==5) {std::cout<< "ERROR: Mooring line " << MoorLine[ii].nLine << " initial shape can't be computed with QS method. " << std::endl;
+			std::cout<< "Try reaching the desired initial condition with the dynamic method from a different initial condition " << std::endl << std::endl;}
+			return 0;
+		}
+		TowLine[ii].print_out();
 		TowLine[ii].write_out();
 	}
 
@@ -80,9 +102,18 @@ int main () {
 	for(int ii=0; ii<nTenLines; ii++){
 
 		TenLine[ii].set_nLine(ii+1+nMoorLines+nTowLines);
+		try
+		{
 		TenLine[ii].leer_datosMoorings();
-		TenLine[ii].print_out();
 		TenLine[ii].initLine();
+		}
+		catch (int e) 
+		{
+			if (e==0) std::cout<< "ERROR: Line " << TenLine[ii].nLine << " is under the floor level. " << std::endl << std::endl;
+			if (e==4) std::cout<< "ERROR: Tensor line " << TenLine[ii].nLine << " is not tense. " << std::endl << std::endl;
+			return 0;
+		}
+		TenLine[ii].print_out();
 		TenLine[ii].write_out();
 	}
 
