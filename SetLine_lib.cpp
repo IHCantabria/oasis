@@ -10,10 +10,12 @@ Libreria para iniciar la linea, menos set_nLine que se define en la clase
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <cmath>
 #include "classes.h"
 
 extern double PI;
-extern int nLines;
+extern int nLines, nMoorLines, nTowLines, nTenLines;
+extern int nNodosTotal, nSistema;
 extern double g;
 extern double rhoW;
 extern double fondo;
@@ -35,19 +37,19 @@ void MotherLine::leer_datosMoorings () {
 	std::ifstream datosMoorings ("datosMoorings.dat");
 
 	//Ignoro las tres primeras lineas del fichero, que contiene el numero de lineas a estudiar
-	for(ii=1;ii<=3;ii++){
+	for(ii=1;ii<=3;ii=ii+1){
 		datosMoorings >> Dummy; datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');  // El ignore sirve para ignorar el texto de la linea
 	}
 
 	//Ignoro las lineas que ya se han leido
-	for(ii=1;ii<nLine;ii++){
-		for(jj=1;jj<=nInored;jj++){
+	for(ii=1;ii<nLine;ii=ii+1){
+		for(jj=1;jj<=nInored;jj=jj+1){
 			datosMoorings >> Dummy; datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
 		}
 	}
 
 	//Ignoro las tres primeras lineas, donde pone "New line"
-	for(ii=1;ii<=3;ii++){
+	for(ii=1;ii<=3;ii=ii+1){
 		datosMoorings >> Dummy; datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
 	}
 
@@ -89,7 +91,7 @@ void MotherLine::leer_datosMoorings () {
 	Te = new double[nNodos];
 
 
-	for(ii=0;ii<nNodos;ii++) s[ii]=ii*dL;
+	for(ii=0;ii<nNodos;ii=ii+1) s[ii]=ii*dL;
 }
 
 
@@ -126,8 +128,12 @@ void TowingLine::initLine (void) {
 	xF=sqrt(pow((posFair[0]-posAnch[0]),2)+pow((posFair[1]-posAnch[1]),2));
 	zF=(posFair[2]-posAnch[2]);
 
-	cosa=(posFair[0]-posAnch[0])/xF;
-	sina=(posFair[1]-posAnch[1])/xF;
+	if(xF==0){
+		cosa=0; sina=0;		
+	}else{
+		cosa=(posFair[0]-posAnch[0])/xF;
+		sina=(posFair[1]-posAnch[1])/xF;
+	}
 
 	double Li= sqrt(pow(xF,2)+pow(zF,2));
 
@@ -143,13 +149,13 @@ void TowingLine::initLine (void) {
 		tenFair[1] = 0;
 		tenFair[2] = 0;
 
-		for(int ii=0;ii<nNodos;ii++) {
+		for(int ii=0;ii<nNodos;ii=ii+1) {
 
 			xc[ii]=cost*ii*Li/(nNodos-1);
 			zc[ii]=sint*ii*Li/(nNodos-1);
 		}
 
-		for(int ii=0;ii<nNodos;ii++) {
+		for(int ii=0;ii<nNodos;ii=ii+1) {
 
 			pos[3*ii] = posAnch[0]+cosa*xc[ii];
 			pos[3*ii+1] = posAnch[1]+sina*xc[ii];
@@ -167,9 +173,6 @@ void TowingLine::initLine (void) {
 
 		if(isnan(xc[0])) throw 5;
 
-		std::cout << std::endl << "xc    " << xc[0] << "  " << xc[1] << "  " << xc[2] << "  " << xc[3] << "  " << xc[4] << "  " << xc[5] << std::endl;
-		std::cout << std::endl << "zc    " << zc[0] << "  " << zc[1] << "  " << zc[2] << "  " << zc[3] << "  " << zc[4] << "  " << zc[5] << std::endl << std::endl;
-
 
 		tenAnch[0] = cosa*HA;
 		tenAnch[1] = sina*HA;
@@ -179,7 +182,7 @@ void TowingLine::initLine (void) {
 		tenFair[1] = sina*HF;
 		tenFair[2] = VF;
 
-		for(int ii=0;ii<nNodos;ii++) {
+		for(int ii=0;ii<nNodos;ii=ii+1) {
 
 			pos[3*ii] = posAnch[0]+cosa*xc[ii];
 			pos[3*ii+1] = posAnch[1]+sina*xc[ii];
@@ -190,7 +193,7 @@ void TowingLine::initLine (void) {
 		}
 	}
 
-	for(int ii=0;ii<nNodos;ii++) {
+	for(int ii=0;ii<nNodos;ii=ii+1) {
 		vel[3*ii] = 0.0;
 		vel[3*ii+1] = 0.0;
 		vel[3*ii+2] = 0.0;
@@ -207,8 +210,13 @@ void MooringLine::initLine (void) {
 
 	xF=sqrt(pow((posFair[0]-posAnch[0]),2)+pow((posFair[1]-posAnch[1]),2));
 	zF=(posFair[2]-posAnch[2]);
-	cosa=(posFair[0]-posAnch[0])/xF;
-	sina=(posFair[1]-posAnch[1])/xF;
+
+	if(xF==0){
+		cosa=0; sina=0;		
+	}else{
+		cosa=(posFair[0]-posAnch[0])/xF;
+		sina=(posFair[1]-posAnch[1])/xF;
+	}
 
 	double Li= sqrt(pow(xF,2)+pow(zF,2));
 
@@ -224,13 +232,13 @@ void MooringLine::initLine (void) {
 		tenFair[1] = 0;
 		tenFair[2] = 0;
 
-		for(int ii=0;ii<nNodos;ii++) {
+		for(int ii=0;ii<nNodos;ii=ii+1) {
 
 			xc[ii]=cost*ii*Li/(nNodos-1);
 			zc[ii]=sint*ii*Li/(nNodos-1);
 		}
 
-		for(int ii=0;ii<nNodos;ii++) {
+		for(int ii=0;ii<nNodos;ii=ii+1) {
 
 			pos[3*ii] = posAnch[0]+cosa*xc[ii];
 			pos[3*ii+1] = posAnch[1]+sina*xc[ii];
@@ -266,7 +274,7 @@ void MooringLine::initLine (void) {
 		tenFair[1] = sina*HF;
 		tenFair[2] = VF;
 
-		for(int ii=0;ii<nNodos;ii++) {
+		for(int ii=0;ii<nNodos;ii=ii+1) {
 
 			pos[3*ii] = posAnch[0]+cosa*xc[ii];
 			pos[3*ii+1] = posAnch[1]+sina*xc[ii];
@@ -274,7 +282,9 @@ void MooringLine::initLine (void) {
 			if (pos[3*ii+2]<=fondo && ii>=1) flag = 1; 
 		}
 
-		if (flag == 1) {
+		if ((flag == 1)&&posAnch[2]>fondo) throw 6;
+
+		if ((flag == 1)&&posAnch[2]==fondo) {
 
 			floor_flag = 1;
 
@@ -292,7 +302,7 @@ void MooringLine::initLine (void) {
 			tenFair[1] = sina*HF;
 			tenFair[2] = VF;
 
-			for(int ii=0;ii<nNodos;ii++) {
+			for(int ii=0;ii<nNodos;ii=ii+1) {
 				pos[3*ii] = posAnch[0]+cosa*xc[ii];
 				pos[3*ii+1] = posAnch[1]+sina*xc[ii];
 				pos[3*ii+2] = posAnch[2]+zc[ii];
@@ -303,7 +313,7 @@ void MooringLine::initLine (void) {
 
 
 
-	for(int ii=0;ii<nNodos;ii++) {
+	for(int ii=0;ii<nNodos;ii=ii+1) {
 		vel[3*ii] = 0.0;
 		vel[3*ii+1] = 0.0;
 		vel[3*ii+2] = 0.0;
@@ -322,8 +332,12 @@ void TensorLine::initLine (void) {
 
 	if (Li<L) throw 4;
 
-	cosa=(posFair[0]-posAnch[0])/xF;
-	sina=(posFair[1]-posAnch[1])/xF;
+	if(xF==0){
+		cosa=0; sina=0;		
+	}else{
+		cosa=(posFair[0]-posAnch[0])/xF;
+		sina=(posFair[1]-posAnch[1])/xF;
+	}
 
 	double cost=xF/Li;
 	double sint=zF/Li;
@@ -336,7 +350,7 @@ void TensorLine::initLine (void) {
 	tenFair[1] = 0;
 	tenFair[2] = 0;
 
-	for(int ii=0;ii<nNodos;ii++) {
+	for(int ii=0;ii<nNodos;ii=ii+1) {
 
 		xc[ii]=cost*ii*Li/(nNodos-1);
 		zc[ii]=sint*ii*Li/(nNodos-1);
@@ -367,21 +381,21 @@ void MotherLine::write_out (void) {
 	nn1=sprintf(buffer1,"NodePosX_%d.txt", nLine);
 	std::ofstream xpos(buffer1);
 		xpos << t << "    ";
-		for(ii=0;ii<nNodos;ii++) xpos <<  posAnch[0]+cosa*xc[ii] << "    ";
+		for(ii=0;ii<nNodos;ii=ii+1) xpos <<  this->pos[3*ii] << "    ";
 		xpos << std::endl;
 	xpos.close();
 
 	nn2=sprintf(buffer2,"NodePosY_%d.txt", nLine);
 	std::ofstream ypos(buffer2);
 		ypos << t << "    ";
-		for(ii=0;ii<nNodos;ii++) ypos <<  posAnch[1]+sina*xc[ii] << "    ";
+		for(ii=0;ii<nNodos;ii=ii+1) ypos <<  this->pos[3*ii+1] << "    ";
 		ypos << std::endl;
 	ypos.close();
 
 	nn3=sprintf(buffer3,"NodePosZ_%d.txt", nLine);
 	std::ofstream zpos(buffer3);
 		zpos << t << "    ";
-		for(ii=0;ii<nNodos;ii++) zpos << posAnch[2]+zc[ii] << "    ";
+		for(ii=0;ii<nNodos;ii=ii+1) zpos << this->pos[3*ii+2] << "    ";
 		zpos << std::endl;
 	zpos.close();
 

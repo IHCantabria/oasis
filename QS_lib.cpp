@@ -10,11 +10,13 @@ Libreria de método Quasi Static
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <cmath>
 #include "classes.h"
 
 
 extern double PI;
-extern int nLines;
+extern int nLines, nMoorLines, nTowLines, nTenLines;
+extern int nNodosTotal, nSistema;
 extern double g;
 extern double rhoW;
 extern double fondo;
@@ -52,7 +54,7 @@ void MotherLine::qs_Functions(double& ff,double& gg,double& DfDH,double& DfDV,do
 		gg = (1.0/EA) * (VF * L - 0.5*om*L*L) + (HF/om) * (tempSq - tempOmSq)-zF;
 
 		DfDH = L/EA + (tempLg - tempOmLg) / om  - ((temp + temp2/tempSq) / (temp + tempSq)  -  (tempOm + tempOm2/tempOmSq) / (tempOm + tempOmSq) ) / om;
-		DfDV = ((1 + temp/tempSq) / (temp + tempSq)  - (1 + tempOm/tempOmSq) / (tempOm + tempOmSq)) / om;
+		DfDV = ((1.0 + temp/tempSq) / (temp + tempSq)  - (1.0 + tempOm/tempOmSq) / (tempOm + tempOmSq)) / om;
 		DgDH = (tempSq - tempOmSq) / om - ((temp2/tempSq) - (tempOm2 / tempOmSq)) / om;
 		DgDV = L/EA + ( (temp / tempSq) - (tempOm / tempOmSq)) / om;
 
@@ -72,12 +74,13 @@ void MotherLine::qs_Functions(double& ff,double& gg,double& DfDH,double& DfDV,do
 
 		LmVFpOm = L - (VF/om);
 
-		ff = HF*L/(EA) + (HF/om) * tempLg + LmVFpOm  + CB * om *0.5 /(EA) * ( -LmVFpOm*LmVFpOm + (LmVFpOm - HF/(CB*om)) * (LmVFpOm - HF/(CB*om)))-xF;
+		ff = HF*L/(EA) + (HF/om) * tempLg + LmVFpOm  + CB * om *0.5 /(EA) * ( -LmVFpOm*LmVFpOm  + (LmVFpOm - HF/(CB*om)) * (LmVFpOm - HF/(CB*om)))-xF;
 		gg = (1.0/EA) * (VF * L - 0.5*om*L*L) + (HF/om) * (tempSq - 1.0)-zF;
+
 
 		DfDH = L/(EA) + (tempLg) / om  - ((temp + temp2/tempSq) / (temp + tempSq) ) / om  - (LmVFpOm - (HF/(CB*om))) / (EA);
 		DfDV = ((1.0 + temp/tempSq) / (temp + tempSq) ) / om  + HF/(om*EA)  - 1.0/om;
-		DgDH = (tempSq - 1.0 - (temp2/tempSq) ) / om;
+		DgDH = (tempSq - 1.0 - (temp2/tempSq) ) / om; 
 		DgDV = L/EA + (temp / tempSq) / om;
 
 	};
@@ -107,24 +110,27 @@ void MotherLine::qs_GetTen(void){
 	lambda=sqrt(3.0*((L*L-zF*zF)/(xF*xF)-1.0));
 
 
-	HF=abs(om*xF*0.5/lambda);
+	HF=std::abs(om*xF*0.5/lambda);
+
 	VF=0.5*om*(zF/tanh(lambda)+L);
 
 	//Using Newton-Raphso
-	dH=xF;
-	while((nIter<=nMaxIter)&&(abs(dH)>tol)){
+	dH=2*tol;
 
-		nIter++;
+	while((nIter<nMaxIter)&&(std::abs(dH)>tol)){
+
+		nIter=nIter+1;
 		this->qs_Functions(ff,gg,DfDH,DfDV,DgDH,DgDV);
 
 		//Compute the determinant of the Jacobian matrix
 		deter = DfDH * DgDV - DfDV * DgDH;
-		if (abs(deter) < tol*1.0E-5){
+		if (std::abs(deter) < tol){
+			std::cout << "WARNING: In QS method, singular Jacobian"<<std::endl<<std::endl;
 			break;
 		};
 
 		//Apply that the increment in the iterant is \De x_{n} = - inv(Jac) * f(x_{n})
-		dH = ( - DgDV * ff + DfDV * gg ) / deter;
+		dH =   -( DgDV * ff - DfDV * gg ) / deter;
 		dV =   ( DgDH * ff - DfDH * gg ) / deter;
 		dH = dH * (1.0 - nIter*tol);
 		dV = dV * (1.0 - nIter*tol);
@@ -133,14 +139,13 @@ void MotherLine::qs_GetTen(void){
 		//Update the iterant 
 		HF = HF + dH;
 		VF = VF + dV;
-
 		//To avoid problems, we impose Tol as the lower limit
 		HF = std::max(HF, tol);
 		VF = std::max(VF, tol);
-
-
 	};
 
+	//std::cout<<"nIter QS:  "<<nIter<<std::endl<<std::endl;
+	std::cout<<std::endl<<"Tension obtenida:  "<<HF<<"   "<<VF<<std::endl<<std::endl;
 }
 
 
@@ -154,7 +159,7 @@ void MotherLine::qs_Solution(void){
 	if ( (floor_flag < 0.0) || (om < 0.0) || (VF > om*L) ) {
 		HA=HF;
 		VA=VF;
-		for(ii=0;ii<nNodos;ii++){
+		for(ii=0;ii<nNodos;ii=ii+1){
 			temp1[ii] = ( VF - om*L + om*s[ii]) / HF;
 			temp2 = ( VF - om*L) / HF;
 			xc[ii] = HF*s[ii]/EA + (HF/om) * (log(temp1[ii] + sqrt(1.0+temp1[ii]*temp1[ii]))-log(temp2 + sqrt(1.0+temp2*temp2)));
@@ -166,7 +171,7 @@ void MotherLine::qs_Solution(void){
 	} else if (-CB * (VF - om*L) < HF) {
 		HA = HF + CB * (VF - om*L);
 		VA = 0.0;
-		for(ii=0;ii<nNodos;ii++){
+		for(ii=0;ii<nNodos;ii=ii+1){
 			temp1[ii] = ( VF - om*L + om*s[ii]) / HF;
 			temp2 = ( VF - om*L) / HF;
 			if( s[ii] <= L - VF/om ) {
@@ -186,7 +191,7 @@ void MotherLine::qs_Solution(void){
 	} else {
 		HA = 0.0;
 		VA = 0.0;
-		for(ii=0;ii<nNodos;ii++){
+		for(ii=0;ii<nNodos;ii=ii+1){
 			temp1[ii] = ( VF - om*L + om*s[ii]) / HF;
 			temp2 = ( VF - om*L) / HF;
 			if (s[ii] <= L - VF/om - HF/(om*CB)) {
