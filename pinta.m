@@ -5,10 +5,10 @@ clear all
 figure(1)
 cla
 
-path='/home/biblioteca/GIT_repositorios/NuevoFEM_cpp/';
+path='\\cluster.ihcantabria.com\rodriguezlua\MooringsCPP\';
 color=['ro-';'go-';'bo-'];
-Xa=load('/home/biblioteca/Desktop/CABLE_DYNAMICS/Jose_Armesto/Ejemplos/3.48/prueba/Aamo_PosicionX.dat');
-Za=load('/home/biblioteca/Desktop/CABLE_DYNAMICS/Jose_Armesto/Ejemplos/3.48/prueba/Aamo_PosicionZ.dat');
+Xa=load('E:\Ordenador_Biblioteca_Alvaro\CABLE_DYNAMICS_2\Jose_Armesto\Ejemplos\3.48\prueba\Aamo_PosicionX.dat');
+Za=load('E:\Ordenador_Biblioteca_Alvaro\CABLE_DYNAMICS_2\Jose_Armesto\Ejemplos\3.48\prueba\Aamo_PosicionZ.dat');
 nn=size(Xa,2);
 for ii=1:3
     X=load([path 'NodePosX_' num2str(ii) '.txt']);

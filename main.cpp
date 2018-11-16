@@ -11,6 +11,8 @@ MAIN DE LA IMPLEMENTACION DE NuevosFEM EN C++
 #include <stdio.h>
 #include <cmath>
 #include "classes.h"
+#include <boost/numeric/odeint.hpp>
+#include <armadillo>
 
 
 double PI;

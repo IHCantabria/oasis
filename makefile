@@ -1,5 +1,5 @@
 CC = g++                # Compiler macro
-CFLAGS = -I.            # List of flags to pass to the compilation command macro (. -> directorio)
+CFLAGS = -std=c++11 -O2 -I /home/users/rodriguezlua/ArmadilloIH/armadillo-9.100.5/bin/include -DARMA_DONT_USE_WRAPPER -lopenblas            # List of flags to pass to the compilation command macro (. -> directorio)
 DEPS = classes.h        # Set of .h files on which the .cpp files depend macro
 OBJ = main.o SetLine_lib.o QS_lib.o  # Object files macro
 
