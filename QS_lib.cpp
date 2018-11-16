@@ -153,65 +153,65 @@ void MotherLine::qs_Solution(void){
 
 	int ii, jj, nIter, nNodosFondo;
 	double om = (rho0-rhoW*A)*g;
-	double temp1[nNodos];
+	arma::mat temp1 = arma::zeros(nNodos,1);
 	double temp2;
 
 	if ( (floor_flag < 0.0) || (om < 0.0) || (VF > om*L) ) {
 		HA=HF;
 		VA=VF;
 		for(ii=0;ii<nNodos;ii=ii+1){
-			temp1[ii] = ( VF - om*L + om*s[ii]) / HF;
+			temp1(ii,0) = ( VF - om*L + om*s(ii,0)) / HF;
 			temp2 = ( VF - om*L) / HF;
-			xc[ii] = HF*s[ii]/EA + (HF/om) * (log(temp1[ii] + sqrt(1.0+temp1[ii]*temp1[ii]))-log(temp2 + sqrt(1.0+temp2*temp2)));
-			zc[ii] = s[ii]/(EA) * (VF - om*L + 0.5*om*s[ii]) +  (HF/om) * (sqrt(1.0+temp1[ii]*temp1[ii]) - sqrt(1.0+temp2*temp2));
-			dxcds[ii] = HF/EA + (HF/om)*( (om/HF + om*temp1[ii]/(HF*sqrt(1.0+temp1[ii]*temp1[ii])) ) / (temp1[ii]+sqrt(1.0+temp1[ii]*temp1[ii])));
-			dzcds[ii] = (VF - om*L + om*s[ii])/EA + (HF/om)*(om*temp1[ii]/(HF*sqrt(1.0+temp1[ii]*temp1[ii])));
-			Te[ii] = sqrt(HF*HF + (VF - om*L + om*s[ii])*(VF - om*L + om*s[ii]));
+			xc(ii,0) = HF*s(ii,0)/EA + (HF/om) * (log(temp1(ii,0) + sqrt(1.0+temp1(ii,0)*temp1(ii,0)))-log(temp2 + sqrt(1.0+temp2*temp2)));
+			zc(ii,0) = s(ii,0)/(EA) * (VF - om*L + 0.5*om*s(ii,0)) +  (HF/om) * (sqrt(1.0+temp1(ii,0)*temp1(ii,0)) - sqrt(1.0+temp2*temp2));
+			dxcds(ii,0) = HF/EA + (HF/om)*( (om/HF + om*temp1(ii,0)/(HF*sqrt(1.0+temp1(ii,0)*temp1(ii,0))) ) / (temp1(ii,0)+sqrt(1.0+temp1(ii,0)*temp1(ii,0))));
+			dzcds(ii,0) = (VF - om*L + om*s(ii,0))/EA + (HF/om)*(om*temp1(ii,0)/(HF*sqrt(1.0+temp1(ii,0)*temp1(ii,0))));
+			Te(ii,0) = sqrt(HF*HF + (VF - om*L + om*s(ii,0))*(VF - om*L + om*s(ii,0)));
 		}
 	} else if (-CB * (VF - om*L) < HF) {
 		HA = HF + CB * (VF - om*L);
 		VA = 0.0;
 		for(ii=0;ii<nNodos;ii=ii+1){
-			temp1[ii] = ( VF - om*L + om*s[ii]) / HF;
+			temp1(ii,0) = ( VF - om*L + om*s(ii,0)) / HF;
 			temp2 = ( VF - om*L) / HF;
-			if( s[ii] <= L - VF/om ) {
-				xc[ii] = s[ii] + (s[ii] / EA) * (HF + CB * (VF-om*L +0.5*om*s[ii]*CB));
-				zc[ii] = 0.0;
-				dxcds[ii] = 1.0 +(HF + CB*( VF - om*L + om*s[ii]*CB) )/EA;
-				dzcds[ii] = 0.0;
-				Te[ii] = HF + CB * (VF-om*L  + om*s[ii]);
+			if( s(ii,0) <= L - VF/om ) {
+				xc(ii,0) = s(ii,0) + (s(ii,0) / EA) * (HF + CB * (VF-om*L +0.5*om*s(ii,0)*CB));
+				zc(ii,0) = 0.0;
+				dxcds(ii,0) = 1.0 +(HF + CB*( VF - om*L + om*s(ii,0)*CB) )/EA;
+				dzcds(ii,0) = 0.0;
+				Te(ii,0) = HF + CB * (VF-om*L  + om*s(ii,0));
 			} else {
-				xc[ii] = HF*s[ii]/EA + (HF/om) * (log(temp1[ii] + sqrt(1.0+temp1[ii]*temp1[ii])))  + L - VF/om - 0.5*CB*( VF - om*L)*( VF - om*L)/(om*EA);
-				zc[ii] = (HF/om) * (-1.0+sqrt(1.0+temp1[ii]*temp1[ii])) + s[ii]/(EA) * (VF - om*L + 0.5*om*s[ii]) + 0.5 * ( VF - om*L)*( VF - om*L)/(om*EA);
-				dxcds[ii] = HF/EA + (HF/om)*( (om/HF + om*temp1[ii]/(HF*sqrt(1.0+temp1[ii]*temp1[ii])) ) / (temp1[ii]+sqrt(1.0+temp1[ii]*temp1[ii])) );
-				dzcds[ii] = (HF/om)*(om*temp1[ii]/(HF*sqrt(1.0+temp1[ii]*temp1[ii]))) + (VF - om*L + om*s[ii])/EA;
-				Te[ii] = sqrt(HF*HF + (VF - om*L + om*s[ii])*(VF - om*L + om*s[ii]));
+				xc(ii,0) = HF*s(ii,0)/EA + (HF/om) * (log(temp1(ii,0) + sqrt(1.0+temp1(ii,0)*temp1(ii,0))))  + L - VF/om - 0.5*CB*( VF - om*L)*( VF - om*L)/(om*EA);
+				zc(ii,0) = (HF/om) * (-1.0+sqrt(1.0+temp1(ii,0)*temp1(ii,0))) + s(ii,0)/(EA) * (VF - om*L + 0.5*om*s(ii,0)) + 0.5 * ( VF - om*L)*( VF - om*L)/(om*EA);
+				dxcds(ii,0) = HF/EA + (HF/om)*( (om/HF + om*temp1(ii,0)/(HF*sqrt(1.0+temp1(ii,0)*temp1(ii,0))) ) / (temp1(ii,0)+sqrt(1.0+temp1(ii,0)*temp1(ii,0))) );
+				dzcds(ii,0) = (HF/om)*(om*temp1(ii,0)/(HF*sqrt(1.0+temp1(ii,0)*temp1(ii,0)))) + (VF - om*L + om*s(ii,0))/EA;
+				Te(ii,0) = sqrt(HF*HF + (VF - om*L + om*s(ii,0))*(VF - om*L + om*s(ii,0)));
 			}
 		}
 	} else {
 		HA = 0.0;
 		VA = 0.0;
 		for(ii=0;ii<nNodos;ii=ii+1){
-			temp1[ii] = ( VF - om*L + om*s[ii]) / HF;
+			temp1(ii,0) = ( VF - om*L + om*s(ii,0)) / HF;
 			temp2 = ( VF - om*L) / HF;
-			if (s[ii] <= L - VF/om - HF/(om*CB)) {
-				xc[ii]=s[ii];
-				zc[ii] = 0.0;
-				dxcds[ii] = 1.0;
-				dzcds[ii] = 0.0;
-				Te[ii] = 0.0;
-			} else if (s[ii] <= L - VF/om) {
-				xc[ii] = s[ii] - (L - (VF/om) -0.5*HF/(om*CB) ) * (HF/EA) + (s[ii] / EA ) * (HF + CB * (VF-om*L) +0.5*om*s[ii]*CB) + 0.5 * CB*(VF-om*L)*(VF-om*L)/(om*EA);
-				zc[ii] = 0.0;				
-				dxcds[ii] = 1.0 + (HF + CB*( VF - om*L ) + om*s[ii]*CB )/EA;
-				dzcds[ii] = 0.0;
-				Te[ii] = HF + CB * (VF-om*L  + om*s[ii]);
+			if (s(ii,0) <= L - VF/om - HF/(om*CB)) {
+				xc(ii,0)=s(ii,0);
+				zc(ii,0) = 0.0;
+				dxcds(ii,0) = 1.0;
+				dzcds(ii,0) = 0.0;
+				Te(ii,0) = 0.0;
+			} else if (s(ii,0) <= L - VF/om) {
+				xc(ii,0) = s(ii,0) - (L - (VF/om) -0.5*HF/(om*CB) ) * (HF/EA) + (s(ii,0) / EA ) * (HF + CB * (VF-om*L) +0.5*om*s(ii,0)*CB) + 0.5 * CB*(VF-om*L)*(VF-om*L)/(om*EA);
+				zc(ii,0) = 0.0;				
+				dxcds(ii,0) = 1.0 + (HF + CB*( VF - om*L ) + om*s(ii,0)*CB )/EA;
+				dzcds(ii,0) = 0.0;
+				Te(ii,0) = HF + CB * (VF-om*L  + om*s(ii,0));
 			} else {
-				xc[ii] = HF*s[ii]/(EA) + (HF/om) * (log(temp1[ii] + sqrt(1.0+temp1[ii]*temp1[ii]))) + L - VF/om - ( L - VF/om - 0.5 * HF / (om*CB))* HF/(EA);
-				zc[ii] = (HF/om) * (-1.0+sqrt(1.0+temp1[ii]*temp1[ii])) + s[ii]/(EA) * (VF - om*L + 0.5*om*s[ii]) + 0.5 * ( VF - om*L)*( VF - om*L)/(om*EA);
-				dxcds[ii] = HF/EA + (HF/om)*( (om/HF + om*temp1[ii]/(HF*sqrt(1.0+temp1[ii]*temp1[ii])) ) / (temp1[ii]+sqrt(1.0+temp1[ii]*temp1[ii])) );
-				dzcds[ii] = (HF/om)*(om*temp1[ii]/(HF*sqrt(1.0+temp1[ii]*temp1[ii]))) + (VF - om*L + om*s[ii])/EA;
-				Te[ii] = sqrt(HF*HF + (VF - om*L + om*s[ii])*(VF - om*L + om*s[ii]));
+				xc(ii,0) = HF*s(ii,0)/(EA) + (HF/om) * (log(temp1(ii,0) + sqrt(1.0+temp1(ii,0)*temp1(ii,0)))) + L - VF/om - ( L - VF/om - 0.5 * HF / (om*CB))* HF/(EA);
+				zc(ii,0) = (HF/om) * (-1.0+sqrt(1.0+temp1(ii,0)*temp1(ii,0))) + s(ii,0)/(EA) * (VF - om*L + 0.5*om*s(ii,0)) + 0.5 * ( VF - om*L)*( VF - om*L)/(om*EA);
+				dxcds(ii,0) = HF/EA + (HF/om)*( (om/HF + om*temp1(ii,0)/(HF*sqrt(1.0+temp1(ii,0)*temp1(ii,0))) ) / (temp1(ii,0)+sqrt(1.0+temp1(ii,0)*temp1(ii,0))) );
+				dzcds(ii,0) = (HF/om)*(om*temp1(ii,0)/(HF*sqrt(1.0+temp1(ii,0)*temp1(ii,0)))) + (VF - om*L + om*s(ii,0))/EA;
+				Te(ii,0) = sqrt(HF*HF + (VF - om*L + om*s(ii,0))*(VF - om*L + om*s(ii,0)));
 			}
 		}
 	}

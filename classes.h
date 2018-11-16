@@ -1,12 +1,16 @@
 /*  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	CLASE CatLine  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 */
+
+#include <armadillo>
+
 class MotherLine {
 public:
 	int nLine, nNodos, floor_flag;
 	double L, dL, EA, beta, rho0, d, A, Cdt, Cdn, Cmn, CB, GK, GC, Gmu, Gvc, Dz;
-	double tenAnch[3], tenFair[3], posAnch[3], posFair[3];
-	double * pos, * vel, * acc, * s, * xc, * zc, * dxcds, * dzcds, * Te;
+	arma::mat tenAnch = arma::zeros(3,1), tenFair = arma::zeros(3,1);
+	arma::mat posAnch = arma::zeros(3,1), posFair = arma::zeros(3,1);
+	arma::mat pos, vel, acc, s, xc, zc, dxcds, dzcds, Te;
 	double xF, zF, HF, VF, HA, VA, cosa, sina;
 	void set_nLine(int n){nLine=n;}
 	void leer_datosMoorings(void);

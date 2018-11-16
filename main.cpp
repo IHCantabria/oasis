@@ -14,6 +14,38 @@ MAIN DE LA IMPLEMENTACION DE NuevosFEM EN C++
 #include <boost/numeric/odeint.hpp>
 #include <armadillo>
 
+namespace boost { namespace numeric { namespace odeint {
+
+template <>
+struct is_resizeable<arma::vec>
+{
+    typedef boost::true_type type;
+    const static bool value = type::value;
+};
+
+template <>
+struct same_size_impl<arma::vec, arma::vec>
+{
+    static bool same_size(const arma::vec& x, const arma::vec& y)
+    {
+        return x.size() == y.size();   // not sure if this is correct for arma
+    }
+};
+
+template<>
+struct resize_impl<arma::vec, arma::vec>
+{
+    static void resize(arma::vec& v1, const arma::vec& v2)
+    {
+        v1.resize(v2.size());     // not sure if this is correct for arma
+    }
+};
+
+} } }
+
+
+namespace ode = boost::numeric::odeint;
+
 
 double PI;
 int nLines, nMoorLines, nTowLines, nTenLines;
@@ -135,123 +167,55 @@ int main () {
 
 	nSistema=3*2*nNodosTotal;
 
-	double * y = new double[nSistema];
-	double * yprime = new double[nSistema];
+
+	arma::mat y = arma::zeros(nSistema,1);
+	arma::mat yprime = arma::zeros(nSistema,1);
 	int ini=0;
 
 	if(flag_read_eq==0){
 		for(int ii=0; ii<nMoorLines; ii=ii+1){
 			for(int jj=0; jj<MoorLine[ii].nNodos; jj=jj+1){
-
-					y[ini]=MoorLine[ii].pos[3*jj];
-					y[ini+1]=MoorLine[ii].pos[3*jj+1];
-					y[ini+2]=MoorLine[ii].pos[3*jj+2];
-					yprime[ini]=0.0;
-					yprime[ini+1]=0.0;
-					yprime[ini+2]=0.0;
-
+					y.rows(ini,ini+2) = MoorLine[ii].pos.rows(3*jj,3*jj+2);
 					ini=ini+3;
-
-					//std::cout << "HOLAAAA  1    " << ini << std::endl; 
 			}
 		}
 		for(int ii=0; ii<nTowLines; ii=ii+1){
 			for(int jj=0; jj<TowLine[ii].nNodos; jj=jj+1){
-
-					y[ini]=TowLine[ii].pos[3*jj];
-					y[ini+1]=TowLine[ii].pos[3*jj+1];
-					y[ini+2]=TowLine[ii].pos[3*jj+2];
-					yprime[ini]=0.0;
-					yprime[ini+1]=0.0;
-					yprime[ini+2]=0.0;
-
+					y.rows(ini,ini+2) = TowLine[ii].pos.rows(3*jj,3*jj+2);
 					ini=ini+3;
-
-					//std::cout << "HOLAAAA  2    " << ini << std::endl;
 			}		
 		}
 		for(int ii=0; ii<nTenLines; ii=ii+1){
 			for(int jj=0; jj<TenLine[ii].nNodos; jj=jj+1){
-
-					y[ini]=TenLine[ii].pos[3*jj];
-					y[ini+1]=TenLine[ii].pos[3*jj+1];
-					y[ini+2]=TenLine[ii].pos[3*jj+2];
-					yprime[ini]=0.0;
-					yprime[ini+1]=0.0;
-					yprime[ini+2]=0.0;
-
+					y.rows(ini,ini+2) = TenLine[ii].pos.rows(3*jj,3*jj+2);
 					ini=ini+3;
-
-					//std::cout << "HOLAAAA  3    " << ini << std::endl;
 			}		
-		}
-
-		for(int ii=nSistema/2; ii<nSistema; ii=ii+1){
-			y[ii]=0.0;
-			yprime[ii]=0.0;
 		}
 
 	}else if (flag_read_eq==1){
 	 	std::ifstream equi("Equilibrio.dat");
 			for(int ii=0;ii<nSistema;ii=ii+1) {
-				equi >> y[ii];    equi.ignore(std::numeric_limits<int>::max(), '\n');
-				yprime[ii]=0.0;
+				equi >> y(ii,0);    equi.ignore(std::numeric_limits<int>::max(), '\n');
 			}
 		equi.close();
 
 		ini=0;
 		for(int ii=0; ii<nMoorLines; ii=ii+1){
 			for(int jj=0; jj<MoorLine[ii].nNodos; jj=jj+1){
-
-					MoorLine[ii].pos[3*jj]=y[ini];
-					MoorLine[ii].pos[3*jj+1]=y[ini+1];
-					MoorLine[ii].pos[3*jj+2]=y[ini+2];
-					MoorLine[ii].vel[3*jj]=y[ini];
-					MoorLine[ii].vel[3*jj+1]=y[ini+1];
-					MoorLine[ii].vel[3*jj+2]=y[ini+2];
-					MoorLine[ii].acc[3*jj]=y[ini];
-					MoorLine[ii].acc[3*jj+1]=y[ini+1];
-					MoorLine[ii].acc[3*jj+2]=y[ini+2];
-
-					ini=ini+3;
-
-					//std::cout << "HOLAAAA  1    " << ini << std::endl; 
+				MoorLine[ii].pos.rows(3*jj,3*jj+2)=y.rows(ini,ini+2);
+				ini=ini+3;
 			}
 		}
 		for(int ii=0; ii<nTowLines; ii=ii+1){
 			for(int jj=0; jj<TowLine[ii].nNodos; jj=jj+1){
-
-					TowLine[ii].pos[3*jj]=y[ini];
-					TowLine[ii].pos[3*jj+1]=y[ini+1];
-					TowLine[ii].pos[3*jj+2]=y[ini+2];
-					TowLine[ii].vel[3*jj]=y[ini];
-					TowLine[ii].vel[3*jj+1]=y[ini+1];
-					TowLine[ii].vel[3*jj+2]=y[ini+2];
-					TowLine[ii].acc[3*jj]=y[ini];
-					TowLine[ii].acc[3*jj+1]=y[ini+1];
-					TowLine[ii].acc[3*jj+2]=y[ini+2];
-
-					ini=ini+3;
-
-					//std::cout << "HOLAAAA  2    " << ini << std::endl;
+				TowLine[ii].pos.rows(3*jj,3*jj+2)=y.rows(ini,ini+2);
+				ini=ini+3;
 			}		
 		}
 		for(int ii=0; ii<nTenLines; ii=ii+1){
 			for(int jj=0; jj<TenLine[ii].nNodos; jj=jj+1){
-
-					TenLine[ii].pos[3*jj]=y[ini];
-					TenLine[ii].pos[3*jj+1]=y[ini+1];
-					TenLine[ii].pos[3*jj+2]=y[ini+2];
-					TenLine[ii].vel[3*jj]=y[ini];
-					TenLine[ii].vel[3*jj+1]=y[ini+1];
-					TenLine[ii].vel[3*jj+2]=y[ini+2];
-					TenLine[ii].acc[3*jj]=y[ini];
-					TenLine[ii].acc[3*jj+1]=y[ini+1];
-					TenLine[ii].acc[3*jj+2]=y[ini+2];
-
-					ini=ini+3;
-
-					//std::cout << "HOLAAAA  3    " << ini << std::endl;
+				TenLine[ii].pos.rows(3*jj,3*jj+2)=y.rows(ini,ini+2);
+				ini=ini+3;
 			}		
 		}
 	}
@@ -259,7 +223,7 @@ int main () {
 
 	if (flag_write_eq == 1) {
 		std::ofstream equi("Equilibrio.dat");
-			for(int ii=0;ii<nSistema;ii=ii+1) equi << y[ii] << std::endl;
+			for(int ii=0;ii<nSistema;ii=ii+1) equi << y(ii,0) << std::endl;
 		equi.close();
 	}
 
