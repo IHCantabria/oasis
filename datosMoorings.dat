@@ -4,8 +4,9 @@
 !!!!!!!!! 
 !!!!!!!!! New line [1]
 !!!!!!!!! 
-20 ! Number of nodes used to divide catenary i 
-10.305 ! Length of catenary i 
+12 ! Number of nodes used to divide catenary i
+5 ! Order of the elements of catenary i
+11 ! Length of catenary i 
 0.162 ! Weight over water of catenary i (kg/m)  
 0.0052 ! Diameter of the section of catenary i  
 364299 ! Youngs module multiplied by the Area for catenary i  
@@ -24,7 +25,8 @@
 !!!!!!!!! 
 !!!!!!!!! New line [1]
 !!!!!!!!! 
-20 ! Number of nodes used to divide catenary i 
+21 ! Number of nodes used to divide catenary i
+5 ! Order of the elements of catenary i
 20.0 ! Length of catenary i 
 0.162 ! Weight over water of catenary i (kg/m)  
 0.0052 ! Diameter of the section of catenary i  
@@ -44,7 +46,8 @@
 !!!!!!!!! 
 !!!!!!!!! New line [1]
 !!!!!!!!! 
-6 ! Number of nodes used to divide catenary i 
+6 ! Number of nodes used to divide catenary i
+1 ! Order of the elements of catenary i
 4 ! Length of catenary i 
 0.162 ! Weight over water of catenary i (kg/m)  
 0.0052 ! Diameter of the section of catenary i  

@@ -11,40 +11,8 @@ MAIN DE LA IMPLEMENTACION DE NuevosFEM EN C++
 #include <stdio.h>
 #include <cmath>
 #include "classes.h"
-#include <boost/numeric/odeint.hpp>
 #include <armadillo>
 
-namespace boost { namespace numeric { namespace odeint {
-
-template <>
-struct is_resizeable<arma::vec>
-{
-    typedef boost::true_type type;
-    const static bool value = type::value;
-};
-
-template <>
-struct same_size_impl<arma::vec, arma::vec>
-{
-    static bool same_size(const arma::vec& x, const arma::vec& y)
-    {
-        return x.size() == y.size();   // not sure if this is correct for arma
-    }
-};
-
-template<>
-struct resize_impl<arma::vec, arma::vec>
-{
-    static void resize(arma::vec& v1, const arma::vec& v2)
-    {
-        v1.resize(v2.size());     // not sure if this is correct for arma
-    }
-};
-
-} } }
-
-
-namespace ode = boost::numeric::odeint;
 
 
 double PI;
@@ -98,6 +66,7 @@ int main () {
 		try
 		{
 		MoorLine[ii].leer_datosMoorings();
+		MoorLine[ii].print_out();
 		nNodosTotal=nNodosTotal+MoorLine[ii].nNodos;
 		if(flag_read_eq==0) MoorLine[ii].initLine();
 		}
@@ -111,7 +80,6 @@ int main () {
 			std::cout<< "Try reaching the desired initial condition with the dynamic method from a different initial condition " << std::endl << std::endl;}
 			return 0;
 		}
-		MoorLine[ii].print_out();
 		
 	}
 
@@ -125,6 +93,7 @@ int main () {
 		try
 		{
 		TowLine[ii].leer_datosMoorings();
+		TowLine[ii].print_out();
 		nNodosTotal=nNodosTotal+TowLine[ii].nNodos;
 		if(flag_read_eq==0) TowLine[ii].initLine();
 		}
@@ -136,7 +105,6 @@ int main () {
 			std::cout<< "Try reaching the desired initial condition with the dynamic method from a different initial condition " << std::endl << std::endl;}
 			return 0;
 		}
-		TowLine[ii].print_out();
 		
 	}
 
@@ -150,6 +118,7 @@ int main () {
 		try
 		{
 		TenLine[ii].leer_datosMoorings();
+		TenLine[ii].print_out();
 		nNodosTotal=nNodosTotal+TenLine[ii].nNodos;
 		if(flag_read_eq==0) TenLine[ii].initLine();
 		}
@@ -159,7 +128,6 @@ int main () {
 			if (e==4) std::cout<< "ERROR: Tensor line " << TenLine[ii].nLine << " is not tense. " << std::endl << std::endl;
 			return 0;
 		}
-		TenLine[ii].print_out();
 		
 	}
 

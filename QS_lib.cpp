@@ -145,7 +145,7 @@ void MotherLine::qs_GetTen(void){
 	};
 
 	//std::cout<<"nIter QS:  "<<nIter<<std::endl<<std::endl;
-	std::cout<<std::endl<<"Tension obtenida:  "<<HF<<"   "<<VF<<std::endl<<std::endl;
+	//std::cout<<std::endl<<"Tension obtenida:  "<<HF<<"   "<<VF<<std::endl<<std::endl;
 }
 
 
@@ -153,13 +153,13 @@ void MotherLine::qs_Solution(void){
 
 	int ii, jj, nIter, nNodosFondo;
 	double om = (rho0-rhoW*A)*g;
-	arma::mat temp1 = arma::zeros(nNodos,1);
+	arma::mat temp1 = arma::zeros(N,1);
 	double temp2;
 
 	if ( (floor_flag < 0.0) || (om < 0.0) || (VF > om*L) ) {
 		HA=HF;
 		VA=VF;
-		for(ii=0;ii<nNodos;ii=ii+1){
+		for(ii=0;ii<N;ii=ii+1){
 			temp1(ii,0) = ( VF - om*L + om*s(ii,0)) / HF;
 			temp2 = ( VF - om*L) / HF;
 			xc(ii,0) = HF*s(ii,0)/EA + (HF/om) * (log(temp1(ii,0) + sqrt(1.0+temp1(ii,0)*temp1(ii,0)))-log(temp2 + sqrt(1.0+temp2*temp2)));
@@ -171,7 +171,7 @@ void MotherLine::qs_Solution(void){
 	} else if (-CB * (VF - om*L) < HF) {
 		HA = HF + CB * (VF - om*L);
 		VA = 0.0;
-		for(ii=0;ii<nNodos;ii=ii+1){
+		for(ii=0;ii<N;ii=ii+1){
 			temp1(ii,0) = ( VF - om*L + om*s(ii,0)) / HF;
 			temp2 = ( VF - om*L) / HF;
 			if( s(ii,0) <= L - VF/om ) {
@@ -191,7 +191,7 @@ void MotherLine::qs_Solution(void){
 	} else {
 		HA = 0.0;
 		VA = 0.0;
-		for(ii=0;ii<nNodos;ii=ii+1){
+		for(ii=0;ii<N;ii=ii+1){
 			temp1(ii,0) = ( VF - om*L + om*s(ii,0)) / HF;
 			temp2 = ( VF - om*L) / HF;
 			if (s(ii,0) <= L - VF/om - HF/(om*CB)) {

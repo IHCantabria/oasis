@@ -5,7 +5,7 @@ clear all
 figure(1)
 cla
 
-path='\\cluster.ihcantabria.com\rodriguezlua\MooringsCPP\';
+path='Z:\Alvaro\MooringsCPP\';
 color=['ro-';'go-';'bo-'];
 Xa=load('E:\Ordenador_Biblioteca_Alvaro\CABLE_DYNAMICS_2\Jose_Armesto\Ejemplos\3.48\prueba\Aamo_PosicionX.dat');
 Za=load('E:\Ordenador_Biblioteca_Alvaro\CABLE_DYNAMICS_2\Jose_Armesto\Ejemplos\3.48\prueba\Aamo_PosicionZ.dat');
