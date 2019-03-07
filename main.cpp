@@ -67,8 +67,9 @@ int main () {
 		{
 		MoorLine[ii].leer_datosMoorings();
 		MoorLine[ii].print_out();
-		nNodosTotal=nNodosTotal+MoorLine[ii].nNodos;
+		nNodosTotal=nNodosTotal+MoorLine[ii].N;
 		if(flag_read_eq==0) MoorLine[ii].initLine();
+		MoorLine[ii].SEM_getBaseFunctions();
 		}
 		catch (int e) 
 		{
@@ -80,6 +81,8 @@ int main () {
 			std::cout<< "Try reaching the desired initial condition with the dynamic method from a different initial condition " << std::endl << std::endl;}
 			return 0;
 		}
+
+		MoorLine[ii].SEM_computeA();	
 		
 	}
 
@@ -94,8 +97,9 @@ int main () {
 		{
 		TowLine[ii].leer_datosMoorings();
 		TowLine[ii].print_out();
-		nNodosTotal=nNodosTotal+TowLine[ii].nNodos;
+		nNodosTotal=nNodosTotal+TowLine[ii].N;
 		if(flag_read_eq==0) TowLine[ii].initLine();
+		TowLine[ii].SEM_getBaseFunctions();
 		}
 		catch (int e) 
 		{
@@ -105,7 +109,8 @@ int main () {
 			std::cout<< "Try reaching the desired initial condition with the dynamic method from a different initial condition " << std::endl << std::endl;}
 			return 0;
 		}
-		
+
+		TowLine[ii].SEM_computeA();		
 	}
 
 	//ALOCATO UN VECTOR DE OBJETOS, UNO PARA CADA LINEA
@@ -119,8 +124,9 @@ int main () {
 		{
 		TenLine[ii].leer_datosMoorings();
 		TenLine[ii].print_out();
-		nNodosTotal=nNodosTotal+TenLine[ii].nNodos;
+		nNodosTotal=nNodosTotal+TenLine[ii].N;
 		if(flag_read_eq==0) TenLine[ii].initLine();
+		TenLine[ii].SEM_getBaseFunctions();
 		}
 		catch (int e) 
 		{
@@ -128,6 +134,8 @@ int main () {
 			if (e==4) std::cout<< "ERROR: Tensor line " << TenLine[ii].nLine << " is not tense. " << std::endl << std::endl;
 			return 0;
 		}
+
+		TenLine[ii].SEM_computeA();	
 		
 	}
 
@@ -142,20 +150,20 @@ int main () {
 
 	if(flag_read_eq==0){
 		for(int ii=0; ii<nMoorLines; ii=ii+1){
-			for(int jj=0; jj<MoorLine[ii].nNodos; jj=jj+1){
-					y.rows(ini,ini+2) = MoorLine[ii].pos.rows(3*jj,3*jj+2);
+			for(int jj=0; jj<MoorLine[ii].N; jj=jj+1){
+					y.rows(ini,ini+2) = MoorLine[ii].pos.row(jj).t();
 					ini=ini+3;
 			}
 		}
 		for(int ii=0; ii<nTowLines; ii=ii+1){
-			for(int jj=0; jj<TowLine[ii].nNodos; jj=jj+1){
-					y.rows(ini,ini+2) = TowLine[ii].pos.rows(3*jj,3*jj+2);
+			for(int jj=0; jj<TowLine[ii].N; jj=jj+1){
+					y.rows(ini,ini+2) = TowLine[ii].pos.row(jj).t();
 					ini=ini+3;
 			}		
 		}
 		for(int ii=0; ii<nTenLines; ii=ii+1){
-			for(int jj=0; jj<TenLine[ii].nNodos; jj=jj+1){
-					y.rows(ini,ini+2) = TenLine[ii].pos.rows(3*jj,3*jj+2);
+			for(int jj=0; jj<TenLine[ii].N; jj=jj+1){
+					y.rows(ini,ini+2) = TenLine[ii].pos.row(jj).t();
 					ini=ini+3;
 			}		
 		}
@@ -169,20 +177,20 @@ int main () {
 
 		ini=0;
 		for(int ii=0; ii<nMoorLines; ii=ii+1){
-			for(int jj=0; jj<MoorLine[ii].nNodos; jj=jj+1){
-				MoorLine[ii].pos.rows(3*jj,3*jj+2)=y.rows(ini,ini+2);
+			for(int jj=0; jj<MoorLine[ii].N; jj=jj+1){
+				MoorLine[ii].pos.row(jj)=y.rows(ini,ini+2).t();
 				ini=ini+3;
 			}
 		}
 		for(int ii=0; ii<nTowLines; ii=ii+1){
-			for(int jj=0; jj<TowLine[ii].nNodos; jj=jj+1){
-				TowLine[ii].pos.rows(3*jj,3*jj+2)=y.rows(ini,ini+2);
+			for(int jj=0; jj<TowLine[ii].N; jj=jj+1){
+				TowLine[ii].pos.row(jj)=y.rows(ini,ini+2).t();
 				ini=ini+3;
 			}		
 		}
 		for(int ii=0; ii<nTenLines; ii=ii+1){
-			for(int jj=0; jj<TenLine[ii].nNodos; jj=jj+1){
-				TenLine[ii].pos.rows(3*jj,3*jj+2)=y.rows(ini,ini+2);
+			for(int jj=0; jj<TenLine[ii].N; jj=jj+1){
+				TenLine[ii].pos.row(jj)=y.rows(ini,ini+2).t();
 				ini=ini+3;
 			}		
 		}
@@ -198,9 +206,6 @@ int main () {
 	for(int ii=0; ii<nMoorLines; ii=ii+1) MoorLine[ii].write_out();
 	for(int ii=0; ii<nTowLines; ii=ii+1) TowLine[ii].write_out();
 	for(int ii=0; ii<nTenLines; ii=ii+1) TenLine[ii].write_out();
-
-
-
 
 	return 0;
 }

@@ -4,7 +4,7 @@
 !!!!!!!!! 
 !!!!!!!!! New line [1]
 !!!!!!!!! 
-12 ! Number of nodes used to divide catenary i
+21 ! Number of nodes used to divide catenary i
 5 ! Order of the elements of catenary i
 11 ! Length of catenary i 
 0.162 ! Weight over water of catenary i (kg/m)  

@@ -82,6 +82,7 @@ void MotherLine::leer_datosMoorings () {
 
 	A=PI*d*d*0.25;
 	dL=L/(nNodos-1);
+	dL0=L/(nNodos-1);
 	N = p*(nNodos-1)+1;
 
 	pos = arma::zeros(3*N);
@@ -111,9 +112,140 @@ void MotherLine::leer_datosMoorings () {
 		s(ii,0) = dL * ( (ii-kk)/p + ( roots(kk) + 1.0 ) * 0.5 );
 	}
 
+}
+
+void MotherLine::SEM_getBaseFunctions(void){
+
+	pos.reshape(3,N);
+	pos = pos.t();
+
+	this->SEM_coefficients();
+
+	arma::mat D_local = SEM_get_D_local();
+	D = arma::zeros(N,N);
+	for(int ii=0;ii<nNodos-1;ii=ii+1){
+		D.submat(ii*p,ii*p,(ii+1)*p,(ii+1)*p) = D.submat(ii*p,ii*p,(ii+1)*p,(ii+1)*p) + D_local;
+	}
+	for(int ii=1;ii<nNodos-1;ii=ii+1){
+		D.row(ii*p) = D.row(ii*p) * 0.5;
+	}
+
+	int nIntegrate = p + 1;
+	double * roots_temp   = new double[nIntegrate+1];
+	double * weights_temp = new double[nIntegrate+1];
+	lobatto_set(nIntegrate+1,roots_temp,weights_temp);
+
+	arma::mat MassMatrix_local = arma::zeros(p+1,p+1);
+	arma::mat StiffMatrix_local = arma::zeros(p+1,p+1);
+	arma::mat MSMatrix_local = arma::zeros(p+1,p+1);
+
+	for(int i=0;i<p+1;i=i+1){
+		for(int j=0;j<p+1;j=j+1){
+			for(int k=0;k<nIntegrate+1;k=k+1){
+				MassMatrix_local(i,j) = MassMatrix_local(i,j) + weights_temp[k]*this->SEM_poly(roots_temp[k],i)*this->SEM_poly(roots_temp[k],j);
+				StiffMatrix_local(i,j) = StiffMatrix_local(i,j) + weights_temp[k]*this->SEM_poly_first_derivative(roots_temp[k],i)*this->SEM_poly_first_derivative(roots_temp[k],j);
+				MSMatrix_local(i,j) = MSMatrix_local(i,j) + weights_temp[k]*this->SEM_poly_first_derivative(roots_temp[k],i)*this->SEM_poly(roots_temp[k],j);
+			}		
+		}
+	}
+
+	arma::mat MassMatrix = arma::zeros(N,N);
+	StiffMatrix = arma::zeros(N,N);
+	MSMatrix = arma::zeros(N,N);
+
+	for(int ii=0;ii<nNodos-1;ii=ii+1){
+		MassMatrix.submat(ii*p,ii*p,(ii+1)*p,(ii+1)*p) = MassMatrix.submat(ii*p,ii*p,(ii+1)*p,(ii+1)*p) + MassMatrix_local;
+		StiffMatrix.submat(ii*p,ii*p,(ii+1)*p,(ii+1)*p) = StiffMatrix.submat(ii*p,ii*p,(ii+1)*p,(ii+1)*p) + StiffMatrix_local;
+		MSMatrix.submat(ii*p,ii*p,(ii+1)*p,(ii+1)*p) = MSMatrix.submat(ii*p,ii*p,(ii+1)*p,(ii+1)*p) + MSMatrix_local;
+	}
+
+	arma::mat MM = MassMatrix.diag();
+	MassMatrix_diag = arma::join_rows(MM,arma::join_rows(MM,MM));
 
 }
 
+void MotherLine::SEM_coefficients(void){
+
+	C = arma::zeros(p+1,p+1);
+	arma::mat M = arma::zeros(p+1,p+1);
+	for(int ii=0;ii<p+1;ii=ii+1){
+		M.insert_cols(ii,arma::pow(roots,ii));
+	}
+	arma::mat I = arma::eye(p+1,p+1);
+	C = arma::solve(M,I);
+	C = C.t();
+}
+
+double MotherLine::SEM_poly(double x, int i){
+	double y = 0.0;
+	arma::mat cc = C.row(i);
+	for(int ii=0;ii<p+1;ii=ii+1){
+		y = y + cc(ii)*pow(x,ii);
+	}
+	return y;
+}
+
+double MotherLine::SEM_poly_first_derivative(double x, int i){
+	double y = 0.0;
+	arma::mat cc = C.row(i);
+	for(int ii=1;ii<p+1;ii=ii+1){
+		y = y + ii*cc(ii)*pow(x,ii-1);
+	}
+	return y;
+}
+
+arma::mat MotherLine::SEM_get_D_local(void){
+	arma::mat D = arma::zeros(p+1,p+1);
+	for(int ii=0;ii<p+1;ii=ii+1){
+		for(int jj=0;jj<p+1;jj=jj+1){
+			D(ii,jj) = this->SEM_poly_first_derivative(roots(ii),jj);
+		}
+	}
+	return D;
+}
+
+arma::mat MotherLine::SEM_computeA(void){
+
+	double fg, fs, fd;
+	arma::mat v, vt, vn;
+
+	arma::mat FF = arma::zeros(N,3), ff = arma::zeros(N,3), t = arma::zeros(N,3);
+
+	arma::mat drds = (D * pos) * (2.0/dL0);
+	arma::mat drdsdt = (D * vel) * (2.0/dL0);
+
+	arma::mat norm_drds = sqrt(pow(drds.col(0),2) + pow(drds.col(1),2) + pow(drds.col(2),2));
+	arma::mat dedt = drds.col(0) % drdsdt.col(0) + drds.col(1) % drdsdt.col(1) + drds.col(2) % drdsdt.col(2);
+
+	arma::mat T = EA * (norm_drds - dL/dL0 + beta * dedt);
+	T = 0.5*(T + arma::abs(T));
+
+	std::cout << "Para la linea " << this->nLine << " , se tiene: T - Te = " << T-Te << std::endl;
+
+	for(int k=0;k<N;k=k+1){
+		t.row(k) = drds.row(k) / norm_drds(k);
+		FF.row(k) = T(k) * t.row(k);
+
+		fg = -(rho0 - rhoW * A) * g / norm_drds(k);
+		ff(k,2) = fg;
+
+		v = vel.row(k);
+		vt = (v * t.row(k).t())* t.row(k);
+		vn = v - vt;
+		ff.row(k) = ff.row(k) - 0.5 * Cdt * d * rhoW * arma::norm(vt,2) * vt;
+		ff.row(k) = ff.row(k) - 0.5 * Cdn * d * rhoW * arma::norm(vn,2) * vn;
+
+		if (floor_flag == 1){
+			fs = abs(fg) * exp(- GK * d * (pos(k,2) - fondo)/abs(fg));
+			GC = 10.0 * 2.0 * sqrt(rho0 * GK * d ) / (abs(fg) * d);
+			fd = fs * GC * d * pow(std::min(v(2),0.0) ,2);
+			ff(k,2) = ff(k,2) + fs + fg;
+		}
+	}
+
+	acc = (0.5 * dL * (MassMatrix_diag % ff) - (MSMatrix * FF)) / (rho0 * MassMatrix_diag);
+
+}
 
 void MotherLine::print_out (void) {
 
@@ -136,12 +268,8 @@ void MotherLine::print_out (void) {
 		std::cout << "Dz       " << this->Dz << std::endl;
 		std::cout << "posFair  " << this->posFair(0,0) << " " << this->posFair(1,0) << " " << this->posFair(2,0) << std::endl;
 		std::cout << "posAnch  " << this->posAnch(0,0) << " " << this->posAnch(1,0) << " " << this->posAnch(2,0) << std::endl << std::endl;
+}
 
-	}
-
-/*  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	FUNCION DE CatLine PARA INICIAR LA LINEA CON EL METODO QS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-*/
 void TowingLine::initLine (void) {
 
 	floor_flag = -1;
@@ -218,7 +346,6 @@ void TowingLine::initLine (void) {
 	std::cout << "Tension at anchor for line: " << nLine << " ; is: (" << tenAnch(0) << " , " << tenAnch(1) << " , " << tenAnch(2) << " ) N" << std::endl;
 	std::cout << "Tension at fairlead for line: " << nLine << " ; is: (" << tenFair(0) << " , " << tenFair(1) << " , " << tenFair(2) << " ) N" << std::endl << std::endl;
 }
-
 
 void MooringLine::initLine (void) {
 
@@ -324,10 +451,7 @@ void MooringLine::initLine (void) {
 	floor_flag = 1;
 	std::cout << "Tension at anchor for line: " << nLine << " ; is: (" << tenAnch(0) << " , " << tenAnch(1) << " , " << tenAnch(2) << " ) N" << std::endl;
 	std::cout << "Tension at fairlead for line: " << nLine << " ; is: (" << tenFair(0) << " , " << tenFair(1) << " , " << tenFair(2) << " ) N" << std::endl << std::endl;
-
 }
-
-
 
 void TensorLine::initLine (void) {
 
@@ -373,9 +497,7 @@ void TensorLine::initLine (void) {
 	std::cout << "Tension at fairlead for line: " << nLine << " ; is: (" << tenFair(0) << " , " << tenFair(1) << " , " << tenFair(2) << " ) N" << std::endl << std::endl;
 
 	floor_flag = -1;
-
 }
-
 
 void MotherLine::write_out (void) {
 
@@ -387,21 +509,21 @@ void MotherLine::write_out (void) {
 	nn1=sprintf(buffer1,"NodePosX_%d.txt", nLine);
 	std::ofstream xpos(buffer1);
 		xpos << t << "    ";
-		for(ii=0;ii<this->N;ii=ii+1) xpos <<  this->pos(3*ii,0) << "    ";
+		for(ii=0;ii<this->N;ii=ii+1) xpos <<  this->pos(ii,0) << "    ";
 		xpos << std::endl;
 	xpos.close();
 
 	nn2=sprintf(buffer2,"NodePosY_%d.txt", nLine);
 	std::ofstream ypos(buffer2);
 		ypos << t << "    ";
-		for(ii=0;ii<this->N;ii=ii+1) ypos <<  this->pos(3*ii+1,0) << "    ";
+		for(ii=0;ii<this->N;ii=ii+1) ypos <<  this->pos(ii,1) << "    ";
 		ypos << std::endl;
 	ypos.close();
 
 	nn3=sprintf(buffer3,"NodePosZ_%d.txt", nLine);
 	std::ofstream zpos(buffer3);
 		zpos << t << "    ";
-		for(ii=0;ii<this->N;ii=ii+1) zpos << this->pos(3*ii+2,0) << "    ";
+		for(ii=0;ii<this->N;ii=ii+1) zpos << this->pos(ii,2) << "    ";
 		zpos << std::endl;
 	zpos.close();
 
@@ -410,6 +532,4 @@ void MotherLine::write_out (void) {
 		ten << t << "    " << tenAnch(0,0) << "    " << tenAnch(1,0) << "    " << tenAnch(2,0) << "    "
 		     << tenFair(0,0) << "    " << tenFair(1,0) << "    " << tenFair(2,0) << "    " << std::endl;
 	ten.close();
-
-
 }
