@@ -2,26 +2,27 @@ clc
 %close all
 clear all
 
-figure(1)
-cla
-
 path='Z:\Alvaro\MooringsCPP\';
-color=['ro-';'go-';'bo-'];
-Xa=load('E:\Ordenador_Biblioteca_Alvaro\CABLE_DYNAMICS_2\Jose_Armesto\Ejemplos\3.48\prueba\Aamo_PosicionX.dat');
-Za=load('E:\Ordenador_Biblioteca_Alvaro\CABLE_DYNAMICS_2\Jose_Armesto\Ejemplos\3.48\prueba\Aamo_PosicionZ.dat');
-nn=size(Xa,2);
-for ii=1:3
-    X=load([path 'NodePosX_' num2str(ii) '.txt']);
-    Z=load([path 'NodePosZ_' num2str(ii) '.txt']);
+color=['k-';'g-';'b-'];
 
-    n=size(X,2);
+ii = 2;
+dt = 10;
+X=load([path 'NodePosX_' num2str(ii) '.txt']);
+Z=load([path 'NodePosZ_' num2str(ii) '.txt']);
+[nt,ns]=size(X);
 
-    plot(X(2:n),Z(2:n),color(ii,:))
+figure(1)
+for i = 1:dt:nt
     hold on
-    clear X
-    clear Z
+    grid on
+    title(['--  Time = ' num2str(X(i,1)) ' s  --'])
+    plot(X(i,2:ns),Z(i,2:ns),color(ii,:),'linewidth',1.5)
+    xlim([-22 2])
+    ylim([-2 1])
+    pause(0.01)
+    cla
 end
-%plot(Xa(1,2:nn),Za(1,2:nn),'ko--')
+
 xlim([-20 1]);
 ylim([-4.5 0.5]);
 grid on

@@ -220,7 +220,7 @@ arma::mat MotherLine::SEM_computeA(void){
 	arma::mat T = EA * (norm_drds - dL/dL0 + beta * dedt);
 	T = 0.5*(T + arma::abs(T));
 
-	std::cout << "Para la linea " << this->nLine << " , se tiene: T - Te = " << T-Te << std::endl;
+	//std::cout << "Para la linea " << this->nLine << " , se tiene: T - Te = " << T-Te << std::endl;
 
 	for(int k=0;k<N;k=k+1){
 		t.row(k) = drds.row(k) / norm_drds(k);
@@ -246,7 +246,7 @@ arma::mat MotherLine::SEM_computeA(void){
 	acc = (0.5 * dL * (MassMatrix_diag % ff) - (MSMatrix * FF)) / (rho0 * MassMatrix_diag);
 	//acc = arma::solve(rho0*MassMatrix, (0.5 * dL * (MassMatrix * ff) - (MSMatrix * FF)) );
 
-	std::cout << "Para la linea " << this->nLine << " , se tiene: mean_acc(t=0) = " << arma::norm(acc,2)/N << std::endl;
+	//std::cout << "Para la linea " << this->nLine << " , se tiene: mean_acc(t=0) = " << arma::norm(acc,2)/N << std::endl;
 
 }
 
@@ -508,31 +508,63 @@ void MotherLine::write_out (void) {
 
 	char buffer1[50], buffer2[50], buffer3[50], buffer4[50];
 
+	if (t<1e-12){
+		nn1=sprintf(buffer1,"NodePosX_%d.txt", nLine);
+		std::ofstream xpos(buffer1);
+			xpos << t << "    ";
+			for(ii=0;ii<this->N;ii=ii+1) xpos <<  this->pos(ii,0) << "    ";
+			xpos << std::endl;
+		xpos.close();
 
+		nn2=sprintf(buffer2,"NodePosY_%d.txt", nLine);
+		std::ofstream ypos(buffer2);
+			ypos << t << "    ";
+			for(ii=0;ii<this->N;ii=ii+1) ypos <<  this->pos(ii,1) << "    ";
+			ypos << std::endl;
+		ypos.close();
+
+		nn3=sprintf(buffer3,"NodePosZ_%d.txt", nLine);
+		std::ofstream zpos(buffer3);
+			zpos << t << "    ";
+			for(ii=0;ii<this->N;ii=ii+1) zpos << this->pos(ii,2) << "    ";
+			zpos << std::endl;
+		zpos.close();
+
+		nn4=sprintf(buffer4,"CatTen_%d.txt", nLine);
+		std::ofstream ten(buffer4);
+			ten << t << "    " << tenAnch(0,0) << "    " << tenAnch(1,0) << "    " << tenAnch(2,0) << "    "
+			     << tenFair(0,0) << "    " << tenFair(1,0) << "    " << tenFair(2,0) << "    " << std::endl;
+		ten.close();
+	}else{
 	nn1=sprintf(buffer1,"NodePosX_%d.txt", nLine);
-	std::ofstream xpos(buffer1);
+	std::ofstream xpos;
+		xpos.open(buffer1, std::ios_base::app);
 		xpos << t << "    ";
 		for(ii=0;ii<this->N;ii=ii+1) xpos <<  this->pos(ii,0) << "    ";
 		xpos << std::endl;
 	xpos.close();
 
 	nn2=sprintf(buffer2,"NodePosY_%d.txt", nLine);
-	std::ofstream ypos(buffer2);
+	std::ofstream ypos;
+		ypos.open(buffer2, std::ios_base::app);
 		ypos << t << "    ";
 		for(ii=0;ii<this->N;ii=ii+1) ypos <<  this->pos(ii,1) << "    ";
 		ypos << std::endl;
 	ypos.close();
 
 	nn3=sprintf(buffer3,"NodePosZ_%d.txt", nLine);
-	std::ofstream zpos(buffer3);
+	std::ofstream zpos;
+		zpos.open(buffer3, std::ios_base::app);
 		zpos << t << "    ";
 		for(ii=0;ii<this->N;ii=ii+1) zpos << this->pos(ii,2) << "    ";
 		zpos << std::endl;
 	zpos.close();
 
 	nn4=sprintf(buffer4,"CatTen_%d.txt", nLine);
-	std::ofstream ten(buffer4);
+	std::ofstream ten;
+		ten.open(buffer4, std::ios_base::app);
 		ten << t << "    " << tenAnch(0,0) << "    " << tenAnch(1,0) << "    " << tenAnch(2,0) << "    "
 		     << tenFair(0,0) << "    " << tenFair(1,0) << "    " << tenFair(2,0) << "    " << std::endl;
 	ten.close();
+	}
 }
