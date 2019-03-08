@@ -28,8 +28,9 @@ for i = 1:dt:nt
     grid on
     title(['--  Time = ' num2str(X(i,1)) ' s  --'])
     plot(X(i,2:ns),Z(i,2:ns),color(ii,:),'linewidth',1.5)
-    xlim([-22 2])
-    ylim([-5 1])
+    xlim([-14 14])
+    ylim([-12 2])
+    pbaspect([2 1 1])
     pause(0.1)
     cla
 end

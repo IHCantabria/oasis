@@ -243,10 +243,13 @@ arma::mat MotherLine::SEM_computeA(void){
 		}
 	}
 
-	acc = (0.5 * dL * (MassMatrix_diag % ff) - (MSMatrix * FF)) / (rho0 * MassMatrix_diag);
+	acc = (0.5 * dL * (MassMatrix_diag % ff) - (MSMatrix * FF)) / (0.5 * dL * rho0 * MassMatrix_diag);
 	//acc = arma::solve(rho0*MassMatrix, (0.5 * dL * (MassMatrix * ff) - (MSMatrix * FF)) );
 
 	//std::cout << "Para la linea " << this->nLine << " , se tiene: mean_acc(t=0) = " << arma::norm(acc,2)/N << std::endl;
+
+	tenAnch = FF.row(0).t();
+	tenFair = FF.row(N-1).t();
 
 }
 

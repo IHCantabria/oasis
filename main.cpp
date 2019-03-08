@@ -133,6 +133,29 @@ arma::mat fun(double t, arma::mat y, solver_data Lines){
 	return yprime;
 }
 
+void direction(arma::mat y, arma::mat& F, arma::mat& dy, arma::mat y0, double t, double h, solver_data Lines){
+
+	double dx = 1e-8, inv_dx = 1e8;
+
+	arma::mat J = arma::zeros(Lines.nSistema,Lines.nSistema);
+	arma::mat yprime0 = fun(t+h, y, Lines);
+	arma::mat yprime, e;
+
+	for(int ii=0;ii<Lines.nSistema;ii=ii+1){
+		e = arma::zeros(Lines.nSistema,1);
+		e.row(ii) = dx;
+		yprime = fun(t+h, y + e, Lines);
+		J.col(ii) = inv_dx * (yprime - yprime0);
+	}
+
+	arma::mat I = arma::eye(Lines.nSistema,Lines.nSistema);
+
+	arma::mat MM = I - h * J;
+	F = y - y0 - h*yprime0;
+
+	dy = arma::solve( MM, F);
+}
+
 int main () {
 
 	int flag_read_eq, flag_write_eq;
@@ -311,26 +334,57 @@ int main () {
 	Lines.TowLine = TowLine;
 	Lines.TenLine = TenLine;
 
-	double dtrk = 1e-5;
-	double t_old = 0.0;
-	arma::mat K1, K2, K3;
-	std::cout<< "The temporal integration begins." << std::endl << std::endl;
-	std::cout<< "    t = " << t << std::endl;
-	do{
-		K1 = fun(t,y,Lines);
-		K2 = fun(t+dtrk,y+dtrk*K1,Lines);
-		K3 = fun(t+0.5*dtrk,y+0.25*dtrk*(K1+K2),Lines);
-		y = y + dtrk* ( (1.0/6.0)*(K1 + K2) + (2.0/3.0)*K3);
-		t = t + dtrk;
-		if (t >= t_old + dt){
-			t_old = t;
-			std::cout<< "    t = " << t << std::endl;
+	int solver_flag = 2;
+
+	if (solver_flag == 1){
+		double dtrk = 1e-8;
+		double t_old = 0.0;
+		arma::mat K1, K2, K3;
+		std::cout<< "The temporal integration begins." << std::endl << std::endl;
+		std::cout<< "    t = " << t << std::endl;
+		do{
+			K1 = fun(t,y,Lines);
+			K2 = fun(t+dtrk,y+dtrk*K1,Lines);
+			K3 = fun(t+0.5*dtrk,y+0.25*dtrk*(K1+K2),Lines);
+			y = y + dtrk* ( (1.0/6.0)*(K1 + K2) + (2.0/3.0)*K3);
+			t = t + dtrk;
 			std::cout << "                       mean_acc = " << arma::norm(Lines.MoorLine[0].acc,2)/Lines.MoorLine[0].N << std::endl;
-			for(int ii=0; ii<nMoorLines; ii=ii+1) Lines.MoorLine[ii].write_out();
-			for(int ii=0; ii<nTowLines; ii=ii+1) Lines.TowLine[ii].write_out();
-			for(int ii=0; ii<nTenLines; ii=ii+1) Lines.TenLine[ii].write_out();
-		}
-	} while (t<=t_max);
+			if (t >= t_old + dt){
+				t_old = t;
+				std::cout<< "    t = " << t << std::endl;
+				std::cout << "                       mean_acc = " << arma::norm(Lines.MoorLine[0].acc,2)/Lines.MoorLine[0].N << std::endl;
+				for(int ii=0; ii<nMoorLines; ii=ii+1) Lines.MoorLine[ii].write_out();
+				for(int ii=0; ii<nTowLines; ii=ii+1) Lines.TowLine[ii].write_out();
+				for(int ii=0; ii<nTenLines; ii=ii+1) Lines.TenLine[ii].write_out();
+			}
+		} while (t<=t_max);
+	}
+	if (solver_flag == 2){
+		double dtei = 1e-2;
+		double t_old = 0.0;
+		arma::mat y0;
+		arma::mat F = arma::zeros(Lines.nSistema,1);
+		arma::mat dy = arma::zeros(Lines.nSistema,1);
+		std::cout<< "The temporal integration begins." << std::endl << std::endl;
+		std::cout<< "    t = " << t << std::endl;
+		do{
+			y0 = y;
+			do{
+				direction(y, F, dy, y0, t, dtei, Lines);
+				y = y - dy;
+			} while (arma::norm(F,2)/nSistema > 1e-6);
+			t = t + dtei;
+			std::cout << "                       mean_acc = " << arma::norm(Lines.MoorLine[0].acc,2)/Lines.MoorLine[0].N << std::endl;
+			if (t >= t_old + dt){
+				t_old = t;
+				std::cout<< "    t = " << t << std::endl;
+				std::cout << "                       mean_acc = " << arma::norm(Lines.MoorLine[0].acc,2)/Lines.MoorLine[0].N << std::endl;
+				for(int ii=0; ii<nMoorLines; ii=ii+1) Lines.MoorLine[ii].write_out();
+				for(int ii=0; ii<nTowLines; ii=ii+1) Lines.TowLine[ii].write_out();
+				for(int ii=0; ii<nTenLines; ii=ii+1) Lines.TenLine[ii].write_out();
+			}
+		} while (t<=t_max);
+	}
 
 
 	if (flag_write_eq == 1) {
