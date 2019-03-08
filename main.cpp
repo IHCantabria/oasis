@@ -317,12 +317,12 @@ int main () {
 	std::cout<< "The temporal integration begins." << std::endl << std::endl;
 	std::cout<< "    t = " << t << std::endl;
 	do{
+		K1 = fun(t,y,Lines);
+		K2 = fun(t+dtrk,y+dtrk*K1,Lines);
+		K3 = fun(t+0.5*dtrk,y+0.25*dtrk*(K1+K2),Lines);
+		y = y + dtrk* ( (1.0/6.0)*(K1 + K2) + (2.0/3.0)*K3);
 		t = t + dtrk;
 		if (t >= t_old + dt){
-			K1 = fun(t,y,Lines);
-			K2 = fun(t+dtrk,y+dtrk*K1,Lines);
-			K3 = fun(t+0.5*dtrk,y+0.25*dtrk*(K1+K2),Lines);
-			y = y + dtrk* ( (1.0/6.0)*(K1 + K2) + (2.0/3.0)*K3);
 			t_old = t;
 			std::cout<< "    t = " << t << std::endl;
 			for(int ii=0; ii<nMoorLines; ii=ii+1) Lines.MoorLine[ii].write_out();
