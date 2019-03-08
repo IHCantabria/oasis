@@ -112,19 +112,19 @@ arma::mat fun(double t, arma::mat y, solver_data Lines){
 	ini = Lines.nSistema2;
 	for(int ii=0;ii<Lines.nMoorLines;ii=ii+1){
 		for(int jj=0;jj<Lines.MoorLine[ii].N;jj=jj+1){
-			y.rows(ini,ini+2) = Lines.MoorLine[ii].acc.row(jj).t();
+			yprime.rows(ini,ini+2) = Lines.MoorLine[ii].acc.row(jj).t();
 			ini = ini + 3;
 		}
 	}
 	for(int ii=0;ii<Lines.nTowLines;ii=ii+1){
 		for(int jj=0;jj<Lines.TowLine[ii].N;jj=jj+1){
-			y.rows(ini,ini+2) = Lines.TowLine[ii].acc.row(jj).t();
+			yprime.rows(ini,ini+2) = Lines.TowLine[ii].acc.row(jj).t();
 			ini = ini + 3;
 		}
 	}
 	for(int ii=0;ii<Lines.nTenLines;ii=ii+1){
 		for(int jj=0;jj<Lines.TenLine[ii].N;jj=jj+1){
-			y.rows(ini,ini+2) = Lines.TenLine[ii].acc.row(jj).t();
+			yprime.rows(ini,ini+2) = Lines.TenLine[ii].acc.row(jj).t();
 			ini = ini + 3;
 		}
 	}
@@ -311,7 +311,7 @@ int main () {
 	Lines.TowLine = TowLine;
 	Lines.TenLine = TenLine;
 
-	double dtrk = 1e-6;
+	double dtrk = 1e-5;
 	double t_old = 0.0;
 	arma::mat K1, K2, K3;
 	std::cout<< "The temporal integration begins." << std::endl << std::endl;
@@ -325,11 +325,12 @@ int main () {
 		if (t >= t_old + dt){
 			t_old = t;
 			std::cout<< "    t = " << t << std::endl;
+			std::cout << "                       mean_acc = " << arma::norm(Lines.MoorLine[0].acc,2)/Lines.MoorLine[0].N << std::endl;
 			for(int ii=0; ii<nMoorLines; ii=ii+1) Lines.MoorLine[ii].write_out();
 			for(int ii=0; ii<nTowLines; ii=ii+1) Lines.TowLine[ii].write_out();
 			for(int ii=0; ii<nTenLines; ii=ii+1) Lines.TenLine[ii].write_out();
 		}
-	} while (t<=t_max+dt);
+	} while (t<=t_max);
 
 
 	if (flag_write_eq == 1) {
