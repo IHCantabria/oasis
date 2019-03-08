@@ -13,8 +13,6 @@ MAIN DE LA IMPLEMENTACION DE NuevosFEM EN C++
 #include "classes.h"
 #include <armadillo>
 
-
-
 double PI;
 int nLines, nMoorLines, nTowLines, nTenLines;
 int nNodosTotal, nSistema;
@@ -25,6 +23,16 @@ double t;
 double t_max;
 double dt;
 
+struct solver_data {
+	int nMoorLines;
+	int nTowLines;
+	int nTenLines;
+	int nSistema;
+	int nSistema2;
+	MooringLine * MoorLine;
+	TowingLine * TowLine;
+	TensorLine * TenLine;
+} Lines;
 
 int main () {
 
@@ -57,8 +65,12 @@ int main () {
 
 	std::cout << std::endl << "El numero de lineas a estudiar es: " << nLines << std::endl << std::endl;
 
+	Lines.nMoorLines = nMoorLines;
+	Lines.nTenLines = nTenLines;
+	Lines.nTowLines = nTowLines;
+
 	//ALOCATO UN VECTOR DE OBJETOS, UNO PARA CADA LINEA
-	MooringLine * MoorLine = new MooringLine[nLines];
+	MooringLine * MoorLine = new MooringLine[nMoorLines];
 
 	//INICIO LAS LINEAS Y PINTO RESULTADOS POR PANTALLA
 	for(int ii=0; ii<nMoorLines; ii=ii+1){
@@ -83,11 +95,10 @@ int main () {
 		}
 
 		MoorLine[ii].SEM_computeA();	
-		
 	}
 
 	//ALOCATO UN VECTOR DE OBJETOS, UNO PARA CADA LINEA
-	TowingLine * TowLine = new TowingLine[nLines];
+	TowingLine * TowLine = new TowingLine[nTowLines];
 
 	//INICIO LAS LINEAS Y PINTO RESULTADOS POR PANTALLA
 	for(int ii=0; ii<nTowLines; ii=ii+1){
@@ -114,7 +125,7 @@ int main () {
 	}
 
 	//ALOCATO UN VECTOR DE OBJETOS, UNO PARA CADA LINEA
-	TensorLine * TenLine = new TensorLine[nLines];
+	TensorLine * TenLine = new TensorLine[nTenLines];
 
 	//INICIO LAS LINEAS Y PINTO RESULTADOS POR PANTALLA
 	for(int ii=0; ii<nTenLines; ii=ii+1){
@@ -139,15 +150,14 @@ int main () {
 		
 	}
 
-	std::cout << "nNodosTotal   " << nNodosTotal << std::endl; 
-
 	nSistema=3*2*nNodosTotal;
-
+	Lines.nSistema = 3*2*nNodosTotal;
+	Lines.nSistema2 = 3*nNodosTotal;
 
 	arma::mat y = arma::zeros(nSistema,1);
 	arma::mat yprime = arma::zeros(nSistema,1);
-	int ini=0;
 
+	int ini=0;
 	if(flag_read_eq==0){
 		for(int ii=0; ii<nMoorLines; ii=ii+1){
 			for(int jj=0; jj<MoorLine[ii].N; jj=jj+1){
@@ -167,7 +177,6 @@ int main () {
 					ini=ini+3;
 			}		
 		}
-
 	}else if (flag_read_eq==1){
 	 	std::ifstream equi("Equilibrio.dat");
 			for(int ii=0;ii<nSistema;ii=ii+1) {
@@ -196,6 +205,19 @@ int main () {
 		}
 	}
 
+	for(int ii=0; ii<nMoorLines; ii=ii+1) MoorLine[ii].write_out();
+	for(int ii=0; ii<nTowLines; ii=ii+1) TowLine[ii].write_out();
+	for(int ii=0; ii<nTenLines; ii=ii+1) TenLine[ii].write_out();
+
+	Lines.MoorLine = MoorLine;
+	Lines.TowLine = TowLine;
+	Lines.TenLine = TenLine;
+
+
+	//do
+	//{
+	//} while (t<t_max);
+
 
 	if (flag_write_eq == 1) {
 		std::ofstream equi("Equilibrio.dat");
@@ -203,9 +225,105 @@ int main () {
 		equi.close();
 	}
 
-	for(int ii=0; ii<nMoorLines; ii=ii+1) MoorLine[ii].write_out();
-	for(int ii=0; ii<nTowLines; ii=ii+1) TowLine[ii].write_out();
-	for(int ii=0; ii<nTenLines; ii=ii+1) TenLine[ii].write_out();
-
 	return 0;
+}
+
+arma::mat fun(double t, arma::mat y, solver_data Lines){
+
+	arma::mat yprime = arma::zeros(size(y));
+
+	// Copy info from y to the objects.
+	int ini = 0;
+	for(int ii=0;ii<Lines.nMoorLines;ii=ii+1){
+		for(int jj=0;jj<Lines.MoorLine[ii].N;jj=jj+1){
+			Lines.MoorLine[ii].pos.row(jj) = y.rows(ini,ini+2).t();
+			ini = ini + 3;
+		}
+	}
+	for(int ii=0;ii<Lines.nTowLines;ii=ii+1){
+		for(int jj=0;jj<Lines.TowLine[ii].N;jj=jj+1){
+			Lines.TowLine[ii].pos.row(jj) = y.rows(ini,ini+2).t();
+			ini = ini + 3;
+		}
+	}
+	for(int ii=0;ii<Lines.nTenLines;ii=ii+1){
+		for(int jj=0;jj<Lines.TenLine[ii].N;jj=jj+1){
+			Lines.TenLine[ii].pos.row(jj) = y.rows(ini,ini+2).t();
+			ini = ini + 3;
+		}
+	}
+	for(int ii=0;ii<Lines.nMoorLines;ii=ii+1){
+		for(int jj=0;jj<Lines.MoorLine[ii].N;jj=jj+1){
+			Lines.MoorLine[ii].vel.row(jj) = y.rows(ini,ini+2).t();
+			ini = ini + 3;
+		}
+	}
+	for(int ii=0;ii<Lines.nTowLines;ii=ii+1){
+		for(int jj=0;jj<Lines.TowLine[ii].N;jj=jj+1){
+			Lines.TowLine[ii].vel.row(jj) = y.rows(ini,ini+2).t();
+			ini = ini + 3;
+		}
+	}
+	for(int ii=0;ii<Lines.nTenLines;ii=ii+1){
+		for(int jj=0;jj<Lines.TenLine[ii].N;jj=jj+1){
+			Lines.TenLine[ii].vel.row(jj) = y.rows(ini,ini+2).t();
+			ini = ini + 3;
+		}
+	}
+
+	// Set boundary conditions on pos and vel
+	// ...
+
+	// Compute accelerations for the different objects
+	for(int ii=0;ii<Lines.nMoorLines;ii=ii+1){
+		Lines.MoorLine[ii].SEM_computeA();
+	}
+	for(int ii=0;ii<Lines.nTowLines;ii=ii+1){
+		Lines.TowLine[ii].SEM_computeA();
+	}
+	for(int ii=0;ii<Lines.nTenLines;ii=ii+1){
+		Lines.TenLine[ii].SEM_computeA();
+	}
+
+	// Set boundary conditions on acc
+	// ... por ahora anclas.
+	for(int ii=0;ii<Lines.nMoorLines;ii=ii+1){
+		Lines.MoorLine[ii].acc.row(0) = arma::zeros(1,3);
+		Lines.MoorLine[ii].acc.row(Lines.MoorLine[ii].N-1) = arma::zeros(1,3);
+	}
+	for(int ii=0;ii<Lines.nTowLines;ii=ii+1){
+		Lines.TowLine[ii].acc.row(0) = arma::zeros(1,3);
+		Lines.TowLine[ii].acc.row(Lines.TowLine[ii].N-1) = arma::zeros(1,3);
+	}
+	for(int ii=0;ii<Lines.nTenLines;ii=ii+1){
+		Lines.TenLine[ii].acc.row(0) = arma::zeros(1,3);
+		Lines.TenLine[ii].acc.row(Lines.TenLine[ii].N-1) = arma::zeros(1,3);
+	}
+
+
+
+	// Copy info from the objects to yprime
+	yprime.rows(0,Lines.nSistema2-1) = y.rows(Lines.nSistema2,Lines.nSistema-1);
+	ini = Lines.nSistema2;
+	for(int ii=0;ii<Lines.nMoorLines;ii=ii+1){
+		for(int jj=0;jj<Lines.MoorLine[ii].N;jj=jj+1){
+			y.rows(ini,ini+2) = Lines.MoorLine[ii].acc.row(jj).t();
+			ini = ini + 3;
+		}
+	}
+	for(int ii=0;ii<Lines.nTowLines;ii=ii+1){
+		for(int jj=0;jj<Lines.TowLine[ii].N;jj=jj+1){
+			y.rows(ini,ini+2) = Lines.TowLine[ii].acc.row(jj).t();
+			ini = ini + 3;
+		}
+	}
+	for(int ii=0;ii<Lines.nTenLines;ii=ii+1){
+		for(int jj=0;jj<Lines.TenLine[ii].N;jj=jj+1){
+			y.rows(ini,ini+2) = Lines.TenLine[ii].acc.row(jj).t();
+			ini = ini + 3;
+		}
+	}
+
+
+	return yprime;
 }

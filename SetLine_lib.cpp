@@ -149,7 +149,7 @@ void MotherLine::SEM_getBaseFunctions(void){
 		}
 	}
 
-	arma::mat MassMatrix = arma::zeros(N,N);
+	MassMatrix = arma::zeros(N,N);
 	StiffMatrix = arma::zeros(N,N);
 	MSMatrix = arma::zeros(N,N);
 
@@ -244,6 +244,9 @@ arma::mat MotherLine::SEM_computeA(void){
 	}
 
 	acc = (0.5 * dL * (MassMatrix_diag % ff) - (MSMatrix * FF)) / (rho0 * MassMatrix_diag);
+	//acc = arma::solve(rho0*MassMatrix, (0.5 * dL * (MassMatrix * ff) - (MSMatrix * FF)) );
+
+	std::cout << "Para la linea " << this->nLine << " , se tiene: mean_acc(t=0) = " << arma::norm(acc,2)/N << std::endl;
 
 }
 

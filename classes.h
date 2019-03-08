@@ -11,7 +11,7 @@ public:
 	arma::mat tenAnch = arma::zeros(3,1), tenFair = arma::zeros(3,1);
 	arma::mat posAnch = arma::zeros(3,1), posFair = arma::zeros(3,1);
 	arma::mat pos, vel, acc, s, xc, zc, dxcds, dzcds, Te, roots, weights;
-	arma::mat C, D, MassMatrix_diag, StiffMatrix, MSMatrix;
+	arma::mat C, D, MassMatrix, StiffMatrix, MSMatrix, MassMatrix_diag;
 	double xF, zF, HF, VF, HA, VA, cosa, sina;
 	void set_nLine(int n){nLine=n;}
 	void leer_datosMoorings(void);
