@@ -88,6 +88,7 @@ void MotherLine::leer_datosMoorings () {
 	pos = arma::zeros(3*N);
 	vel = arma::zeros(N,3);
 	acc = arma::zeros(N,3);
+	F = arma::zeros(N,3);
 	s = arma::zeros(N);
 	xc = arma::zeros(N);
 	zc = arma::zeros(N);
@@ -130,7 +131,7 @@ void MotherLine::SEM_getBaseFunctions(void){
 		D.row(ii*p) = D.row(ii*p) * 0.5;
 	}
 
-	int nIntegrate = p + 1;
+	int nIntegrate = p + 2;
 	double * roots_temp   = new double[nIntegrate+1];
 	double * weights_temp = new double[nIntegrate+1];
 	lobatto_set(nIntegrate+1,roots_temp,weights_temp);
@@ -159,8 +160,12 @@ void MotherLine::SEM_getBaseFunctions(void){
 		MSMatrix.submat(ii*p,ii*p,(ii+1)*p,(ii+1)*p) = MSMatrix.submat(ii*p,ii*p,(ii+1)*p,(ii+1)*p) + MSMatrix_local;
 	}
 
-	arma::mat MM = MassMatrix.diag();
-	MassMatrix_diag = arma::join_rows(MM,arma::join_rows(MM,MM));
+	MM = (0.5*rho0) * MassMatrix;
+	MM.row(0) = arma::zeros(1,N);
+	MM.row(N-1) = arma::zeros(1,N);
+	MM(0,0) = 1.0;
+	MM(N-1,N-1) = 1.0;
+
 
 }
 
@@ -204,7 +209,7 @@ arma::mat MotherLine::SEM_get_D_local(void){
 	return D;
 }
 
-arma::mat MotherLine::SEM_computeA(void){
+void MotherLine::SEM_computeF(void){
 
 	double fg, fs, fd;
 	arma::mat v, vt, vn;
@@ -220,14 +225,14 @@ arma::mat MotherLine::SEM_computeA(void){
 	arma::mat T = EA * (norm_drds - dL/dL0 + beta * dedt);
 	T = 0.5*(T + arma::abs(T));
 
-	//std::cout << "Para la linea " << this->nLine << " , se tiene: T - Te = " << T-Te << std::endl;
+	//std::cout << "Para la linea " << this->nLine << " , se tiene: norm(T - Te) = " << arma::norm(T-Te,2) << std::endl;
 
 	for(int k=0;k<N;k=k+1){
 		t.row(k) = drds.row(k) / norm_drds(k);
 		FF.row(k) = T(k) * t.row(k);
 
 		fg = -(rho0 - rhoW * A) * g / norm_drds(k);
-		ff(k,2) = fg;
+		ff(k,2) = fg * 1.0;
 
 		v = vel.row(k);
 		vt = (v * t.row(k).t())* t.row(k);
@@ -239,18 +244,14 @@ arma::mat MotherLine::SEM_computeA(void){
 			fs = abs(fg) * exp(- GK * d * (pos(k,2) - fondo)/abs(fg));
 			GC = 10.0 * 2.0 * sqrt(rho0 * GK * d ) / (abs(fg) * d);
 			fd = fs * GC * d * pow(std::min(v(2),0.0) ,2);
-			ff(k,2) = ff(k,2) + fs + fg;
+			ff(k,2) = ff(k,2) + fs + fd;
 		}
 	}
 
-	acc = (0.5 * dL * (MassMatrix_diag % ff) - (MSMatrix * FF)) / (0.5 * dL * rho0 * MassMatrix_diag);
-	//acc = arma::solve(rho0*MassMatrix, (0.5 * dL * (MassMatrix * ff) - (MSMatrix * FF)) );
-
-	//std::cout << "Para la linea " << this->nLine << " , se tiene: mean_acc(t=0) = " << arma::norm(acc,2)/N << std::endl;
+	F = 0.5 * dL * (MassMatrix * ff) - (MSMatrix * FF);
 
 	tenAnch = FF.row(0).t();
 	tenFair = FF.row(N-1).t();
-
 }
 
 void MotherLine::print_out (void) {

@@ -80,30 +80,24 @@ arma::mat fun(double t, arma::mat y, solver_data Lines){
 	// Set boundary conditions on pos and vel
 	// ...
 
-	// Compute accelerations for the different objects
+	// Compute forces vector for the different objects
 	for(int ii=0;ii<Lines.nMoorLines;ii=ii+1){
-		Lines.MoorLine[ii].SEM_computeA();
+		Lines.MoorLine[ii].SEM_computeF();
+		Lines.MoorLine[ii].F.row(0) = arma::zeros(1,3);
+		Lines.MoorLine[ii].F.row(Lines.MoorLine[ii].N-1) = arma::zeros(1,3);
+		Lines.MoorLine[ii].acc = arma::solve(Lines.MoorLine[ii].dL * Lines.MoorLine[ii].MM,Lines.MoorLine[ii].F);
 	}
 	for(int ii=0;ii<Lines.nTowLines;ii=ii+1){
-		Lines.TowLine[ii].SEM_computeA();
+		Lines.TowLine[ii].SEM_computeF();
+		Lines.TowLine[ii].F.row(0) = arma::zeros(1,3);
+		Lines.TowLine[ii].F.row(Lines.TowLine[ii].N-1) = arma::zeros(1,3);
+		Lines.TowLine[ii].acc = arma::solve(Lines.TowLine[ii].dL * Lines.TowLine[ii].MM,Lines.TowLine[ii].F);
 	}
 	for(int ii=0;ii<Lines.nTenLines;ii=ii+1){
-		Lines.TenLine[ii].SEM_computeA();
-	}
-
-	// Set boundary conditions on acc
-	// ... por ahora anclas.
-	for(int ii=0;ii<Lines.nMoorLines;ii=ii+1){
-		Lines.MoorLine[ii].acc.row(0) = arma::zeros(1,3);
-		Lines.MoorLine[ii].acc.row(Lines.MoorLine[ii].N-1) = arma::zeros(1,3);
-	}
-	for(int ii=0;ii<Lines.nTowLines;ii=ii+1){
-		Lines.TowLine[ii].acc.row(0) = arma::zeros(1,3);
-		Lines.TowLine[ii].acc.row(Lines.TowLine[ii].N-1) = arma::zeros(1,3);
-	}
-	for(int ii=0;ii<Lines.nTenLines;ii=ii+1){
-		Lines.TenLine[ii].acc.row(0) = arma::zeros(1,3);
-		Lines.TenLine[ii].acc.row(Lines.TenLine[ii].N-1) = arma::zeros(1,3);
+		Lines.TenLine[ii].SEM_computeF();
+		Lines.TenLine[ii].F.row(0) = arma::zeros(1,3);
+		Lines.TenLine[ii].F.row(Lines.TenLine[ii].N-1) = arma::zeros(1,3);
+		Lines.TenLine[ii].acc = arma::solve(Lines.TenLine[ii].dL * Lines.TenLine[ii].MM,Lines.TenLine[ii].F);
 	}
 
 
@@ -150,10 +144,10 @@ void direction(arma::mat y, arma::mat& F, arma::mat& dy, arma::mat y0, double t,
 
 	arma::mat I = arma::eye(Lines.nSistema,Lines.nSistema);
 
-	arma::mat MM = I - h * J;
+	arma::mat M = I - h * J;
 	F = y - y0 - h*yprime0;
 
-	dy = arma::solve( MM, F);
+	dy = arma::solve( M, F);
 }
 
 int main () {
@@ -348,7 +342,8 @@ int main () {
 			K3 = fun(t+0.5*dtrk,y+0.25*dtrk*(K1+K2),Lines);
 			y = y + dtrk* ( (1.0/6.0)*(K1 + K2) + (2.0/3.0)*K3);
 			t = t + dtrk;
-			std::cout << "                       mean_acc = " << arma::norm(Lines.MoorLine[0].acc,2)/Lines.MoorLine[0].N << std::endl;
+			//std::cout << "                       mean_acc = " << arma::norm(Lines.MoorLine[0].acc,2)/Lines.MoorLine[0].N << std::endl;
+			//std::cout << "                              T = " << arma::norm(Lines.MoorLine[0].tenFair,2) << std::endl;
 			if (t >= t_old + dt){
 				t_old = t;
 				std::cout<< "    t = " << t << std::endl;
@@ -369,16 +364,17 @@ int main () {
 		std::cout<< "    t = " << t << std::endl;
 		do{
 			y0 = y;
+			//std::cout << "                              T = " << arma::norm(Lines.MoorLine[0].tenAnch,2) << std::endl;
+			//std::cout << "                       mean_acc = " << arma::norm(Lines.MoorLine[0].acc,2)/Lines.MoorLine[0].N << std::endl;
+			direction(y, F, dy, y0, t, dtei, Lines);
 			do{
-				direction(y, F, dy, y0, t, dtei, Lines);
 				y = y - dy;
+				direction(y, F, dy, y0, t, dtei, Lines);
 			} while (arma::norm(F,2)/nSistema > 1e-6);
-			t = t + dtei;
-			std::cout << "                       mean_acc = " << arma::norm(Lines.MoorLine[0].acc,2)/Lines.MoorLine[0].N << std::endl;
+			t = t + dtei;	
 			if (t >= t_old + dt){
 				t_old = t;
 				std::cout<< "    t = " << t << std::endl;
-				std::cout << "                       mean_acc = " << arma::norm(Lines.MoorLine[0].acc,2)/Lines.MoorLine[0].N << std::endl;
 				for(int ii=0; ii<nMoorLines; ii=ii+1) Lines.MoorLine[ii].write_out();
 				for(int ii=0; ii<nTowLines; ii=ii+1) Lines.TowLine[ii].write_out();
 				for(int ii=0; ii<nTenLines; ii=ii+1) Lines.TenLine[ii].write_out();

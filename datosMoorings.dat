@@ -4,9 +4,9 @@
 !!!!!!!!! 
 !!!!!!!!! New line [1]
 !!!!!!!!! 
-21 ! Number of nodes used to divide catenary i
+11 ! Number of nodes used to divide catenary i
 5 ! Order of the elements of catenary i
-11 ! Length of catenary i 
+7.305 ! Length of catenary i 
 0.162 ! Weight over water of catenary i (kg/m)  
 0.0052 ! Diameter of the section of catenary i  
 364299 ! Youngs module multiplied by the Area for catenary i  
@@ -21,7 +21,7 @@
 0.01 ! Horizontal cut-off velocity of friction for catenary ii (needed for the dinamic model only) [Palm-2013b]  
 0.0 ! Ground penetration depth for catenary ii (needed for the dinamic model only) [Palm-2013b]
 0.0 0.0 0.0 ! Position of fairlead i in body frame 
--9 0.0 -4  ! Position of anchor i in inertial frame
+-6.9735 0.0 -1.2  ! Position of anchor i in inertial frame
 !!!!!!!!! 
 !!!!!!!!! New line [1]
 !!!!!!!!! 
