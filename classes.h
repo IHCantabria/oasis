@@ -4,12 +4,12 @@
 #include <string>
 #include "math_lib.h"
 
-class MotherLine {
+class Line {
 public:
-	int nLine, nNodos, p, N, floor_flag;
+	int lineType, nLine, nNodos, p, N, floor_flag, BCP_1, BCP_N;
 	double L, dL, dL0, EA, beta, rho0, d, A, Cdt, Cdn, Cmn, CB, GK, GC, Gmu, Gvc, Dz, Kn;
-	arma::mat tenAnch = arma::zeros(3,1), tenFair = arma::zeros(3,1);
-	arma::mat posAnch = arma::zeros(3,1), posFair = arma::zeros(3,1);
+	arma::mat ten_1 = arma::zeros(3,1), ten_N = arma::zeros(3,1);
+	arma::mat pos_1 = arma::zeros(3,1), pos_N = arma::zeros(3,1);
 	arma::mat pos, vel, acc, F, s, xc, zc, dxcds, dzcds, Te, roots, weights;
 	arma::mat C, D, MassMatrix, MM, StiffMatrix, MSMatrix, MassMatrix_diag;
 	double xF, zF, HF, VF, HA, VA, cosa, sina;
@@ -29,24 +29,6 @@ public:
 	void SEM_computeF(void);
 };
 
-class TensorLine: public MotherLine {
-public:
-	void initLine(void);
-
-};
-
-class TowingLine: public MotherLine {
-public:
-	void initLine(void);
-
-};
-
-class MooringLine: public MotherLine {
-public:
-	void initLine(void);
-
-};
-
 
 class AnchorBCP {
 public:
@@ -54,7 +36,6 @@ public:
 	int nLinesBCP; // Numero de lineas que confluyen en el punto
 	int * BCPLineIndex; // Array con los indices identificadores de las lineas que confluyen en el punto
 	int * BCPLineNode; // Array de flags que, para cada linea ii que confluye al punto, indica si la linea confluye al nodo 1 (BCPLineNode[ii]=1) o al nodo N (BCPLineNode[ii]=2)
-	int * BCPLineType; // Array de flags que, para cada linea ii que confluye al punto, indica si la linea confluye al nodo 1 (BCPLineNode[ii]=1) o al nodo N (BCPLineNode[ii]=2)
 	std::string fileName;
 	arma::mat pos = arma::zeros(3,1); // Posicion del punto
 	arma::mat vel = arma::zeros(3,1); // Velocidad del punto

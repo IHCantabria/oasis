@@ -16,7 +16,7 @@ Libreria para iniciar la linea, menos set_nLine que se define en la clase
 #include "quadrule.hpp"
 
 extern double PI;
-extern int nLines, nMoorLines, nTowLines, nTenLines;
+extern int nLines;
 extern int nNodosTotal, nSistema;
 extern double g;
 extern double rhoW;
@@ -29,19 +29,17 @@ extern double dt;
 /*  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	FUNCION DE CatLine PARA LEER datosMoorings.dat!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 */
-void MotherLine::leer_datosMoorings () {
+void Line::leer_datosMoorings () {
 
 	int ii, jj, kk; 
 	std::string Dummy;
-	const int nInored=21; // numero de lineas que se leen para cada nueva linea
+	const int nInored=22; // numero de lineas que se leen para cada nueva linea
 
 	//Abro el fichero
 	std::ifstream datosMoorings ("datosMoorings.dat");
 
-	//Ignoro las tres primeras lineas del fichero, que contiene el numero de lineas a estudiar
-	for(ii=1;ii<=3;ii=ii+1){
-		datosMoorings >> Dummy; datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');  // El ignore sirve para ignorar el texto de la linea
-	}
+	//Ignoro la primera linea del fichero, que contiene el numero de lineas a estudiar
+	datosMoorings >> Dummy; datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');  // El ignore sirve para ignorar el texto de la linea
 
 	//Ignoro las lineas que ya se han leido
 	for(ii=1;ii<nLine;ii=ii+1){
@@ -56,6 +54,7 @@ void MotherLine::leer_datosMoorings () {
 	}
 
 	//Leo todo
+	datosMoorings >> lineType; datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
 	datosMoorings >> nNodos; datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
 	datosMoorings >> p; datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
 	datosMoorings >> L;    datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
@@ -72,10 +71,8 @@ void MotherLine::leer_datosMoorings () {
 	datosMoorings >> Gmu;  datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
 	datosMoorings >> Gvc;  datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
 	datosMoorings >> Dz;   datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
-	datosMoorings >> posFair(0,0); datosMoorings >> posFair(1,0); datosMoorings >> posFair(2,0);  datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
-	datosMoorings >> posAnch(0,0); datosMoorings >> posAnch(1,0); datosMoorings >> posAnch(2,0);  datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
-
-	if (posFair(2,0)<fondo || posAnch(2,0)<fondo) throw 0;
+	datosMoorings >> BCP_N;  datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
+	datosMoorings >> BCP_1;  datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
 
 	//Cierro el fichero
 	datosMoorings.close();
@@ -113,10 +110,9 @@ void MotherLine::leer_datosMoorings () {
 		kk = ii % p;
 		s(ii,0) = dL * ( (ii-kk)/p + ( roots(kk) + 1.0 ) * 0.5 );
 	}
-
 }
 
-void MotherLine::SEM_getBaseFunctions(void){
+void Line::SEM_getBaseFunctions(void){
 
 	pos.reshape(3,N);
 	pos = pos.t();
@@ -151,8 +147,6 @@ void MotherLine::SEM_getBaseFunctions(void){
 		}
 	}
 
-	std::cout << "Mass Matrix local " << std::endl << MassMatrix_local << std::endl;
-
 	MassMatrix = arma::zeros(N,N);
 	StiffMatrix = arma::zeros(N,N);
 	MSMatrix = arma::zeros(N,N);
@@ -170,7 +164,7 @@ void MotherLine::SEM_getBaseFunctions(void){
 	MM(N-1,N-1) = 1.0;
 }
 
-void MotherLine::SEM_coefficients(void){
+void Line::SEM_coefficients(void){
 
 	C = arma::zeros(p+1,p+1);
 	arma::mat M = arma::zeros(p+1,p+1);
@@ -182,7 +176,7 @@ void MotherLine::SEM_coefficients(void){
 	C = C.t();
 }
 
-double MotherLine::SEM_poly(double x, int i){
+double Line::SEM_poly(double x, int i){
 	double y = 0.0;
 	arma::mat cc = C.row(i);
 	for(int ii=0;ii<p+1;ii=ii+1){
@@ -191,7 +185,7 @@ double MotherLine::SEM_poly(double x, int i){
 	return y;
 }
 
-double MotherLine::SEM_poly_first_derivative(double x, int i){
+double Line::SEM_poly_first_derivative(double x, int i){
 	double y = 0.0;
 	arma::mat cc = C.row(i);
 	for(int ii=1;ii<p+1;ii=ii+1){
@@ -200,7 +194,7 @@ double MotherLine::SEM_poly_first_derivative(double x, int i){
 	return y;
 }
 
-arma::mat MotherLine::SEM_get_D_local(void){
+arma::mat Line::SEM_get_D_local(void){
 	arma::mat D = arma::zeros(p+1,p+1);
 	for(int ii=0;ii<p+1;ii=ii+1){
 		for(int jj=0;jj<p+1;jj=jj+1){
@@ -210,7 +204,7 @@ arma::mat MotherLine::SEM_get_D_local(void){
 	return D;
 }
 
-void MotherLine::SEM_computeF(void){
+void Line::SEM_computeF(void){
 
 	double fg, fs, fd;
 	arma::mat v, vt, vn;
@@ -251,11 +245,11 @@ void MotherLine::SEM_computeF(void){
 
 	F = 0.5 * dL * (MassMatrix * ff) - (MSMatrix * FF);
 
-	tenAnch = FF.row(0).t();
-	tenFair = FF.row(N-1).t();
+	ten_1 = FF.row(0).t();
+	ten_N = FF.row(N-1).t();
 }
 
-void MotherLine::print_out (void) {
+void Line::print_out (void) {
 
 		std::cout << "Para la linea " << this->nLine << " , se ha leido:" << std::endl << std::endl;
 		std::cout << "nNodos   " << this->nNodos << std::endl;
@@ -274,240 +268,173 @@ void MotherLine::print_out (void) {
 		std::cout << "Gmu      " << this->Gmu << std::endl;
 		std::cout << "Gvc      " << this->Gvc << std::endl;
 		std::cout << "Dz       " << this->Dz << std::endl;
-		std::cout << "posFair  " << this->posFair(0,0) << " " << this->posFair(1,0) << " " << this->posFair(2,0) << std::endl;
-		std::cout << "posAnch  " << this->posAnch(0,0) << " " << this->posAnch(1,0) << " " << this->posAnch(2,0) << std::endl << std::endl;
+		std::cout << "pos_N  " << this->pos_N(0,0) << " " << this->pos_N(1,0) << " " << this->pos_N(2,0) << std::endl;
+		std::cout << "pos_1  " << this->pos_1(0,0) << " " << this->pos_1(1,0) << " " << this->pos_1(2,0) << std::endl << std::endl;
 }
 
-void TowingLine::initLine (void) {
+void Line::initLine (void) {
 
-	floor_flag = -1;
-	int flagTense = 0;
+	if (pos_N(2,0)<fondo || pos_1(2,0)<fondo) throw 0;
 
-	xF=sqrt(pow((posFair(0,0)-posAnch(0,0)),2)+pow((posFair(1,0)-posAnch(1,0)),2));
-	zF=(posFair(2,0)-posAnch(2,0));
-
-	if(xF==0){ // Vertical case
-		cosa=0; sina=0;		
-	}else{ // other
-		cosa=(posFair(0,0)-posAnch(0,0))/xF;
-		sina=(posFair(1,0)-posAnch(1,0))/xF;
-	}
-
-	double Li= sqrt(pow(xF,2)+pow(zF,2));
-
-	if (Li<L) {
-
-		this->qs_GetTen();
-		this->qs_Solution();
-
-		if(isnan(xc(0,0))) flagTense = 1;
-
-		for(int ii=0;ii<N;ii=ii+1) {
-
-			pos(3*ii,0) = posAnch(0,0)+cosa*xc(ii,0);
-			pos(3*ii+1,0) = posAnch(1,0)+sina*xc(ii,0);
-			pos(3*ii+2,0) = posAnch(2,0)+zc(ii,0);
-
-			if (pos(3*ii+2,0)<=fondo) throw 1;
-		
+	if (lineType == 1){
+		int flag = 0;
+		int flagTense = 0;
+		xF=sqrt(pow((pos_N(0,0)-pos_1(0,0)),2)+pow((pos_N(1,0)-pos_1(1,0)),2));
+		zF=(pos_N(2,0)-pos_1(2,0));
+		if(xF==0){
+			cosa=0; sina=0;		
+		}else{
+			cosa=(pos_N(0,0)-pos_1(0,0))/xF;
+			sina=(pos_N(1,0)-pos_1(1,0))/xF;
 		}
-
-		arma::mat vec1(pos.rows(3,5)-pos.rows(0,2));
-		double nvec1 = norm(vec1);
-		tenAnch = (Te(0)/nvec1) * vec1;
-
-		arma::mat vecN(pos.rows(3*N-6,3*N-4) - pos.rows(3*N-3,3*N-1));
-		double nvecN = norm(vecN);
-		tenFair = (Te(N-1)/nvecN) * vecN;
-
-	}
-
-	if ((Li>=L)||(flagTense == 1)) {
-
-		double cost=xF/Li;
-		double sint=zF/Li;
-
-		for(int ii=0;ii<N;ii=ii+1) {
-			xc(ii,0)=cost*(Li/L)*s(ii);
-			zc(ii,0)=sint*(Li/L)*s(ii);
-		}
-
-		for(int ii=0;ii<N;ii=ii+1) {
-			pos(3*ii,0) = posAnch(0,0)+cosa*xc(ii,0);
-			pos(3*ii+1,0) = posAnch(1,0)+sina*xc(ii,0);
-			pos(3*ii+2,0) = posAnch(2,0)+zc(ii,0);
-
-		}
-
-		arma::mat vec1(pos.rows(3,5)-pos.rows(0,2));
-		double nvec1 = norm(vec1);
-		tenAnch = (EA*(nvec1 - 1.0)/(0.5*(roots(1)+1)*dL*nvec1)) * vec1;
-
-		arma::mat vecN(pos.rows(3*N-6,3*N-4) - pos.rows(3*N-3,3*N-1));
-		double nvecN = norm(vecN);
-		tenFair = (EA*(nvecN - 1.0)/(0.5*(roots(1)+1)*dL*nvecN)) * vecN;
-
-		std::cout << "WARNING: Towing line " << nLine << " tension is high. " << std::endl;
-
-	}
-
-	std::cout << "Tension at anchor for line: " << nLine << " ; is: (" << tenAnch(0) << " , " << tenAnch(1) << " , " << tenAnch(2) << " ) N" << std::endl;
-	std::cout << "Tension at fairlead for line: " << nLine << " ; is: (" << tenFair(0) << " , " << tenFair(1) << " , " << tenFair(2) << " ) N" << std::endl << std::endl;
-}
-
-void MooringLine::initLine (void) {
-
-	int flag = 0;
-	int flagTense = 0;
-
-	xF=sqrt(pow((posFair(0,0)-posAnch(0,0)),2)+pow((posFair(1,0)-posAnch(1,0)),2));
-	zF=(posFair(2,0)-posAnch(2,0));
-
-	if(xF==0){
-		cosa=0; sina=0;		
-	}else{
-		cosa=(posFair(0,0)-posAnch(0,0))/xF;
-		sina=(posFair(1,0)-posAnch(1,0))/xF;
-	}
-
-	double Li= sqrt(pow(xF,2)+pow(zF,2));
-
-	if ( Li<L) {
-
-		if ( posAnch(2,0)==fondo && posFair(2,0)==fondo ) throw 2;
-		if (xF<1e-5) throw 3;
-
-		floor_flag = -1;
-
-		this->qs_GetTen();
-		this->qs_Solution();
-
-		if(isnan(xc(0,0))) flagTense = 1;
-
-		for(int ii=0;ii<N;ii=ii+1) {
-
-			pos(3*ii,0) = posAnch(0,0)+cosa*xc(ii,0);
-			pos(3*ii+1,0) = posAnch(1,0)+sina*xc(ii,0);
-			pos(3*ii+2,0) = posAnch(2,0)+zc(ii,0);
-			if (pos(3*ii+2,0)<=fondo && ii>=1) flag = 1; 
-		}
-
-
-		if ((flag == 1)&&posAnch(2,0)>fondo) throw 6;
-
-		if ((flag == 1)&&((posAnch(2,0)==fondo)||(posFair(2,0)==fondo))) {
-
-			floor_flag = 1;
-
+		double Li= sqrt(pow(xF,2)+pow(zF,2));
+		if ( Li<L) {
+			if ( pos_1(2,0)==fondo && pos_N(2,0)==fondo ) throw 2;
+			if (xF<1e-5) throw 3;
+			floor_flag = -1;
 			this->qs_GetTen();
 			this->qs_Solution();
-
-			if(isnan(xc(0,0))) throw 5;
-
+			if(isnan(xc(0,0))) flagTense = 1;
 			for(int ii=0;ii<N;ii=ii+1) {
-				pos(3*ii,0) = posAnch(0,0)+cosa*xc(ii,0);
-				pos(3*ii+1,0) = posAnch(1,0)+sina*xc(ii,0);
-				pos(3*ii+2,0) = posAnch(2,0)+zc(ii,0);
+				pos(3*ii,0) = pos_1(0,0)+cosa*xc(ii,0);
+				pos(3*ii+1,0) = pos_1(1,0)+sina*xc(ii,0);
+				pos(3*ii+2,0) = pos_1(2,0)+zc(ii,0);
+				if (pos(3*ii+2,0)<=fondo && ii>=1) flag = 1; 
+			}
+			if ((flag == 1)&&pos_1(2,0)>fondo) throw 6;
+			if ((flag == 1)&&((pos_1(2,0)==fondo)||(pos_N(2,0)==fondo))) {
+				floor_flag = 1;
+				this->qs_GetTen();
+				this->qs_Solution();
+				if(isnan(xc(0,0))) throw 5;
+				for(int ii=0;ii<N;ii=ii+1) {
+					pos(3*ii,0) = pos_1(0,0)+cosa*xc(ii,0);
+					pos(3*ii+1,0) = pos_1(1,0)+sina*xc(ii,0);
+					pos(3*ii+2,0) = pos_1(2,0)+zc(ii,0);
+				}
+			}
+			arma::mat vec1(pos.rows(3,5)-pos.rows(0,2));
+			double nvec1 = norm(vec1);
+			ten_1 = (Te(0)/nvec1) * vec1;
+			arma::mat vecN(pos.rows(3*N-6,3*N-4) - pos.rows(3*N-3,3*N-1));
+			double nvecN = norm(vecN);
+			ten_N = (Te(N-1)/nvecN) * vecN;
+		}
+		if ((Li>=L)||(flagTense == 1)) {
+			double cost=xF/Li;
+			double sint=zF/Li;
+			for(int ii=0;ii<N;ii=ii+1) {
+				xc(ii,0)=cost*(Li/L)*s(ii);
+				zc(ii,0)=sint*(Li/L)*s(ii);
+			}
+			for(int ii=0;ii<N;ii=ii+1) {
+				pos(3*ii,0) = pos_1(0,0)+cosa*xc(ii,0);
+				pos(3*ii+1,0) = pos_1(1,0)+sina*xc(ii,0);
+				pos(3*ii+2,0) = pos_1(2,0)+zc(ii,0);
+			}
+			arma::mat vec1(pos.rows(3,5)-pos.rows(0,2));
+			double nvec1 = norm(vec1);
+			ten_1 = (EA*(nvec1 - 1.0)/(0.5*(roots(1)+1)*dL*nvec1)) * vec1;
+			arma::mat vecN(pos.rows(3*N-6,3*N-4) - pos.rows(3*N-3,3*N-1));
+			double nvecN = norm(vecN);
+			ten_N = (EA*(nvecN - 1.0)/(0.5*(roots(1)+1)*dL*nvecN)) * vecN;
+			if ( Li==L && pos_1(2,0)==fondo && pos_N(2,0)==fondo ) {
+				std::cout << "WARNING: Mooring line " << nLine << " is laying on the floor " << std::endl;
+			}else if (xF<1e-5){
+				std::cout << "WARNING: Mooring line " << nLine << " is vertical. " << std::endl;
+			}else{
+				std::cout << "WARNING: Mooring line " << nLine << " tension is high. " << std::endl;
 			}
 		}
-
-		arma::mat vec1(pos.rows(3,5)-pos.rows(0,2));
-		double nvec1 = norm(vec1);
-		tenAnch = (Te(0)/nvec1) * vec1;
-
-		arma::mat vecN(pos.rows(3*N-6,3*N-4) - pos.rows(3*N-3,3*N-1));
-		double nvecN = norm(vecN);
-		tenFair = (Te(N-1)/nvecN) * vecN;
-
-	}
-
-	if ((Li>=L)||(flagTense == 1)) {
+		floor_flag = 1;
+		std::cout << "Tension at anchor for line: " << nLine << " ; is: (" << ten_1(0) << " , " << ten_1(1) << " , " << ten_1(2) << " ) N" << std::endl;
+		std::cout << "Tension at fairlead for line: " << nLine << " ; is: (" << ten_N(0) << " , " << ten_N(1) << " , " << ten_N(2) << " ) N" << std::endl << std::endl;
+	} else if (lineType == 2){
+		floor_flag = -1;
+		int flagTense = 0;
+		xF=sqrt(pow((pos_N(0,0)-pos_1(0,0)),2)+pow((pos_N(1,0)-pos_1(1,0)),2));
+		zF=(pos_N(2,0)-pos_1(2,0));
+		if(xF==0){ // Vertical case
+			cosa=0; sina=0;		
+		}else{ // other
+			cosa=(pos_N(0,0)-pos_1(0,0))/xF;
+			sina=(pos_N(1,0)-pos_1(1,0))/xF;
+		}
+		double Li= sqrt(pow(xF,2)+pow(zF,2));
+		if (Li<L) {
+			this->qs_GetTen();
+			this->qs_Solution();
+			if(isnan(xc(0,0))) flagTense = 1;
+			for(int ii=0;ii<N;ii=ii+1) {
+				pos(3*ii,0) = pos_1(0,0)+cosa*xc(ii,0);
+				pos(3*ii+1,0) = pos_1(1,0)+sina*xc(ii,0);
+				pos(3*ii+2,0) = pos_1(2,0)+zc(ii,0);
+				if (pos(3*ii+2,0)<=fondo) throw 1;			
+			}
+			arma::mat vec1(pos.rows(3,5)-pos.rows(0,2));
+			double nvec1 = norm(vec1);
+			ten_1 = (Te(0)/nvec1) * vec1;
+			arma::mat vecN(pos.rows(3*N-6,3*N-4) - pos.rows(3*N-3,3*N-1));
+			double nvecN = norm(vecN);
+			ten_N = (Te(N-1)/nvecN) * vecN;
+		}
+		if ((Li>=L)||(flagTense == 1)) {
+			double cost=xF/Li;
+			double sint=zF/Li;
+			for(int ii=0;ii<N;ii=ii+1) {
+				xc(ii,0)=cost*(Li/L)*s(ii);
+				zc(ii,0)=sint*(Li/L)*s(ii);
+			}
+			for(int ii=0;ii<N;ii=ii+1) {
+				pos(3*ii,0) = pos_1(0,0)+cosa*xc(ii,0);
+				pos(3*ii+1,0) = pos_1(1,0)+sina*xc(ii,0);
+				pos(3*ii+2,0) = pos_1(2,0)+zc(ii,0);
+			}
+			arma::mat vec1(pos.rows(3,5)-pos.rows(0,2));
+			double nvec1 = norm(vec1);
+			ten_1 = (EA*(nvec1 - 1.0)/(0.5*(roots(1)+1)*dL*nvec1)) * vec1;
+			arma::mat vecN(pos.rows(3*N-6,3*N-4) - pos.rows(3*N-3,3*N-1));
+			double nvecN = norm(vecN);
+			ten_N = (EA*(nvecN - 1.0)/(0.5*(roots(1)+1)*dL*nvecN)) * vecN;
+			std::cout << "WARNING: Towing line " << nLine << " tension is high. " << std::endl;
+		}
+		std::cout << "Tension at anchor for line: " << nLine << " ; is: (" << ten_1(0) << " , " << ten_1(1) << " , " << ten_1(2) << " ) N" << std::endl;
+		std::cout << "Tension at fairlead for line: " << nLine << " ; is: (" << ten_N(0) << " , " << ten_N(1) << " , " << ten_N(2) << " ) N" << std::endl << std::endl;
+	} else if (lineType == 3){
+		xF=sqrt(pow((pos_N(0,0)-pos_1(0,0)),2)+pow((pos_N(1,0)-pos_1(1,0)),2));
+		zF=(pos_N(2,0)-pos_1(2,0));
+		double Li= sqrt(pow(xF,2)+pow(zF,2));
+		if (Li<L) throw 4;
+		if(xF==0){
+			cosa=0; sina=0;		
+		}else{
+			cosa=(pos_N(0,0)-pos_1(0,0))/xF;
+			sina=(pos_N(1,0)-pos_1(1,0))/xF;
+		}
 		double cost=xF/Li;
 		double sint=zF/Li;
-
 		for(int ii=0;ii<N;ii=ii+1) {
-
 			xc(ii,0)=cost*(Li/L)*s(ii);
 			zc(ii,0)=sint*(Li/L)*s(ii);
+			pos(3*ii,0) = pos_1(0,0)+cosa*xc(ii,0);
+			pos(3*ii+1,0) = pos_1(1,0)+sina*xc(ii,0);
+			pos(3*ii+2,0) = pos_1(2,0)+zc(ii,0);
 		}
-
-		for(int ii=0;ii<N;ii=ii+1) {
-
-			pos(3*ii,0) = posAnch(0,0)+cosa*xc(ii,0);
-			pos(3*ii+1,0) = posAnch(1,0)+sina*xc(ii,0);
-			pos(3*ii+2,0) = posAnch(2,0)+zc(ii,0);
-
-		}
-
 		arma::mat vec1(pos.rows(3,5)-pos.rows(0,2));
 		double nvec1 = norm(vec1);
-		tenAnch = (EA*(nvec1 - 1.0)/(0.5*(roots(1)+1)*dL*nvec1)) * vec1;
-
+		ten_1 = (EA*(nvec1 - 1.0)/(0.5*(this->roots(1)+1)*dL*nvec1)) * vec1;
 		arma::mat vecN(pos.rows(3*N-6,3*N-4) - pos.rows(3*N-3,3*N-1));
 		double nvecN = norm(vecN);
-		tenFair = (EA*(nvecN - 1.0)/(0.5*(roots(1)+1)*dL*nvecN)) * vecN;
-
-		if ( Li==L && posAnch(2,0)==fondo && posFair(2,0)==fondo ) {
-			std::cout << "WARNING: Mooring line " << nLine << " is laying on the floor " << std::endl;
-		}else if (xF<1e-5){
-			std::cout << "WARNING: Mooring line " << nLine << " is vertical. " << std::endl;
-		}else{
-			std::cout << "WARNING: Mooring line " << nLine << " tension is high. " << std::endl;
-		}
-
+		ten_N = (EA*(nvecN - 1.0)/(0.5*(this->roots(1)+1)*dL*nvecN)) * vecN;
+		std::cout << "Tension at anchor for line: " << nLine << " ; is: (" << ten_1(0) << " , " << ten_1(1) << " , " << ten_1(2) << " ) N" << std::endl;
+		std::cout << "Tension at fairlead for line: " << nLine << " ; is: (" << ten_N(0) << " , " << ten_N(1) << " , " << ten_N(2) << " ) N" << std::endl << std::endl;
+		floor_flag = -1;
+	} else {
+		throw std::invalid_argument( "Type of line not available." );
 	}
-	floor_flag = 1;
-	std::cout << "Tension at anchor for line: " << nLine << " ; is: (" << tenAnch(0) << " , " << tenAnch(1) << " , " << tenAnch(2) << " ) N" << std::endl;
-	std::cout << "Tension at fairlead for line: " << nLine << " ; is: (" << tenFair(0) << " , " << tenFair(1) << " , " << tenFair(2) << " ) N" << std::endl << std::endl;
 }
 
-void TensorLine::initLine (void) {
-
-	xF=sqrt(pow((posFair(0,0)-posAnch(0,0)),2)+pow((posFair(1,0)-posAnch(1,0)),2));
-	zF=(posFair(2,0)-posAnch(2,0));
-
-	double Li= sqrt(pow(xF,2)+pow(zF,2));
-
-	if (Li<L) throw 4;
-
-	if(xF==0){
-		cosa=0; sina=0;		
-	}else{
-		cosa=(posFair(0,0)-posAnch(0,0))/xF;
-		sina=(posFair(1,0)-posAnch(1,0))/xF;
-	}
-
-	double cost=xF/Li;
-	double sint=zF/Li;
-
-	for(int ii=0;ii<N;ii=ii+1) {
-
-		xc(ii,0)=cost*(Li/L)*s(ii);
-		zc(ii,0)=sint*(Li/L)*s(ii);
-
-		pos(3*ii,0) = posAnch(0,0)+cosa*xc(ii,0);
-		pos(3*ii+1,0) = posAnch(1,0)+sina*xc(ii,0);
-		pos(3*ii+2,0) = posAnch(2,0)+zc(ii,0);
-
-	}
-
-
-	arma::mat vec1(pos.rows(3,5)-pos.rows(0,2));
-	double nvec1 = norm(vec1);
-	tenAnch = (EA*(nvec1 - 1.0)/(0.5*(this->roots(1)+1)*dL*nvec1)) * vec1;
-
-	arma::mat vecN(pos.rows(3*N-6,3*N-4) - pos.rows(3*N-3,3*N-1));
-	double nvecN = norm(vecN);
-	tenFair = (EA*(nvecN - 1.0)/(0.5*(this->roots(1)+1)*dL*nvecN)) * vecN;
-
-
-	std::cout << "Tension at anchor for line: " << nLine << " ; is: (" << tenAnch(0) << " , " << tenAnch(1) << " , " << tenAnch(2) << " ) N" << std::endl;
-	std::cout << "Tension at fairlead for line: " << nLine << " ; is: (" << tenFair(0) << " , " << tenFair(1) << " , " << tenFair(2) << " ) N" << std::endl << std::endl;
-
-	floor_flag = -1;
-}
-
-void MotherLine::write_out (double t) {
+void Line::write_out (double t) {
 
 	int ii, nn1, nn2, nn3, nn4;
 
@@ -537,8 +464,8 @@ void MotherLine::write_out (double t) {
 
 		nn4=sprintf(buffer4,"CatTen_%d.txt", nLine);
 		std::ofstream ten(buffer4);
-			ten << t << "    " << tenAnch(0,0) << "    " << tenAnch(1,0) << "    " << tenAnch(2,0) << "    "
-			     << tenFair(0,0) << "    " << tenFair(1,0) << "    " << tenFair(2,0) << "    " << std::endl;
+			ten << t << "    " << ten_1(0,0) << "    " << ten_1(1,0) << "    " << ten_1(2,0) << "    "
+			     << ten_N(0,0) << "    " << ten_N(1,0) << "    " << ten_N(2,0) << "    " << std::endl;
 		ten.close();
 	}else{
 	nn1=sprintf(buffer1,"NodePosX_%d.txt", nLine);
@@ -568,8 +495,8 @@ void MotherLine::write_out (double t) {
 	nn4=sprintf(buffer4,"CatTen_%d.txt", nLine);
 	std::ofstream ten;
 		ten.open(buffer4, std::ios_base::app);
-		ten << t << "    " << tenAnch(0,0) << "    " << tenAnch(1,0) << "    " << tenAnch(2,0) << "    "
-		     << tenFair(0,0) << "    " << tenFair(1,0) << "    " << tenFair(2,0) << "    " << std::endl;
+		ten << t << "    " << ten_1(0,0) << "    " << ten_1(1,0) << "    " << ten_1(2,0) << "    "
+		     << ten_N(0,0) << "    " << ten_N(1,0) << "    " << ten_N(2,0) << "    " << std::endl;
 	ten.close();
 	}
 }

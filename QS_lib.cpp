@@ -15,17 +15,12 @@ Libreria de método Quasi Static
 
 
 extern double PI;
-extern int nLines, nMoorLines, nTowLines, nTenLines;
-extern int nNodosTotal, nSistema;
 extern double g;
 extern double rhoW;
 extern double fondo;
-extern double t;
-extern double t_max;
-extern double dt;
 
 
-void MotherLine::qs_Functions(double& ff,double& gg,double& DfDH,double& DfDV,double& DgDH,double& DgDV){
+void Line::qs_Functions(double& ff,double& gg,double& DfDH,double& DfDV,double& DgDH,double& DgDV){
 
 	/*
     This function evaluates functions f and g definned by:
@@ -86,10 +81,7 @@ void MotherLine::qs_Functions(double& ff,double& gg,double& DfDH,double& DfDV,do
 	};
 }
 
-
-
-
-void MotherLine::qs_GetTen(void){
+void Line::qs_GetTen(void){
 
 	/*
     This function provides the fairlead's tension of the catenary.
@@ -148,8 +140,7 @@ void MotherLine::qs_GetTen(void){
 	//std::cout<<std::endl<<"Tension obtenida:  "<<HF<<"   "<<VF<<std::endl<<std::endl;
 }
 
-
-void MotherLine::qs_Solution(void){
+void Line::qs_Solution(void){
 
 	int ii, jj, nIter, nNodosFondo;
 	double om = (rho0-rhoW*A)*g;

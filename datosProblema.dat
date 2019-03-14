@@ -1,7 +1,8 @@
 9.81 !Gravity acceleration
 1000.0 !Water density
--10000.2 !Coordenada vertical del suelo
-0.01 !Time step
-0.0 10.0 !Total time of simulation
-0 !Read Equilibrio.dat? [0 No, 1 Yes]
-0 !Write Equilibrio.dat? [0 No, 1 Yes]
+-1.2 !Coordenada vertical del suelo
+0.01 ! Time step
+10.0 ! Total time of simulation
+2 ! Solver temporal [1: RK3, 2:Implicit Euler]
+0 ! Read Equilibrio.dat? [0 No, 1 Yes]
+0 ! Write Equilibrio.dat? [0 No, 1 Yes]

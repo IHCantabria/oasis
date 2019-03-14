@@ -43,7 +43,6 @@ void AnchorBCP::leer_datosBCPs(void){
 	datosBCPs >> nLinesBCP; datosBCPs.ignore(std::numeric_limits<int>::max(), '\n');
 	BCPLineIndex = new int[nLinesBCP];
 	BCPLineNode = new int[nLinesBCP];
-	BCPLineType = new int[nLinesBCP];
 	for(ii=0;ii<nLinesBCP;ii=ii+1){
 		datosBCPs >> BCPLineIndex[ii];
 	}
@@ -52,10 +51,7 @@ void AnchorBCP::leer_datosBCPs(void){
 		datosBCPs >> BCPLineNode[ii];
 	}
 	datosBCPs.ignore(std::numeric_limits<int>::max(), '\n');
-	for(ii=0;ii<nLinesBCP;ii=ii+1){
-		datosBCPs >> BCPLineType[ii];
-	}
-	datosBCPs.ignore(std::numeric_limits<int>::max(), '\n');
+	datosBCPs >> pos(0,0); datosBCPs >> pos(1,0); datosBCPs >> pos(2,0);  datosBCPs.ignore(std::numeric_limits<int>::max(), '\n');
 	datosBCPs >> fileName; datosBCPs.ignore(std::numeric_limits<int>::max(), '\n');
 
 	//Cierro el fichero
