@@ -34,12 +34,10 @@ for i = 1:dt:nt
     ylim([-5 1])
     pbaspect([2 1 1])
     pause(0.1)
-    cla
+    if i<nt
+        cla
+    end
 end
-
-xlim([-20 1]);
-ylim([-4.5 0.5]);
-grid on
 
 
 

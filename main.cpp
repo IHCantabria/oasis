@@ -14,14 +14,9 @@ MAIN DE LA IMPLEMENTACION DE NuevosFEM EN C++
 #include <armadillo>
 
 double PI;
-int nLines, nMoorLines, nTowLines, nTenLines;
-int nNodosTotal, nSistema;
 double g;
 double rhoW;
 double fondo;
-double t;
-double t_max;
-double dt;
 
 struct solver_data {
 	int nMoorLines;
@@ -32,11 +27,16 @@ struct solver_data {
 	MooringLine * MoorLine;
 	TowingLine * TowLine;
 	TensorLine * TenLine;
+	int nAnchBCPs;
+	int nFairBCPs;
+	AnchorBCP * AnchBCP;
+	FairleadBCP * FairBCP;
 } Lines;
 
 arma::mat fun(double t, arma::mat y, solver_data Lines){
 
 	arma::mat yprime = arma::zeros(size(y));
+	int i0;
 
 	// Copy info from y to the objects.
 	int ini = 0;
@@ -78,7 +78,19 @@ arma::mat fun(double t, arma::mat y, solver_data Lines){
 	}
 
 	// Set boundary conditions on pos and vel
-	// ...
+	/*
+	for(int ii=0;ii<Lines.nAnchBCPs;ii=ii+1){
+		Lines.AnchBCP[ii].getValues();
+		for(int jj=0;jj<Lines.AnchBCP[ii].nLinesBCP;jj=jj+1){
+			if(Lines.AnchBCP[ii].BCPLineNode[jj] == 1) i0 = 0;
+			if(Lines.AnchBCP[ii].BCPLineNode[jj] == 2) i0 = 0;
+		}
+	}
+
+	for(int ii=0;ii<Lines.nFairBCPs;ii=ii+1){
+
+	}
+	*/
 
 	// Compute forces vector for the different objects
 	for(int ii=0;ii<Lines.nMoorLines;ii=ii+1){
@@ -153,9 +165,16 @@ void direction(arma::mat y, arma::mat& F, arma::mat& dy, arma::mat y0, double t,
 int main () {
 
 	int flag_read_eq, flag_write_eq;
+	int nLines, nMoorLines, nTowLines, nTenLines;
+	int nBCPs, nAnchBCPs, nFairBCPs;
+	int nNodosTotal, nSistema;
+
+	double t;
+	double t_max;
+	double dt;
 
 	PI=acos(-1.0);
-	t=0.0;
+	t = 0.0;
 
 	nNodosTotal=0;
 
@@ -187,7 +206,6 @@ int main () {
 
 	//ALOCATO UN VECTOR DE OBJETOS, UNO PARA CADA LINEA
 	MooringLine * MoorLine = new MooringLine[nMoorLines];
-
 	//INICIO LAS LINEAS Y PINTO RESULTADOS POR PANTALLA
 	for(int ii=0; ii<nMoorLines; ii=ii+1){
 		MoorLine[ii].set_nLine(ii+1);
@@ -215,7 +233,6 @@ int main () {
 
 	//ALOCATO UN VECTOR DE OBJETOS, UNO PARA CADA LINEA
 	TowingLine * TowLine = new TowingLine[nTowLines];
-
 	//INICIO LAS LINEAS Y PINTO RESULTADOS POR PANTALLA
 	for(int ii=0; ii<nTowLines; ii=ii+1){
 
@@ -242,7 +259,6 @@ int main () {
 
 	//ALOCATO UN VECTOR DE OBJETOS, UNO PARA CADA LINEA
 	TensorLine * TenLine = new TensorLine[nTenLines];
-
 	//INICIO LAS LINEAS Y PINTO RESULTADOS POR PANTALLA
 	for(int ii=0; ii<nTenLines; ii=ii+1){
 
@@ -265,6 +281,60 @@ int main () {
 		//TenLine[ii].SEM_computeA();	
 	}
 
+	//LEO DE FICHERO CUANTOS BCPs SE VAN A ESTUDIAR
+	std::ifstream datosBCPs ("datosBCPs.dat");
+	datosBCPs >> nFairBCPs; datosBCPs.ignore(std::numeric_limits<int>::max(), '\n');
+	datosBCPs >> nAnchBCPs; datosBCPs.ignore(std::numeric_limits<int>::max(), '\n');
+	datosBCPs.close();
+
+	nBCPs=nAnchBCPs+nFairBCPs;
+
+	Lines.nAnchBCPs = nAnchBCPs;
+	Lines.nFairBCPs = nFairBCPs;
+
+	//ALOCATO UN VECTOR DE OBJETOS, UNO PARA CADA LINEA
+	FairleadBCP * FairBCP = new FairleadBCP[nFairBCPs];
+	//INICIO LAS LINEAS Y PINTO RESULTADOS POR PANTALLA
+	for(int ii=0; ii<nFairBCPs; ii=ii+1){
+		FairBCP[ii].set_nBCP(ii+1);
+		FairBCP[ii].leer_datosBCPs();
+		FairBCP[ii].getValues(0.0);
+	}
+
+	//ALOCATO UN VECTOR DE OBJETOS, UNO PARA CADA LINEA
+	AnchorBCP * AnchBCP = new AnchorBCP[nAnchBCPs];
+	//INICIO LAS LINEAS Y PINTO RESULTADOS POR PANTALLA
+	for(int ii=0; ii<nAnchBCPs; ii=ii+1){
+		AnchBCP[ii].set_nBCP(ii+1+nFairBCPs);
+		AnchBCP[ii].leer_datosBCPs();
+		if(AnchBCP[ii].BCPLineType[0] == 1){
+			if(AnchBCP[ii].BCPLineNode[0] == 1){
+				AnchBCP[ii].pos = MoorLine[AnchBCP[ii].BCPLineIndex[0]].posAnch;
+			}
+			if(AnchBCP[ii].BCPLineNode[0] == 2){
+				AnchBCP[ii].pos = MoorLine[AnchBCP[ii].BCPLineIndex[0]].posFair;
+			}
+		}
+		if(AnchBCP[ii].BCPLineType[0] == 2){
+			if(AnchBCP[ii].BCPLineNode[0] == 1){
+				AnchBCP[ii].pos = TowLine[AnchBCP[ii].BCPLineIndex[0]].posAnch;
+			}
+			if(AnchBCP[ii].BCPLineNode[0] == 2){
+				AnchBCP[ii].pos = TowLine[AnchBCP[ii].BCPLineIndex[0]].posFair;
+			}
+		}
+		if(AnchBCP[ii].BCPLineType[0] == 3){
+			if(AnchBCP[ii].BCPLineNode[0] == 1){
+				AnchBCP[ii].pos = TenLine[AnchBCP[ii].BCPLineIndex[0]].posAnch;
+			}
+			if(AnchBCP[ii].BCPLineNode[0] == 2){
+				AnchBCP[ii].pos = TenLine[AnchBCP[ii].BCPLineIndex[0]].posFair;
+			}
+		}
+	}
+
+
+	// Inicio el vector del sistema
 	nSistema=3*2*nNodosTotal;
 	Lines.nSistema = 3*2*nNodosTotal;
 	Lines.nSistema2 = 3*nNodosTotal;
@@ -320,13 +390,16 @@ int main () {
 		}
 	}
 
-	for(int ii=0; ii<nMoorLines; ii=ii+1) MoorLine[ii].write_out();
-	for(int ii=0; ii<nTowLines; ii=ii+1) TowLine[ii].write_out();
-	for(int ii=0; ii<nTenLines; ii=ii+1) TenLine[ii].write_out();
+	for(int ii=0; ii<nMoorLines; ii=ii+1) MoorLine[ii].write_out(t);
+	for(int ii=0; ii<nTowLines; ii=ii+1) TowLine[ii].write_out(t);
+	for(int ii=0; ii<nTenLines; ii=ii+1) TenLine[ii].write_out(t);
 
 	Lines.MoorLine = MoorLine;
 	Lines.TowLine = TowLine;
 	Lines.TenLine = TenLine;
+
+	//Lines.AnchBCP = AnchBCP;
+	//Lines.FairBCP = FairBCP;
 
 	int solver_flag = 2;
 
@@ -348,9 +421,9 @@ int main () {
 				t_old = t;
 				std::cout<< "    t = " << t << std::endl;
 				std::cout << "                       mean_acc = " << arma::norm(Lines.MoorLine[0].acc,2)/Lines.MoorLine[0].N << std::endl;
-				for(int ii=0; ii<nMoorLines; ii=ii+1) Lines.MoorLine[ii].write_out();
-				for(int ii=0; ii<nTowLines; ii=ii+1) Lines.TowLine[ii].write_out();
-				for(int ii=0; ii<nTenLines; ii=ii+1) Lines.TenLine[ii].write_out();
+				for(int ii=0; ii<nMoorLines; ii=ii+1) Lines.MoorLine[ii].write_out(t);
+				for(int ii=0; ii<nTowLines; ii=ii+1) Lines.TowLine[ii].write_out(t);
+				for(int ii=0; ii<nTenLines; ii=ii+1) Lines.TenLine[ii].write_out(t);
 			}
 		} while (t<=t_max);
 	}
@@ -375,9 +448,9 @@ int main () {
 			if (t >= t_old + dt){
 				t_old = t;
 				std::cout<< "    t = " << t << std::endl;
-				for(int ii=0; ii<nMoorLines; ii=ii+1) Lines.MoorLine[ii].write_out();
-				for(int ii=0; ii<nTowLines; ii=ii+1) Lines.TowLine[ii].write_out();
-				for(int ii=0; ii<nTenLines; ii=ii+1) Lines.TenLine[ii].write_out();
+				for(int ii=0; ii<nMoorLines; ii=ii+1) Lines.MoorLine[ii].write_out(t);
+				for(int ii=0; ii<nTowLines; ii=ii+1) Lines.TowLine[ii].write_out(t);
+				for(int ii=0; ii<nTenLines; ii=ii+1) Lines.TenLine[ii].write_out(t);
 			}
 		} while (t<=t_max);
 	}

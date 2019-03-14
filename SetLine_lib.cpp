@@ -84,6 +84,7 @@ void MotherLine::leer_datosMoorings () {
 	dL=L/(nNodos-1);
 	dL0=L/(nNodos-1);
 	N = p*(nNodos-1)+1;
+	Kn = Cmn * PI * d * d * 0.25 * rhoW;
 
 	pos = arma::zeros(3*N);
 	vel = arma::zeros(N,3);
@@ -150,6 +151,8 @@ void MotherLine::SEM_getBaseFunctions(void){
 		}
 	}
 
+	std::cout << "Mass Matrix local " << std::endl << MassMatrix_local << std::endl;
+
 	MassMatrix = arma::zeros(N,N);
 	StiffMatrix = arma::zeros(N,N);
 	MSMatrix = arma::zeros(N,N);
@@ -160,13 +163,11 @@ void MotherLine::SEM_getBaseFunctions(void){
 		MSMatrix.submat(ii*p,ii*p,(ii+1)*p,(ii+1)*p) = MSMatrix.submat(ii*p,ii*p,(ii+1)*p,(ii+1)*p) + MSMatrix_local;
 	}
 
-	MM = (0.5*rho0) * MassMatrix;
+	MM = 0.5*(rho0 + Kn) * MassMatrix;
 	MM.row(0) = arma::zeros(1,N);
 	MM.row(N-1) = arma::zeros(1,N);
 	MM(0,0) = 1.0;
 	MM(N-1,N-1) = 1.0;
-
-
 }
 
 void MotherLine::SEM_coefficients(void){
@@ -313,11 +314,11 @@ void TowingLine::initLine (void) {
 
 		arma::mat vec1(pos.rows(3,5)-pos.rows(0,2));
 		double nvec1 = norm(vec1);
-		tenAnch = (sqrt(HA*HA+VA*VA)/nvec1) * vec1;
+		tenAnch = (Te(0)/nvec1) * vec1;
 
 		arma::mat vecN(pos.rows(3*N-6,3*N-4) - pos.rows(3*N-3,3*N-1));
 		double nvecN = norm(vecN);
-		tenFair = (sqrt(HF*HF+VF*VF)/nvecN) * vecN;
+		tenFair = (Te(N-1)/nvecN) * vecN;
 
 	}
 
@@ -412,11 +413,11 @@ void MooringLine::initLine (void) {
 
 		arma::mat vec1(pos.rows(3,5)-pos.rows(0,2));
 		double nvec1 = norm(vec1);
-		tenAnch = (sqrt(HA*HA+VA*VA)/nvec1) * vec1;
+		tenAnch = (Te(0)/nvec1) * vec1;
 
 		arma::mat vecN(pos.rows(3*N-6,3*N-4) - pos.rows(3*N-3,3*N-1));
 		double nvecN = norm(vecN);
-		tenFair = (sqrt(HF*HF+VF*VF)/nvecN) * vecN;
+		tenFair = (Te(N-1)/nvecN) * vecN;
 
 	}
 
@@ -506,7 +507,7 @@ void TensorLine::initLine (void) {
 	floor_flag = -1;
 }
 
-void MotherLine::write_out (void) {
+void MotherLine::write_out (double t) {
 
 	int ii, nn1, nn2, nn3, nn4;
 

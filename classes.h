@@ -1,13 +1,13 @@
-/*  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	CLASE CatLine  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-*/
+
 
 #include <armadillo>
+#include <string>
+#include "math_lib.h"
 
 class MotherLine {
 public:
 	int nLine, nNodos, p, N, floor_flag;
-	double L, dL, dL0, EA, beta, rho0, d, A, Cdt, Cdn, Cmn, CB, GK, GC, Gmu, Gvc, Dz;
+	double L, dL, dL0, EA, beta, rho0, d, A, Cdt, Cdn, Cmn, CB, GK, GC, Gmu, Gvc, Dz, Kn;
 	arma::mat tenAnch = arma::zeros(3,1), tenFair = arma::zeros(3,1);
 	arma::mat posAnch = arma::zeros(3,1), posFair = arma::zeros(3,1);
 	arma::mat pos, vel, acc, F, s, xc, zc, dxcds, dzcds, Te, roots, weights;
@@ -20,7 +20,7 @@ public:
 	void qs_Functions(double& ff,double& gg,double& DfDH,double& DfDV,double& DgDH,double& DgDV);
 	void qs_GetTen(void);
 	void qs_Solution(void);
-	void write_out(void);
+	void write_out(double t);
 	void SEM_getBaseFunctions(void);
 	void SEM_coefficients(void);
 	double SEM_poly(double x, int i);
@@ -47,3 +47,26 @@ public:
 
 };
 
+
+class AnchorBCP {
+public:
+	int nBCP; // Indice identificador del punto de condicion de contorno
+	int nLinesBCP; // Numero de lineas que confluyen en el punto
+	int * BCPLineIndex; // Array con los indices identificadores de las lineas que confluyen en el punto
+	int * BCPLineNode; // Array de flags que, para cada linea ii que confluye al punto, indica si la linea confluye al nodo 1 (BCPLineNode[ii]=1) o al nodo N (BCPLineNode[ii]=2)
+	int * BCPLineType; // Array de flags que, para cada linea ii que confluye al punto, indica si la linea confluye al nodo 1 (BCPLineNode[ii]=1) o al nodo N (BCPLineNode[ii]=2)
+	std::string fileName;
+	arma::mat pos = arma::zeros(3,1); // Posicion del punto
+	arma::mat vel = arma::zeros(3,1); // Velocidad del punto
+	arma::mat acc = arma::zeros(3,1); // Aceleracion del punto
+	void set_nBCP(int n){nBCP=n;}
+	void leer_datosBCPs(void);
+	void getValues(double t){vel = arma::zeros(3,1);}
+};
+
+class FairleadBCP: public AnchorBCP {
+public:	
+	void getValues(double t);
+	arma::mat posF;
+	spline x_spl, y_spl, z_spl;
+};
