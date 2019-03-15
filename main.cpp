@@ -18,13 +18,8 @@ double g;
 double rhoW;
 double fondo;
 
-struct solver_data{
-	int nLines, nSistema, nSistema2;
-	Line * Lines;
-} SD;
 
-
-arma::mat fun(double t, arma::mat y, solver_data& SD){
+arma::mat fun(double t, arma::mat y, solver_data SD){
 
 	arma::mat yprime = arma::zeros(size(y));
 	int i0;
@@ -80,6 +75,20 @@ arma::mat fun(double t, arma::mat y, solver_data& SD){
 	return yprime;
 }
 
+arma::mat jac(double t, arma::mat y, solver_data SD){
+	double dx = 1e-8, inv_dx = 1e8;
+	arma::mat J = arma::zeros(SD.nSistema,SD.nSistema);
+	arma::mat yprime0 = fun(t, y, SD);
+	arma::mat yprime, e;
+	for(int ii=0;ii<SD.nSistema;ii=ii+1){
+		e = arma::zeros(SD.nSistema,1);
+		e.row(ii) = dx;
+		yprime = fun(t, y + e, SD);
+		J.col(ii) = inv_dx * (yprime - yprime0);
+	}
+	return J;
+}
+
 void direction(arma::mat y, arma::mat& F, arma::mat& dy, arma::mat y0, double t, double h, solver_data SD){
 
 	double dx = 1e-8, inv_dx = 1e8;
@@ -110,6 +119,7 @@ int main () {
 	int nBCPs, nAnchBCPs, nFairBCPs;
 	int nNodosTotal, nSistema;
 	int solver_flag;
+	solver_data SD;
 
 	double t;
 	double t_max;
@@ -236,6 +246,7 @@ int main () {
 	SD.nLines = nLines;
 	SD.Lines = Lines;
 
+	//BDF S (t,y,*fun,*jac,SD);
 
 	if (solver_flag == 1){
 		double dtrk = 1e-8;
@@ -273,10 +284,13 @@ int main () {
 				direction(y, F, dy, y0, t, dtei, SD);
 			} while (arma::norm(F,2)/nSistema > atol);
 			t = t + dtei;
-			//std::cout<< "    t = " << t << std::endl;
+			if (t>0.02) dtei = 1e-3;
+			if (t>0.04) dtei = 1e-2;
+			if (t>2.9) dtei = 1e-4;
+			std::cout<< "    t = " << t << std::endl;
 			if (t >= t_old + dt){
 				t_old = t;
-				std::cout<< "    t = " << t << std::endl;
+				//std::cout<< "    t = " << t << std::endl;
 				for(int ii=0; ii<nLines; ii=ii+1) Lines[ii].write_out(t);
 			}
 		} while (t<=t_max);

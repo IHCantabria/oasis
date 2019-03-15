@@ -5,6 +5,7 @@
 #include "math_lib.h"
 
 
+
 class BCP {
 public:
 	int nBCP; // Indice identificador del punto de condicion de contorno
@@ -57,4 +58,10 @@ public:
 	double SEM_poly_first_derivative(double x, int i);
 	arma::mat SEM_get_D_local(void);
 	void SEM_computeF(void);
+};
+
+class solver_data: solver_data_base{
+public:
+	int nLines, nSistema, nSistema2;
+	Line * Lines;
 };

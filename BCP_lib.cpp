@@ -67,8 +67,6 @@ void AnchorBCP::getValues(double t){
 void FairleadBCP::getValues(double t){
 
 	//std::cout << "FAIRLEAD" << std::endl;
-
-
 	if (t<1e-12){
 		// Inicializo la variable donde guardar el numero de pasos temporales
 		int nt;
