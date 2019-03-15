@@ -14,7 +14,7 @@ Libreria para las condiciones de contorno
 #include <armadillo>
 #include "classes.h"
 
-void AnchorBCP::leer_datosBCPs(void){
+void BCP::leer_datosBCPs(void){
 	int ii, jj; 
 	std::string Dummy;
 	const int nInored=8; // numero de lineas de texto que se leen para cada nuevo BCP
@@ -58,7 +58,15 @@ void AnchorBCP::leer_datosBCPs(void){
 	datosBCPs.close();
 }
 
+void AnchorBCP::getValues(double t){
+	//std::cout << "ANCHOR" << std::endl;
+	vel = arma::zeros(3,1);
+	acc = arma::zeros(3,1);
+}
+
 void FairleadBCP::getValues(double t){
+
+	//std::cout << "FAIRLEAD" << std::endl;
 
 
 	if (t<1e-12){

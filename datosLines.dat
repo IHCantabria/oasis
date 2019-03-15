@@ -3,7 +3,7 @@
 !!!!!!!!! New line [1]
 !!!!!!!!! 
 1 ! Type of line [1: Mooring, 2: Towing, 3:Tensor]
-3 ! Number of nodes used to divide catenary i
+11 ! Number of nodes used to divide catenary i
 5 ! Order of the elements of catenary i
 7.305 ! Length of catenary i 
 0.162 ! Weight over water of catenary i (kg/m)  

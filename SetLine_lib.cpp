@@ -27,55 +27,55 @@ extern double dt;
 
 
 /*  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	FUNCION DE CatLine PARA LEER datosMoorings.dat!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	FUNCION DE CatLine PARA LEER datosLines.dat!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 */
-void Line::leer_datosMoorings () {
+void Line::leer_datosLines () {
 
 	int ii, jj, kk; 
 	std::string Dummy;
 	const int nInored=22; // numero de lineas que se leen para cada nueva linea
 
 	//Abro el fichero
-	std::ifstream datosMoorings ("datosMoorings.dat");
+	std::ifstream datosLines ("datosLines.dat");
 
 	//Ignoro la primera linea del fichero, que contiene el numero de lineas a estudiar
-	datosMoorings >> Dummy; datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');  // El ignore sirve para ignorar el texto de la linea
+	datosLines >> Dummy; datosLines.ignore(std::numeric_limits<int>::max(), '\n');  // El ignore sirve para ignorar el texto de la linea
 
 	//Ignoro las lineas que ya se han leido
 	for(ii=1;ii<nLine;ii=ii+1){
 		for(jj=1;jj<=nInored;jj=jj+1){
-			datosMoorings >> Dummy; datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
+			datosLines >> Dummy; datosLines.ignore(std::numeric_limits<int>::max(), '\n');
 		}
 	}
 
 	//Ignoro las tres primeras lineas, donde pone "New line"
 	for(ii=1;ii<=3;ii=ii+1){
-		datosMoorings >> Dummy; datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
+		datosLines >> Dummy; datosLines.ignore(std::numeric_limits<int>::max(), '\n');
 	}
 
 	//Leo todo
-	datosMoorings >> lineType; datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
-	datosMoorings >> nNodos; datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
-	datosMoorings >> p; datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
-	datosMoorings >> L;    datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
-	datosMoorings >> rho0; datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
-	datosMoorings >> d;    datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
-	datosMoorings >> EA;   datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
-	datosMoorings >> beta; datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
-	datosMoorings >> CB;   datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
-	datosMoorings >> Cmn;  datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
-	datosMoorings >> Cdn;  datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
-	datosMoorings >> Cdt;  datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
-	datosMoorings >> GK;   datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
-	datosMoorings >> GC;   datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
-	datosMoorings >> Gmu;  datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
-	datosMoorings >> Gvc;  datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
-	datosMoorings >> Dz;   datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
-	datosMoorings >> BCP_N;  datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
-	datosMoorings >> BCP_1;  datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
+	datosLines >> lineType; datosLines.ignore(std::numeric_limits<int>::max(), '\n');
+	datosLines >> nNodos; datosLines.ignore(std::numeric_limits<int>::max(), '\n');
+	datosLines >> p; datosLines.ignore(std::numeric_limits<int>::max(), '\n');
+	datosLines >> L;    datosLines.ignore(std::numeric_limits<int>::max(), '\n');
+	datosLines >> rho0; datosLines.ignore(std::numeric_limits<int>::max(), '\n');
+	datosLines >> d;    datosLines.ignore(std::numeric_limits<int>::max(), '\n');
+	datosLines >> EA;   datosLines.ignore(std::numeric_limits<int>::max(), '\n');
+	datosLines >> beta; datosLines.ignore(std::numeric_limits<int>::max(), '\n');
+	datosLines >> CB;   datosLines.ignore(std::numeric_limits<int>::max(), '\n');
+	datosLines >> Cmn;  datosLines.ignore(std::numeric_limits<int>::max(), '\n');
+	datosLines >> Cdn;  datosLines.ignore(std::numeric_limits<int>::max(), '\n');
+	datosLines >> Cdt;  datosLines.ignore(std::numeric_limits<int>::max(), '\n');
+	datosLines >> GK;   datosLines.ignore(std::numeric_limits<int>::max(), '\n');
+	datosLines >> GC;   datosLines.ignore(std::numeric_limits<int>::max(), '\n');
+	datosLines >> Gmu;  datosLines.ignore(std::numeric_limits<int>::max(), '\n');
+	datosLines >> Gvc;  datosLines.ignore(std::numeric_limits<int>::max(), '\n');
+	datosLines >> Dz;   datosLines.ignore(std::numeric_limits<int>::max(), '\n');
+	datosLines >> BCP_N;  datosLines.ignore(std::numeric_limits<int>::max(), '\n');
+	datosLines >> BCP_1;  datosLines.ignore(std::numeric_limits<int>::max(), '\n');
 
 	//Cierro el fichero
-	datosMoorings.close();
+	datosLines.close();
 
 	A=PI*d*d*0.25;
 	dL=L/(nNodos-1);

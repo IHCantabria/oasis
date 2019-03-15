@@ -19,9 +19,8 @@ double rhoW;
 double fondo;
 
 struct solver_data{
-	int nLines, nBCPs, nSistema, nSistema2;
+	int nLines, nSistema, nSistema2;
 	Line * Lines;
-	AnchorBCP * BCPs;
 } SD;
 
 
@@ -46,13 +45,22 @@ arma::mat fun(double t, arma::mat y, solver_data& SD){
 	}
 
 	// Set boundary conditions on pos and vel
+	for(int ii=0;ii<SD.nLines;ii=ii+1){
+		SD.Lines[ii].LineBCP[0]->getValues(t);
+		SD.Lines[ii].LineBCP[1]->getValues(t);
+		SD.Lines[ii].pos.row(0)                = SD.Lines[ii].LineBCP[0]->pos.t();
+		SD.Lines[ii].pos.row(SD.Lines[ii].N-1) = SD.Lines[ii].LineBCP[1]->pos.t();
+		SD.Lines[ii].vel.row(0)                = SD.Lines[ii].LineBCP[0]->vel.t();
+		SD.Lines[ii].vel.row(SD.Lines[ii].N-1) = SD.Lines[ii].LineBCP[1]->vel.t();
+	}
+
 
 
 	// Compute forces vector for the different objects
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
 		SD.Lines[ii].SEM_computeF();
-		SD.Lines[ii].F.row(0) = arma::zeros(1,3);
-		SD.Lines[ii].F.row(SD.Lines[ii].N-1) = arma::zeros(1,3);
+		SD.Lines[ii].F.row(0)                = SD.Lines[ii].LineBCP[0]->acc.t();
+		SD.Lines[ii].F.row(SD.Lines[ii].N-1) = SD.Lines[ii].LineBCP[0]->acc.t();
 		SD.Lines[ii].acc = arma::solve(SD.Lines[ii].dL * SD.Lines[ii].MM, SD.Lines[ii].F);
 	}
 
@@ -132,28 +140,33 @@ int main () {
 
 	nBCPs = nFairBCPs + nAnchBCPs;
 
-	AnchorBCP * BCPs = new AnchorBCP[nBCPs];
+	BCP * BCPs [nBCPs];
 
-	FairleadBCP * F_BCPs = new FairleadBCP[nFairBCPs];
+	BCP * F_BCPs = new FairleadBCP [nFairBCPs];
 	for(int ii=0; ii<nFairBCPs; ii=ii+1){
 		F_BCPs[ii].set_nBCP(ii+1);
 		F_BCPs[ii].leer_datosBCPs();
 		F_BCPs[ii].getValues(0.0);
-		BCPs[ii] = F_BCPs[ii];
+		BCPs[ii] = &F_BCPs[ii];
 	}
 
-	AnchorBCP * A_BCPs = new AnchorBCP[nAnchBCPs];
+	BCP * A_BCPs = new AnchorBCP [nAnchBCPs];
 	for(int ii=0; ii<nAnchBCPs; ii=ii+1){
 		A_BCPs[ii].set_nBCP(ii+1+nFairBCPs);
 		A_BCPs[ii].leer_datosBCPs();
-		BCPs[ii+nFairBCPs] = A_BCPs[ii];
+		BCPs[ii+nFairBCPs] = &A_BCPs[ii];
 	}
+
+	std::cout << "BCPs[0].getValues(3.5)" << std::endl;
+	BCPs[0]->getValues(3.5);
+	std::cout << "BCPs[1].getValues(3.5)" << std::endl;
+	BCPs[1]->getValues(3.5);
 
 
 	//LEO DE FICHERO Y PINTO EN PANTALLA CUANTAS LINEAS SE VAN A ESTUDIAR
-	std::ifstream datosMoorings ("datosMoorings.dat");
-	datosMoorings >> nLines; datosMoorings.ignore(std::numeric_limits<int>::max(), '\n');
-	datosMoorings.close();
+	std::ifstream datosLines ("datosLines.dat");
+	datosLines >> nLines; datosLines.ignore(std::numeric_limits<int>::max(), '\n');
+	datosLines.close();
 
 	//ALOCATO UN VECTOR DE OBJETOS, UNO PARA CADA LINEA
 	Line * Lines = new Line[nLines];
@@ -162,9 +175,11 @@ int main () {
 		Lines[ii].set_nLine(ii+1);
 		try
 		{
-		Lines[ii].leer_datosMoorings();
-		Lines[ii].pos_1 = BCPs[Lines[ii].BCP_1-1].pos;
-		Lines[ii].pos_N = BCPs[Lines[ii].BCP_N-1].pos;
+		Lines[ii].leer_datosLines();
+		Lines[ii].LineBCP[0] = BCPs[Lines[ii].BCP_1-1];
+		Lines[ii].LineBCP[1] = BCPs[Lines[ii].BCP_N-1];
+		Lines[ii].pos_1 = BCPs[Lines[ii].BCP_1-1]->pos;
+		Lines[ii].pos_N = BCPs[Lines[ii].BCP_N-1]->pos;
 		nNodosTotal=nNodosTotal+Lines[ii].N;
 		if(flag_read_eq==0) Lines[ii].initLine();
 		Lines[ii].SEM_getBaseFunctions();
@@ -219,9 +234,7 @@ int main () {
 	for(int ii=0; ii<nLines; ii=ii+1) Lines[ii].write_out(t);
 
 	SD.nLines = nLines;
-	SD.nBCPs = nBCPs;
 	SD.Lines = Lines;
-	SD.BCPs = BCPs;
 
 
 	if (solver_flag == 1){
@@ -244,7 +257,8 @@ int main () {
 		} while (t<=t_max);
 	}
 	if (solver_flag == 2){
-		double dtei = 1e-2;
+		double dtei = 1e-4;
+		double atol = 1e-6;
 		double t_old = 0.0;
 		arma::mat y0;
 		arma::mat F = arma::zeros(nSistema,1);
@@ -257,8 +271,9 @@ int main () {
 			do{
 				y = y - dy;
 				direction(y, F, dy, y0, t, dtei, SD);
-			} while (arma::norm(F,2)/nSistema > 1e-6);
-			t = t + dtei;	
+			} while (arma::norm(F,2)/nSistema > atol);
+			t = t + dtei;
+			//std::cout<< "    t = " << t << std::endl;
 			if (t >= t_old + dt){
 				t_old = t;
 				std::cout<< "    t = " << t << std::endl;
