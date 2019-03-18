@@ -162,6 +162,12 @@ void Line::SEM_getBaseFunctions(void){
 	MM.row(N-1) = arma::zeros(1,N);
 	MM(0,0) = 1.0;
 	MM(N-1,N-1) = 1.0;
+
+	D_sp = arma::sp_mat(D);
+	MassMatrix_sp = arma::sp_mat(MassMatrix);
+	StiffMatrix_sp = arma::sp_mat(StiffMatrix);
+	MSMatrix_sp = arma::sp_mat(MSMatrix);
+	MM_sp = arma::sp_mat(MM);
 }
 
 void Line::SEM_coefficients(void){
@@ -211,8 +217,8 @@ void Line::SEM_computeF(void){
 
 	arma::mat FF = arma::zeros(N,3), ff = arma::zeros(N,3), t = arma::zeros(N,3);
 
-	arma::mat drds = (D * pos) * (2.0/dL0);
-	arma::mat drdsdt = (D * vel) * (2.0/dL0);
+	arma::mat drds = (D_sp * pos) * (2.0/dL0);
+	arma::mat drdsdt = (D_sp * vel) * (2.0/dL0);
 
 	arma::mat norm_drds = sqrt(pow(drds.col(0),2) + pow(drds.col(1),2) + pow(drds.col(2),2));
 	arma::mat dedt = drds.col(0) % drdsdt.col(0) + drds.col(1) % drdsdt.col(1) + drds.col(2) % drdsdt.col(2);
@@ -243,7 +249,7 @@ void Line::SEM_computeF(void){
 		}
 	}
 
-	F = 0.5 * dL * (MassMatrix * ff) - (MSMatrix * FF);
+	F = 0.5 * dL * (MassMatrix_sp * ff) - (MSMatrix_sp * FF);
 
 	ten_1 = FF.row(0).t();
 	ten_N = FF.row(N-1).t();

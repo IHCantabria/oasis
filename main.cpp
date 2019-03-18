@@ -56,7 +56,7 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 		SD.Lines[ii].SEM_computeF();
 		SD.Lines[ii].F.row(0)                = SD.Lines[ii].LineBCP[0]->acc.t();
 		SD.Lines[ii].F.row(SD.Lines[ii].N-1) = SD.Lines[ii].LineBCP[0]->acc.t();
-		SD.Lines[ii].acc = arma::solve(SD.Lines[ii].dL * SD.Lines[ii].MM, SD.Lines[ii].F);
+		SD.Lines[ii].acc = arma::spsolve(SD.Lines[ii].dL * SD.Lines[ii].MM_sp, SD.Lines[ii].F);
 	}
 
 
@@ -167,12 +167,6 @@ int main () {
 		BCPs[ii+nFairBCPs] = &A_BCPs[ii];
 	}
 
-	std::cout << "BCPs[0].getValues(3.5)" << std::endl;
-	BCPs[0]->getValues(3.5);
-	std::cout << "BCPs[1].getValues(3.5)" << std::endl;
-	BCPs[1]->getValues(3.5);
-
-
 	//LEO DE FICHERO Y PINTO EN PANTALLA CUANTAS LINEAS SE VAN A ESTUDIAR
 	std::ifstream datosLines ("datosLines.dat");
 	datosLines >> nLines; datosLines.ignore(std::numeric_limits<int>::max(), '\n');
@@ -246,8 +240,6 @@ int main () {
 	SD.nLines = nLines;
 	SD.Lines = Lines;
 
-	//BDF S (t,y,*fun,*jac,SD);
-
 	if (solver_flag == 1){
 		double dtrk = 1e-8;
 		double t_old = 0.0;
@@ -294,6 +286,22 @@ int main () {
 				for(int ii=0; ii<nLines; ii=ii+1) Lines[ii].write_out(t);
 			}
 		} while (t<=t_max);
+	}
+	if (solver_flag == 3){
+		BDF S (t, t_max, y,*fun,*jac,SD);
+		std::cout<< "The temporal integration begins." << std::endl << std::endl;
+		std::cout<< "    t = " << t << std::endl;
+		do{
+			S.step();
+			std::cout<< "    t = " << S.t << std::endl;
+			if (S.t >= t + dt){
+				t = S.t;
+				//std::cout<< "    t = " << t << std::endl;
+				for(int ii=0; ii<nLines; ii=ii+1) Lines[ii].write_out(t);
+			}
+
+		} while (S.t<t_max);
+
 	}
 
 
