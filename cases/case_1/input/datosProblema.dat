@@ -3,6 +3,6 @@
 -1.2 !Coordenada vertical del suelo
 0.01 ! Time step
 10.0 ! Total time of simulation
-3 ! Solver temporal [1: RK3, 2:Implicit Euler]
+1 ! Solver temporal [1: BDF1]
 0 ! Read Equilibrio.dat? [0 No, 1 Yes]
 0 ! Write Equilibrio.dat? [0 No, 1 Yes]

@@ -1,8 +1,4 @@
-/*
-Libreria de método Quasi Static
-*/
 
-//LIBRERIAS Y OTROS COMANDOS
 #include <iostream>
 #include <fstream>
 #include <limits>
@@ -11,14 +7,12 @@ Libreria de método Quasi Static
 #include <stdio.h>
 #include <stdlib.h>
 #include <cmath>
-#include "classes.h"
-
+#include "Lines.hpp"
 
 extern double PI;
 extern double g;
 extern double rhoW;
 extern double fondo;
-
 
 void Line::qs_Functions(double& ff,double& gg,double& DfDH,double& DfDV,double& DgDH,double& DgDV){
 
@@ -207,7 +201,3 @@ void Line::qs_Solution(void){
 		}
 	}
 }
-
-
-
-

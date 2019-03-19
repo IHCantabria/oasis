@@ -1,8 +1,4 @@
-/*
-Libreria para iniciar la linea, menos set_nLine que se define en la clase
-*/
 
-//LIBRERIAS Y OTROS COMANDOS
 #include <iostream>
 #include <fstream>
 #include <limits>
@@ -12,31 +8,22 @@ Libreria para iniciar la linea, menos set_nLine que se define en la clase
 #include <stdlib.h>
 #include <cmath>
 #include <armadillo>
-#include "classes.h"
-#include "quadrule.hpp"
+#include "Lines.hpp"
+#include "../SEM_math/quadrule.hpp"
 
 extern double PI;
-extern int nLines;
-extern int nNodosTotal, nSistema;
 extern double g;
 extern double rhoW;
 extern double fondo;
-extern double t;
-extern double t_max;
-extern double dt;
 
-
-/*  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	FUNCION DE CatLine PARA LEER datosLines.dat!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-*/
-void Line::leer_datosLines () {
+void Line::leer_datosLines (void) {
 
 	int ii, jj, kk; 
 	std::string Dummy;
 	const int nInored=22; // numero de lineas que se leen para cada nueva linea
 
 	//Abro el fichero
-	std::ifstream datosLines ("datosLines.dat");
+	std::ifstream datosLines ("input/datosLines.dat");
 
 	//Ignoro la primera linea del fichero, que contiene el numero de lineas a estudiar
 	datosLines >> Dummy; datosLines.ignore(std::numeric_limits<int>::max(), '\n');  // El ignore sirve para ignorar el texto de la linea
@@ -217,16 +204,17 @@ void Line::SEM_computeF(void){
 
 	arma::mat FF = arma::zeros(N,3), ff = arma::zeros(N,3), t = arma::zeros(N,3);
 
-	arma::mat drds = (D_sp * pos) * (2.0/dL0);
-	arma::mat drdsdt = (D_sp * vel) * (2.0/dL0);
+	//arma::mat drds = (D_sp * pos) * (2.0/dL0);
+	//arma::mat drdsdt = (D_sp * vel) * (2.0/dL0);
+
+	arma::mat drds = (D * pos) * (2.0/dL0);
+	arma::mat drdsdt = (D * vel) * (2.0/dL0);
 
 	arma::mat norm_drds = sqrt(pow(drds.col(0),2) + pow(drds.col(1),2) + pow(drds.col(2),2));
 	arma::mat dedt = drds.col(0) % drdsdt.col(0) + drds.col(1) % drdsdt.col(1) + drds.col(2) % drdsdt.col(2);
 
 	arma::mat T = EA * (norm_drds - dL/dL0 + beta * dedt);
 	T = 0.5*(T + arma::abs(T));
-
-	//std::cout << "Para la linea " << this->nLine << " , se tiene: norm(T - Te) = " << arma::norm(T-Te,2) << std::endl;
 
 	for(int k=0;k<N;k=k+1){
 		t.row(k) = drds.row(k) / norm_drds(k);
@@ -249,7 +237,8 @@ void Line::SEM_computeF(void){
 		}
 	}
 
-	F = 0.5 * dL * (MassMatrix_sp * ff) - (MSMatrix_sp * FF);
+	//F = 0.5 * dL * (MassMatrix_sp * ff) - (MSMatrix_sp * FF);
+	F = 0.5 * dL * (MassMatrix * ff) - (MSMatrix * FF);
 
 	ten_1 = FF.row(0).t();
 	ten_N = FF.row(N-1).t();
@@ -447,34 +436,34 @@ void Line::write_out (double t) {
 	char buffer1[50], buffer2[50], buffer3[50], buffer4[50];
 
 	if (t<1e-12){
-		nn1=sprintf(buffer1,"NodePosX_%d.txt", nLine);
+		nn1=sprintf(buffer1,"output/NodePosX_%d.txt", nLine);
 		std::ofstream xpos(buffer1);
 			xpos << t << "    ";
 			for(ii=0;ii<this->N;ii=ii+1) xpos <<  this->pos(ii,0) << "    ";
 			xpos << std::endl;
 		xpos.close();
 
-		nn2=sprintf(buffer2,"NodePosY_%d.txt", nLine);
+		nn2=sprintf(buffer2,"output/NodePosY_%d.txt", nLine);
 		std::ofstream ypos(buffer2);
 			ypos << t << "    ";
 			for(ii=0;ii<this->N;ii=ii+1) ypos <<  this->pos(ii,1) << "    ";
 			ypos << std::endl;
 		ypos.close();
 
-		nn3=sprintf(buffer3,"NodePosZ_%d.txt", nLine);
+		nn3=sprintf(buffer3,"output/NodePosZ_%d.txt", nLine);
 		std::ofstream zpos(buffer3);
 			zpos << t << "    ";
 			for(ii=0;ii<this->N;ii=ii+1) zpos << this->pos(ii,2) << "    ";
 			zpos << std::endl;
 		zpos.close();
 
-		nn4=sprintf(buffer4,"CatTen_%d.txt", nLine);
+		nn4=sprintf(buffer4,"output/CatTen_%d.txt", nLine);
 		std::ofstream ten(buffer4);
 			ten << t << "    " << ten_1(0,0) << "    " << ten_1(1,0) << "    " << ten_1(2,0) << "    "
 			     << ten_N(0,0) << "    " << ten_N(1,0) << "    " << ten_N(2,0) << "    " << std::endl;
 		ten.close();
 	}else{
-	nn1=sprintf(buffer1,"NodePosX_%d.txt", nLine);
+	nn1=sprintf(buffer1,"output/NodePosX_%d.txt", nLine);
 	std::ofstream xpos;
 		xpos.open(buffer1, std::ios_base::app);
 		xpos << t << "    ";
@@ -482,7 +471,7 @@ void Line::write_out (double t) {
 		xpos << std::endl;
 	xpos.close();
 
-	nn2=sprintf(buffer2,"NodePosY_%d.txt", nLine);
+	nn2=sprintf(buffer2,"output/NodePosY_%d.txt", nLine);
 	std::ofstream ypos;
 		ypos.open(buffer2, std::ios_base::app);
 		ypos << t << "    ";
@@ -490,7 +479,7 @@ void Line::write_out (double t) {
 		ypos << std::endl;
 	ypos.close();
 
-	nn3=sprintf(buffer3,"NodePosZ_%d.txt", nLine);
+	nn3=sprintf(buffer3,"output/NodePosZ_%d.txt", nLine);
 	std::ofstream zpos;
 		zpos.open(buffer3, std::ios_base::app);
 		zpos << t << "    ";
@@ -498,7 +487,7 @@ void Line::write_out (double t) {
 		zpos << std::endl;
 	zpos.close();
 
-	nn4=sprintf(buffer4,"CatTen_%d.txt", nLine);
+	nn4=sprintf(buffer4,"output/CatTen_%d.txt", nLine);
 	std::ofstream ten;
 		ten.open(buffer4, std::ios_base::app);
 		ten << t << "    " << ten_1(0,0) << "    " << ten_1(1,0) << "    " << ten_1(2,0) << "    "

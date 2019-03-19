@@ -13,7 +13,7 @@ Libreria para las matematicas que no se encuentran en librerias.
 #include <stdexcept>
 #include <cmath>
 #include <armadillo>
-#include "math_lib.h"
+#include "SEM_math.hpp"
 
 spline::spline(arma::mat t, arma::mat x, int pp){
 

@@ -12,7 +12,7 @@ Libreria para las condiciones de contorno
 #include <stdlib.h>
 #include <cmath>
 #include <armadillo>
-#include "classes.h"
+#include "BCPs.hpp"
 
 void BCP::leer_datosBCPs(void){
 	int ii, jj; 
@@ -20,7 +20,7 @@ void BCP::leer_datosBCPs(void){
 	const int nInored=8; // numero de lineas de texto que se leen para cada nuevo BCP
 
 	//Abro el fichero
-	std::ifstream datosBCPs ("datosBCPs.dat");
+	std::ifstream datosBCPs ("input/datosBCPs.dat");
 
 	//Ignoro las dos primeras lineas del fichero, que contiene el numero de BCPs a estudiar
 	for(ii=1;ii<=2;ii=ii+1){

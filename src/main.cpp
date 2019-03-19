@@ -6,12 +6,13 @@ MAIN DE LA IMPLEMENTACION DE NuevosFEM EN C++
 #include <iostream>
 #include <fstream>
 #include <limits>
-#include <string>
+#include <string.h>
 #include <math.h>
 #include <stdio.h>
 #include <cmath>
-#include "classes.h"
 #include <armadillo>
+#include "ODE_solvers/ODE_solvers.hpp"
+
 
 double PI;
 double g;
@@ -49,17 +50,14 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 		SD.Lines[ii].vel.row(SD.Lines[ii].N-1) = SD.Lines[ii].LineBCP[1]->vel.t();
 	}
 
-
-
 	// Compute forces vector for the different objects
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
 		SD.Lines[ii].SEM_computeF();
 		SD.Lines[ii].F.row(0)                = SD.Lines[ii].LineBCP[0]->acc.t();
 		SD.Lines[ii].F.row(SD.Lines[ii].N-1) = SD.Lines[ii].LineBCP[0]->acc.t();
-		SD.Lines[ii].acc = arma::spsolve(SD.Lines[ii].dL * SD.Lines[ii].MM_sp, SD.Lines[ii].F);
+		//SD.Lines[ii].acc = arma::spsolve(SD.Lines[ii].dL * SD.Lines[ii].MM_sp, SD.Lines[ii].F);
+		SD.Lines[ii].acc = arma::solve(SD.Lines[ii].dL * SD.Lines[ii].MM, SD.Lines[ii].F);
 	}
-
-
 
 	// Copy info from the objects to yprime
 	yprime.rows(0,SD.nSistema2-1) = y.rows(SD.nSistema2,SD.nSistema-1);
@@ -70,7 +68,6 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 			ini = ini + 3;
 		}
 	}
-
 
 	return yprime;
 }
@@ -87,29 +84,6 @@ arma::mat jac(double t, arma::mat y, solver_data SD){
 		J.col(ii) = inv_dx * (yprime - yprime0);
 	}
 	return J;
-}
-
-void direction(arma::mat y, arma::mat& F, arma::mat& dy, arma::mat y0, double t, double h, solver_data SD){
-
-	double dx = 1e-8, inv_dx = 1e8;
-
-	arma::mat J = arma::zeros(SD.nSistema,SD.nSistema);
-	arma::mat yprime0 = fun(t+h, y, SD);
-	arma::mat yprime, e;
-
-	for(int ii=0;ii<SD.nSistema;ii=ii+1){
-		e = arma::zeros(SD.nSistema,1);
-		e.row(ii) = dx;
-		yprime = fun(t+h, y + e, SD);
-		J.col(ii) = inv_dx * (yprime - yprime0);
-	}
-
-	arma::mat I = arma::eye(SD.nSistema,SD.nSistema);
-
-	arma::mat M = I - h * J;
-	F = y - y0 - h*yprime0;
-
-	dy = arma::solve( M, F);
 }
 
 int main () {
@@ -130,7 +104,7 @@ int main () {
 
 	nNodosTotal=0;
 
- 	std::ifstream datosProblema ("datosProblema.dat");
+ 	std::ifstream datosProblema ("input/datosProblema.dat");
 	datosProblema >> g;    datosProblema.ignore(std::numeric_limits<int>::max(), '\n');
 	datosProblema >> rhoW;    datosProblema.ignore(std::numeric_limits<int>::max(), '\n');
 	datosProblema >> fondo;    datosProblema.ignore(std::numeric_limits<int>::max(), '\n');
@@ -142,8 +116,9 @@ int main () {
 	datosProblema.close();
 
 
+
 	//LEO DE FICHERO CUANTOS BCPs SE VAN A ESTUDIAR
-	std::ifstream datosBCPs ("datosBCPs.dat");
+	std::ifstream datosBCPs ("input/datosBCPs.dat");
 	datosBCPs >> nFairBCPs; datosBCPs.ignore(std::numeric_limits<int>::max(), '\n');
 	datosBCPs >> nAnchBCPs; datosBCPs.ignore(std::numeric_limits<int>::max(), '\n');
 	datosBCPs.close();
@@ -167,8 +142,9 @@ int main () {
 		BCPs[ii+nFairBCPs] = &A_BCPs[ii];
 	}
 
+
 	//LEO DE FICHERO Y PINTO EN PANTALLA CUANTAS LINEAS SE VAN A ESTUDIAR
-	std::ifstream datosLines ("datosLines.dat");
+	std::ifstream datosLines ("input/datosLines.dat");
 	datosLines >> nLines; datosLines.ignore(std::numeric_limits<int>::max(), '\n');
 	datosLines.close();
 
@@ -201,6 +177,7 @@ int main () {
 		}
 	}
 
+
 	// Inicio el vector del sistema
 	nSistema=3*2*nNodosTotal;
 	SD.nSistema = 3*2*nNodosTotal;
@@ -219,7 +196,7 @@ int main () {
 		}
 
 	}else if (flag_read_eq==1){
-	 	std::ifstream equi("Equilibrio.dat");
+	 	std::ifstream equi("input/Equilibrio.dat");
 			for(int ii=0;ii<nSistema;ii=ii+1) {
 				equi >> y(ii,0);    equi.ignore(std::numeric_limits<int>::max(), '\n');
 			}
@@ -241,54 +218,16 @@ int main () {
 	SD.Lines = Lines;
 
 	if (solver_flag == 1){
-		double dtrk = 1e-8;
-		double t_old = 0.0;
-		arma::mat K1, K2, K3;
-		std::cout<< "The temporal integration begins." << std::endl << std::endl;
-		std::cout<< "    t = " << t << std::endl;
-		do{
-			K1 = fun(t,y,SD);
-			K2 = fun(t+dtrk,y+dtrk*K1,SD);
-			K3 = fun(t+0.5*dtrk,y+0.25*dtrk*(K1+K2),SD);
-			y = y + dtrk* ( (1.0/6.0)*(K1 + K2) + (2.0/3.0)*K3);
-			t = t + dtrk;
-			if (t >= t_old + dt){
-				t_old = t;
-				std::cout<< "    t = " << t << std::endl;
-				for(int ii=0; ii<nLines; ii=ii+1) Lines[ii].write_out(t);
-			}
-		} while (t<=t_max);
-	}
-	if (solver_flag == 2){
-		double dtei = 1e-4;
-		double atol = 1e-6;
-		double t_old = 0.0;
-		arma::mat y0;
-		arma::mat F = arma::zeros(nSistema,1);
-		arma::mat dy = arma::zeros(nSistema,1);
-		std::cout<< "The temporal integration begins." << std::endl << std::endl;
-		std::cout<< "    t = " << t << std::endl;
-		do{
-			y0 = y;
-			direction(y, F, dy, y0, t, dtei, SD);
-			do{
-				y = y - dy;
-				direction(y, F, dy, y0, t, dtei, SD);
-			} while (arma::norm(F,2)/nSistema > atol);
-			t = t + dtei;
-			if (t>0.02) dtei = 1e-3;
-			if (t>0.04) dtei = 1e-2;
-			if (t>2.9) dtei = 1e-4;
-			std::cout<< "    t = " << t << std::endl;
-			if (t >= t_old + dt){
-				t_old = t;
-				//std::cout<< "    t = " << t << std::endl;
-				for(int ii=0; ii<nLines; ii=ii+1) Lines[ii].write_out(t);
-			}
-		} while (t<=t_max);
-	}
-	if (solver_flag == 3){
 		BDF S (t, t_max, y,*fun,*jac,SD);
+		S.dt_max   = 1e-2;
+		S.dt_min   = 1e-8;
+		S.dt_ini   = 1e-4;
+		S.eta_min  = 1e-4;
+		S.eta_max  = 1e-2;
+		S.atol     = 1e-6;
+		S.rho      = 1e+1;
+		S.sigma    = 1e-2;
+		S.nIterMax = 100;
 		std::cout<< "The temporal integration begins." << std::endl << std::endl;
 		std::cout<< "    t = " << t << std::endl;
 		do{
@@ -299,14 +238,13 @@ int main () {
 				//std::cout<< "    t = " << t << std::endl;
 				for(int ii=0; ii<nLines; ii=ii+1) Lines[ii].write_out(t);
 			}
-
 		} while (S.t<t_max);
 
 	}
 
 
 	if (flag_write_eq == 1) {
-		std::ofstream equi("Equilibrio.dat");
+		std::ofstream equi("output/Equilibrio.dat");
 			for(int ii=0;ii<nSistema;ii=ii+1) equi << y(ii,0) << std::endl;
 		equi.close();
 	}
