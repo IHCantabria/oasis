@@ -204,11 +204,11 @@ arma::mat Line::SEM_get_D_local(void){
 
 void Line::SEM_computeF(void){
 
-	//drds = (D_sp * pos) * (2.0/dL0);
-	//drdsdt = (D_sp * vel) * (2.0/dL0);
+	drds = (D_sp * pos) * (2.0/dL0);
+	drdsdt = (D_sp * vel) * (2.0/dL0);
 
-	drds = (D * pos) * (2.0/dL0);
-	drdsdt = (D * vel) * (2.0/dL0);
+	//drds = (D * pos) * (2.0/dL0);
+	//drdsdt = (D * vel) * (2.0/dL0);
 
 	norm_drds = sqrt(pow(drds.col(0),2) + pow(drds.col(1),2) + pow(drds.col(2),2));
 	dedt = drds.col(0) % drdsdt.col(0) + drds.col(1) % drdsdt.col(1) + drds.col(2) % drdsdt.col(2);
@@ -237,8 +237,8 @@ void Line::SEM_computeF(void){
 		}
 	}
 
-	//F = 0.5 * dL * (MassMatrix_sp * ff) - (MSMatrix_sp * FF);
-	F = 0.5 * dL * (MassMatrix * ff) - (MSMatrix * FF);
+	F = 0.5 * dL * (MassMatrix_sp * ff) - (MSMatrix_sp * FF);
+	//F = 0.5 * dL * (MassMatrix * ff) - (MSMatrix * FF);
 
 	ten_1 = FF.row(0).t();
 	ten_N = FF.row(N-1).t();

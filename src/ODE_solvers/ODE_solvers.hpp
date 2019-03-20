@@ -6,17 +6,20 @@
 struct solver_data{
 	int nLines, nSistema, nSistema2;
 	Line * Lines;
+	arma::mat I;
 };
 
 class BDF{
 private:
 	arma::mat F, F0;
-	arma::mat y0;
+	arma::mat y0, y_prev;
 	arma::mat M;
 	arma::mat dy, ss, yy;
+	arma::mat J, yprime;
+	bool status;
 public:
 	double dt_max   = 1e-2;
-	double dt_min   = 1e-7;
+	double dt_min   = 1e-6;
 	double dt_ini   = 1e-4;
 	double eta_min  = 1e-3;
 	double eta_max  = 1e-2;
@@ -27,17 +30,17 @@ public:
 
 	int nSistema;
 	double t, t_prev, tmax, dt, eta;
-	arma::mat y, y_prev, y_jac, J;
+	arma::mat y;
 	solver_data SD;
 	arma::mat (*fun) (double, arma::mat, solver_data);
-	arma::mat (*jac) (double, arma::mat, solver_data);
+	arma::mat (*jac) (double, arma::mat, arma::mat&, arma::mat&, solver_data);
 	BDF(void){nSistema=0;};
 	BDF(
 		double t_u,
 		double tmax_u,
 		arma::mat y_u, 
 		arma::mat (*fun_u) (double, arma::mat, solver_data), 
-		arma::mat (*jac_u) (double, arma::mat, solver_data),
+		arma::mat (*jac_u) (double, arma::mat, arma::mat&, arma::mat&, solver_data),
 		solver_data SD_u
 		){
 			t = t_u;
@@ -48,6 +51,9 @@ public:
 			jac = jac_u;
 			SD = SD_u;
 			dt = dt_ini;
+			J = arma::zeros(nSistema,nSistema);
+			yprime = arma::zeros(nSistema,1);
+			dy = arma::zeros(nSistema,1);
 	}
 	void step(void);
 	void get_next_dt(void);

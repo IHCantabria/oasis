@@ -11,6 +11,7 @@ MAIN DE LA IMPLEMENTACION DE NuevosFEM EN C++
 #include <stdio.h>
 #include <cmath>
 #include <armadillo>
+#include <ctime>
 #include "ODE_solvers/ODE_solvers.hpp"
 
 
@@ -18,9 +19,12 @@ double PI;
 double g;
 double rhoW;
 double fondo;
+int nCalls = 0;
 
 
 arma::mat fun(double t, arma::mat y, solver_data SD){
+
+	nCalls = nCalls + 1;
 
 	arma::mat yprime = arma::zeros(size(y));
 	int i0;
@@ -60,7 +64,10 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 		SD.Lines[ii].F.row(0)                = SD.Lines[ii].LineBCP[0]->acc.t();
 		SD.Lines[ii].F.row(SD.Lines[ii].N-1) = SD.Lines[ii].LineBCP[0]->acc.t();
 		//SD.Lines[ii].acc = arma::spsolve(SD.Lines[ii].dL * SD.Lines[ii].MM_sp, SD.Lines[ii].F, "lapack");
-		SD.Lines[ii].acc = arma::solve(SD.Lines[ii].dL * SD.Lines[ii].MM, SD.Lines[ii].F, arma::solve_opts::fast);
+		bool status = arma::solve(SD.Lines[ii].acc, SD.Lines[ii].dL * SD.Lines[ii].MM, SD.Lines[ii].F, arma::solve_opts::fast);
+		if (!status){
+			SD.Lines[ii].acc = arma::solve(SD.Lines[ii].dL * SD.Lines[ii].MM, SD.Lines[ii].F);
+		}
 	}
 
 	// Copy info from the objects to yprime
@@ -76,15 +83,10 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 	return yprime;
 }
 
-arma::mat jac(double t, arma::mat y, solver_data SD){
-	double dx = 1e-8, inv_dx = 1e8;
-	arma::mat J = arma::zeros(SD.nSistema,SD.nSistema);
-	arma::mat yprime0 = fun(t, y, SD);
-	arma::mat yprime;
-	arma::mat I = arma::eye(SD.nSistema,SD.nSistema);
+arma::mat jac(double t, arma::mat y, arma::mat &yprime0, arma::mat &J, solver_data SD){
+	yprime0 = fun(t, y, SD);
 	for(int ii=0;ii<SD.nSistema;ii=ii+1){
-		yprime = fun(t, y + dx*I.col(ii), SD);
-		J.col(ii) = inv_dx * (yprime - yprime0);
+		J.col(ii) = 1e10 * (fun(t, y + 1e-10*SD.I.col(ii), SD) - yprime0);
 	}
 	return J;
 }
@@ -187,6 +189,7 @@ int main () {
 	nSistema=3*2*nNodosTotal;
 	SD.nSistema = 3*2*nNodosTotal;
 	SD.nSistema2 = 3*nNodosTotal;
+	SD.I = arma::eye(nSistema,nSistema);
 
 	arma::mat y = arma::zeros(nSistema,1);
 	arma::mat yprime = arma::zeros(nSistema,1);
@@ -234,16 +237,22 @@ int main () {
 		S.sigma    = 1e-2;
 		S.nIterMax = 100;
 		std::cout<< "The temporal integration begins." << std::endl << std::endl;
+		time_t tstart, tend; 
+ 		tstart = time(0);
 		std::cout<< "    t = " << t << std::endl;
 		do{
 			S.step();
-			std::cout<< "    t = " << S.t << std::endl;
+			//std::cout<< "    t = " << S.t << std::endl;
 			if (S.t >= t + dt){
 				t = S.t;
-				//std::cout<< "    t = " << t << std::endl;
+				std::cout<< "    t = " << t << std::endl;
 				for(int ii=0; ii<nLines; ii=ii+1) Lines[ii].write_out(t);
 			}
 		} while (S.t<t_max);
+
+		tend = time(0); 
+		std::cout << " Computational time  : " << difftime(tend, tstart) << " seconds" << std::endl;
+		std::cout << " Total function calls: " << nCalls << std::endl;
 
 	}
 

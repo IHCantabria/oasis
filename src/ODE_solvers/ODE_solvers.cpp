@@ -11,29 +11,44 @@
 #include "ODE_solvers.hpp"
 
 void BDF::step(void){
+	if(t > 1e-12){
+		y0 = y_prev;
+	}
 	t_prev = t;
 	y_prev = y;
 	int p = 0;
-	F = y - y_prev - dt * fun(t+dt, y, SD);
-	M = arma::eye(nSistema,nSistema) - dt * jac(t+dt, y, SD);
-	dy = arma::solve(M,F, arma::solve_opts::fast);
+	jac(t+dt, y, yprime, J, SD);
+	if(t < 1e-12){
+		F = y - y_prev - dt * yprime;
+		M = arma::eye(nSistema,nSistema) - dt * J;
+	}else{
+		F = y - (4.0/3.0) * y_prev + (1.0/3.0) * y0 - (2.0/3.0) * dt * yprime;
+		M = arma::eye(nSistema,nSistema) - (2.0/3.0) * dt * J;
+	}
+	status = arma::solve(dy,M,F,arma::solve_opts::fast);
+	if (!status){
+		dy = arma::solve(M,F);
+	}
 	do{
-		//y0 = y;
-		//F0 = F;
 		y = y - dy;
-		F = y - y_prev - dt * fun(t+dt, y, SD);
-		M = arma::eye(nSistema,nSistema) - dt * jac(t+dt, y, SD);
-		//yy = F - F0;
-		//ss = y - y0;
-		//M = M + ((yy-M*ss) * ss.t()) / arma::as_scalar((ss.t()) * ss);
-		dy = arma::solve(M,F, arma::solve_opts::fast);
+		jac(t+dt, y, yprime, J, SD);
+		if(t < 1e-12){
+			F = y - y_prev - dt * yprime;
+			M = arma::eye(nSistema,nSistema) - dt * J;
+		}else{
+			F = y - (4.0/3.0) * y_prev + (1.0/3.0) * y0 - (2.0/3.0) * dt * yprime;
+			M = arma::eye(nSistema,nSistema) - (2.0/3.0) * dt * J;
+		}
+		status = arma::solve(dy,M,F,arma::solve_opts::fast);
+		if (!status){
+			dy = arma::solve(M,F);
+		}
 		p = p + 1;
-	} while ((arma::norm(F,2)/nSistema > atol)&&(p<nIterMax));
+	} while ((arma::norm(F,2) > atol)&&(p<nIterMax));
 	if (y.has_nan()){
 		throw std::invalid_argument( "NaN in temporal integration" );
 	}
 	t = t + dt;
-	eta = arma::norm(y-y_prev) / (arma::norm(y_prev) + atol);
 	get_next_dt();
 
 }
@@ -42,6 +57,8 @@ void BDF::step(void){
 void BDF::get_next_dt(void){
 
 	double time;
+
+	eta = arma::norm(y-y_prev) / (arma::norm(y_prev) + atol);
 
 	if ((eta_min<=eta)&&(eta<=eta_max)){
 		time = t + dt;

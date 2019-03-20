@@ -81,22 +81,10 @@ void FairleadBCP::getValues(double t){
 		accF = arma::zeros(nt,3);
 		// Leo toda la info
 		for (int i=0; i<nt; i=i+1){
-			datosPosF >> tF(i,0) >> posF(i,0) >> posF(i,1) >> posF(i,2);
+			datosPosF >> tF(i,0) >> posF(i,0) >> posF(i,1) >> posF(i,2) >> velF(i,0) >> velF(i,1) >> velF(i,2) >> accF(i,0) >> accF(i,1) >> accF(i,2);
 		}
 		//Cierro el fichero
 		datosPosF.close();
-
-		velF.row(0) = (posF.row(1)-posF.row(0))/(tF(1,0)-tF(0,0));
-		velF.row(nt-1) = (posF.row(nt-1)-posF.row(nt-2))/(tF(nt-1,0)-tF(nt-2,0));
-		for(int i=1;i<nt-2;i=i+1){
-			velF.row(i) = (posF.row(i+1)-posF.row(i-1))/(tF(i+1,0)-tF(i-1,0));
-		}
-
-		accF.row(0) = (velF.row(1)-velF.row(0))/(tF(1,0)-posF(0,0));	
-		accF.row(nt-1) = (velF.row(nt-1)-velF.row(nt-2))/(tF(nt-1,0)-tF(nt-2,0));		
-		for(int i=1;i<nt-2;i=i+1){
-			accF.row(i) = (velF.row(i+1)-velF.row(i-1))/(tF(i+1,0)-tF(i-1,0));
-		}
 	}
 
 	ni = std::max(0,ni-10);
