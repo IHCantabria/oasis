@@ -82,6 +82,11 @@ void Line::leer_datosLines (void) {
 	Te = arma::zeros(N);
 	roots = arma::zeros(p+1);
 	weights = arma::zeros(p+1);
+	FF = arma::zeros(N,3);
+	ff = arma::zeros(N,3);
+	t = arma::zeros(N,3);
+	e_z = arma::zeros(1,3);
+	e_z(0,2) = 1.0;
 
 	double * roots_temp   = new double[p+1];
 	double * weights_temp = new double[p+1];
@@ -199,21 +204,16 @@ arma::mat Line::SEM_get_D_local(void){
 
 void Line::SEM_computeF(void){
 
-	double fg, fs, fd;
-	arma::mat v, vt, vn;
+	//drds = (D_sp * pos) * (2.0/dL0);
+	//drdsdt = (D_sp * vel) * (2.0/dL0);
 
-	arma::mat FF = arma::zeros(N,3), ff = arma::zeros(N,3), t = arma::zeros(N,3);
+	drds = (D * pos) * (2.0/dL0);
+	drdsdt = (D * vel) * (2.0/dL0);
 
-	//arma::mat drds = (D_sp * pos) * (2.0/dL0);
-	//arma::mat drdsdt = (D_sp * vel) * (2.0/dL0);
+	norm_drds = sqrt(pow(drds.col(0),2) + pow(drds.col(1),2) + pow(drds.col(2),2));
+	dedt = drds.col(0) % drdsdt.col(0) + drds.col(1) % drdsdt.col(1) + drds.col(2) % drdsdt.col(2);
 
-	arma::mat drds = (D * pos) * (2.0/dL0);
-	arma::mat drdsdt = (D * vel) * (2.0/dL0);
-
-	arma::mat norm_drds = sqrt(pow(drds.col(0),2) + pow(drds.col(1),2) + pow(drds.col(2),2));
-	arma::mat dedt = drds.col(0) % drdsdt.col(0) + drds.col(1) % drdsdt.col(1) + drds.col(2) % drdsdt.col(2);
-
-	arma::mat T = EA * (norm_drds - dL/dL0 + beta * dedt);
+	T = EA * (norm_drds - dL/dL0 + beta * dedt);
 	T = 0.5*(T + arma::abs(T));
 
 	for(int k=0;k<N;k=k+1){
@@ -221,7 +221,7 @@ void Line::SEM_computeF(void){
 		FF.row(k) = T(k) * t.row(k);
 
 		fg = -(rho0 - rhoW * A) * g / norm_drds(k);
-		ff(k,2) = fg * 1.0;
+		ff.row(k) = fg * e_z;
 
 		v = vel.row(k);
 		vt = (v * t.row(k).t())* t.row(k);

@@ -59,14 +59,14 @@ void BCP::leer_datosBCPs(void){
 }
 
 void AnchorBCP::getValues(double t){
-	//std::cout << "ANCHOR" << std::endl;
 	vel = arma::zeros(3,1);
 	acc = arma::zeros(3,1);
 }
 
 void FairleadBCP::getValues(double t){
 
-	//std::cout << "FAIRLEAD" << std::endl;
+	tBCP = t;
+
 	if (t<1e-12){
 		// Inicializo la variable donde guardar el numero de pasos temporales
 		int nt;
@@ -75,34 +75,43 @@ void FairleadBCP::getValues(double t){
 		// Leo el numero de pasos temporales a leer
 		datosPosF >> nt;
 		// Alocato la matriz que contiene la informacion
-		posF = arma::zeros(nt,4);
+		tF = arma::zeros(nt,1);
+		posF = arma::zeros(nt,3);
+		velF = arma::zeros(nt,3);
+		accF = arma::zeros(nt,3);
 		// Leo toda la info
 		for (int i=0; i<nt; i=i+1){
-			datosPosF >> posF(i,0) >> posF(i,1) >> posF(i,2) >> posF(i,3);
+			datosPosF >> tF(i,0) >> posF(i,0) >> posF(i,1) >> posF(i,2);
 		}
 		//Cierro el fichero
 		datosPosF.close();
 
-		x_spl = spline(posF.col(0),posF.col(1),1);
-		y_spl = spline(posF.col(0),posF.col(2),1);
-		z_spl = spline(posF.col(0),posF.col(3),1);
+		velF.row(0) = (posF.row(1)-posF.row(0))/(tF(1,0)-tF(0,0));
+		velF.row(nt-1) = (posF.row(nt-1)-posF.row(nt-2))/(tF(nt-1,0)-tF(nt-2,0));
+		for(int i=1;i<nt-2;i=i+1){
+			velF.row(i) = (posF.row(i+1)-posF.row(i-1))/(tF(i+1,0)-tF(i-1,0));
+		}
+
+		accF.row(0) = (velF.row(1)-velF.row(0))/(tF(1,0)-posF(0,0));	
+		accF.row(nt-1) = (velF.row(nt-1)-velF.row(nt-2))/(tF(nt-1,0)-tF(nt-2,0));		
+		for(int i=1;i<nt-2;i=i+1){
+			accF.row(i) = (velF.row(i+1)-velF.row(i-1))/(tF(i+1,0)-tF(i-1,0));
+		}
 	}
 
-	arma::mat sol_x = x_spl.spl_eval(t);
-	arma::mat sol_y = y_spl.spl_eval(t);
-	arma::mat sol_z = z_spl.spl_eval(t);
+	ni = std::max(0,ni-10);
+	do{
+		ni = ni + 1;
+	} while (tF(ni,0)<t);
 
-	pos(0,0) = sol_x(0);
-	pos(1,0) = sol_y(0);
-	pos(2,0) = sol_z(0);
+	if(tF(ni,0)>t){
+		ni = ni - 1;
+	}
 
-	vel(0,0) = sol_x(1);
-	vel(1,0) = sol_y(1);
-	vel(2,0) = sol_z(1);
+	dt = t - tF(ni,0);
 
-	acc(0,0) = sol_x(2);
-	acc(1,0) = sol_y(2);
-	acc(2,0) = sol_z(2);
-
+	pos = (posF.row(ni) + dt * (posF.row(ni+1) - posF.row(ni)) / (tF(ni+1,0) - tF(ni,0))).t();
+	vel = (velF.row(ni) + dt * (velF.row(ni+1) - velF.row(ni)) / (tF(ni+1,0) - tF(ni,0))).t();
+	acc = (accF.row(ni) + dt * (accF.row(ni+1) - accF.row(ni)) / (tF(ni+1,0) - tF(ni,0))).t();
 
 }

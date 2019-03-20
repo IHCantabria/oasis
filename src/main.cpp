@@ -41,9 +41,13 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 	}
 
 	// Set boundary conditions on pos and vel
+	if (SD.Lines[0].LineBCP[0]->tBCP != t){
+		for(int ii=0;ii<SD.nLines;ii=ii+1){		
+			SD.Lines[ii].LineBCP[0]->getValues(t);
+			SD.Lines[ii].LineBCP[1]->getValues(t);
+		}
+	}
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
-		SD.Lines[ii].LineBCP[0]->getValues(t);
-		SD.Lines[ii].LineBCP[1]->getValues(t);
 		SD.Lines[ii].pos.row(0)                = SD.Lines[ii].LineBCP[0]->pos.t();
 		SD.Lines[ii].pos.row(SD.Lines[ii].N-1) = SD.Lines[ii].LineBCP[1]->pos.t();
 		SD.Lines[ii].vel.row(0)                = SD.Lines[ii].LineBCP[0]->vel.t();
@@ -55,8 +59,8 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 		SD.Lines[ii].SEM_computeF();
 		SD.Lines[ii].F.row(0)                = SD.Lines[ii].LineBCP[0]->acc.t();
 		SD.Lines[ii].F.row(SD.Lines[ii].N-1) = SD.Lines[ii].LineBCP[0]->acc.t();
-		//SD.Lines[ii].acc = arma::spsolve(SD.Lines[ii].dL * SD.Lines[ii].MM_sp, SD.Lines[ii].F);
-		SD.Lines[ii].acc = arma::solve(SD.Lines[ii].dL * SD.Lines[ii].MM, SD.Lines[ii].F);
+		//SD.Lines[ii].acc = arma::spsolve(SD.Lines[ii].dL * SD.Lines[ii].MM_sp, SD.Lines[ii].F, "lapack");
+		SD.Lines[ii].acc = arma::solve(SD.Lines[ii].dL * SD.Lines[ii].MM, SD.Lines[ii].F, arma::solve_opts::fast);
 	}
 
 	// Copy info from the objects to yprime
@@ -76,11 +80,10 @@ arma::mat jac(double t, arma::mat y, solver_data SD){
 	double dx = 1e-8, inv_dx = 1e8;
 	arma::mat J = arma::zeros(SD.nSistema,SD.nSistema);
 	arma::mat yprime0 = fun(t, y, SD);
-	arma::mat yprime, e;
+	arma::mat yprime;
+	arma::mat I = arma::eye(SD.nSistema,SD.nSistema);
 	for(int ii=0;ii<SD.nSistema;ii=ii+1){
-		e = arma::zeros(SD.nSistema,1);
-		e.row(ii) = dx;
-		yprime = fun(t, y + e, SD);
+		yprime = fun(t, y + dx*I.col(ii), SD);
 		J.col(ii) = inv_dx * (yprime - yprime0);
 	}
 	return J;
@@ -93,6 +96,7 @@ int main () {
 	int nBCPs, nAnchBCPs, nFairBCPs;
 	int nNodosTotal, nSistema;
 	int solver_flag;
+	double atol;
 	solver_data SD;
 
 	double t;
@@ -111,6 +115,7 @@ int main () {
 	datosProblema >> dt;    datosProblema.ignore(std::numeric_limits<int>::max(), '\n');
 	datosProblema >> t_max;    datosProblema.ignore(std::numeric_limits<int>::max(), '\n');
 	datosProblema >> solver_flag;    datosProblema.ignore(std::numeric_limits<int>::max(), '\n');
+	datosProblema >> atol;    datosProblema.ignore(std::numeric_limits<int>::max(), '\n');
 	datosProblema >> flag_read_eq;    datosProblema.ignore(std::numeric_limits<int>::max(), '\n');
 	datosProblema >> flag_write_eq;    datosProblema.ignore(std::numeric_limits<int>::max(), '\n');
 	datosProblema.close();
@@ -219,12 +224,12 @@ int main () {
 
 	if (solver_flag == 1){
 		BDF S (t, t_max, y,*fun,*jac,SD);
-		S.dt_max   = 1e-2;
-		S.dt_min   = 1e-8;
+		S.dt_max   = std::min(dt,1e-2);
+		S.dt_min   = 1e-6;
 		S.dt_ini   = 1e-4;
 		S.eta_min  = 1e-4;
 		S.eta_max  = 1e-2;
-		S.atol     = 1e-6;
+		S.atol     = atol;
 		S.rho      = 1e+1;
 		S.sigma    = 1e-2;
 		S.nIterMax = 100;

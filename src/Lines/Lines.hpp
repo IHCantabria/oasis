@@ -4,6 +4,12 @@
 #include "../BCPs/BCPs.hpp"
 
 class Line {
+private:
+	double fg, fs, fd;
+	arma::mat v, vt, vn;
+	arma::mat FF, ff, t; 
+	arma::mat drds, drdsdt, norm_drds, dedt, T;
+	arma::mat e_z;
 public:
 	int lineType, nLine, nNodos, p, N, floor_flag, BCP_1, BCP_N;
 	double L, dL, dL0, EA, beta, rho0, d, A, Cdt, Cdn, Cmn, CB, GK, GC, Gmu, Gvc, Dz, Kn;

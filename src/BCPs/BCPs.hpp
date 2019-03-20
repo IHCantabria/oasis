@@ -2,10 +2,10 @@
 
 #include <armadillo>
 #include <string>
-#include "../SEM_math/SEM_math.hpp"
 
 class BCP {
 public:
+	double tBCP;
 	int nBCP; // Indice identificador del punto de condicion de contorno
 	int nLinesBCP; // Numero de lineas que confluyen en el punto
 	int * BCPLineIndex; // Array con los indices identificadores de las lineas que confluyen en el punto
@@ -28,6 +28,7 @@ public:
 class FairleadBCP: public BCP {
 public:	
 	void getValues(double t);
-	arma::mat posF;
-	spline x_spl, y_spl, z_spl;
+	arma::mat tF, posF, velF, accF;
+	int ni = 0;
+	double dt;
 };

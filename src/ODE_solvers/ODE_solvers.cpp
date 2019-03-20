@@ -14,15 +14,19 @@ void BDF::step(void){
 	t_prev = t;
 	y_prev = y;
 	int p = 0;
-	arma::mat y0 = y;
-	arma::mat M = arma::eye(nSistema,nSistema) - dt * jac(t+dt, y, SD);
-	arma::mat F = y - y0 - dt * fun(t+dt, y, SD);
-	arma::mat dy = arma::solve(M,F);
+	F = y - y_prev - dt * fun(t+dt, y, SD);
+	M = arma::eye(nSistema,nSistema) - dt * jac(t+dt, y, SD);
+	dy = arma::solve(M,F, arma::solve_opts::fast);
 	do{
+		//y0 = y;
+		//F0 = F;
 		y = y - dy;
+		F = y - y_prev - dt * fun(t+dt, y, SD);
 		M = arma::eye(nSistema,nSistema) - dt * jac(t+dt, y, SD);
-		F = y - y0 - dt * fun(t+dt, y, SD);
-		dy = arma::solve(M,F);
+		//yy = F - F0;
+		//ss = y - y0;
+		//M = M + ((yy-M*ss) * ss.t()) / arma::as_scalar((ss.t()) * ss);
+		dy = arma::solve(M,F, arma::solve_opts::fast);
 		p = p + 1;
 	} while ((arma::norm(F,2)/nSistema > atol)&&(p<nIterMax));
 	if (y.has_nan()){

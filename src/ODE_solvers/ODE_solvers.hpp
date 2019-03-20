@@ -9,6 +9,11 @@ struct solver_data{
 };
 
 class BDF{
+private:
+	arma::mat F, F0;
+	arma::mat y0;
+	arma::mat M;
+	arma::mat dy, ss, yy;
 public:
 	double dt_max   = 1e-2;
 	double dt_min   = 1e-7;
