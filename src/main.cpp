@@ -63,7 +63,7 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 		SD.Lines[ii].SEM_computeF();
 		SD.Lines[ii].F.row(0)                = SD.Lines[ii].LineBCP[0]->acc.t();
 		SD.Lines[ii].F.row(SD.Lines[ii].N-1) = SD.Lines[ii].LineBCP[0]->acc.t();
-		//SD.Lines[ii].acc = arma::spsolve(SD.Lines[ii].dL * SD.Lines[ii].MM_sp, SD.Lines[ii].F, "lapack");
+		//SD.Lines[ii].acc = arma::spsolve(SD.Lines[ii].dL * SD.Lines[ii].MM_sp, SD.Lines[ii].F);
 		bool status = arma::solve(SD.Lines[ii].acc, SD.Lines[ii].dL * SD.Lines[ii].MM, SD.Lines[ii].F, arma::solve_opts::fast);
 		if (!status){
 			SD.Lines[ii].acc = arma::solve(SD.Lines[ii].dL * SD.Lines[ii].MM, SD.Lines[ii].F);

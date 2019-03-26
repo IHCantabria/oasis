@@ -27,7 +27,6 @@ public:
 	double rho      = 1e+1;
 	double sigma    = 1e-2;
 	int    nIterMax = 100;
-
 	int nSistema;
 	double t, t_prev, tmax, dt, eta;
 	arma::mat y;

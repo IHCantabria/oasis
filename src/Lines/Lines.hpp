@@ -20,6 +20,7 @@ public:
 	arma::sp_mat D_sp, MassMatrix_sp, MM_sp, StiffMatrix_sp, MSMatrix_sp;
 	BCP * LineBCP [2];
 	double xF, zF, HF, VF, HA, VA, cosa, sina;
+	
 	void set_nLine(int n){nLine=n;}
 	void leer_datosLines(void);
 	void print_out(void);

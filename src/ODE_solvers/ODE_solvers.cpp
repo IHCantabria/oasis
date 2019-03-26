@@ -11,20 +11,12 @@
 #include "ODE_solvers.hpp"
 
 void BDF::step(void){
-	if(t > 1e-12){
-		y0 = y_prev;
-	}
 	t_prev = t;
 	y_prev = y;
 	int p = 0;
 	jac(t+dt, y, yprime, J, SD);
-	if(t < 1e-12){
-		F = y - y_prev - dt * yprime;
-		M = arma::eye(nSistema,nSistema) - dt * J;
-	}else{
-		F = y - (4.0/3.0) * y_prev + (1.0/3.0) * y0 - (2.0/3.0) * dt * yprime;
-		M = arma::eye(nSistema,nSistema) - (2.0/3.0) * dt * J;
-	}
+	F = y - y_prev - dt * yprime;
+	M = arma::eye(nSistema,nSistema) - dt * J;
 	status = arma::solve(dy,M,F,arma::solve_opts::fast);
 	if (!status){
 		dy = arma::solve(M,F);
@@ -32,13 +24,8 @@ void BDF::step(void){
 	do{
 		y = y - dy;
 		jac(t+dt, y, yprime, J, SD);
-		if(t < 1e-12){
-			F = y - y_prev - dt * yprime;
-			M = arma::eye(nSistema,nSistema) - dt * J;
-		}else{
-			F = y - (4.0/3.0) * y_prev + (1.0/3.0) * y0 - (2.0/3.0) * dt * yprime;
-			M = arma::eye(nSistema,nSistema) - (2.0/3.0) * dt * J;
-		}
+		F = y - y_prev - dt * yprime;
+		M = arma::eye(nSistema,nSistema) - dt * J;
 		status = arma::solve(dy,M,F,arma::solve_opts::fast);
 		if (!status){
 			dy = arma::solve(M,F);
