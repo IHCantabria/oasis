@@ -64,10 +64,11 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 		SD.Lines[ii].F.row(0)                = SD.Lines[ii].LineBCP[0]->acc.t();
 		SD.Lines[ii].F.row(SD.Lines[ii].N-1) = SD.Lines[ii].LineBCP[0]->acc.t();
 		//SD.Lines[ii].acc = arma::spsolve(SD.Lines[ii].dL * SD.Lines[ii].MM_sp, SD.Lines[ii].F);
-		bool status = arma::solve(SD.Lines[ii].acc, SD.Lines[ii].dL * SD.Lines[ii].MM, SD.Lines[ii].F, arma::solve_opts::fast);
-		if (!status){
-			SD.Lines[ii].acc = arma::solve(SD.Lines[ii].dL * SD.Lines[ii].MM, SD.Lines[ii].F);
-		}
+		//bool status = arma::solve(SD.Lines[ii].acc, SD.Lines[ii].dL * SD.Lines[ii].MM, SD.Lines[ii].F, arma::solve_opts::fast);
+		//if (!status){
+		//	SD.Lines[ii].acc = arma::solve(SD.Lines[ii].dL * SD.Lines[ii].MM, SD.Lines[ii].F);
+		//}
+		SD.Lines[ii].acc = SD.Lines[ii].inv_MM * SD.Lines[ii].F / SD.Lines[ii].dL;
 	}
 
 	// Copy info from the objects to yprime
@@ -83,22 +84,14 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 	return yprime;
 }
 
-arma::mat jac(double t, arma::mat y, arma::mat &yprime0, arma::mat &J, solver_data SD){
-	yprime0 = fun(t, y, SD);
-	for(int ii=0;ii<SD.nSistema;ii=ii+1){
-		J.col(ii) = 1e10 * (fun(t, y + 1e-10*SD.I.col(ii), SD) - yprime0);
-	}
-	return J;
-}
-
 int main () {
 
 	int flag_read_eq, flag_write_eq;
 	int nLines;
 	int nBCPs, nAnchBCPs, nFairBCPs;
 	int nNodosTotal, nSistema;
-	int solver_flag;
-	double atol;
+	int solver_flag, nIterMax;
+	double atol, rtol;
 	solver_data SD;
 
 	double t;
@@ -118,6 +111,8 @@ int main () {
 	datosProblema >> t_max;    datosProblema.ignore(std::numeric_limits<int>::max(), '\n');
 	datosProblema >> solver_flag;    datosProblema.ignore(std::numeric_limits<int>::max(), '\n');
 	datosProblema >> atol;    datosProblema.ignore(std::numeric_limits<int>::max(), '\n');
+	datosProblema >> rtol;    datosProblema.ignore(std::numeric_limits<int>::max(), '\n');
+	datosProblema >> nIterMax;    datosProblema.ignore(std::numeric_limits<int>::max(), '\n');
 	datosProblema >> flag_read_eq;    datosProblema.ignore(std::numeric_limits<int>::max(), '\n');
 	datosProblema >> flag_write_eq;    datosProblema.ignore(std::numeric_limits<int>::max(), '\n');
 	datosProblema.close();
@@ -189,7 +184,6 @@ int main () {
 	nSistema=3*2*nNodosTotal;
 	SD.nSistema = 3*2*nNodosTotal;
 	SD.nSistema2 = 3*nNodosTotal;
-	SD.I = arma::eye(nSistema,nSistema);
 
 	arma::mat y = arma::zeros(nSistema,1);
 	arma::mat yprime = arma::zeros(nSistema,1);
@@ -226,16 +220,10 @@ int main () {
 	SD.Lines = Lines;
 
 	if (solver_flag == 1){
-		BDF S (t, t_max, y,*fun,*jac,SD);
-		S.dt_max   = std::min(dt,1e-2);
-		S.dt_min   = 1e-6;
-		S.dt_ini   = 1e-4;
-		S.eta_min  = 1e-4;
-		S.eta_max  = 1e-2;
-		S.atol     = atol;
-		S.rho      = 1e+1;
-		S.sigma    = 1e-2;
-		S.nIterMax = 100;
+		BDF S (t, t_max, dt, y, *fun, SD);
+		S.atol = atol;
+		S.rtol = rtol;
+		S.nIterMax = nIterMax;
 		std::cout<< "The temporal integration begins." << std::endl << std::endl;
 		time_t tstart, tend; 
  		tstart = time(0);
@@ -244,15 +232,16 @@ int main () {
 			S.step();
 			//std::cout<< "    t = " << S.t << std::endl;
 			if (S.t >= t + dt){
-				t = S.t;
+				t = t + dt;
 				std::cout<< "    t = " << t << std::endl;
-				for(int ii=0; ii<nLines; ii=ii+1) Lines[ii].write_out(t);
+				for(int ii=0; ii<nLines; ii=ii+1) Lines[ii].write_out(S.t);
 			}
 		} while (S.t<t_max);
 
 		tend = time(0); 
 		std::cout << " Computational time  : " << difftime(tend, tstart) << " seconds" << std::endl;
 		std::cout << " Total function calls: " << nCalls << std::endl;
+		std::cout << " Total jac calls: " << S.iJ << std::endl;
 
 	}
 

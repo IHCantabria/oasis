@@ -20,7 +20,7 @@ void Line::leer_datosLines (void) {
 
 	int ii, jj, kk; 
 	std::string Dummy;
-	const int nInored=22; // numero de lineas que se leen para cada nueva linea
+	const int nInored=23; // numero de lineas que se leen para cada nueva linea
 
 	//Abro el fichero
 	std::ifstream datosLines ("input/datosLines.dat");
@@ -42,6 +42,7 @@ void Line::leer_datosLines (void) {
 
 	//Leo todo
 	datosLines >> lineType; datosLines.ignore(std::numeric_limits<int>::max(), '\n');
+	datosLines >> flag_tension; datosLines.ignore(std::numeric_limits<int>::max(), '\n');
 	datosLines >> nNodos; datosLines.ignore(std::numeric_limits<int>::max(), '\n');
 	datosLines >> p; datosLines.ignore(std::numeric_limits<int>::max(), '\n');
 	datosLines >> L;    datosLines.ignore(std::numeric_limits<int>::max(), '\n');
@@ -155,6 +156,8 @@ void Line::SEM_getBaseFunctions(void){
 	MM(0,0) = 1.0;
 	MM(N-1,N-1) = 1.0;
 
+	inv_MM = arma::solve(MM,arma::eye(N,N));
+
 	D_sp = arma::sp_mat(D);
 	MassMatrix_sp = arma::sp_mat(MassMatrix);
 	StiffMatrix_sp = arma::sp_mat(StiffMatrix);
@@ -214,7 +217,10 @@ void Line::SEM_computeF(void){
 	dedt = drds.col(0) % drdsdt.col(0) + drds.col(1) % drdsdt.col(1) + drds.col(2) % drdsdt.col(2);
 
 	T = EA * (norm_drds - dL/dL0 + beta * dedt);
-	T = 0.5*(T + arma::abs(T));
+
+	if (flag_tension == 2){
+		T = 0.5*(T + arma::abs(T));
+	}
 
 	for(int k=0;k<N;k=k+1){
 		t.row(k) = drds.row(k) / norm_drds(k);
