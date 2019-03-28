@@ -22,8 +22,8 @@ void BCP::leer_datosBCPs(void){
 	//Abro el fichero
 	std::ifstream datosBCPs ("input/datosBCPs.dat");
 
-	//Ignoro las dos primeras lineas del fichero, que contiene el numero de BCPs a estudiar
-	for(ii=1;ii<=2;ii=ii+1){
+	//Ignoro las tres primeras lineas del fichero, que contiene el numero de BCPs a estudiar
+	for(ii=1;ii<=3;ii=ii+1){
 		datosBCPs >> Dummy; datosBCPs.ignore(std::numeric_limits<int>::max(), '\n');  // El ignore sirve para ignorar el texto de la linea
 	}
 
@@ -34,7 +34,7 @@ void BCP::leer_datosBCPs(void){
 		}
 	}
 
-	//Ignoro las tres primeras lineas, donde pone "New line"
+	//Ignoro las tres primeras lineas, donde pone "New BCP"
 	for(ii=1;ii<=3;ii=ii+1){
 		datosBCPs >> Dummy; datosBCPs.ignore(std::numeric_limits<int>::max(), '\n');
 	}
@@ -52,6 +52,7 @@ void BCP::leer_datosBCPs(void){
 	}
 	datosBCPs.ignore(std::numeric_limits<int>::max(), '\n');
 	datosBCPs >> pos(0,0); datosBCPs >> pos(1,0); datosBCPs >> pos(2,0);  datosBCPs.ignore(std::numeric_limits<int>::max(), '\n');
+
 	datosBCPs >> fileName; datosBCPs.ignore(std::numeric_limits<int>::max(), '\n');
 
 	//Cierro el fichero
@@ -59,6 +60,9 @@ void BCP::leer_datosBCPs(void){
 }
 
 void AnchorBCP::getValues(double t){
+	if (t<1e-12){
+		typeBCP = 1;
+	}
 	vel = arma::zeros(3,1);
 	acc = arma::zeros(3,1);
 }
@@ -68,6 +72,7 @@ void FairleadBCP::getValues(double t){
 	tBCP = t;
 
 	if (t<1e-12){
+		typeBCP = 2;
 		// Inicializo la variable donde guardar el numero de pasos temporales
 		int nt;
 		//Abro el fichero
@@ -85,6 +90,8 @@ void FairleadBCP::getValues(double t){
 		}
 		//Cierro el fichero
 		datosPosF.close();
+
+		pos0 = pos;
 	}
 
 	ni = std::max(0,ni-10);
@@ -98,8 +105,23 @@ void FairleadBCP::getValues(double t){
 
 	dt = t - tF(ni,0);
 
-	pos = (posF.row(ni) + dt * (posF.row(ni+1) - posF.row(ni)) / (tF(ni+1,0) - tF(ni,0))).t();
+	pos = (posF.row(ni) + dt * (posF.row(ni+1) - posF.row(ni)) / (tF(ni+1,0) - tF(ni,0))).t() + pos0;
 	vel = (velF.row(ni) + dt * (velF.row(ni+1) - velF.row(ni)) / (tF(ni+1,0) - tF(ni,0))).t();
 	acc = (accF.row(ni) + dt * (accF.row(ni+1) - accF.row(ni)) / (tF(ni+1,0) - tF(ni,0))).t();
 
+}
+
+void JointBCP::getValues(double t){
+	if (t<1e-12){
+		typeBCP = 3;
+		iLJ = 0;
+		posLines = arma::zeros(nLinesBCP,3);
+		velLines = arma::zeros(nLinesBCP,3);
+		accLines = arma::zeros(nLinesBCP,3);
+	} else{
+		iLJ = 0;
+		pos = arma::mean(posLines).t();
+		vel = arma::mean(velLines).t();
+		acc = arma::mean(accLines).t();
+	}
 }

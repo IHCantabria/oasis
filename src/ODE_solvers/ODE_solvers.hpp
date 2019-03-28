@@ -4,7 +4,8 @@
 #include "../Lines/Lines.hpp"
 
 struct solver_data{
-	int nLines, nSistema, nSistema2;
+	int nSistema, nSistema2;
+	int nLines;
 	Line * Lines;
 };
 

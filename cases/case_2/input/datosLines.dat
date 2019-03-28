@@ -3,14 +3,14 @@
 ////////////////// New line [1]
 ////////////////// 
 1 // Type of line [1: Mooring, 2: Towing, 3:Tensor]
-2 // Tension model [1: symmetric, 2: tension-only]
+1 // Tension model [1: symmetric, 2: tension-only]
 5 // Number of nodes used to divide catenary i
 5 // Order of the elements of catenary i
 7.305 // Length of catenary i 
 0.162 // Weight over water of catenary i (kg/m)  
 0.0052 // Diameter of the section of catenary i  
-364299 // Youngs module multiplied by the Area for catenary i  
-0.001 // Coefficient of the internal damping coefficient as function of EA [Azcona-2016] for i
+36429 // Youngs module multiplied by the Area for catenary i  
+0.1 // Coefficient of the internal damping coefficient as function of EA [Azcona-2016] for i
 0 // Coefficient of seabed static friction for i  
 1 // Hydrodynamic Mass Coefficient for catenary i (needed for the dinamic model only)  
 1.38 // Normal Drag Coefficient for catenary i (needed for the dinamic model only)  

@@ -64,7 +64,7 @@ void BDF::step(void){
 	h_0 = std::max(h_0, dt_min);
 	h_0 = std::min(h_0, dt_max);
 	h_0 = std::min(h_0, dt_out - std::fmod(t,dt_out) + dt_min);
-	h_0 = std::min(h_0, tmax - t);
+	h_0 = std::min(h_0, tmax - t + h_0);
 
 	y_2 = y_1;
 	y_1 = y_0;

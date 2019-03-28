@@ -151,12 +151,18 @@ void Line::SEM_getBaseFunctions(void){
 	}
 
 	MM = 0.5*(rho0 + Kn) * MassMatrix;
-	MM.row(0) = arma::zeros(1,N);
-	MM.row(N-1) = arma::zeros(1,N);
-	MM(0,0) = 1.0;
-	MM(N-1,N-1) = 1.0;
-
 	inv_MM = arma::solve(MM,arma::eye(N,N));
+	MM.row(0) = arma::zeros(1,N);
+	MM(0,0) = 1.0;
+	inv_MM_1 = arma::solve(MM,arma::eye(N,N));
+	MM.row(N-1) = arma::zeros(1,N);
+	MM(N-1,N-1) = 1.0;
+	inv_MM_1N = arma::solve(MM,arma::eye(N,N));
+
+	MM = 0.5*(rho0 + Kn) * MassMatrix;
+	MM.row(N-1) = arma::zeros(1,N);
+	MM(N-1,N-1) = 1.0;
+	inv_MM_N = arma::solve(MM,arma::eye(N,N));
 
 	D_sp = arma::sp_mat(D);
 	MassMatrix_sp = arma::sp_mat(MassMatrix);

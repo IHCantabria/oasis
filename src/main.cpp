@@ -44,31 +44,107 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 		}
 	}
 
-	// Set boundary conditions on pos and vel
+	// Set boundary conditions on pos and vel if the BCP is not a joint
 	if (SD.Lines[0].LineBCP[0]->tBCP != t){
 		for(int ii=0;ii<SD.nLines;ii=ii+1){		
+			if(SD.Lines[ii].LineBCP[0]->typeBCP != 3){
+				SD.Lines[ii].LineBCP[0]->getValues(t);
+			}
+			if(SD.Lines[ii].LineBCP[1]->typeBCP != 3){
+				SD.Lines[ii].LineBCP[1]->getValues(t);
+			}
+		}
+	}
+	for(int ii=0;ii<SD.nLines;ii=ii+1){
+		if(SD.Lines[ii].LineBCP[0]->typeBCP != 3){
+			SD.Lines[ii].pos.row(0)                = SD.Lines[ii].LineBCP[0]->pos.t();
+			SD.Lines[ii].vel.row(0)                = SD.Lines[ii].LineBCP[0]->vel.t();
+		}
+		if(SD.Lines[ii].LineBCP[1]->typeBCP != 3){
+			SD.Lines[ii].pos.row(SD.Lines[ii].N-1) = SD.Lines[ii].LineBCP[1]->pos.t();
+			SD.Lines[ii].vel.row(SD.Lines[ii].N-1) = SD.Lines[ii].LineBCP[1]->vel.t();
+		}
+	}
+
+	// Set boundary conditions on pos and vel if the BCP is a joint
+	for(int ii=0;ii<SD.nLines;ii=ii+1){
+		if(SD.Lines[ii].LineBCP[0]->typeBCP == 3){
+			SD.Lines[ii].LineBCP[0]->posLines.row(SD.Lines[ii].LineBCP[0]->iLJ) = SD.Lines[ii].pos.row(0);
+			SD.Lines[ii].LineBCP[0]->velLines.row(SD.Lines[ii].LineBCP[0]->iLJ) = SD.Lines[ii].vel.row(0);
+			SD.Lines[ii].LineBCP[0]->iLJ = SD.Lines[ii].LineBCP[0]->iLJ + 1;
+		}
+		if(SD.Lines[ii].LineBCP[1]->typeBCP == 3){
+			SD.Lines[ii].LineBCP[1]->posLines.row(SD.Lines[ii].LineBCP[1]->iLJ) = SD.Lines[ii].pos.row(SD.Lines[ii].N-1);
+			SD.Lines[ii].LineBCP[1]->velLines.row(SD.Lines[ii].LineBCP[1]->iLJ) = SD.Lines[ii].vel.row(SD.Lines[ii].N-1);
+			SD.Lines[ii].LineBCP[1]->iLJ = SD.Lines[ii].LineBCP[1]->iLJ + 1;
+		}
+	}
+	for(int ii=0;ii<SD.nLines;ii=ii+1){		
+		if(SD.Lines[ii].LineBCP[0]->typeBCP == 3){
 			SD.Lines[ii].LineBCP[0]->getValues(t);
+		}
+		if(SD.Lines[ii].LineBCP[1]->typeBCP == 3){
 			SD.Lines[ii].LineBCP[1]->getValues(t);
 		}
 	}
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
-		SD.Lines[ii].pos.row(0)                = SD.Lines[ii].LineBCP[0]->pos.t();
-		SD.Lines[ii].pos.row(SD.Lines[ii].N-1) = SD.Lines[ii].LineBCP[1]->pos.t();
-		SD.Lines[ii].vel.row(0)                = SD.Lines[ii].LineBCP[0]->vel.t();
-		SD.Lines[ii].vel.row(SD.Lines[ii].N-1) = SD.Lines[ii].LineBCP[1]->vel.t();
+		if(SD.Lines[ii].LineBCP[0]->typeBCP == 3){
+			SD.Lines[ii].pos.row(0)                = SD.Lines[ii].LineBCP[0]->pos.t();
+			SD.Lines[ii].vel.row(0)                = SD.Lines[ii].LineBCP[0]->vel.t();
+		}
+		if(SD.Lines[ii].LineBCP[1]->typeBCP == 3){
+			SD.Lines[ii].pos.row(SD.Lines[ii].N-1) = SD.Lines[ii].LineBCP[1]->pos.t();
+			SD.Lines[ii].vel.row(SD.Lines[ii].N-1) = SD.Lines[ii].LineBCP[1]->vel.t();
+		}
 	}
 
-	// Compute forces vector for the different objects
+	// Compute forces vector for the different objects, setting boundary conditions on acc if the BCP is not a joint
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
 		SD.Lines[ii].SEM_computeF();
-		SD.Lines[ii].F.row(0)                = SD.Lines[ii].LineBCP[0]->acc.t();
-		SD.Lines[ii].F.row(SD.Lines[ii].N-1) = SD.Lines[ii].LineBCP[0]->acc.t();
-		//SD.Lines[ii].acc = arma::spsolve(SD.Lines[ii].dL * SD.Lines[ii].MM_sp, SD.Lines[ii].F);
-		//bool status = arma::solve(SD.Lines[ii].acc, SD.Lines[ii].dL * SD.Lines[ii].MM, SD.Lines[ii].F, arma::solve_opts::fast);
-		//if (!status){
-		//	SD.Lines[ii].acc = arma::solve(SD.Lines[ii].dL * SD.Lines[ii].MM, SD.Lines[ii].F);
-		//}
-		SD.Lines[ii].acc = SD.Lines[ii].inv_MM * SD.Lines[ii].F / SD.Lines[ii].dL;
+		if(SD.Lines[ii].LineBCP[0]->typeBCP != 3){
+			SD.Lines[ii].F.row(0)                = SD.Lines[ii].LineBCP[0]->acc.t();
+		}
+		if(SD.Lines[ii].LineBCP[1]->typeBCP != 3){
+			SD.Lines[ii].F.row(SD.Lines[ii].N-1) = SD.Lines[ii].LineBCP[1]->acc.t();
+		}
+
+		if((SD.Lines[ii].LineBCP[0]->typeBCP != 3)&&(SD.Lines[ii].LineBCP[1]->typeBCP != 3)){
+			SD.Lines[ii].acc = SD.Lines[ii].inv_MM_1N * SD.Lines[ii].F / SD.Lines[ii].dL;
+		} else if ((SD.Lines[ii].LineBCP[0]->typeBCP == 3)&&(SD.Lines[ii].LineBCP[1]->typeBCP != 3)){
+			SD.Lines[ii].acc = SD.Lines[ii].inv_MM_N * SD.Lines[ii].F / SD.Lines[ii].dL;
+		} else if ((SD.Lines[ii].LineBCP[0]->typeBCP != 3)&&(SD.Lines[ii].LineBCP[1]->typeBCP == 3)){
+			SD.Lines[ii].acc = SD.Lines[ii].inv_MM_1 * SD.Lines[ii].F / SD.Lines[ii].dL;
+		} else if ((SD.Lines[ii].LineBCP[0]->typeBCP == 3)&&(SD.Lines[ii].LineBCP[1]->typeBCP == 3)){
+			SD.Lines[ii].acc = SD.Lines[ii].inv_MM * SD.Lines[ii].F / SD.Lines[ii].dL;
+		}
+	}
+
+	// Set boundary conditions on acc if the BCP is a joint
+	for(int ii=0;ii<SD.nLines;ii=ii+1){
+		if(SD.Lines[ii].LineBCP[0]->typeBCP == 3){
+			SD.Lines[ii].LineBCP[0]->accLines.row(SD.Lines[ii].LineBCP[0]->iLJ) = SD.Lines[ii].acc.row(0);
+			SD.Lines[ii].LineBCP[0]->iLJ = SD.Lines[ii].LineBCP[0]->iLJ + 1;
+		}
+		if(SD.Lines[ii].LineBCP[1]->typeBCP == 3){
+			SD.Lines[ii].LineBCP[1]->accLines.row(SD.Lines[ii].LineBCP[1]->iLJ) = SD.Lines[ii].acc.row(SD.Lines[ii].N-1);
+			SD.Lines[ii].LineBCP[1]->iLJ = SD.Lines[ii].LineBCP[1]->iLJ + 1;
+		}
+	}
+	for(int ii=0;ii<SD.nLines;ii=ii+1){		
+		if(SD.Lines[ii].LineBCP[0]->typeBCP == 3){
+			SD.Lines[ii].LineBCP[0]->getValues(t);
+		}
+		if(SD.Lines[ii].LineBCP[1]->typeBCP == 3){
+			SD.Lines[ii].LineBCP[1]->getValues(t);
+		}
+	}
+	for(int ii=0;ii<SD.nLines;ii=ii+1){
+		if(SD.Lines[ii].LineBCP[0]->typeBCP == 3){
+			SD.Lines[ii].acc.row(0)                = SD.Lines[ii].LineBCP[0]->acc.t();
+		}
+		if(SD.Lines[ii].LineBCP[1]->typeBCP == 3){
+			SD.Lines[ii].acc.row(SD.Lines[ii].N-1) = SD.Lines[ii].LineBCP[1]->acc.t();
+		}
 	}
 
 	// Copy info from the objects to yprime
@@ -88,7 +164,7 @@ int main () {
 
 	int flag_read_eq, flag_write_eq;
 	int nLines;
-	int nBCPs, nAnchBCPs, nFairBCPs;
+	int nBCPs, nAnchBCPs, nFairBCPs, nJointBCPs;
 	int nNodosTotal, nSistema;
 	int solver_flag, nIterMax;
 	double atol, rtol;
@@ -118,32 +194,45 @@ int main () {
 	datosProblema.close();
 
 
-
 	//LEO DE FICHERO CUANTOS BCPs SE VAN A ESTUDIAR
 	std::ifstream datosBCPs ("input/datosBCPs.dat");
 	datosBCPs >> nFairBCPs; datosBCPs.ignore(std::numeric_limits<int>::max(), '\n');
 	datosBCPs >> nAnchBCPs; datosBCPs.ignore(std::numeric_limits<int>::max(), '\n');
+	datosBCPs >> nJointBCPs; datosBCPs.ignore(std::numeric_limits<int>::max(), '\n');
 	datosBCPs.close();
 
-	nBCPs = nFairBCPs + nAnchBCPs;
+
+	nBCPs = nFairBCPs + nAnchBCPs + nJointBCPs;
 
 	BCP * BCPs [nBCPs];
+	int BCPcounter = 0;
 
 	BCP * F_BCPs = new FairleadBCP [nFairBCPs];
 	for(int ii=0; ii<nFairBCPs; ii=ii+1){
-		F_BCPs[ii].set_nBCP(ii+1);
+		F_BCPs[ii].set_nBCP(BCPcounter+1);
 		F_BCPs[ii].leer_datosBCPs();
 		F_BCPs[ii].getValues(0.0);
-		BCPs[ii] = &F_BCPs[ii];
+		BCPs[BCPcounter] = &F_BCPs[ii];
+		BCPcounter = BCPcounter + 1;
 	}
 
 	BCP * A_BCPs = new AnchorBCP [nAnchBCPs];
 	for(int ii=0; ii<nAnchBCPs; ii=ii+1){
-		A_BCPs[ii].set_nBCP(ii+1+nFairBCPs);
+		A_BCPs[ii].set_nBCP(BCPcounter+1);
 		A_BCPs[ii].leer_datosBCPs();
-		BCPs[ii+nFairBCPs] = &A_BCPs[ii];
+		A_BCPs[ii].getValues(0.0);
+		BCPs[BCPcounter] = &A_BCPs[ii];
+		BCPcounter = BCPcounter + 1;
 	}
 
+	BCP * J_BCPs = new JointBCP [nJointBCPs];
+	for(int ii=0; ii<nJointBCPs; ii=ii+1){
+		J_BCPs[ii].set_nBCP(BCPcounter+1);
+		J_BCPs[ii].leer_datosBCPs();
+		J_BCPs[ii].getValues(0.0);
+		BCPs[BCPcounter] = &J_BCPs[ii];
+		BCPcounter = BCPcounter + 1;
+	}
 
 	//LEO DE FICHERO Y PINTO EN PANTALLA CUANTAS LINEAS SE VAN A ESTUDIAR
 	std::ifstream datosLines ("input/datosLines.dat");
@@ -178,7 +267,6 @@ int main () {
 			return 0;
 		}
 	}
-
 
 	// Inicio el vector del sistema
 	nSistema=3*2*nNodosTotal;
@@ -236,7 +324,7 @@ int main () {
 				std::cout<< "    t = " << t << std::endl;
 				for(int ii=0; ii<nLines; ii=ii+1) Lines[ii].write_out(S.t);
 			}
-		} while (S.t<t_max);
+		} while (S.t<=t_max);
 
 		tend = time(0); 
 		std::cout << " Computational time  : " << difftime(tend, tstart) << " seconds" << std::endl;
