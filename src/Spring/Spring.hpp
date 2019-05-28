@@ -1,5 +1,6 @@
 #include <armadillo>
 #include <string>
+#include "../BCPs/BCPs.hpp"
 
 class Spring {
 public:
@@ -14,13 +15,13 @@ public:
 	BCP * SpringBCP [2]; // Puntos de contorno a los que está unido el muelle
 
 	double L; // Longitud del muelle (distancia de BCP a BCP en reposo)
-	arma::field<mat> SpringVectors(3,1); // Vectores unitarios que definen la orientación del muelle en local. orden normal (x), tangente 1 (y), tangente 2 (z)
-	arma::cube SpringMatrix_K(6,6,2); // Matriz de rigided del muelle en los dos extremos.
-	arma::cube SpringMatrix_D(6,6,2); // Matriz de damping del muelle en los dos extremos.
+	arma::field<arma::mat> SpringVectors; // Vectores unitarios que definen la orientación del muelle en local. orden normal (x), tangente 1 (y), tangente 2 (z)
+	arma::cube SpringMatrix_K = arma::zeros(6,6,2); // Matriz de rigided del muelle en los dos extremos.
+	arma::cube SpringMatrix_D = arma::zeros(6,6,2); // Matriz de damping del muelle en los dos extremos.
 	// Para 6 grados de libertad y para los dos BCPs, una matriz 6x2 con el numero de datos, n, en las cuervas stress strain
-	arma::umat n_StressStrain(6,2);
+	int n_StressStrain[6][2];
 	// Para 6 grados de libertad y para los dos BCPs, una matriz nx1 con los estados de strain y otra nx6 con los stresses correspondientes
-	arma::field<mat> data_StressStrain(6,3);
+	arma::field<arma::mat> data_StressStrain;
 
 	void set_nSpring(int n){nSpring=n;} // Inicializa un objeto de clase muelle dandole el indice
 	void leer_datosSprings(void); // Lee inputs de los muelles

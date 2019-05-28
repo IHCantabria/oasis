@@ -1,5 +1,6 @@
 #include <armadillo>
 #include <string>
+#include "Hydro.hpp"
 
 // Leer inputs
 void Hydro::leer_datosHydro(void){

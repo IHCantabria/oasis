@@ -1,5 +1,6 @@
 #include <armadillo>
 #include <string>
+#include "Bodies.hpp"
 
 // Leer datos de los cuerpos
 void Body::leer_datosBody(void){
