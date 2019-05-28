@@ -65,11 +65,11 @@ void Line::leer_datosLines (void) {
 	//Cierro el fichero
 	datosLines.close();
 
-	A=PI*d*d*0.25;
-	dL=L/(nNodos-1);
-	dL0=L/(nNodos-1);
+	A = PI*d*d*0.25;
+	dL = L/(nNodos-1);
+	dL0 = dL;
 	N = p*(nNodos-1)+1;
-	Kn = Cmn * PI * d * d * 0.25 * rhoW;
+	Kn = Cmn * A * rhoW;
 
 	pos = arma::zeros(3*N);
 	vel = arma::zeros(N,3);
@@ -254,6 +254,9 @@ void Line::SEM_computeF(void){
 
 	ten_1 = FF.row(0).t();
 	ten_N = FF.row(N-1).t();
+
+	//LineBCP[0].ForceBCP.rows(0,2) = LineBCP[0].ForceBCP.rows(0,2) + ten_1;
+	//LineBCP[1].ForceBCP.rows(0,2) = LineBCP[1].ForceBCP.rows(0,2) + ten_N;
 }
 
 void Line::print_out (void) {

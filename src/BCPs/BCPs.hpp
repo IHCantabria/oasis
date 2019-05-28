@@ -23,11 +23,24 @@ public:
 	int ni = 0;
 	double dt;
 
-	//Necesario para joint
+	//Necesario para Joint
 	int iLJ = 0;
 	arma::mat posLines;
 	arma::mat velLines;
 	arma::mat accLines;
+
+	//Necesario para Body
+	arma::mat posG_body (6,1); // Posicion del cuerpo en global en 6 dofs
+	arma::mat velG_body (6,1); // Velocidad del cuerpo en global en 6 dofs
+	arma::mat accG_body (6,1); // Aceleración del cuerpo en global en 6 dofs
+	arma::mat RotMat(3,3); // Matriz de rotación
+	arma::mat posG_BCP (6,1); // Posicion del punto en global en 6 dofs
+	arma::mat velG_BCP (6,1); // Velocidad del punto en global en 6 dofs
+	arma::mat accG_BCP (6,1); // Aceleración del punto en global en 6 dofs
+	arma::mat posL (3,1); // Posicion del punto en el cuerpo en local en 3 dofs
+	arma::mat posG (3,1); // Vector del CDG del cuerpo al punto en global en 3 dofs
+	arma::mat ForceBCP (6,1); // Fuerzas y momentos que actuan sobre el BCP en 6 dofs
+	arma::mat ForceCDG (6,1); // Fuerzas y momentos transmitidos al cdg del cuerpo
 
 	//Metodos
 	void set_nBCP(int n){
@@ -52,6 +65,11 @@ public:
 };
 
 class JointBCP: public BCP {
+public:
+	void getValues(double t);
+};
+
+class BodyBCP: public BCP {
 public:
 	void getValues(double t);
 };

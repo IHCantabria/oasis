@@ -1,0 +1,25 @@
+1 // Number of lines
+////////////////// 
+////////////////// New line [1]
+////////////////// 
+1 // Type of line [1: Mooring, 2: Towing, 3:Tensor]
+2 // Tension model [1: symmetric, 2: tension-only]
+330 // Number of nodes used to divide catenary i
+1 // Order of the elements of catenary i
+33.0 // Length of catenary i 
+0.0818 // Weight over water of catenary i (kg/m)  
+0.0022 // Diameter of the section of catenary i  
+1e4 // Youngs module multiplied by the Area for catenary i  
+0.001 // Coefficient of the internal damping coefficient as function of EA [Azcona-2016] for i
+0 // Coefficient of seabed static friction for i  
+3.8 // Hydrodynamic Mass Coefficient for catenary i (needed for the dinamic model only)  
+2.5 // Normal Drag Coefficient for catenary i (needed for the dinamic model only)  
+0.5 // Tangential Drag Coefficient for catenary i (needed for the dinamic model only)  
+300000.0 // Ground Nnormal sstiffnes for catenary ii (needed for the dinamic model only) [Palm-2013b]  
+2000000.0 // Fraction of critical damping of ground for catenary ii (needed for the dinamic model only) [Palm-2013b]  
+0.3 // Horizontal friction coefficient for catenary ii (needed for the dinamic model only) [Palm-2013b]  
+0.01 // Horizontal cut-off velocity of friction for catenary ii (needed for the dinamic model only) [Palm-2013b]  
+0.0 // Ground penetration depth for catenary ii (needed for the dinamic model only) [Palm-2013b]
+1 // BCP index of the node with index N
+2 // BCP index  of node with index 1 [IMPORTANTE, PONER AQUI EL PUNTO DE ABAJO]
+

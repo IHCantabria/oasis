@@ -1,0 +1,20 @@
+1 // Number of Fairleads
+1 // Number of Anchors
+0 // Number of Joints
+////////////////// 
+////////////////// New BCP [1]
+//////////////////
+1 // Number of lines attached
+1 // Indices of lines attached
+2 // Flags to show where the lines are attached [1 : attached at node 1, 2 : attached at node N]
+32.554 0.0 3.1 // Initial position
+input/datosPosicionFairlead_palm.dat // If it is a fairlead, file where data is kept. In other case, dummy input.
+////////////////// 
+////////////////// New BCP [2]
+//////////////////
+1 // Number of lines attached
+1 // Indices of lines attached
+1 // Flags to show where the lines are attached [1 : attached at node 1, 2 : attached at node N]
+0.0 0.0 0.0 // Initial position
+input/dummy.dat // If it is a fairlead, file where data is kept. In other case, dummy input.
+
