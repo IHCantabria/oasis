@@ -1,3 +1,6 @@
+
+#ifndef BCP_FLAG
+#define BCP_FLAG
 #include <armadillo>
 #include <string>
 
@@ -71,3 +74,7 @@ class BodyBCP: public BCP {
 public:
 	void getValues(double t);
 };
+
+
+
+#endif

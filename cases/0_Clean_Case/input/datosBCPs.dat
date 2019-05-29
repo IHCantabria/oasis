@@ -1,19 +1,20 @@
-1 // Number of Fairleads
-1 // Number of Anchors
+1 // Number of Actuators
+0 // Number of Anchors
 0 // Number of Joints
+1 // Number of Fairleads
 ////////////////// 
 ////////////////// New BCP [1]
 //////////////////
 1 // Number of lines attached
 1 // Indices of lines attached
 2 // Flags to show where the lines are attached [1 : attached at node 1, 2 : attached at node N]
-0.0 0.0 0.0  // Initial position
-input/datosPosicionFairlead_T7p91.dat // If it is a fairlead, file where data is kept. In other case, dummy input.
+0.0 0.0 0.0  // Initial position, local position on the body if the BCP is a fairlead
+input/datosPosicionFairlead_T7p91.dat // If it is an actuator, file where data is kept. In other case, dummy input.
 ////////////////// 
 ////////////////// New BCP [2]
 //////////////////
 1 // Number of lines attached
 1 // Indices of lines attached
 1 // Flags to show where the lines are attached [1 : attached at node 1, 2 : attached at node N]
--6.9735 0.0 -1.2  // Initial position
-input/datosPosicionFairlead.dat // If it is a fairlead, file where data is kept. In other case, dummy input.
+-6.9735 0.0 -1.2  // Initial position, local position on the body if the BCP is a fairlead
+input/datosPosicionFairlead.dat // If it is  an actuator, file where data is kept. In other case, dummy input.

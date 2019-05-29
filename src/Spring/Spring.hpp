@@ -1,3 +1,6 @@
+
+#ifndef SPRING_FLAG
+#define SPRING_FLAG
 #include <armadillo>
 #include <string>
 #include "../BCPs/BCPs.hpp"
@@ -12,7 +15,7 @@ public:
 
 	int BCP_1; // Indices de los BCPs a los que esta conectado el muelle
 	int BCP_2;
-	BCP * SpringBCP [2]; // Puntos de contorno a los que está unido el muelle
+	BCP* SpringBCP[2]; // Puntos de contorno a los que está unido el muelle
 
 	double L; // Longitud del muelle (distancia de BCP a BCP en reposo)
 	arma::field<arma::mat> SpringVectors; // Vectores unitarios que definen la orientación del muelle en local. orden normal (x), tangente 1 (y), tangente 2 (z)
@@ -27,3 +30,7 @@ public:
 	void leer_datosSprings(void); // Lee inputs de los muelles
 	void computeSpringForces(void); // Calcula las fuerzas que aplica el muelle en los BCPs y las guarda en variables de los BCPs
 };
+
+
+
+#endif

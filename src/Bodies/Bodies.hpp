@@ -1,3 +1,6 @@
+
+#ifndef BODY_FLAG
+#define BODY_FLAG
 #include <armadillo>
 #include <string>
 #include "../BCPs/BCPs.hpp"
@@ -11,7 +14,7 @@ public:
 
 	int nBCPs; // Numero de BCPs en el cuerpo
 	int* index_BCPs;
-	BCP* BodyBCPs; // Array de pointers a los puntos de condicion de contorno
+	BCP** BodyBCPs; // Array de pointers a los puntos de condicion de contorno
 
 	arma::mat pos = arma::zeros(6,1); // Posicion del cuerpo
 	arma::mat vel = arma::zeros(6,1); // Velocidad del cuerpo
@@ -25,3 +28,6 @@ public:
 	void leer_datosBody(void); // Leer datos de los cuerpos
 	void getRotMat(void); // Obten la matriz de rotación y pasasela a los BCPs, junto con la posicion, velocidad y aceleración
 };
+
+
+#endif

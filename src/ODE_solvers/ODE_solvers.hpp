@@ -1,7 +1,12 @@
 
+#ifndef ODE_FLAG
+#define ODE_FLAG
 #include <armadillo>
 #include <string>
+#include "../Hydro/Hydro.hpp"
+#include "../Bodies/Bodies.hpp"
 #include "../Lines/Lines.hpp"
+#include "../Spring/Spring.hpp"
 
 struct solver_data{
 	int nSistema, nSistema2;
@@ -90,3 +95,6 @@ public:
 	void step(void);
 	void jac(double tt, arma::mat yy);
 };
+
+
+#endif

@@ -1,3 +1,4 @@
+
 #include <armadillo>
 #include <string>
 #include "Bodies.hpp"
@@ -37,6 +38,7 @@ void Body::leer_datosBody(void){
 
 	datosBodies >> nBCPs; datosBodies.ignore(std::numeric_limits<int>::max(), '\n');
 	index_BCPs = new int[nBCPs];
+	BodyBCPs = new BCP*[nBCPs];
 	for(ii=0;ii<nBCPs;ii=ii+1){
 		datosBodies >> index_BCPs[ii]; 
 	}
@@ -48,10 +50,10 @@ void Body::leer_datosBody(void){
 
 	//Cierro el fichero
 	datosBodies.close();
-	
+
 
 	arma::cube temp_inertia;
-	temp_inertia.load(arma::hdf5_name("input/datosBodies.dat","inertia"));
+	temp_inertia.load(arma::hdf5_name("input/flotante.h5","inertia"));
 
 	inertia = temp_inertia.subcube(arma::span(nBody-1),arma::span::all,arma::span::all);
 
@@ -75,10 +77,10 @@ void Body::getRotMat(void){
 	//[         -sin(pitch),                               cos(pitch)*sin(roll),                               cos(pitch)*cos(roll)]
 
 	for(int ii=0;ii<nBCPs;ii=ii+1){	
-		BodyBCPs[ii].posG_body = pos; 
-		BodyBCPs[ii].velG_body = vel; 
-		BodyBCPs[ii].accG_body = acc; 
-		BodyBCPs[ii].RotMat = RotMat;
+		BodyBCPs[ii]->posG_body = pos; 
+		BodyBCPs[ii]->velG_body = vel; 
+		BodyBCPs[ii]->accG_body = acc; 
+		BodyBCPs[ii]->RotMat = RotMat;
 	}
 
 }

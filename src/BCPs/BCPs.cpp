@@ -2,7 +2,6 @@
 Libreria para las condiciones de contorno
 */
 
-//LIBRERIAS Y OTROS COMANDOS
 #include <iostream>
 #include <fstream>
 #include <limits>
@@ -57,6 +56,8 @@ void BCP::leer_datosBCPs(void){
 
 	//Cierro el fichero
 	datosBCPs.close();
+
+	posL = pos;
 }
 
 void AnchorBCP::getValues(double t){

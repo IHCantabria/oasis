@@ -349,16 +349,16 @@ void Line::initLine (void) {
 			double nvecN = norm(vecN);
 			ten_N = (EA*(nvecN - 1.0)/(0.5*(roots(1)+1)*dL*nvecN)) * vecN;
 			if ( Li==L && pos_1(2,0)==fondo && pos_N(2,0)==fondo ) {
-				std::cout << "WARNING: Mooring line " << nLine << " is laying on the floor " << std::endl;
+				std::cout << "     WARNING: Mooring line " << nLine << " is laying on the floor " << std::endl;
 			}else if (xF<1e-5){
-				std::cout << "WARNING: Mooring line " << nLine << " is vertical. " << std::endl;
+				std::cout << "     WARNING: Mooring line " << nLine << " is vertical. " << std::endl;
 			}else{
-				std::cout << "WARNING: Mooring line " << nLine << " tension is high. " << std::endl;
+				std::cout << "     WARNING: Mooring line " << nLine << " tension is high. " << std::endl;
 			}
 		}
 		floor_flag = 1;
-		std::cout << "Tension at anchor for line: " << nLine << " ; is: (" << ten_1(0) << " , " << ten_1(1) << " , " << ten_1(2) << " ) N" << std::endl;
-		std::cout << "Tension at fairlead for line: " << nLine << " ; is: (" << ten_N(0) << " , " << ten_N(1) << " , " << ten_N(2) << " ) N" << std::endl << std::endl;
+		std::cout << "    Tension at anchor for line: " << nLine << " ; is: (" << ten_1(0) << " , " << ten_1(1) << " , " << ten_1(2) << " ) N" << std::endl;
+		std::cout << "    Tension at fairlead for line: " << nLine << " ; is: (" << ten_N(0) << " , " << ten_N(1) << " , " << ten_N(2) << " ) N" << std::endl << std::endl;
 	} else if (lineType == 2){
 		floor_flag = -1;
 		int flagTense = 0;
@@ -406,10 +406,10 @@ void Line::initLine (void) {
 			arma::mat vecN(pos.rows(3*N-6,3*N-4) - pos.rows(3*N-3,3*N-1));
 			double nvecN = norm(vecN);
 			ten_N = (EA*(nvecN - 1.0)/(0.5*(roots(1)+1)*dL*nvecN)) * vecN;
-			std::cout << "WARNING: Towing line " << nLine << " tension is high. " << std::endl;
+			std::cout << "    WARNING: Towing line " << nLine << " tension is high. " << std::endl;
 		}
-		std::cout << "Tension at anchor for line: " << nLine << " ; is: (" << ten_1(0) << " , " << ten_1(1) << " , " << ten_1(2) << " ) N" << std::endl;
-		std::cout << "Tension at fairlead for line: " << nLine << " ; is: (" << ten_N(0) << " , " << ten_N(1) << " , " << ten_N(2) << " ) N" << std::endl << std::endl;
+		std::cout << "    Tension at anchor for line: " << nLine << " ; is: (" << ten_1(0) << " , " << ten_1(1) << " , " << ten_1(2) << " ) N" << std::endl;
+		std::cout << "    Tension at fairlead for line: " << nLine << " ; is: (" << ten_N(0) << " , " << ten_N(1) << " , " << ten_N(2) << " ) N" << std::endl << std::endl;
 	} else if (lineType == 3){
 		xF=sqrt(pow((pos_N(0,0)-pos_1(0,0)),2)+pow((pos_N(1,0)-pos_1(1,0)),2));
 		zF=(pos_N(2,0)-pos_1(2,0));
@@ -436,8 +436,8 @@ void Line::initLine (void) {
 		arma::mat vecN(pos.rows(3*N-6,3*N-4) - pos.rows(3*N-3,3*N-1));
 		double nvecN = norm(vecN);
 		ten_N = (EA*(nvecN - 1.0)/(0.5*(this->roots(1)+1)*dL*nvecN)) * vecN;
-		std::cout << "Tension at anchor for line: " << nLine << " ; is: (" << ten_1(0) << " , " << ten_1(1) << " , " << ten_1(2) << " ) N" << std::endl;
-		std::cout << "Tension at fairlead for line: " << nLine << " ; is: (" << ten_N(0) << " , " << ten_N(1) << " , " << ten_N(2) << " ) N" << std::endl << std::endl;
+		std::cout << "     Tension at anchor for line: " << nLine << " ; is: (" << ten_1(0) << " , " << ten_1(1) << " , " << ten_1(2) << " ) N" << std::endl;
+		std::cout << "     Tension at fairlead for line: " << nLine << " ; is: (" << ten_N(0) << " , " << ten_N(1) << " , " << ten_N(2) << " ) N" << std::endl << std::endl;
 		floor_flag = -1;
 	} else {
 		throw std::invalid_argument( "Type of line not available." );

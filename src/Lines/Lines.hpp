@@ -1,4 +1,6 @@
 
+#ifndef LINE_FLAG
+#define LINE_FLAG
 #include <armadillo>
 #include <string>
 #include "../BCPs/BCPs.hpp"
@@ -38,3 +40,6 @@ public:
 	arma::mat SEM_get_D_local(void);
 	void SEM_computeF(void);
 };
+
+
+#endif

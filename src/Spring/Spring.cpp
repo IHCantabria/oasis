@@ -1,3 +1,4 @@
+
 #include <armadillo>
 #include <string>
 #include "Spring.hpp"
@@ -8,13 +9,13 @@ void Spring::leer_datosSprings(void){
 	int ii, jj, kk, ll, temp_N; 
 	std::string Dummy;
 	const int nInored=147; // numero de lineas que se leen para cada nueva linea
-	arma::mat temp_vec(3,1);
+	arma::mat temp_vec = arma::zeros(3,1);
 
 	SpringVectors.set_size(3,1);
 	data_StressStrain.set_size(6,3);
 
 	//Abro el fichero
-	std::ifstream datosSprings ("input/datossprings.dat");
+	std::ifstream datosSprings ("input/datosSprings.dat");
 
 	//Ignoro la primera linea del fichero, que contiene el numero de muelles a estudiar
 	datosSprings >> Dummy; datosSprings.ignore(std::numeric_limits<int>::max(), '\n');  // El ignore sirve para ignorar el texto de la linea
@@ -37,8 +38,9 @@ void Spring::leer_datosSprings(void){
 	datosSprings >> BCP_1; datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
 	datosSprings >> BCP_2; datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
 	datosSprings >> L; datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
+
 	for(ii=0;ii<3;ii=ii+1){
-		temp_vec = 0.0;
+		temp_vec = arma::zeros(3,1);
 		datosSprings >> temp_vec(0,0); datosSprings >> temp_vec(1,0); datosSprings >> temp_vec(2,0); datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
 		SpringVectors(ii,0) = temp_vec;
 	}
@@ -64,20 +66,19 @@ void Spring::leer_datosSprings(void){
 	}
 
 	for(ii=0;ii<2;ii=ii+1){
-		for(jj=0;jj<6;jj=jj+1){
+		for(jj=0;jj<6;jj=jj+1){			
 			datosSprings >> Dummy; datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
 			datosSprings >> temp_N; datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
 			n_StressStrain[jj][ii] = temp_N;
 			arma::mat temp_vec2 = arma::zeros(temp_N,1);
 			arma::mat temp_mat = arma::zeros(temp_N,6);
-			temp_vec2 = 0.0;
 			for(ll=0;ll<temp_N;ll=ll+1){
 				datosSprings >> temp_vec2(ll,0);
 			}
 			datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
 			data_StressStrain(jj,0) = temp_vec2;
 			for(kk=0;kk<6;kk=kk+1){
-				temp_mat = 0.0;
+				temp_mat = arma::zeros(temp_N,6);
 				for(ll=0;ll<temp_N;ll=ll+1){
 					datosSprings >> temp_mat(ll,kk);
 				}

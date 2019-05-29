@@ -1,3 +1,4 @@
+
 #include <armadillo>
 #include <string>
 #include "Hydro.hpp"
@@ -10,10 +11,10 @@ void Hydro::leer_datosHydro(void){
 	hydro = arma::zeros(6*nBodies,6*nBodies);
 	arma::cube temp_hydro;
 	arma::mat temp_mat;
-	temp_hydro.load(arma::hdf5_name("input/datosBodies.dat","hydro"));
+	temp_hydro.load(arma::hdf5_name("input/flotante.h5","hydro"));
 	for(ii=0;ii<nBodies;ii=ii+1){
 		temp_mat = temp_hydro( arma::span(ii), arma::span::all, arma::span::all);
-		hydro( arma::span(6*ii,6*(ii+1)), arma::span(6*ii,6*(ii+1)) ) = temp_mat;
+		hydro( arma::span(6*ii,6*(ii+1)-1), arma::span(6*ii,6*(ii+1)-1) ) = temp_mat;
 	}
 
 	nAngles = 2;
@@ -24,19 +25,25 @@ void Hydro::leer_datosHydro(void){
 	frequencies = arma::zeros(nFreqs,1);
 
 	A.set_size(nBodies,nAngles,nFreqs);
+
 	B.set_size(nBodies,nAngles,nFreqs);
+
 	F_mod.set_size(nBodies,nAngles,nFreqs);
 	F_phase.set_size(nBodies,nAngles,nFreqs);
 	F_real.set_size(nBodies,nAngles,nFreqs);
 	F_imag.set_size(nBodies,nAngles,nFreqs);
+
 	QTFd_mod.set_size(nBodies,nAngles,nFreqs);
 	QTFd_phase.set_size(nBodies,nAngles,nFreqs);
 	QTFd_real.set_size(nBodies,nAngles,nFreqs);
 	QTFd_imag.set_size(nBodies,nAngles,nFreqs);
+
 	QTFs_mod.set_size(nBodies,nAngles,nFreqs);
 	QTFs_phase.set_size(nBodies,nAngles,nFreqs);
 	QTFs_real.set_size(nBodies,nAngles,nFreqs);
 	QTFs_imag.set_size(nBodies,nAngles,nFreqs);
+
+	drag = arma::zeros(nBodies,nAngles);
 
 	kl = arma::zeros(nBodies,6);
 	knl = arma::zeros(nBodies,6);
@@ -57,11 +64,6 @@ void Hydro::leer_datosHydro(void){
 	Hs = 1.0;
 	Tp = 10.0;
 
-}
-
-// Calcula la matriz de masa añadida asintotica
-void Hydro::computeAinf(void){
-	Ainf = arma::zeros(6*nBodies,6*nBodies);
 }
 
 // Calcula la impulse response function
@@ -91,7 +93,7 @@ arma::mat Hydro::computeHydroForce(double t){
 
 	arma::mat positions = arma::zeros(6*nBodies,1);
 	for(int ii=0;ii<nBodies;ii=ii+1){
-		positions(arma::span(6*ii,6*(ii+1)),arma::span(0)) = Bodies[ii].pos;
+		positions(arma::span(6*ii,6*(ii+1)-1),arma::span(0)) = Bodies[ii].pos;
 	}
 
 	arma::mat F = arma::zeros(6*nBodies,1);
@@ -99,4 +101,3 @@ arma::mat Hydro::computeHydroForce(double t){
 	F = hydro*positions;
 
 }
-

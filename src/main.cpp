@@ -1,8 +1,4 @@
-/*
-MAIN DE LA IMPLEMENTACION DE NuevosFEM EN C++
-*/
 
-//LIBRERIAS Y OTROS COMANDOS
 #include <iostream>
 #include <fstream>
 #include <limits>
@@ -12,15 +8,18 @@ MAIN DE LA IMPLEMENTACION DE NuevosFEM EN C++
 #include <cmath>
 #include <armadillo>
 #include <ctime>
+#include "BCPs/BCPs.hpp"
+#include "Lines/Lines.hpp"
+#include "Spring/Spring.hpp"
+#include "Bodies/Bodies.hpp"
+#include "Hydro/Hydro.hpp"
 #include "ODE_solvers/ODE_solvers.hpp"
-
 
 double PI;
 double g;
 double rhoW;
 double fondo;
 int nCalls = 0;
-
 
 arma::mat fun(double t, arma::mat y, solver_data SD){
 
@@ -164,20 +163,22 @@ int main () {
 
 	int flag_read_eq, flag_write_eq;
 	int nLines;
-	int nBCPs, nAnchBCPs, nFairBCPs, nJointBCPs;
+	int nSprings;
+	int nBodies;
+	int nBCPs, nAnchBCPs, nFairBCPs, nJointBCPs, nBodyBCPs;
 	int nNodosTotal, nSistema;
 	int solver_flag, nIterMax;
 	double atol, rtol;
 	solver_data SD;
-
 	double t;
 	double t_max;
 	double dt;
 
 	PI=acos(-1.0);
 	t = 0.0;
-
 	nNodosTotal=0;
+
+	std::cout << std::endl << "Leyendo datosProblema.dat ..." << std::endl << std::endl; //////////////////////////////////////////
 
  	std::ifstream datosProblema ("input/datosProblema.dat");
 	datosProblema >> g;    datosProblema.ignore(std::numeric_limits<int>::max(), '\n');
@@ -193,20 +194,20 @@ int main () {
 	datosProblema >> flag_write_eq;    datosProblema.ignore(std::numeric_limits<int>::max(), '\n');
 	datosProblema.close();
 
+	std::cout<< "Leyendo e iniciando los BCPs ..." << std::endl << std::endl; //////////////////////////////////////////
 
 	//LEO DE FICHERO CUANTOS BCPs SE VAN A ESTUDIAR
 	std::ifstream datosBCPs ("input/datosBCPs.dat");
 	datosBCPs >> nFairBCPs; datosBCPs.ignore(std::numeric_limits<int>::max(), '\n');
 	datosBCPs >> nAnchBCPs; datosBCPs.ignore(std::numeric_limits<int>::max(), '\n');
 	datosBCPs >> nJointBCPs; datosBCPs.ignore(std::numeric_limits<int>::max(), '\n');
+	datosBCPs >> nBodyBCPs; datosBCPs.ignore(std::numeric_limits<int>::max(), '\n');
 	datosBCPs.close();
-
-
-	nBCPs = nFairBCPs + nAnchBCPs + nJointBCPs;
-
+	nBCPs = nFairBCPs + nAnchBCPs + nJointBCPs + nBodyBCPs;
+	//ALOCATO UN VECTOR DE POINTERS A OBJETOS, UNO PARA CADA BCP
 	BCP * BCPs [nBCPs];
 	int BCPcounter = 0;
-
+	//INICIO LOS BCPs
 	BCP * F_BCPs = new FairleadBCP [nFairBCPs];
 	for(int ii=0; ii<nFairBCPs; ii=ii+1){
 		F_BCPs[ii].set_nBCP(BCPcounter+1);
@@ -215,7 +216,6 @@ int main () {
 		BCPs[BCPcounter] = &F_BCPs[ii];
 		BCPcounter = BCPcounter + 1;
 	}
-
 	BCP * A_BCPs = new AnchorBCP [nAnchBCPs];
 	for(int ii=0; ii<nAnchBCPs; ii=ii+1){
 		A_BCPs[ii].set_nBCP(BCPcounter+1);
@@ -224,7 +224,6 @@ int main () {
 		BCPs[BCPcounter] = &A_BCPs[ii];
 		BCPcounter = BCPcounter + 1;
 	}
-
 	BCP * J_BCPs = new JointBCP [nJointBCPs];
 	for(int ii=0; ii<nJointBCPs; ii=ii+1){
 		J_BCPs[ii].set_nBCP(BCPcounter+1);
@@ -233,15 +232,24 @@ int main () {
 		BCPs[BCPcounter] = &J_BCPs[ii];
 		BCPcounter = BCPcounter + 1;
 	}
+	BCP * B_BCPs = new BodyBCP [nBodyBCPs];
+	for(int ii=0; ii<nBodyBCPs; ii=ii+1){
+		B_BCPs[ii].set_nBCP(BCPcounter+1);
+		B_BCPs[ii].leer_datosBCPs();
+		B_BCPs[ii].getValues(0.0);
+		BCPs[BCPcounter] = &B_BCPs[ii];
+		BCPcounter = BCPcounter + 1;
+	}
 
-	//LEO DE FICHERO Y PINTO EN PANTALLA CUANTAS LINEAS SE VAN A ESTUDIAR
+	std::cout<< "Leyendo e iniciando las lineas ..." << std::endl << std::endl; //////////////////////////////////////////
+
+	//LEO DE FICHERO CUANTAS LINEAS SE VAN A ESTUDIAR
 	std::ifstream datosLines ("input/datosLines.dat");
 	datosLines >> nLines; datosLines.ignore(std::numeric_limits<int>::max(), '\n');
 	datosLines.close();
-
-	//ALOCATO UN VECTOR DE OBJETOS, UNO PARA CADA LINEA
+	//ALOCATO UN VECTOR DE POINTERS A OBJETOS, UNO PARA CADA LINEA
 	Line * Lines = new Line[nLines];
-	//INICIO LAS LINEAS Y PINTO RESULTADOS POR PANTALLA
+	//INICIO LAS LINEAS
 	for(int ii=0; ii<nLines; ii=ii+1){
 		Lines[ii].set_nLine(ii+1);
 		try
@@ -268,6 +276,54 @@ int main () {
 		}
 	}
 
+	std::cout<< "Leyendo e iniciando los muelles ..." << std::endl << std::endl; //////////////////////////////////////////
+
+	//LEO DE FICHERO CUANTOS MUELLES SE VAN A ESTUDIAR
+	std::ifstream datosSprings ("input/datosSprings.dat");
+	datosSprings >> nSprings; datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
+	datosSprings.close();
+	//ALOCATO UN VECTOR DE POINTERS A OBJETOS, UNO PARA CADA MUELLE
+	Spring * Springs = new Spring[nSprings];
+	//INICIO LLOS MUELLES
+	for(int ii=0; ii<nSprings; ii=ii+1){
+		Springs[ii].set_nSpring(ii+1);
+		Springs[ii].leer_datosSprings();
+		Springs[ii].SpringBCP[0] = BCPs[Springs[ii].BCP_1-1];
+		Springs[ii].SpringBCP[1] = BCPs[Springs[ii].BCP_2-1];
+	}
+
+	std::cout<< "Leyendo e iniciando los cuerpos ..." << std::endl << std::endl; //////////////////////////////////////////
+
+	//LEO DE FICHERO CUANTOS CUERPOS SE VAN A ESTUDIAR
+	std::ifstream datosBodies ("input/datosBodies.dat");
+	datosBodies >> nBodies; datosBodies.ignore(std::numeric_limits<int>::max(), '\n');
+	datosBodies.close();
+	//ALOCATO UN VECTOR DE POINTERS A OBJETOS, UNO PARA CADA CUERPO
+	Body * Bodies = new Body[nBodies];
+	//INICIO LOS CUERPOS
+	for(int ii=0; ii<nBodies; ii=ii+1){
+		Bodies[ii].set_nBody(ii+1);
+		Bodies[ii].leer_datosBody();
+		for(int jj=0; jj<Bodies[ii].nBCPs; jj=jj+1){
+			Bodies[ii].BodyBCPs[jj] = BCPs[Bodies[ii].index_BCPs[jj]-1];
+		}
+	}
+
+	std::cout<< "Leyendo e iniciando la hidrodinamica ... " << std::endl << std::endl; //////////////////////////////////////////
+
+	// DEFINO UN POINTER A UN OBJETO DE LA CLASE HYDRO
+	Hydro * Water = new Hydro;
+	//INICIO EL OBJETO QUE CONTIENE LA HIDRODINAMICA
+	Water->set_Hydro(nBodies,Bodies);
+	Water->leer_datosHydro();
+	Water->computeIRF();
+	Water->computeWaveSpectrum();
+	Water->computeFe();
+
+	std::cout<< " Fin de la lectura de datos." << std::endl << std::endl; //////////////////////////////////////////
+
+
+
 	// Inicio el vector del sistema
 	nSistema=3*2*nNodosTotal;
 	SD.nSistema = 3*2*nNodosTotal;
@@ -284,7 +340,6 @@ int main () {
 					ini=ini+3;
 			}
 		}
-
 	}else if (flag_read_eq==1){
 	 	std::ifstream equi("input/Equilibrio.dat");
 			for(int ii=0;ii<nSistema;ii=ii+1) {
@@ -299,7 +354,6 @@ int main () {
 				ini=ini+3;
 			}
 		}
-
 	}
 
 	for(int ii=0; ii<nLines; ii=ii+1) Lines[ii].write_out(t);
