@@ -1,0 +1,11 @@
+9.81 //Gravity acceleration
+1000.0 //Water density
+-1.2 //Coordenada vertical del suelo
+0.01 // Time step
+10.0 // Total time of simulation
+1 // Solver temporal [1: BDF1]
+1e-6 // Absolute tolerance for temporal integration.
+1e-12 // Relative tolerance for temporal integration.
+5 // Maximum number of iterations for one step of temporal integration.
+0 // Read Equilibrio.dat? [0 No, 1 Yes]
+0 // Write Equilibrio.dat? [0 No, 1 Yes]

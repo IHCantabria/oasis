@@ -5,6 +5,56 @@
 // Leer datos de los cuerpos
 void Body::leer_datosBody(void){
 
+	int ii, jj, kk;
+	std::string Dummy;
+	const int nInored=8; // numero de lineas que se leen para cada nueva linea
+
+	//Abro el fichero
+	std::ifstream datosBodies ("input/datosBodies.dat");
+
+	//Ignoro la primera linea del fichero, que contiene el numero de lineas a estudiar
+	datosBodies >> Dummy; datosBodies.ignore(std::numeric_limits<int>::max(), '\n');  // El ignore sirve para ignorar el texto de la linea
+
+	//Ignoro las lineas que ya se han leido
+	for(ii=1;ii<nBody;ii=ii+1){
+		for(jj=1;jj<=nInored;jj=jj+1){
+			datosBodies >> Dummy; datosBodies.ignore(std::numeric_limits<int>::max(), '\n');
+		}
+	}
+
+	//Ignoro las tres primeras lineas, donde pone "New line"
+	for(ii=1;ii<=3;ii=ii+1){
+		datosBodies >> Dummy; datosBodies.ignore(std::numeric_limits<int>::max(), '\n');
+	}
+
+	//Leo todo
+	datosBodies >> nDOFs; datosBodies.ignore(std::numeric_limits<int>::max(), '\n');
+	DOFs = new int[nDOFs];
+	for(ii=0;ii<nDOFs;ii=ii+1){
+		datosBodies >> DOFs[ii]; 
+	}
+	datosBodies.ignore(std::numeric_limits<int>::max(), '\n');
+
+	datosBodies >> nBCPs; datosBodies.ignore(std::numeric_limits<int>::max(), '\n');
+	index_BCPs = new int[nBCPs];
+	for(ii=0;ii<nBCPs;ii=ii+1){
+		datosBodies >> index_BCPs[ii]; 
+	}
+	datosBodies.ignore(std::numeric_limits<int>::max(), '\n');
+
+	datosBodies >> pos(0,0); datosBodies >> pos(1,0); datosBodies >> pos(2,0); 
+	datosBodies >> pos(3,0); datosBodies >> pos(4,0); datosBodies >> pos(5,0); 
+	datosBodies.ignore(std::numeric_limits<int>::max(), '\n');
+
+	//Cierro el fichero
+	datosBodies.close();
+	
+
+	arma::cube temp_inertia;
+	temp_inertia.load(arma::hdf5_name("input/datosBodies.dat","inertia"));
+
+	inertia = temp_inertia.subcube(arma::span(nBody-1),arma::span::all,arma::span::all);
+
 }
 
 // Obten la matriz de rotación y pasasela a los BCPs, junto con la posicion, velocidad y aceleración
