@@ -1,7 +1,7 @@
 9.81 //Gravity acceleration
 1025.0 //Water density
 -73.725 //Coordenada vertical del suelo
-0.01 // Time step
+0.1 // Time step
 100.0 // Total time of simulation
 1 // Solver temporal [1: BDF1]
 1e-5 // Absolute tolerance for temporal integration.

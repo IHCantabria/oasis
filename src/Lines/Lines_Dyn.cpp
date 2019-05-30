@@ -255,8 +255,8 @@ void Line::SEM_computeF(void){
 	ten_1 = FF.row(0).t();
 	ten_N = FF.row(N-1).t();
 
-	//LineBCP[0].ForceBCP.rows(0,2) = LineBCP[0].ForceBCP.rows(0,2) + ten_1;
-	//LineBCP[1].ForceBCP.rows(0,2) = LineBCP[1].ForceBCP.rows(0,2) + ten_N;
+	LineBCP[0]->ForceBCP.rows(0,2) = LineBCP[0]->ForceBCP.rows(0,2) + ten_1;
+	LineBCP[1]->ForceBCP.rows(0,2) = LineBCP[1]->ForceBCP.rows(0,2) + ten_N;
 }
 
 void Line::print_out (void) {

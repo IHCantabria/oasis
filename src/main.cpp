@@ -30,11 +30,19 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 
 	// Copy info from y to the objects.
 	int ini = 0;
+	for(int ii=0;ii<SD.nBodies;ii=ii+1){
+		SD.Bodies[ii].pos = y.rows(ini,ini+5);
+		ini = ini + 6;
+	}
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
 		for(int jj=0;jj<SD.Lines[ii].N;jj=jj+1){
 			SD.Lines[ii].pos.row(jj) = y.rows(ini,ini+2).t();
 			ini = ini + 3;
 		}
+	}
+	for(int ii=0;ii<SD.nBodies;ii=ii+1){
+		SD.Bodies[ii].vel = y.rows(ini,ini+5);
+		ini = ini + 6;
 	}
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
 		for(int jj=0;jj<SD.Lines[ii].N;jj=jj+1){
@@ -43,7 +51,12 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 		}
 	}
 
-	// Set boundary conditions on pos and vel if the BCP is not a joint
+	// Update BodyBCP positions and velocities
+	for(int ii=0;ii<SD.nBodies;ii=ii+1){
+		SD.Bodies[ii].updateBCPs();
+	}
+
+	// Set boundary conditions on pos and vel of Lines if the BCP is not a joint
 	if (SD.Lines[0].LineBCP[0]->tBCP != t){
 		for(int ii=0;ii<SD.nLines;ii=ii+1){		
 			if(SD.Lines[ii].LineBCP[0]->typeBCP != 3){
@@ -64,8 +77,7 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 			SD.Lines[ii].vel.row(SD.Lines[ii].N-1) = SD.Lines[ii].LineBCP[1]->vel.t();
 		}
 	}
-
-	// Set boundary conditions on pos and vel if the BCP is a joint
+	// Set boundary conditions on pos and vel of Lines if the BCP is a joint
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
 		if(SD.Lines[ii].LineBCP[0]->typeBCP == 3){
 			SD.Lines[ii].LineBCP[0]->posLines.row(SD.Lines[ii].LineBCP[0]->iLJ) = SD.Lines[ii].pos.row(0);
@@ -78,7 +90,7 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 			SD.Lines[ii].LineBCP[1]->iLJ = SD.Lines[ii].LineBCP[1]->iLJ + 1;
 		}
 	}
-	for(int ii=0;ii<SD.nLines;ii=ii+1){		
+	for(int ii=0;ii<SD.nLines;ii=ii+1){
 		if(SD.Lines[ii].LineBCP[0]->typeBCP == 3){
 			SD.Lines[ii].LineBCP[0]->getValues(t);
 		}
@@ -97,16 +109,44 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 		}
 	}
 
-	// Compute forces vector for the different objects, setting boundary conditions on acc if the BCP is not a joint
+	// Compute forces vector for the different Lines
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
 		SD.Lines[ii].SEM_computeF();
+	}
+
+	// Compute forces of Springs
+	for(int ii=0;ii<SD.nSprings;ii=ii+1){
+		SD.Springs[ii].computeSpringForces();
+	}
+
+	// Compute hydrostatic and hidrodynamic forces
+	SD.Water->computeHydroForces(t);
+	arma::mat Fb = SD.Water->HydroForces;
+	// Compute forces on BCPs
+	for(int ii=0;ii<SD.nBodies;ii=ii+1){
+		SD.Bodies[ii].computeBCPForces();
+		Fb(arma::span(6*ii,6*(ii+1)-1), 0) = Fb(arma::span(6*ii,6*(ii+1)-1), 0) + SD.Bodies[ii].BCPForces;
+	}
+
+	// Compute body acceleration
+	arma::mat accB = (SD.Water->invM)*Fb;
+	for(int ii=0;ii<SD.nBodies;ii=ii+1){
+		SD.Bodies[ii].acc = accB(arma::span(6*ii,6*(ii+1)-1), 0);
+	}
+
+	// Update BodyBCP accelerations
+	for(int ii=0;ii<SD.nBodies;ii=ii+1){
+		SD.Bodies[ii].updateBCPs();
+	}
+
+	// Obtain Lines accelerations, imposing boundary conditions if the BCP is not a joint
+	for(int ii=0;ii<SD.nLines;ii=ii+1){
 		if(SD.Lines[ii].LineBCP[0]->typeBCP != 3){
 			SD.Lines[ii].F.row(0)                = SD.Lines[ii].LineBCP[0]->acc.t();
 		}
 		if(SD.Lines[ii].LineBCP[1]->typeBCP != 3){
 			SD.Lines[ii].F.row(SD.Lines[ii].N-1) = SD.Lines[ii].LineBCP[1]->acc.t();
 		}
-
 		if((SD.Lines[ii].LineBCP[0]->typeBCP != 3)&&(SD.Lines[ii].LineBCP[1]->typeBCP != 3)){
 			SD.Lines[ii].acc = SD.Lines[ii].inv_MM_1N * SD.Lines[ii].F / SD.Lines[ii].dL;
 		} else if ((SD.Lines[ii].LineBCP[0]->typeBCP == 3)&&(SD.Lines[ii].LineBCP[1]->typeBCP != 3)){
@@ -117,8 +157,7 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 			SD.Lines[ii].acc = SD.Lines[ii].inv_MM * SD.Lines[ii].F / SD.Lines[ii].dL;
 		}
 	}
-
-	// Set boundary conditions on acc if the BCP is a joint
+	// Obtain Lines accelerations, imposing boundary conditions if the BCP is a joint
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
 		if(SD.Lines[ii].LineBCP[0]->typeBCP == 3){
 			SD.Lines[ii].LineBCP[0]->accLines.row(SD.Lines[ii].LineBCP[0]->iLJ) = SD.Lines[ii].acc.row(0);
@@ -129,7 +168,7 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 			SD.Lines[ii].LineBCP[1]->iLJ = SD.Lines[ii].LineBCP[1]->iLJ + 1;
 		}
 	}
-	for(int ii=0;ii<SD.nLines;ii=ii+1){		
+	for(int ii=0;ii<SD.nLines;ii=ii+1){
 		if(SD.Lines[ii].LineBCP[0]->typeBCP == 3){
 			SD.Lines[ii].LineBCP[0]->getValues(t);
 		}
@@ -148,7 +187,8 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 
 	// Copy info from the objects to yprime
 	yprime.rows(0,SD.nSistema2-1) = y.rows(SD.nSistema2,SD.nSistema-1);
-	ini = SD.nSistema2;
+	yprime.rows(SD.nSistema2,SD.nSistema2+6*SD.nBodies-1) = accB;
+	ini = SD.nSistema2+6*SD.nBodies;
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
 		for(int jj=0;jj<SD.Lines[ii].N;jj=jj+1){
 			yprime.rows(ini,ini+2) = SD.Lines[ii].acc.row(jj).t();
@@ -156,8 +196,19 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 		}
 	}
 
+	if (yprime.has_nan()){
+		std::cout << std::endl << "ERROR: NaN Detected!" << std::endl;
+		throw std::exception();
+	}
 	return yprime;
 }
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////          MAIN           ///////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 int main () {
 
@@ -166,7 +217,7 @@ int main () {
 	int nSprings;
 	int nBodies;
 	int nBCPs, nAnchBCPs, nFairBCPs, nJointBCPs, nBodyBCPs;
-	int nNodosTotal, nSistema;
+	int nNodosTotal, nSistema, nSistema2;
 	int solver_flag, nIterMax;
 	double atol, rtol;
 	solver_data SD;
@@ -178,7 +229,10 @@ int main () {
 	t = 0.0;
 	nNodosTotal=0;
 
-	std::cout << std::endl << "Leyendo datosProblema.dat ..." << std::endl << std::endl; //////////////////////////////////////////
+	std::cout << std::endl << "----------------------------------------------"  << std::endl; //////////////////////////////////////////
+	std::cout << "Starting OASIS: Offshore Advanced Simulation Software" << std::endl << std::endl; //////////////////////////////////////////
+
+	std::cout << "  Reading datosProblema.dat ..." << std::endl << std::endl; //////////////////////////////////////////
 
  	std::ifstream datosProblema ("input/datosProblema.dat");
 	datosProblema >> g;    datosProblema.ignore(std::numeric_limits<int>::max(), '\n');
@@ -194,7 +248,7 @@ int main () {
 	datosProblema >> flag_write_eq;    datosProblema.ignore(std::numeric_limits<int>::max(), '\n');
 	datosProblema.close();
 
-	std::cout<< "Leyendo e iniciando los BCPs ..." << std::endl << std::endl; //////////////////////////////////////////
+	std::cout<< "  Reading and starting all BCPs ..." << std::endl << std::endl; //////////////////////////////////////////
 
 	//LEO DE FICHERO CUANTOS BCPs SE VAN A ESTUDIAR
 	std::ifstream datosBCPs ("input/datosBCPs.dat");
@@ -236,12 +290,34 @@ int main () {
 	for(int ii=0; ii<nBodyBCPs; ii=ii+1){
 		B_BCPs[ii].set_nBCP(BCPcounter+1);
 		B_BCPs[ii].leer_datosBCPs();
-		B_BCPs[ii].getValues(0.0);
+		//B_BCPs[ii].getValues(0.0);
 		BCPs[BCPcounter] = &B_BCPs[ii];
 		BCPcounter = BCPcounter + 1;
 	}
 
-	std::cout<< "Leyendo e iniciando las lineas ..." << std::endl << std::endl; //////////////////////////////////////////
+	std::cout<< "  Reading and starting all Bodies ..." << std::endl << std::endl; //////////////////////////////////////////
+
+	//LEO DE FICHERO CUANTOS CUERPOS SE VAN A ESTUDIAR
+	std::ifstream datosBodies ("input/datosBodies.dat");
+	datosBodies >> nBodies; datosBodies.ignore(std::numeric_limits<int>::max(), '\n');
+	datosBodies.close();
+	//ALOCATO UN VECTOR DE POINTERS A OBJETOS, UNO PARA CADA CUERPO
+	Body * Bodies = new Body[nBodies];
+	//INICIO LOS CUERPOS
+	for(int ii=0; ii<nBodies; ii=ii+1){
+		Bodies[ii].set_nBody(ii+1);
+		Bodies[ii].leer_datosBody();
+		for(int jj=0; jj<Bodies[ii].nBCPs; jj=jj+1){
+			Bodies[ii].BodyBCPs[jj] = BCPs[Bodies[ii].index_BCPs[jj]-1];
+		}
+		Bodies[ii].updateBCPs();
+	}
+
+	for(int ii=0; ii<nBCPs; ii=ii+1){
+		BCPs[ii]->getValues(0.0);
+	}
+
+	std::cout<< "  Reading and starting all Lines ..." << std::endl << std::endl; //////////////////////////////////////////
 
 	//LEO DE FICHERO CUANTAS LINEAS SE VAN A ESTUDIAR
 	std::ifstream datosLines ("input/datosLines.dat");
@@ -276,7 +352,7 @@ int main () {
 		}
 	}
 
-	std::cout<< "Leyendo e iniciando los muelles ..." << std::endl << std::endl; //////////////////////////////////////////
+	std::cout<< "  Reading and starting all Springs ..." << std::endl << std::endl; //////////////////////////////////////////
 
 	//LEO DE FICHERO CUANTOS MUELLES SE VAN A ESTUDIAR
 	std::ifstream datosSprings ("input/datosSprings.dat");
@@ -292,24 +368,7 @@ int main () {
 		Springs[ii].SpringBCP[1] = BCPs[Springs[ii].BCP_2-1];
 	}
 
-	std::cout<< "Leyendo e iniciando los cuerpos ..." << std::endl << std::endl; //////////////////////////////////////////
-
-	//LEO DE FICHERO CUANTOS CUERPOS SE VAN A ESTUDIAR
-	std::ifstream datosBodies ("input/datosBodies.dat");
-	datosBodies >> nBodies; datosBodies.ignore(std::numeric_limits<int>::max(), '\n');
-	datosBodies.close();
-	//ALOCATO UN VECTOR DE POINTERS A OBJETOS, UNO PARA CADA CUERPO
-	Body * Bodies = new Body[nBodies];
-	//INICIO LOS CUERPOS
-	for(int ii=0; ii<nBodies; ii=ii+1){
-		Bodies[ii].set_nBody(ii+1);
-		Bodies[ii].leer_datosBody();
-		for(int jj=0; jj<Bodies[ii].nBCPs; jj=jj+1){
-			Bodies[ii].BodyBCPs[jj] = BCPs[Bodies[ii].index_BCPs[jj]-1];
-		}
-	}
-
-	std::cout<< "Leyendo e iniciando la hidrodinamica ... " << std::endl << std::endl; //////////////////////////////////////////
+	std::cout<< "  Reading and starting Hyrodynamics ... " << std::endl << std::endl; //////////////////////////////////////////
 
 	// DEFINO UN POINTER A UN OBJETO DE LA CLASE HYDRO
 	Hydro * Water = new Hydro;
@@ -320,20 +379,25 @@ int main () {
 	Water->computeWaveSpectrum();
 	Water->computeFe();
 
-	std::cout<< " Fin de la lectura de datos." << std::endl << std::endl; //////////////////////////////////////////
+	std::cout<< "End of input reading" << std::endl << std::endl; //////////////////////////////////////////
 
 
-
+	std::cout<< "  Initializing ODE system vector ..." << std::endl << std::endl; //////////////////////////////////////////
 	// Inicio el vector del sistema
-	nSistema=3*2*nNodosTotal;
-	SD.nSistema = 3*2*nNodosTotal;
-	SD.nSistema2 = 3*nNodosTotal;
+	nSistema = 3*2*nNodosTotal + 6*2*nBodies;
+	nSistema2 = 3*nNodosTotal + 6*nBodies;
+	SD.nSistema = nSistema;
+	SD.nSistema2 = nSistema2;
 
 	arma::mat y = arma::zeros(nSistema,1);
 	arma::mat yprime = arma::zeros(nSistema,1);
 
 	int ini=0;
 	if(flag_read_eq==0){
+		for(int ii=0; ii<nBodies; ii=ii+1){
+				y.rows(ini,ini+5) = Bodies[ii].pos;
+				ini=ini+6;
+		}
 		for(int ii=0; ii<nLines; ii=ii+1){
 			for(int jj=0; jj<Lines[ii].N; jj=jj+1){
 					y.rows(ini,ini+2) = Lines[ii].pos.row(jj).t();
@@ -342,57 +406,70 @@ int main () {
 		}
 	}else if (flag_read_eq==1){
 	 	std::ifstream equi("input/Equilibrio.dat");
-			for(int ii=0;ii<nSistema;ii=ii+1) {
+			for(int ii=6*nBodies;ii<nSistema2;ii=ii+1) {
 				equi >> y(ii,0);    equi.ignore(std::numeric_limits<int>::max(), '\n');
 			}
 		equi.close();
 
-		ini=0;
+		ini=6*nBodies;
 		for(int ii=0; ii<nLines; ii=ii+1){
 			for(int jj=0; jj<Lines[ii].N; jj=jj+1){
-				Lines[ii].pos.row(jj)=y.rows(ini,ini+2).t();
+				Lines[ii].pos.row(jj) = y.rows(ini,ini+2).t();
 				ini=ini+3;
 			}
 		}
 	}
 
+	// ESCIBIENDO CONDICION INICIAL A FICHEROS
 	for(int ii=0; ii<nLines; ii=ii+1) Lines[ii].write_out(t);
+	for(int ii=0; ii<nBodies; ii=ii+1) Bodies[ii].write_out(t);
 
+	// GUARDANDO DATOS LEIDOS EN ESTRUCTURA DEL SOLVER TEMPORAL
 	SD.nLines = nLines;
 	SD.Lines = Lines;
+	SD.nSprings = nSprings;
+	SD.Springs = Springs;
+	SD.nBodies = nBodies;
+	SD.Bodies = Bodies;
+	SD.Water = Water;
+
+	std::cout<< "  Starting temporal integration ..." << std::endl << std::endl; //////////////////////////////////////////
 
 	if (solver_flag == 1){
 		BDF S (t, t_max, dt, y, *fun, SD);
 		S.atol = atol;
 		S.rtol = rtol;
 		S.nIterMax = nIterMax;
-		std::cout<< "The temporal integration begins." << std::endl << std::endl;
 		time_t tstart, tend; 
  		tstart = time(0);
-		std::cout<< "    t = " << t << std::endl;
+		std::cout<< "    t = " << t << " s" << std::endl;
 		do{
 			S.step();
-			//std::cout<< "    t = " << S.t << std::endl;
 			if (S.t >= t + dt){
 				t = t + dt;
-				std::cout<< "    t = " << t << std::endl;
+				std::cout<< "    t = " << t << " s"  << std::endl;
 				for(int ii=0; ii<nLines; ii=ii+1) Lines[ii].write_out(S.t);
+				for(int ii=0; ii<nBodies; ii=ii+1) Bodies[ii].write_out(S.t);
 			}
 		} while (S.t<=t_max);
 
 		tend = time(0); 
-		std::cout << " Computational time  : " << difftime(tend, tstart) << " seconds" << std::endl;
-		std::cout << " Total function calls: " << nCalls << std::endl;
-		std::cout << " Total jac calls: " << S.iJ << std::endl;
-
+		std::cout << std::endl << "    Computational time  : " << difftime(tend, tstart) << " seconds" << std::endl;
+		std::cout << "    Total function calls: " << nCalls << std::endl;
+		std::cout << "    Total jac calls: " << S.iJ << std::endl << std::endl;
 	}
 
 
 	if (flag_write_eq == 1) {
+
+		std::cout << "  Writting data to Equilibrio.dat ..." << std::endl << std::endl; //////////////////////////////////////////
+
 		std::ofstream equi("output/Equilibrio.dat");
-			for(int ii=0;ii<nSistema;ii=ii+1) equi << y(ii,0) << std::endl;
+			for(int ii=6*nBodies;ii<nSistema2;ii=ii+1) equi << y(ii,0) << std::endl;
 		equi.close();
 	}
 
+	std::cout << "End of the program." << std::endl; //////////////////////////////////////////
+	std::cout << "----------------------------------------------" << std::endl << std::endl; //////////////////////////////////////////
 	return 0;
 }

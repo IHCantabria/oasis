@@ -50,6 +50,18 @@ void Hydro::leer_datosHydro(void){
 
 	Ainf = arma::zeros(6*nBodies,6*nBodies);
 
+	inertia = arma::zeros(6*nBodies,6*nBodies);
+	arma::cube temp_inertia;
+	arma::mat temp_mat2;
+	temp_inertia.load(arma::hdf5_name("input/flotante.h5","inertia"));
+	for(ii=0;ii<nBodies;ii=ii+1){
+		temp_mat2 = temp_inertia( arma::span(ii), arma::span::all, arma::span::all);
+		inertia( arma::span(6*ii,6*(ii+1)-1), arma::span(6*ii,6*(ii+1)-1) ) = temp_mat2;
+	}
+
+	arma::mat MM = Ainf + inertia;
+	invM = arma::solve(MM,arma::eye(6*nBodies,6*nBodies));
+
 	t_relax = 60.0;
 	dt_IRF = 0.1;
 	nt_IRF = 600;
@@ -89,15 +101,15 @@ void Hydro::computeFe(void){
 }
 
 // Obten las fuerzas hidroestaticas e hidrodinamicas en el tiempo deseado
-arma::mat Hydro::computeHydroForce(double t){
+void Hydro::computeHydroForces(double t){
+
+	HydroForces = arma::zeros(6*nBodies,1);
 
 	arma::mat positions = arma::zeros(6*nBodies,1);
 	for(int ii=0;ii<nBodies;ii=ii+1){
 		positions(arma::span(6*ii,6*(ii+1)-1),arma::span(0)) = Bodies[ii].pos;
-	}
+	}	
 
-	arma::mat F = arma::zeros(6*nBodies,1);
-
-	F = hydro*positions;
+	HydroForces = HydroForces - hydro*positions;
 
 }

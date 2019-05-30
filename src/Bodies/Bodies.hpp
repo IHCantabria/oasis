@@ -24,9 +24,13 @@ public:
 
 	arma::mat RotMat = arma::zeros(3,3); // Matriz de rotación
 
+	arma::mat BCPForces = arma::zeros(6,1); // Fuerzas que los BCPs ejercen sobre el cuerpo, en la referencia del CDG
+
 	void set_nBody(int n){nBody=n;} // Inicializa un objeto de clase cuerpo dandole el indice
 	void leer_datosBody(void); // Leer datos de los cuerpos
-	void getRotMat(void); // Obten la matriz de rotación y pasasela a los BCPs, junto con la posicion, velocidad y aceleración
+	void updateBCPs(void); // Actualiza valores del BCP
+	void computeBCPForces(void); // Calcula el efecto de las fuerzas sobre los BCPs sobre su CDG
+	void write_out(double t); // Escribir datos a fichero
 };
 
 

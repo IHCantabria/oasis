@@ -12,6 +12,11 @@ struct solver_data{
 	int nSistema, nSistema2;
 	int nLines;
 	Line * Lines;
+	int nSprings;
+	Spring * Springs;
+	int nBodies;
+	Body * Bodies;
+	Hydro * Water;
 };
 
 class BDF{

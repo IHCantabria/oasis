@@ -86,7 +86,7 @@ void Line::qs_GetTen(void){
 	*/
 
 	double lambda, dH, deter, dV;
-	double tol=1.0e-5;
+	double tol = 1.0e-5;
 	int nIter=0;
 	int nMaxIter=1000;
 	double om = (rho0-rhoW*A)*g;
@@ -110,7 +110,7 @@ void Line::qs_GetTen(void){
 
 		//Compute the determinant of the Jacobian matrix
 		deter = DfDH * DgDV - DfDV * DgDH;
-		if (std::abs(deter) < tol){
+		if (std::abs(deter) < 1e-12){
 			std::cout << "WARNING: In QS method, singular Jacobian"<<std::endl<<std::endl;
 			break;
 		};
@@ -118,9 +118,6 @@ void Line::qs_GetTen(void){
 		//Apply that the increment in the iterant is \De x_{n} = - inv(Jac) * f(x_{n})
 		dH =   -( DgDV * ff - DfDV * gg ) / deter;
 		dV =   ( DgDH * ff - DfDH * gg ) / deter;
-		dH = dH * (1.0 - nIter*tol);
-		dV = dV * (1.0 - nIter*tol);
-		dH = std::max(dH,(tol-1.0)*HF);
 
 		//Update the iterant 
 		HF = HF + dH;

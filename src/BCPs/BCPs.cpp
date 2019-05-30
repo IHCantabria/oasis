@@ -128,44 +128,11 @@ void JointBCP::getValues(double t){
 }
 
 
-/*
-En el caso de BodyBCP, la funcion getValues puede hacer dos cosas distintas en función de como se llame.
-	- Si se llama con t < 0.5, se actualiza la posición, velocidad y aceleración del BCP, y se toman
-	  como nulas las fuerzas que actuan sobre este, para que los distintos elementos a los que esté
-	  conectado el BCP añadan las fuerzas y momentos correspondientes.
-	- Si se llama con t > 0.5, se calculan las fuerzas y momentos equivalentes en el centro de masas 
-	  que provocan las fuerzas y momentos ejercidas sobre el BCP.
-*/
 void BodyBCP::getValues(double t){
 
-	if (t < 0.5){
-		posG =  RotMat*posL;
-		posG_BCP.rows(0,2) = posG_body.rows(0,2) + posG;
-		velG_BCP.rows(0,2) = velG_body.rows(0,2) + arma::cross(velG_body.rows(3,5),posG);
-		accG_BCP.rows(0,2) = accG_body.rows(0,2) + arma::cross(accG_body.rows(3,5),posG);
-		ForceBCP = 0.0;
-	} else {
-		double rx = posG(0,0);
-		double ry = posG(1,0);
-		double rz = posG(2,0);
-		double Mx = ForceBCP(0,0);
-		double My = ForceBCP(1,0);
-		double Mz = ForceBCP(2,0);
+	pos = posG_BCP.rows(0,2);
+	vel = velG_BCP.rows(0,2);
+	acc = accG_BCP.rows(0,2);
 
-		//[           Mz*rx, rx*ry, My*ry + Mz*rz]
-		//[           Mz*ry,  ry^2,        -Mx*ry]
-		//[ - Mx*rx - My*ry, ry*rz,        -Mx*rz] / (My*ry^2 + Mx*rx*ry + Mz*ry*rz)
-		arma::mat matrix = arma::zeros(3,3);
-		matrix(0,0) =           Mz*rx; matrix(0,1) = rx*ry; matrix(0,2) = My*ry + Mz*rz;
-		matrix(1,0) =           Mz*ry; matrix(1,1) = ry*ry; matrix(1,2) =        -Mx*ry;
-		matrix(2,0) = - Mx*rx - My*ry; matrix(2,1) = rx*rz; matrix(2,2) =        -Mx*rz;
-		matrix = matrix/(My*ry*ry + Mx*rx*ry + Mz*ry*rz);
+};
 
-		arma::mat vector = ForceBCP.rows(3,5) - arma::dot(posG,ForceBCP.rows(3,5))/arma::dot(posG,posG);
-		vector(1,0) = 0.0;
-
-		ForceCDG.rows(0,2) = ForceBCP.rows(0,2) + matrix*vector;
-		ForceCDG.rows(3,5) = arma::cross(posG,ForceBCP.rows(0,2)) + ForceBCP.rows(3,5);
-	}
-
-}

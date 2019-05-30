@@ -37,7 +37,6 @@ void Spring::leer_datosSprings(void){
 	datosSprings >> dampingFlag; datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
 	datosSprings >> BCP_1; datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
 	datosSprings >> BCP_2; datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
-	datosSprings >> L; datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
 
 	for(ii=0;ii<3;ii=ii+1){
 		temp_vec = arma::zeros(3,1);
@@ -96,10 +95,6 @@ void Spring::leer_datosSprings(void){
 // Calcula las fuerzas que aplica el muelle en los BCPs y las guarda en estos
 void Spring::computeSpringForces(void){
 
-	// Calculo el vector en global que une los BCPs
-	arma::mat SpringVectorG = SpringBCP[1]->posG_BCP - SpringBCP[0]->posG_BCP;
-	arma::mat SpringVectorG_dot = SpringBCP[1]->velG_BCP - SpringBCP[0]->velG_BCP;
-
 	// Calculo los vectores unitarios del muelle en global para cada cuerpo
 	arma::field<arma::mat> SpringVectorsG;
 	SpringVectorsG.set_size(3,2);
@@ -109,15 +104,20 @@ void Spring::computeSpringForces(void){
 		}
 	}
 
+	// Calculo el vector en global que une los BCPs
+	arma::mat SpringVectorG = SpringBCP[1]->posG_BCP - SpringBCP[0]->posG_BCP;
+	arma::mat SpringVectorG_dot = SpringBCP[1]->velG_BCP - SpringBCP[0]->velG_BCP;
+
 	arma::mat SpringStrains = arma::zeros(6,2); // Deformacion en el muelle
 	arma::mat SpringStrains_dot = arma::zeros(6,2); // Derivada temporal de la deformacion en el muelle
-	arma::mat temp_pos = SpringVectorG_dot.rows(0,2);
+	arma::mat temp_pos = SpringVectorG.rows(0,2);
+	arma::mat temp_pos_dot = SpringVectorG_dot.rows(0,2);
 	for(int ii=0;ii<2;ii=ii+1){
 		for(int jj=0;jj<3;jj=jj+1){
-			SpringStrains(jj,ii) = arma::dot(SpringVectorG.rows(0,2),SpringVectorsG(jj,ii)) - (2*(ii == 0)-1)*L*(jj == 0);
+			SpringStrains(jj,ii) = arma::dot(temp_pos,SpringVectorsG(jj,ii));
 			SpringStrains(jj+3,ii) = SpringVectorG(jj+3,0);
 			if(dampingFlag == 1){
-				SpringStrains_dot(jj,ii) = arma::dot(temp_pos,SpringVectorsG(jj,ii)) - (2*(ii == 0)-1)*L*(jj == 0);
+				SpringStrains_dot(jj,ii) = arma::dot(temp_pos_dot,SpringVectorsG(jj,ii));
 				SpringStrains_dot(jj+3,ii) = SpringVectorG_dot(jj+3,0);
 			}
 		}
@@ -135,7 +135,7 @@ void Spring::computeSpringForces(void){
 
 	for(int ii=0;ii<2;ii=ii+1){
 
-		tempF_L = 0.0;
+		tempF_L = arma::zeros(6,1);
 
 		if(stressModelFlag==1){
 
@@ -179,7 +179,7 @@ void Spring::computeSpringForces(void){
 			tempF_L = tempF_L - arma::abs(tempF_L) % (SpringMatrix_D.slice(ii)*temp_strainData);
 		}
 
-		tempF_G = tempF_L(0,0)*SpringVectorsG(0,ii) + tempF_L(1,0)*SpringVectorsG(1,ii) + tempF_L(2,0)*SpringVectorsG(2,ii);
+		tempF_G.rows(0,2) = tempF_L(0,0)*SpringVectorsG(0,ii) + tempF_L(1,0)*SpringVectorsG(1,ii) + tempF_L(2,0)*SpringVectorsG(2,ii);
 		tempF_G.rows(3,5) = tempF_L.rows(3,5);
 		SpringBCP[ii]->ForceBCP = SpringBCP[ii]->ForceBCP + tempF_G;
 	}

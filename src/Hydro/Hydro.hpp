@@ -12,6 +12,9 @@ public:
 	Body * Bodies; // Array de pointers a los cuerpos
 
 	arma::mat hydro; // matriz de hidrostatica de los cuerpos
+	arma::mat inertia; // matriz de inercia de los cuerpos
+	arma::mat Ainf; // Matriz de masas añadidas asintotica
+	arma::mat invM; // inversa de la suma de la matriz de inercias y la matriz de masas añadidas asintotica
 
 	int nAngles; // Numero de angulos
 	arma::mat angles; // Angulos
@@ -44,8 +47,6 @@ public:
 	arma::mat kl; // Coeficientes de fricción lineal para compensar ausencia de efectos viscosos
 	arma::mat knl; // Coeficientes de fricción no lineal para compensar ausencia de efectos viscosos
 
-	arma::mat Ainf; // Matriz de masas añadidas asintotica
-
 	double t_relax; // Tiempo de relajación
 	double dt_IRF; // Paso de tiempo con el que se guardan los datos
 	int nt_IRF; // Numero de datos de velocidad que se guardan para convolucionar con IRF
@@ -66,6 +67,8 @@ public:
 	arma::mat wave_heights; // Alturas del espectro
 	arma::mat wave_phases; // Fases del espectro
 
+	arma::mat HydroForces;
+
 	// Inicializar el objeto de la clase hydro dandole el numero de cuerpos y el vector de pointers a los cuerpos
 	void set_Hydro(int n, Body * Bs){nBodies=n; Bodies = Bs;}
 
@@ -76,7 +79,7 @@ public:
 	void computeWaveSpectrum(void); // Calcula el espectro del oleaje
 	void computeFe(void); // Calcula la serie temporal de fuerzas de excitación
 
-	arma::mat computeHydroForce(double t); // Obten las fuerzas hidroestaticas e hidrodinamicas en el tiempo deseado
+	void computeHydroForces(double t); // Obten las fuerzas hidroestaticas e hidrodinamicas en el tiempo deseado
 	
 };
 

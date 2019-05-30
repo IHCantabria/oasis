@@ -31,17 +31,13 @@ public:
 	arma::mat accLines;
 
 	//Necesario para Body
-	arma::mat posG_body = arma::zeros(6,1); // Posicion del cuerpo en global en 6 dofs
-	arma::mat velG_body = arma::zeros(6,1); // Velocidad del cuerpo en global en 6 dofs
-	arma::mat accG_body = arma::zeros(6,1); // Aceleración del cuerpo en global en 6 dofs
-	arma::mat RotMat = arma::zeros(3,3); // Matriz de rotación
+	arma::mat posL = arma::zeros(3,1); // Posicion del punto en el cuerpo en local en 3 dofs
+	arma::mat posG = arma::zeros(3,1); // Posicion del punto en el cuerpo en global en 3 dofs
+	arma::mat RotMat = arma::zeros(3,3); // Matriz de rotacion del cuerpo
 	arma::mat posG_BCP = arma::zeros(6,1); // Posicion del punto en global en 6 dofs
 	arma::mat velG_BCP = arma::zeros(6,1); // Velocidad del punto en global en 6 dofs
 	arma::mat accG_BCP = arma::zeros(6,1); // Aceleración del punto en global en 6 dofs
-	arma::mat posL = arma::zeros(3,1); // Posicion del punto en el cuerpo en local en 3 dofs
-	arma::mat posG = arma::zeros(3,1); // Vector del CDG del cuerpo al punto en global en 3 dofs
 	arma::mat ForceBCP = arma::zeros(6,1); // Fuerzas y momentos que actuan sobre el BCP en 6 dofs
-	arma::mat ForceCDG = arma::zeros(6,1); // Fuerzas y momentos transmitidos al cdg del cuerpo
 
 	//Metodos
 	void set_nBCP(int n){
