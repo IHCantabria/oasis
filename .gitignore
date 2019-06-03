@@ -1,0 +1,6 @@
+obj/
+bin/
+*.asv
+*.h5
+*.o
+*.exe
