@@ -43,6 +43,7 @@ public:
 	arma::field<arma::mat> QTFs_imag; // Parte imaginaria de la QTF de suma de frecuencias
 
 	arma::mat drag; // Coeficientes de drag a corrientes
+	arma::mat current_vel; // Velocidad de la corriente
 
 	arma::mat kl; // Coeficientes de fricción lineal para compensar ausencia de efectos viscosos
 	arma::mat knl; // Coeficientes de fricción no lineal para compensar ausencia de efectos viscosos

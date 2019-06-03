@@ -57,13 +57,15 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 	}
 
 	// Set boundary conditions on pos and vel of Lines if the BCP is not a joint
-	if (SD.Lines[0].LineBCP[0]->tBCP != t){
-		for(int ii=0;ii<SD.nLines;ii=ii+1){		
-			if(SD.Lines[ii].LineBCP[0]->typeBCP != 3){
-				SD.Lines[ii].LineBCP[0]->getValues(t);
-			}
-			if(SD.Lines[ii].LineBCP[1]->typeBCP != 3){
-				SD.Lines[ii].LineBCP[1]->getValues(t);
+	if (SD.nLines >= 1){
+		if (SD.Lines[0].LineBCP[0]->tBCP != t){
+			for(int ii=0;ii<SD.nLines;ii=ii+1){		
+				if(SD.Lines[ii].LineBCP[0]->typeBCP != 3){
+					SD.Lines[ii].LineBCP[0]->getValues(t);
+				}
+				if(SD.Lines[ii].LineBCP[1]->typeBCP != 3){
+					SD.Lines[ii].LineBCP[1]->getValues(t);
+				}
 			}
 		}
 	}

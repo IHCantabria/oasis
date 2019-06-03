@@ -23,6 +23,7 @@ public:
 	arma::mat inertia = arma::zeros(6,6); // matriz de inercia del cuerpo
 
 	arma::mat RotMat = arma::zeros(3,3); // Matriz de rotación
+	arma::mat invRotMat = arma::zeros(3,3); // Matriz de rotación
 
 	arma::mat BCPForces = arma::zeros(6,1); // Fuerzas que los BCPs ejercen sobre el cuerpo, en la referencia del CDG
 

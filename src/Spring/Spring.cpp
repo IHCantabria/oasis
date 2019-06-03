@@ -8,7 +8,7 @@ void Spring::leer_datosSprings(void){
 	
 	int ii, jj, kk, ll, temp_N; 
 	std::string Dummy;
-	const int nInored=147; // numero de lineas que se leen para cada nueva linea
+	const int nInored=146; // numero de lineas que se leen para cada nueva linea
 	arma::mat temp_vec = arma::zeros(3,1);
 
 	SpringVectors.set_size(3,1);
@@ -98,8 +98,8 @@ void Spring::computeSpringForces(void){
 	// Calculo los vectores unitarios del muelle en global para cada cuerpo
 	arma::field<arma::mat> SpringVectorsG;
 	SpringVectorsG.set_size(3,2);
-	for(int ii=0;ii<2;ii=ii+1){
-		for(int jj=0;jj<3;jj=jj+1){
+	for(int ii=0;ii<2;ii=ii+1){ // Bucle sobre los dos BCPs
+		for(int jj=0;jj<3;jj=jj+1){ // Bucle sobre los tres vectores del muelle
 			SpringVectorsG(jj,ii) = SpringBCP[ii]->RotMat*SpringVectors(jj,0);
 		}
 	}
@@ -110,12 +110,17 @@ void Spring::computeSpringForces(void){
 
 	arma::mat SpringStrains = arma::zeros(6,2); // Deformacion en el muelle
 	arma::mat SpringStrains_dot = arma::zeros(6,2); // Derivada temporal de la deformacion en el muelle
-	arma::mat temp_pos = SpringVectorG.rows(0,2);
-	arma::mat temp_pos_dot = SpringVectorG_dot.rows(0,2);
-	for(int ii=0;ii<2;ii=ii+1){
-		for(int jj=0;jj<3;jj=jj+1){
-			SpringStrains(jj,ii) = arma::dot(temp_pos,SpringVectorsG(jj,ii));
+
+	arma::mat temp_pos = SpringVectorG.rows(0,2); // Posicion relativa de BCPs en 3dof, en global
+	arma::mat temp_pos_dot = SpringVectorG_dot.rows(0,2);//Derivada temporal de la posicion relativa de BCPs en 3dof
+
+	for(int ii=0;ii<2;ii=ii+1){ // Bucle sobre los dos BCPs
+		for(int jj=0;jj<3;jj=jj+1){ // Bucle sobre los tres vectores del muelle
+
+			SpringStrains(jj,ii) = arma::dot(temp_pos,SpringVectorsG(jj,ii)); // Proyecto la posicion relativa global sobre los vectores del muelle globales
 			SpringStrains(jj+3,ii) = SpringVectorG(jj+3,0);
+
+			// Lo mismo para la derivada temporal
 			if(dampingFlag == 1){
 				SpringStrains_dot(jj,ii) = arma::dot(temp_pos_dot,SpringVectorsG(jj,ii));
 				SpringStrains_dot(jj+3,ii) = SpringVectorG_dot(jj+3,0);
@@ -123,26 +128,33 @@ void Spring::computeSpringForces(void){
 		}
 	}
 
-	arma::mat tempF_L = arma::zeros(6,1);
-	arma::mat tempF_G = arma::zeros(6,1);
-	double tempS;
-	int tempN;
-	int tempI;
-	arma::mat temp_strainData;
-	arma::mat temp_stressData;
-	double temp_dS;
-	arma::mat temp_slope;
+	arma::mat tempF_L = arma::zeros(6,1); // Fuerza registrada en el muelle en coordenadas del cuerpo
+	arma::mat tempF_G = arma::zeros(6,1); // Fuerza registrada en el muelle en coordenadas globales
 
-	for(int ii=0;ii<2;ii=ii+1){
+	// Variables temporales necesarias mas adelante
+	double tempS, temp_dS;
+	int tempN, tempI;
+	arma::mat temp_strainData, temp_stressData, temp_slope;
 
-		tempF_L = arma::zeros(6,1);
+	for(int ii=0;ii<2;ii=ii+1){ // Bucle sobre los dos BCPs
 
-		if(stressModelFlag==1){
+		tempF_L = arma::zeros(6,1); // Fuerza registrada en el muelle en coordenadas del cuerpo, la reseteo a cero
 
-			temp_strainData = (2*(ii == 0)-1) * SpringStrains.col(ii);
-			tempF_L = - SpringMatrix_K.slice(ii)*temp_strainData;
+		if (stressModelFlag==1) { // Modelo de muelle lineal y simetrico
 
-		}else if(stressModelFlag==2){
+			// Strain calculado previamente, cambiandole el signo dependiendo del BCP en el que se este
+			// debido a como se calcula SpringVectorG
+			temp_strainData =  (2 * (ii == 0) - 1) * SpringStrains.col(ii);
+			// Fuerza registrada en el muelle en coordenadas del cuerpo, multiplicando matriz y strain
+			tempF_L = SpringMatrix_K.slice(ii)*temp_strainData;
+
+			// Lo mismo para efectos viscosos
+			if(dampingFlag == 1){
+				temp_strainData = (2*(ii == 0)-1) * SpringStrains_dot.col(ii);
+				tempF_L = tempF_L + SpringMatrix_K.slice(ii) * (SpringMatrix_D.slice(ii)*temp_strainData);
+			}
+
+		} else if (stressModelFlag==2) { // Modelo de muelle no lineal, input es curva de deformacion-fuerza.
 
 			for(int jj=0;jj<6;jj=jj+1){
 
@@ -172,16 +184,19 @@ void Spring::computeSpringForces(void){
 					tempF_L = tempF_L + temp_stressData.col(0) + temp_dS*temp_slope;
 				}
 			}
+
+			if(dampingFlag == 1){
+				temp_strainData = (2*(ii == 0)-1) * SpringStrains_dot.col(ii);
+				tempF_L = tempF_L - arma::abs(tempF_L) % (SpringMatrix_D.slice(ii)*temp_strainData);
+			}
 		}
 
-		if(dampingFlag == 1){
-			temp_strainData = (2*(ii == 0)-1) * SpringStrains_dot.col(ii);
-			tempF_L = tempF_L - arma::abs(tempF_L) % (SpringMatrix_D.slice(ii)*temp_strainData);
-		}
-
+		// Paso de coordenadas locales a coordenadas globales la fuerza del muelle
 		tempF_G.rows(0,2) = tempF_L(0,0)*SpringVectorsG(0,ii) + tempF_L(1,0)*SpringVectorsG(1,ii) + tempF_L(2,0)*SpringVectorsG(2,ii);
-		tempF_G.rows(3,5) = tempF_L.rows(3,5);
-		SpringBCP[ii]->ForceBCP = SpringBCP[ii]->ForceBCP + tempF_G;
+		tempF_G.rows(3,5) = SpringBCP[ii]->RotMat*tempF_L.rows(3,5);
+
+		SpringBCP[ii]->ForceBCP = SpringBCP[ii]->ForceBCP + tempF_G; // Acumulo la fuerza obtenida en el BCP
+
 	}
 
 }

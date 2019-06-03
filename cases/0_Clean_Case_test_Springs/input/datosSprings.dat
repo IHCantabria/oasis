@@ -1,0 +1,296 @@
+2 // Number of springs
+////////////////// 
+////////////////// New spring [1]
+//////////////////
+1 // Flag for spring stress model [1: lineal (matrix), 2: non-lineal (stress-strain curve)]
+1 // Flag spring damping [0: no se considera, 1: se considera]
+3 // BCP1 index
+4 // BCP2 index
+1.0 0.0 0.0 // Spring's normal  vector   (x)
+0.0 1.0 0.0 // Spring's tangent vector 1 (y)
+0.0 0.0 1.0 // Spring's tangent vector 2 (z)
+// STIFNESS MATRIX BCP1
+1.0e8 0.0 0.0 0.0 0.0 0.0 // Spring's stiffness matrix, row 1
+0.0 1.0e9 0.0 0.0 0.0 0.0 // Spring's stiffness matrix, row 2
+0.0 0.0 1.0e9 0.0 0.0 0.0 // Spring's stiffness matrix, row 3
+0.0 0.0 0.0 1.0e4 0.0 0.0 // Spring's stiffness matrix, row 4
+0.0 0.0 0.0 0.0 1.0e4 0.0 // Spring's stiffness matrix, row 5
+0.0 0.0 0.0 0.0 0.0 1.0e4 // Spring's stiffness matrix, row 6
+// STIFNESS MATRIX BCP2
+1.0e8 0.0 0.0 0.0 0.0 0.0 // Spring's stiffness matrix, row 1
+0.0 1.0e9 0.0 0.0 0.0 0.0 // Spring's stiffness matrix, row 2
+0.0 0.0 1.0e9 0.0 0.0 0.0 // Spring's stiffness matrix, row 3
+0.0 0.0 0.0 1.0e4 0.0 0.0 // Spring's stiffness matrix, row 4
+0.0 0.0 0.0 0.0 1.0e4 0.0 // Spring's stiffness matrix, row 5
+0.0 0.0 0.0 0.0 0.0 1.0e4 // Spring's stiffness matrix, row 6
+// DAMPING MATRIX BCP1
+0.01 0.0 0.0 0.0 0.0 0.0 // Spring's damping matrix, row 1
+0.0 0.01 0.0 0.0 0.0 0.0 // Spring's damping matrix, row 2
+0.0 0.0 0.01 0.0 0.0 0.0 // Spring's damping matrix, row 3
+0.0 0.0 0.0 0.01 0.0 0.0 // Spring's damping matrix, row 4
+0.0 0.0 0.0 0.0 0.01 0.0 // Spring's damping matrix, row 5
+0.0 0.0 0.0 0.0 0.0 0.01 // Spring's damping matrix, row 6
+// DAMPING MATRIX BCP2
+0.01 0.0 0.0 0.0 0.0 0.0 // Spring's damping matrix, row 1
+0.0 0.01 0.0 0.0 0.0 0.0 // Spring's damping matrix, row 2
+0.0 0.0 0.01 0.0 0.0 0.0 // Spring's damping matrix, row 3
+0.0 0.0 0.0 0.01 0.0 0.0 // Spring's damping matrix, row 4
+0.0 0.0 0.0 0.0 0.01 0.0 // Spring's damping matrix, row 5
+0.0 0.0 0.0 0.0 0.0 0.01 // Spring's damping matrix, row 6
+// Stress strain curve DOF 1 BCP 1
+3 // Number of points
+-100.0 0.0 100.0 // DOF 1 Strain data
+-1.0 0.0 1.0 // Stress in DOF 1
+0.0 0.0 0.0 // Stress in DOF 2
+0.0 0.0 0.0 // Stress in DOF 3
+0.0 0.0 0.0 // Stress in DOF 4
+0.0 0.0 0.0 // Stress in DOF 5
+0.0 0.0 0.0 // Stress in DOF 6
+// Stress strain curve DOF 2 BCP 1
+3 // Number of points
+-100.0 0.0 100.0 // DOF 1 Strain data
+0.0 0.0 0.0 // Stress in DOF 1
+-1.0 0.0 1.0 // Stress in DOF 2
+0.0 0.0 0.0 // Stress in DOF 3
+0.0 0.0 0.0 // Stress in DOF 4
+0.0 0.0 0.0 // Stress in DOF 5
+0.0 0.0 0.0 // Stress in DOF 6
+// Stress strain curve DOF 3 BCP 1
+3 // Number of points
+-100.0 0.0 100.0 // DOF 1 Strain data
+0.0 0.0 0.0 // Stress in DOF 1
+0.0 0.0 0.0 // Stress in DOF 2
+-1.0 0.0 1.0 // Stress in DOF 3
+0.0 0.0 0.0 // Stress in DOF 4
+0.0 0.0 0.0 // Stress in DOF 5
+0.0 0.0 0.0 // Stress in DOF 6
+// Stress strain curve DOF 4 BCP 1
+3 // Number of points
+-100.0 0.0 100.0 // DOF 1 Strain data
+0.0 0.0 0.0 // Stress in DOF 1
+0.0 0.0 0.0 // Stress in DOF 2
+0.0 0.0 0.0 // Stress in DOF 3
+-1.0 0.0 1.0 // Stress in DOF 4
+0.0 0.0 0.0 // Stress in DOF 5
+0.0 0.0 0.0 // Stress in DOF 6
+// Stress strain curve DOF 5 BCP 1
+3 // Number of points
+-100.0 0.0 100.0 // DOF 1 Strain data
+0.0 0.0 0.0 // Stress in DOF 1
+0.0 0.0 0.0 // Stress in DOF 2
+0.0 0.0 0.0 // Stress in DOF 3
+0.0 0.0 0.0 // Stress in DOF 4
+-1.0 0.0 1.0 // Stress in DOF 5
+0.0 0.0 0.0 // Stress in DOF 6
+// Stress strain curve DOF 6 BCP 1
+3 // Number of points
+-100.0 0.0 100.0 // DOF 1 Strain dataa
+0.0 0.0 0.0 // Stress in DOF 1
+0.0 0.0 0.0 // Stress in DOF 2
+0.0 0.0 0.0 // Stress in DOF 3
+0.0 0.0 0.0 // Stress in DOF 4
+0.0 0.0 0.0 // Stress in DOF 5
+-1.0 0.0 1.0 // Stress in DOF 6
+// Stress strain curve DOF 1 BCP 2
+3 // Number of points
+-100.0 0.0 100.0 // DOF 1 Strain data
+-1.0 0.0 1.0 // Stress in DOF 1
+0.0 0.0 0.0 // Stress in DOF 2
+0.0 0.0 0.0 // Stress in DOF 3
+0.0 0.0 0.0 // Stress in DOF 4
+0.0 0.0 0.0 // Stress in DOF 5
+0.0 0.0 0.0 // Stress in DOF 6
+// Stress strain curve DOF 2 BCP 2
+3 // Number of points
+-100.0 0.0 100.0 // DOF 1 Strain data
+0.0 0.0 0.0 // Stress in DOF 1
+-1.0 0.0 1.0 // Stress in DOF 2
+0.0 0.0 0.0 // Stress in DOF 3
+0.0 0.0 0.0 // Stress in DOF 4
+0.0 0.0 0.0 // Stress in DOF 5
+0.0 0.0 0.0 // Stress in DOF 6
+// Stress strain curve DOF 3 BCP 2
+3 // Number of points
+-100.0 0.0 100.0 // DOF 1 Strain data
+0.0 0.0 0.0 // Stress in DOF 1
+0.0 0.0 0.0 // Stress in DOF 2
+-1.0 0.0 1.0 // Stress in DOF 3
+0.0 0.0 0.0 // Stress in DOF 4
+0.0 0.0 0.0 // Stress in DOF 5
+0.0 0.0 0.0 // Stress in DOF 6
+// Stress strain curve DOF 3 BCP 2
+3 // Number of points
+-100.0 0.0 100.0 // DOF 1 Strain data
+0.0 0.0 0.0 // Stress in DOF 1
+0.0 0.0 1.0 // Stress in DOF 2
+0.0 0.0 1.0 // Stress in DOF 3
+-1.0 0.0 1.0 // Stress in DOF 4
+0.0 0.0 1.0 // Stress in DOF 5
+0.0 0.0 1.0 // Stress in DOF 6
+// Stress strain curve DOF 3 BCP 2
+3 // Number of points
+-100.0 0.0 100.0 // DOF 1 Strain data
+0.0 0.0 0.0 // Stress in DOF 1
+0.0 0.0 0.0 // Stress in DOF 2
+0.0 0.0 0.0 // Stress in DOF 3
+0.0 0.0 0.0 // Stress in DOF 4
+-1.0 0.0 1.0 // Stress in DOF 5
+0.0 0.0 0.0 // Stress in DOF 6
+// Stress strain curve DOF 3 BCP 2
+3 // Number of points
+-100.0 0.0 100.0 // DOF 1 Strain data
+0.0 0.0 0.0 // Stress in DOF 1
+0.0 0.0 0.0 // Stress in DOF 2
+0.0 0.0 0.0 // Stress in DOF 3
+0.0 0.0 0.0 // Stress in DOF 4
+0.0 0.0 0.0 // Stress in DOF 5
+-1.0 0.0 1.0 // Stress in DOF 6
+////////////////// 
+////////////////// New spring [1]
+//////////////////
+1 // Flag for spring stress model [1: lineal (matrix), 2: non-lineal (stress-strain curve)]
+1 // Flag spring damping [0: no se considera, 1: se considera]
+5 // BCP1 index
+6 // BCP2 index
+1.0 0.0 0.0 // Spring's normal  vector   (x)
+0.0 1.0 0.0 // Spring's tangent vector 1 (y)
+0.0 0.0 1.0 // Spring's tangent vector 2 (z)
+// STIFNESS MATRIX BCP1
+1.0e8 0.0 0.0 0.0 0.0 0.0 // Spring's stiffness matrix, row 1
+0.0 1.0e9 0.0 0.0 0.0 0.0 // Spring's stiffness matrix, row 2
+0.0 0.0 1.0e9 0.0 0.0 0.0 // Spring's stiffness matrix, row 3
+0.0 0.0 0.0 1.0e4 0.0 0.0 // Spring's stiffness matrix, row 4
+0.0 0.0 0.0 0.0 1.0e4 0.0 // Spring's stiffness matrix, row 5
+0.0 0.0 0.0 0.0 0.0 1.0e4 // Spring's stiffness matrix, row 6
+// STIFNESS MATRIX BCP2
+1.0e8 0.0 0.0 0.0 0.0 0.0 // Spring's stiffness matrix, row 1
+0.0 1.0e9 0.0 0.0 0.0 0.0 // Spring's stiffness matrix, row 2
+0.0 0.0 1.0e9 0.0 0.0 0.0 // Spring's stiffness matrix, row 3
+0.0 0.0 0.0 1.0e4 0.0 0.0 // Spring's stiffness matrix, row 4
+0.0 0.0 0.0 0.0 1.0e4 0.0 // Spring's stiffness matrix, row 5
+0.0 0.0 0.0 0.0 0.0 1.0e4 // Spring's stiffness matrix, row 6
+// DAMPING MATRIX BCP1
+0.01 0.0 0.0 0.0 0.0 0.0 // Spring's damping matrix, row 1
+0.0 0.01 0.0 0.0 0.0 0.0 // Spring's damping matrix, row 2
+0.0 0.0 0.01 0.0 0.0 0.0 // Spring's damping matrix, row 3
+0.0 0.0 0.0 0.01 0.0 0.0 // Spring's damping matrix, row 4
+0.0 0.0 0.0 0.0 0.01 0.0 // Spring's damping matrix, row 5
+0.0 0.0 0.0 0.0 0.0 0.01 // Spring's damping matrix, row 6
+// DAMPING MATRIX BCP2
+0.01 0.0 0.0 0.0 0.0 0.0 // Spring's damping matrix, row 1
+0.0 0.01 0.0 0.0 0.0 0.0 // Spring's damping matrix, row 2
+0.0 0.0 0.01 0.0 0.0 0.0 // Spring's damping matrix, row 3
+0.0 0.0 0.0 0.01 0.0 0.0 // Spring's damping matrix, row 4
+0.0 0.0 0.0 0.0 0.01 0.0 // Spring's damping matrix, row 5
+0.0 0.0 0.0 0.0 0.0 0.01 // Spring's damping matrix, row 6
+// Stress strain curve DOF 1 BCP 1
+3 // Number of points
+-100.0 0.0 100.0 // DOF 1 Strain data
+-1.0 0.0 1.0 // Stress in DOF 1
+0.0 0.0 0.0 // Stress in DOF 2
+0.0 0.0 0.0 // Stress in DOF 3
+0.0 0.0 0.0 // Stress in DOF 4
+0.0 0.0 0.0 // Stress in DOF 5
+0.0 0.0 0.0 // Stress in DOF 6
+// Stress strain curve DOF 2 BCP 1
+3 // Number of points
+-100.0 0.0 100.0 // DOF 1 Strain data
+0.0 0.0 0.0 // Stress in DOF 1
+-1.0 0.0 1.0 // Stress in DOF 2
+0.0 0.0 0.0 // Stress in DOF 3
+0.0 0.0 0.0 // Stress in DOF 4
+0.0 0.0 0.0 // Stress in DOF 5
+0.0 0.0 0.0 // Stress in DOF 6
+// Stress strain curve DOF 3 BCP 1
+3 // Number of points
+-100.0 0.0 100.0 // DOF 1 Strain data
+0.0 0.0 0.0 // Stress in DOF 1
+0.0 0.0 0.0 // Stress in DOF 2
+-1.0 0.0 1.0 // Stress in DOF 3
+0.0 0.0 0.0 // Stress in DOF 4
+0.0 0.0 0.0 // Stress in DOF 5
+0.0 0.0 0.0 // Stress in DOF 6
+// Stress strain curve DOF 4 BCP 1
+3 // Number of points
+-100.0 0.0 100.0 // DOF 1 Strain data
+0.0 0.0 0.0 // Stress in DOF 1
+0.0 0.0 0.0 // Stress in DOF 2
+0.0 0.0 0.0 // Stress in DOF 3
+-1.0 0.0 1.0 // Stress in DOF 4
+0.0 0.0 0.0 // Stress in DOF 5
+0.0 0.0 0.0 // Stress in DOF 6
+// Stress strain curve DOF 5 BCP 1
+3 // Number of points
+-100.0 0.0 100.0 // DOF 1 Strain data
+0.0 0.0 0.0 // Stress in DOF 1
+0.0 0.0 0.0 // Stress in DOF 2
+0.0 0.0 0.0 // Stress in DOF 3
+0.0 0.0 0.0 // Stress in DOF 4
+-1.0 0.0 1.0 // Stress in DOF 5
+0.0 0.0 0.0 // Stress in DOF 6
+// Stress strain curve DOF 6 BCP 1
+3 // Number of points
+-100.0 0.0 100.0 // DOF 1 Strain dataa
+0.0 0.0 0.0 // Stress in DOF 1
+0.0 0.0 0.0 // Stress in DOF 2
+0.0 0.0 0.0 // Stress in DOF 3
+0.0 0.0 0.0 // Stress in DOF 4
+0.0 0.0 0.0 // Stress in DOF 5
+-1.0 0.0 1.0 // Stress in DOF 6
+// Stress strain curve DOF 1 BCP 2
+3 // Number of points
+-100.0 0.0 100.0 // DOF 1 Strain data
+-1.0 0.0 1.0 // Stress in DOF 1
+0.0 0.0 0.0 // Stress in DOF 2
+0.0 0.0 0.0 // Stress in DOF 3
+0.0 0.0 0.0 // Stress in DOF 4
+0.0 0.0 0.0 // Stress in DOF 5
+0.0 0.0 0.0 // Stress in DOF 6
+// Stress strain curve DOF 2 BCP 2
+3 // Number of points
+-100.0 0.0 100.0 // DOF 1 Strain data
+0.0 0.0 0.0 // Stress in DOF 1
+-1.0 0.0 1.0 // Stress in DOF 2
+0.0 0.0 0.0 // Stress in DOF 3
+0.0 0.0 0.0 // Stress in DOF 4
+0.0 0.0 0.0 // Stress in DOF 5
+0.0 0.0 0.0 // Stress in DOF 6
+// Stress strain curve DOF 3 BCP 2
+3 // Number of points
+-100.0 0.0 100.0 // DOF 1 Strain data
+0.0 0.0 0.0 // Stress in DOF 1
+0.0 0.0 0.0 // Stress in DOF 2
+-1.0 0.0 1.0 // Stress in DOF 3
+0.0 0.0 0.0 // Stress in DOF 4
+0.0 0.0 0.0 // Stress in DOF 5
+0.0 0.0 0.0 // Stress in DOF 6
+// Stress strain curve DOF 3 BCP 2
+3 // Number of points
+-100.0 0.0 100.0 // DOF 1 Strain data
+0.0 0.0 0.0 // Stress in DOF 1
+0.0 0.0 1.0 // Stress in DOF 2
+0.0 0.0 1.0 // Stress in DOF 3
+-1.0 0.0 1.0 // Stress in DOF 4
+0.0 0.0 1.0 // Stress in DOF 5
+0.0 0.0 1.0 // Stress in DOF 6
+// Stress strain curve DOF 3 BCP 2
+3 // Number of points
+-100.0 0.0 100.0 // DOF 1 Strain data
+0.0 0.0 0.0 // Stress in DOF 1
+0.0 0.0 0.0 // Stress in DOF 2
+0.0 0.0 0.0 // Stress in DOF 3
+0.0 0.0 0.0 // Stress in DOF 4
+-1.0 0.0 1.0 // Stress in DOF 5
+0.0 0.0 0.0 // Stress in DOF 6
+// Stress strain curve DOF 3 BCP 2
+3 // Number of points
+-100.0 0.0 100.0 // DOF 1 Strain data
+0.0 0.0 0.0 // Stress in DOF 1
+0.0 0.0 0.0 // Stress in DOF 2
+0.0 0.0 0.0 // Stress in DOF 3
+0.0 0.0 0.0 // Stress in DOF 4
+0.0 0.0 0.0 // Stress in DOF 5
+-1.0 0.0 1.0 // Stress in DOF 6
+
+
+

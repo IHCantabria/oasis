@@ -44,6 +44,7 @@ void Hydro::leer_datosHydro(void){
 	QTFs_imag.set_size(nBodies,nAngles,nFreqs);
 
 	drag = arma::zeros(nBodies,nAngles);
+	current_vel = arma::zeros(2,1);
 
 	kl = arma::zeros(nBodies,6);
 	knl = arma::zeros(nBodies,6);
