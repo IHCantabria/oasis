@@ -7,12 +7,12 @@ ifeq ($(OS),Windows_NT)
 		INC_HDF5_DIR = "C:/Program Files/HDF5-1.10.5-win64/include"
 		IDIRS = -I$(INC_ARMADILLO_DIR) -I$(INC_HDF5_DIR)
 		
-		LIB_LAPACK_DIR = "C:/ScientificLibraries/fortran90/lapack380/liblapack.a"
-		LIB_BLAS_DIR = "C:/ScientificLibraries/fortran90/blas380/libblas.a"
-		LIB_HDF5_DIR = "C:/Program Files/HDF5-1.10.5-win64/lib/hdf5.lib"
-		LDIRS = $(LIB_LAPACK_DIR) $(LIB_BLAS_DIR) $(LIB_HDF5_DIR)
+		LIB_LAPACK_DIR = "C:/ScientificLibraries/fortran90/lapack380"
+		LIB_BLAS_DIR = "C:/ScientificLibraries/fortran90/blas380"
+		LIB_HDF5_DIR = "C:/Program Files/HDF5-1.10.5-win64/lib"
+		LDIRS = -L$(LIB_LAPACK_DIR) -L$(LIB_BLAS_DIR) -L$(LIB_HDF5_DIR)
 		
-		LIBS = -llapack -lblas
+		LIBS = -llapack -lblas -lgfortran "C:/Program Files/HDF5-1.10.5-win64/lib/hdf5.lib"
 		
 	else ifeq ($(USERNAME),rodriguezlua)
 		LIB_LAPACK_DIR = "C:/ScientificLibraries/fortran90/lapack380"
@@ -41,7 +41,8 @@ $(ODIR)/%.o: $(SDIR)/%.cpp $(DEPS)
 all: oasis
 	
 oasis: $(OBJS)
-	$(CC) -o $(BDIR)/$@.exe $^ $(LDIRS) -lgfortran
+	@echo $(LDIRS)
+	$(CC) -o $(BDIR)/$@.exe $^ $(LDIRS) $(LIBS)
 
 .PHONY: clean
 
