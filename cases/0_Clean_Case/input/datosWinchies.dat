@@ -1,0 +1,8 @@
+1 // Number of winchies
+////////////////// 
+////////////////// New winchie [1]
+//////////////////
+1 // Indice de la linea a la que esta conectado el winchie
+2 // Extremo de la linea al que esta conectado el winchie [1: Nodo 1, 2: Nodo N]
+100.0 // Momento de inercia del winchie (kg·m^2)
+0.25 // Radio del winchie (m)

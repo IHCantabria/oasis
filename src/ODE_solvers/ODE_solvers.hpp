@@ -7,6 +7,7 @@
 #include "../Bodies/Bodies.hpp"
 #include "../Lines/Lines.hpp"
 #include "../Spring/Spring.hpp"
+#include "../BCPs/Winchies.hpp"
 
 struct solver_data{
 	int nSistema, nSistema2;
@@ -17,6 +18,8 @@ struct solver_data{
 	int nBodies;
 	Body * Bodies;
 	Hydro * Water;
+	int nWinchies;
+	Winchie * Winchies;
 };
 
 class BDF{

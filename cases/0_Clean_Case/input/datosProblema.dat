@@ -4,7 +4,7 @@
 0.01 // Time step
 100.0 // Total time of simulation
 1 // Solver temporal [1: BDF1]
-1e-5 // Absolute tolerance for temporal integration.
+1e-6 // Absolute tolerance for temporal integration.
 1e-3 // Relative tolerance for temporal integration.
 5 // Maximum number of iterations for one step of temporal integration.
 0 // Read Equilibrio.dat? [0 No, 1 Yes]

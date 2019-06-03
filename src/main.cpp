@@ -9,17 +9,25 @@
 #include <armadillo>
 #include <ctime>
 #include "BCPs/BCPs.hpp"
+#include "BCPs/Winchies.hpp"
+#include "BCPs/WinchiesController.hpp"
 #include "Lines/Lines.hpp"
 #include "Spring/Spring.hpp"
 #include "Bodies/Bodies.hpp"
 #include "Hydro/Hydro.hpp"
 #include "ODE_solvers/ODE_solvers.hpp"
 
+// GLOBAL VARIABLES
 double PI;
 double g;
 double rhoW;
 double fondo;
 int nCalls = 0;
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////           fun           ///////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 arma::mat fun(double t, arma::mat y, solver_data SD){
 
@@ -40,6 +48,7 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 			ini = ini + 3;
 		}
 	}
+	ini = ini + SD.nWinchies;
 	for(int ii=0;ii<SD.nBodies;ii=ii+1){
 		SD.Bodies[ii].vel = y.rows(ini,ini+5);
 		ini = ini + 6;
@@ -50,6 +59,11 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 			ini = ini + 3;
 		}
 	}
+	for(int ii=0;ii<SD.nWinchies;ii=ii+1){
+		SD.Winchies[ii].theta = arma::as_scalar(y.row(SD.nSistema2-(ii+1)));
+		SD.Winchies[ii].omega = arma::as_scalar(y.row(SD.nSistema-(ii+1)));
+	}
+	
 
 	// Update BodyBCP positions and velocities
 	for(int ii=0;ii<SD.nBodies;ii=ii+1){
@@ -187,6 +201,11 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 		}
 	}
 
+	// Compute Winchies
+	for(int ii=0;ii<SD.nWinchies;ii=ii+1){
+		SD.Winchies[ii].computeWinchie();
+	}
+
 	// Copy info from the objects to yprime
 	yprime.rows(0,SD.nSistema2-1) = y.rows(SD.nSistema2,SD.nSistema-1);
 	yprime.rows(SD.nSistema2,SD.nSistema2+6*SD.nBodies-1) = accB;
@@ -197,6 +216,11 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 			ini = ini + 3;
 		}
 	}
+	for(int ii=0;ii<SD.nWinchies;ii=ii+1){
+		yprime.row(SD.nSistema2-(ii+1)) = SD.Winchies[ii].omega;
+		yprime.row(SD.nSistema-(ii+1)) = SD.Winchies[ii].alpha;
+	}
+
 
 	if (yprime.has_nan()){
 		std::cout << std::endl << "ERROR: NaN Detected!" << std::endl;
@@ -207,9 +231,10 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 
 
 
-
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////          MAIN           ///////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 int main () {
@@ -217,6 +242,7 @@ int main () {
 	int flag_read_eq, flag_write_eq;
 	int nLines;
 	int nSprings;
+	int nWinchies;
 	int nBodies;
 	int nBCPs, nAnchBCPs, nFairBCPs, nJointBCPs, nBodyBCPs;
 	int nNodosTotal, nSistema, nSistema2;
@@ -354,6 +380,30 @@ int main () {
 		}
 	}
 
+	std::cout<< "  Reading and starting all Winchies ..." << std::endl << std::endl; //////////////////////////////////////////
+
+	//LEO DE FICHERO CUANTOS WINCHIES SE VAN A ESTUDIAR
+	std::ifstream datosWinchies ("input/datosWinchies.dat");
+	datosWinchies >> nWinchies; datosWinchies.ignore(std::numeric_limits<int>::max(), '\n');
+	datosWinchies.close();
+	//ALOCATO UN VECTOR DE POINTERS A OBJETOS, UNO PARA CADA MUELLE
+	Winchie * Winchies = new Winchie[nWinchies];
+	//INICIO LLOS MUELLES
+	for(int ii=0; ii<nWinchies; ii=ii+1){
+		Winchies[ii].set_nWinchie(ii+1);
+		Winchies[ii].leer_datosWinchies();
+		Winchies[ii].LineW = &Lines[Winchies[ii].nLine - 1];
+	}
+
+	std::cout<< "  Reading and starting Winchies controllers ... " << std::endl << std::endl; //////////////////////////////////////////
+
+	// DEFINO UN UN OBJETO DE LA CLASE WINCHIE CONTROLLER
+	WinchieController CW;
+	//INICIO EL OBJETO QUE CONTIENE EL CONTROLADOR
+	CW.set_WinchieController(nWinchies,Winchies);
+	CW.leer_datosWinchieController();
+
+
 	std::cout<< "  Reading and starting all Springs ..." << std::endl << std::endl; //////////////////////////////////////////
 
 	//LEO DE FICHERO CUANTOS MUELLES SE VAN A ESTUDIAR
@@ -386,8 +436,8 @@ int main () {
 
 	std::cout<< "  Initializing ODE system vector ..." << std::endl << std::endl; //////////////////////////////////////////
 	// Inicio el vector del sistema
-	nSistema = 3*2*nNodosTotal + 6*2*nBodies;
-	nSistema2 = 3*nNodosTotal + 6*nBodies;
+	nSistema = 2*(3*nNodosTotal + 6*nBodies + nWinchies);
+	nSistema2 = 3*nNodosTotal + 6*nBodies + nWinchies;
 	SD.nSistema = nSistema;
 	SD.nSistema2 = nSistema2;
 
@@ -434,6 +484,8 @@ int main () {
 	SD.nBodies = nBodies;
 	SD.Bodies = Bodies;
 	SD.Water = Water;
+	SD.nWinchies = nWinchies;
+	SD.Winchies = Winchies;
 
 	std::cout<< "  Starting temporal integration ..." << std::endl << std::endl; //////////////////////////////////////////
 
@@ -450,6 +502,7 @@ int main () {
 			if (S.t >= t + dt){
 				t = t + dt;
 				std::cout<< "    t = " << t << " s"  << std::endl;
+				if (nWinchies>0) CW.controlWinchies();
 				for(int ii=0; ii<nLines; ii=ii+1) Lines[ii].write_out(S.t);
 				for(int ii=0; ii<nBodies; ii=ii+1) Bodies[ii].write_out(S.t);
 			}
