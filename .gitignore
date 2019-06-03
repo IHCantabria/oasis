@@ -1,7 +1,0 @@
-*.exe
-*.o
-*.txt
-*.m
-*.asv
-bin/
-obj/
