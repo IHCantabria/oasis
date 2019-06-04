@@ -1,35 +1,34 @@
-
 # Check OS enviroment
 ifeq ($(OS),Windows_NT)
-	# Check USER environment
-	ifeq ($(USERNAME),feruanos)
-		INC_ARMADILLO_DIR = "C:/ScientificLibraries/cpp/armadillo940/include"
-		INC_HDF5_DIR = "C:/Program Files/HDF5-1.10.5-win64/include"
-		IDIRS = -I$(INC_ARMADILLO_DIR) -I$(INC_HDF5_DIR)
+# Check USER environment
+ifeq ($(USERNAME),feruanos)
+INC_ARMADILLO_DIR = "C:/ScientificLibraries/cpp/armadillo940/include"
+INC_HDF5_DIR = "C:/Program Files/HDF5-1.10.5-win64/include"
+IDIRS = -I$(INC_ARMADILLO_DIR) -I$(INC_HDF5_DIR)
 		
-		LIB_LAPACK_DIR = "C:/ScientificLibraries/fortran90/lapack380"
-		LIB_BLAS_DIR = "C:/ScientificLibraries/fortran90/blas380"
-		LIB_HDF5_DIR = "C:/Program Files/HDF5-1.10.5-win64/lib"
-		LDIRS = -L$(LIB_LAPACK_DIR) -L$(LIB_BLAS_DIR) -L$(LIB_HDF5_DIR)
+LIB_LAPACK_DIR = "C:/ScientificLibraries/fortran90/lapack380"
+LIB_BLAS_DIR = "C:/ScientificLibraries/fortran90/blas380"
+LIB_HDF5_DIR = "C:/Program Files/HDF5-1.10.5-win64/lib"
+LDIRS = -L$(LIB_LAPACK_DIR) -L$(LIB_BLAS_DIR) -L$(LIB_HDF5_DIR)
 		
-		LIBS = -llapack -lblas -lgfortran "C:/Program Files/HDF5-1.10.5-win64/lib/hdf5.lib"
+LIBS = -llapack -lblas -lgfortran "C:/Program Files/HDF5-1.10.5-win64/lib/hdf5.lib"
 		
-	else ifeq ($(USERNAME),rodriguezlua)
-		LIB_LAPACK_DIR = "C:/ScientificLibraries/fortran90/lapack380"
-		LIB_BLAS_DIR = "C:/ScientificLibraries/fortran90/blas380"
-	endif
+else ifeq ($(USERNAME),rodriguezlua)
+LIB_LAPACK_DIR = "C:/ScientificLibraries/fortran90/lapack380"
+LIB_BLAS_DIR = "C:/ScientificLibraries/fortran90/blas380"
+endif
 else ifeq ($(OS),centos)
-	INC_ARMADILLO_DIR = /home/projects/energia/ArmadilloIH/armadillo-9.100.5/include
-	INC_HDF5_DIR = $(HDF5_DIR)/include
-	IDIRS = -I$(INC_ARMADILLO_DIR) -I$(INC_HDF5_DIR)
+INC_ARMADILLO_DIR="/home/projects/energia/ArmadilloIH/armadillo-9.100.5/include"
+INC_HDF5_DIR=$(HDF5_DIR)/include
+IDIRS=-I$(INC_ARMADILLO_DIR) -I$(INC_HDF5_DIR)
 	
-	LIB_OPENBLAS_DIR = -L$(EBROOTOPENBLAS)/lib
-	LDIRS = $(LIB_OPENBLAS_DIR)
+LIB_OPENBLAS_DIR=-L$(EBROOTOPENBLAS)/lib
+LDIRS=$(LIB_OPENBLAS_DIR)
 	
-	LIBS = -lopenblas -lhdf5
+LIBS=-lopenblas -lhdf5
 	
 else
-	USER_NAME=$(USER)
+USER_NAME=$(USER)
 endif
 
 ODIR=obj
@@ -47,13 +46,7 @@ OBJS=$(patsubst %,$(ODIR)/%,$(_OBJS))
 $(ODIR)/%.o: $(SDIR)/%.cpp $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 	
-all: load_modules oasis
-
-load_modules:
-ifeq ($(OS),centos)
-	bash -c "ml OpenBLAS/0.2.19-GCC-6.3.0-2.27-LAPACK-3.7.0"
-	bash -c "ml HDF5/1.8.19-foss-2017a"
-endif
+all: oasis
 	
 oasis: $(OBJS)
 ifeq ($(OS),Windows_NT)
