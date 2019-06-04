@@ -18,8 +18,17 @@ ifeq ($(OS),Windows_NT)
 		LIB_LAPACK_DIR = "C:/ScientificLibraries/fortran90/lapack380"
 		LIB_BLAS_DIR = "C:/ScientificLibraries/fortran90/blas380"
 	endif
+else ifeq ($(OS),centos)
+	INC_ARMADILLO_DIR = /home/projects/energia/ArmadilloIH/armadillo-9.100.5/include
+	INC_HDF5_DIR = $(HDF5_DIR)/include
+	IDIRS = -I$(INC_ARMADILLO_DIR) -I$(INC_HDF5_DIR)
+	
+	LIB_OPENBLAS_DIR = -L$(EBROOTOPENBLAS)/lib
+	LDIRS = $(LIB_OPENBLAS_DIR)
+	
+	LIBS = -lopenblas -lhdf5
+	
 else
-	VAR_ECHOED="Cluster environment"
 	USER_NAME=$(USER)
 endif
 
@@ -38,16 +47,29 @@ OBJS=$(patsubst %,$(ODIR)/%,$(_OBJS))
 $(ODIR)/%.o: $(SDIR)/%.cpp $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 	
-all: oasis
+all: load_modules oasis
+
+load_modules:
+ifeq ($(OS),centos)
+	bash -c "ml OpenBLAS/0.2.19-GCC-6.3.0-2.27-LAPACK-3.7.0"
+	bash -c "ml HDF5/1.8.19-foss-2017a"
+endif
 	
 oasis: $(OBJS)
-	@echo $(LDIRS)
+ifeq ($(OS),Windows_NT)
 	$(CC) -o $(BDIR)/$@.exe $^ $(LDIRS) $(LIBS)
+else ifeq ($(OS),centos)
+	$(CC) -o $(BDIR)/$@ $^ $(LDIRS) $(LIBS)
+endif
 
 .PHONY: clean
 
 clean:
 ifeq ($(OS),Windows_NT)
 	del /S/F *.o
+	del $(BDIR)/oasis.exe
+else ifeq ($(OS),centos)
+	find . -name "*.o" -type f -delete
+	rm $(BDIR)/oasis
 endif
 	
