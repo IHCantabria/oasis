@@ -58,22 +58,18 @@ for it = 1:100:nt
     plotBox(dim,[B1(it,2) B2(it,2) B3(it,2) (180/pi)*B4(it,2) (180/pi)*B5(it,2) (180/pi)*B6(it,2)],'r')
 %     plotBox(dim,[BB1(it,2) BB2(it,2) BB3(it,2) (180/pi)*BB4(it,2) (180/pi)*BB5(it,2) (180/pi)*BB6(it,2)],'r')
 
-<<<<<<< HEAD
     plot3([-25 -25],[0 0],[-70 20],'ko-','linewidth',8,'markerfacecolor','k')
-=======
+
     plot3([-25 -25],[0 0],[-80 20],'ko-','linewidth',2,'markerfacecolor','k')
->>>>>>> b2862f21cc46dc50c6fafc35554921b4444c6bde
+
     
     title(['Time = ' num2str(B1(it,1)) ' s'])
     xlim([-100 100])
     ylim([-100 100])
     zlim([-80 20])
     pbaspect([1 1 1])
-<<<<<<< HEAD
+
     view([45 20])
-=======
-    view([0 90])
->>>>>>> b2862f21cc46dc50c6fafc35554921b4444c6bde
     pause(0.1)
     if it<nt
        cla
