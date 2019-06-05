@@ -1,53 +1,37 @@
 0 // Number of Actuators
-6 // Number of Anchors
+2 // Number of Anchors
 0 // Number of Joints
-3 // Number of Fairleads
+2 // Number of Fairleads
 ////////////////// 
 ////////////////// New BCP [1]
 //////////////////
 1 // Number of lines attached
 1 // Indices of lines attached
 1 // Flags to show where the lines are attached [1 : attached at node 1, 2 : attached at node N]
--225  -389.7114  -73.725  // Initial position. [Actuator, Anchor, Joint: global, Fairlead: Local body cdg coordinades [Line: point of contact,  Spring: mean point of the spring] ]
+0.0  100.0  -70.0  // Initial position. [Actuator, Anchor, Joint: global, Fairlead: Local body cdg coordinades [Line: point of contact,  Spring: mean point of the spring] ]
 input/datosPosicionFairlead.dat // If it is  an actuator, file where data is kept. In other case, dummy input.
 ////////////////// 
 ////////////////// New BCP [2]
 //////////////////
-1 // Number of lines attached
-2 // Indices of lines attached
-1 // Flags to show where the lines are attached [1 : attached at node 1, 2 : attached at node N]
-450  0  -73.725  // Initial position. [Actuator, Anchor, Joint: global, Fairlead: Local body cdg coordinades [Line: point of contact,  Spring: mean point of the spring] ]
+0 // Number of lines attached
+0 // Indices of lines attached
+0 // Flags to show where the lines are attached [1 : attached at node 1, 2 : attached at node N]
+-25.0  0.0  0.0  // Initial position. [Actuator, Anchor, Joint: global, Fairlead: Local body cdg coordinades [Line: point of contact,  Spring: mean point of the spring] ]
 input/datosPosicionFairlead.dat // If it is  an actuator, file where data is kept. In other case, dummy input.
 ////////////////// 
 ////////////////// New BCP [3]
 //////////////////
 1 // Number of lines attached
-3 // Indices of lines attached
-1 // Flags to show where the lines are attached [1 : attached at node 1, 2 : attached at node N]
--225  389.7114  -73.725  // Initial position. [Actuator, Anchor, Joint: global, Fairlead: Local body cdg coordinades [Line: point of contact,  Spring: mean point of the spring] ]
+1 // Indices of lines attached
+2 // Flags to show where the lines are attached [1 : attached at node 1, 2 : attached at node N]
+25.0  0.0  0.0  // Initial position. [Actuator, Anchor, Joint: global, Fairlead: Local body cdg coordinades [Line: point of contact,  Spring: mean point of the spring] ]
 input/datosPosicionFairlead.dat // If it is  an actuator, file where data is kept. In other case, dummy input.
 ////////////////// 
 ////////////////// New BCP [4]
 //////////////////
-1 // Number of lines attached
-1 // Indices of lines attached
-2 // Flags to show where the lines are attached [1 : attached at node 1, 2 : attached at node N]
--11.9675  -20.7283  -5.725  // Initial position. [Actuator, Anchor, Joint: global, Fairlead: Local body cdg coordinades [Line: point of contact,  Spring: mean point of the spring] ]
-input/datosPosicionFairlead.dat // If it is  an actuator, file where data is kept. In other case, dummy input.
-////////////////// 
-////////////////// New BCP [5]
-//////////////////
-1 // Number of lines attached
-2 // Indices of lines attached
-2 // Flags to show where the lines are attached [1 : attached at node 1, 2 : attached at node N]
-23.935  0  -5.725  // Initial position. [Actuator, Anchor, Joint: global, Fairlead: Local body cdg coordinades [Line: point of contact,  Spring: mean point of the spring] ]
-input/datosPosicionFairlead.dat // If it is  an actuator, file where data is kept. In other case, dummy input.
-////////////////// 
-////////////////// New BCP [6]
-//////////////////
-1 // Number of lines attached
-3 // Indices of lines attached
-2 // Flags to show where the lines are attached [1 : attached at node 1, 2 : attached at node N]
--11.9675  20.7283  -5.725  // Initial position. [Actuator, Anchor, Joint: global, Fairlead: Local body cdg coordinades [Line: point of contact,  Spring: mean point of the spring] ]
+0 // Number of lines attached
+0 // Indices of lines attached
+0 // Flags to show where the lines are attached [1 : attached at node 1, 2 : attached at node N]
+-25.0  0.0  0.0  // Initial position. [Actuator, Anchor, Joint: global, Fairlead: Local body cdg coordinades [Line: point of contact,  Spring: mean point of the spring] ]
 input/datosPosicionFairlead.dat // If it is  an actuator, file where data is kept. In other case, dummy input.
 

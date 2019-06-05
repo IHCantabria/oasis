@@ -11,11 +11,11 @@ nt = size(load([path 'DOF_1_Body_1.txt']),1);
 Zs = Xp*0.0;
 
 B1 = load([path 'DOF_1_Body_1.txt']);
-% B2 = load([path 'DOF_2_Body_1.txt']);
-% B3 = load([path 'DOF_3_Body_1.txt']);
-% B4 = load([path 'DOF_4_Body_1.txt']);
-% B5 = load([path 'DOF_5_Body_1.txt']);
-% B6 = load([path 'DOF_6_Body_1.txt']);
+B2 = load([path 'DOF_2_Body_1.txt']);
+B3 = load([path 'DOF_3_Body_1.txt']);
+B4 = load([path 'DOF_4_Body_1.txt']);
+B5 = load([path 'DOF_5_Body_1.txt']);
+B6 = load([path 'DOF_6_Body_1.txt']);
 % 
 % BB1 = load([path 'DOF_1_Body_2.txt']);
 % BB2 = load([path 'DOF_2_Body_2.txt']);
@@ -53,19 +53,17 @@ for it = 1:100:nt
     %plot3(X3(it,2:end),Y3(it,2:end),Z3(it,2:end),'k-','linewidth',1.5)
     %plot3(X4(it,2:end),Y4(it,2:end),Z4(it,2:end),'b-','linewidth',2.0)
     
-%     plotBox(dim,[B1(it,2) B2(it,2) B3(it,2) (180/pi)*B4(it,2) (180/pi)*B5(it,2) (180/pi)*B6(it,2)],'r')
+    plotBox(dim,[B1(it,2) B2(it,2) B3(it,2) (180/pi)*B4(it,2) (180/pi)*B5(it,2) (180/pi)*B6(it,2)],'r')
 %     plotBox(dim,[BB1(it,2) BB2(it,2) BB3(it,2) (180/pi)*BB4(it,2) (180/pi)*BB5(it,2) (180/pi)*BB6(it,2)],'r')
+
+    plot3([-25 -25],[0 0],[-80 20],'ko-','linewidth',2,'markerfacecolor','k')
     
     title(['Time = ' num2str(B1(it,1)) ' s'])
-%     xlim([-500 500])
-%     ylim([-500 500])
-%     zlim([-80 20])
-%     pbaspect([10 10 1])
-%     xlim([-40 80])
-%     ylim([-30 30])
-%     zlim([-30 30])
-%     pbaspect([2 1 1])
-    view([45 20])
+    xlim([-100 100])
+    ylim([-100 100])
+    zlim([-80 20])
+    pbaspect([1 1 1])
+    view([0 90])
     pause(0.1)
     if it<nt
        cla
