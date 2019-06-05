@@ -318,7 +318,6 @@ int main () {
 	for(int ii=0; ii<nBodyBCPs; ii=ii+1){
 		B_BCPs[ii].set_nBCP(BCPcounter+1);
 		B_BCPs[ii].leer_datosBCPs();
-		//B_BCPs[ii].getValues(0.0);
 		BCPs[BCPcounter] = &B_BCPs[ii];
 		BCPcounter = BCPcounter + 1;
 	}

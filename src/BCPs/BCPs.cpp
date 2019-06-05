@@ -58,6 +58,7 @@ void BCP::leer_datosBCPs(void){
 	datosBCPs.close();
 
 	posL = pos;
+	posG_BCP.rows(0,2) = pos;
 }
 
 void AnchorBCP::getValues(double t){
@@ -129,6 +130,10 @@ void JointBCP::getValues(double t){
 
 
 void BodyBCP::getValues(double t){
+
+	if (t<1e-12){
+		typeBCP = 4;
+	}
 
 	pos = posG_BCP.rows(0,2);
 	vel = velG_BCP.rows(0,2);
