@@ -6,5 +6,6 @@ bin/
 *.exe
 *.txt
 *.mat
+*.bak
 output/
 compilar.sh
