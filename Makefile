@@ -60,7 +60,7 @@ endif
 clean:
 ifeq ($(OS),Windows_NT)
 	del /S/F *.o
-	del $(BDIR)/oasis.exe
+	del $(BDIR)\oasis.exe
 else ifeq ($(OS),centos)
 	find . -name "*.o" -type f -delete
 	rm $(BDIR)/oasis
