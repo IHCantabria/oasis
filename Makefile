@@ -8,10 +8,11 @@ IDIRS = -I$(INC_ARMADILLO_DIR) -I$(INC_HDF5_DIR)
 		
 LIB_LAPACK_DIR = "C:/ScientificLibraries/fortran90/lapack380"
 LIB_BLAS_DIR = "C:/ScientificLibraries/fortran90/blas380"
+LIB_ARMADILLO_DIR = "C:/ScientificLibraries/cpp/armadillo940/lib"
 LIB_HDF5_DIR = "C:/Program Files/HDF5-1.10.5-win64/lib"
-LDIRS = -L$(LIB_LAPACK_DIR) -L$(LIB_BLAS_DIR) -L$(LIB_HDF5_DIR)
+LDIRS = -L$(LIB_ARMADILLO_DIR) -L$(LIB_HDF5_DIR)
 		
-LIBS = -llapack -lblas -lgfortran "C:/Program Files/HDF5-1.10.5-win64/lib/hdf5.lib"
+LIBS = -larmadillo -lgfortran "C:/Program Files/HDF5-1.10.5-win64/lib/hdf5.lib"
 		
 else ifeq ($(USERNAME),rodriguezlua)
 LIB_LAPACK_DIR = "C:/ScientificLibraries/fortran90/lapack380"
@@ -76,7 +77,7 @@ endif
 clean:
 ifeq ($(OS),Windows_NT)
 	del /S/F *.o
-	del $(BDIR)/oasis.exe
+	del $(BDIR)\oasis.exe
 else ifeq ($(OS),centos)
 	find . -name "*.o" -type f -delete
 	rm $(BDIR)/oasis
