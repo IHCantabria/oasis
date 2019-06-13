@@ -45,7 +45,7 @@ figure('units','normalized','outerposition',[0 0 1 1])
 hold on
 grid on
 box on
-for it = 1:100:nt
+for it = 1:10:nt
     
     surf(Xp,Yp,Zs,'EdgeColor','none','FaceColor',[0 0.467 0.76],'FaceAlpha',0.25)
     surf(Xp,Yp,Zsu,'EdgeColor','none','FaceColor',[0.761 0.698 0.502])
