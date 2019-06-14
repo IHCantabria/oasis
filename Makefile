@@ -37,7 +37,7 @@ SDIR=src
 BDIR=bin
 
 CC=g++
-CFLAGS=$(IDIRS) -std=c++14 -O2 -DARMA_DONT_USE_WRAPPER -DARMA_USE_HDF5
+CFLAGS=$(IDIRS) -std=c++14 -lstdc++fs -O2 -DARMA_DONT_USE_WRAPPER -DARMA_USE_HDF5
 
 _DEPS=Lines/Lines.hpp Bodies/Bodies.hpp Spring/Spring.hpp Hydro/Hydro.hpp BCPs/BCPs.hpp BCPs/Winchies.hpp BCPs/WinchiesController.hpp ODE_solvers/ODE_solvers.hpp SEM_math/quadrule.hpp
 DEPS=$(patsubst %,$(SDIR)/%,$(_DEPS))
