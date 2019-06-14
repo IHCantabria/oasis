@@ -12,7 +12,7 @@ LIB_ARMADILLO_DIR = "C:/ScientificLibraries/cpp/armadillo940/lib"
 LIB_HDF5_DIR = "C:/Program Files/HDF5-1.10.5-win64/lib"
 LDIRS = -L$(LIB_ARMADILLO_DIR) -L$(LIB_HDF5_DIR)
 		
-LIBS = -larmadillo -lgfortran "C:/Program Files/HDF5-1.10.5-win64/lib/hdf5.lib"
+SCI_LIBS = -larmadillo -lgfortran -lquadmath "C:/Program Files/HDF5-1.10.5-win64/lib/hdf5.lib"
 		
 else ifeq ($(USERNAME),rodriguezlua)
 LIB_LAPACK_DIR = "C:/ScientificLibraries/fortran90/lapack380"
@@ -26,7 +26,7 @@ IDIRS=-I$(INC_ARMADILLO_DIR) -I$(INC_HDF5_DIR)
 LIB_OPENBLAS_DIR=-L$(EBROOTOPENBLAS)/lib
 LDIRS=$(LIB_OPENBLAS_DIR)
 	
-LIBS=-lopenblas -lhdf5
+SCI_LIBS=-lopenblas -lhdf5
 	
 else
 USER_NAME=$(USER)
@@ -37,7 +37,8 @@ SDIR=src
 BDIR=bin
 
 CC=g++
-CFLAGS=$(IDIRS) -std=c++14 -lstdc++fs -O2 -DARMA_DONT_USE_WRAPPER -DARMA_USE_HDF5
+CFLAGS=$(IDIRS) -std=c++14 -O2 -DARMA_DONT_USE_WRAPPER -DARMA_USE_HDF5
+LIBS=$(SCI_LIBS) -lstdc++fs
 
 _DEPS=Lines/Lines.hpp Bodies/Bodies.hpp Spring/Spring.hpp Hydro/Hydro.hpp BCPs/BCPs.hpp BCPs/Winchies.hpp BCPs/WinchiesController.hpp ODE_solvers/ODE_solvers.hpp SEM_math/quadrule.hpp
 DEPS=$(patsubst %,$(SDIR)/%,$(_DEPS))
@@ -51,9 +52,9 @@ all: oasis
 	
 oasis: $(OBJS)
 ifeq ($(OS),Windows_NT)
-	$(CC) -o $(BDIR)/$@.exe $^ $(LDIRS) $(LIBS)
+	$(CC) -static -o $(BDIR)/$@.exe $^ $(LDIRS) $(LIBS)
 else ifeq ($(OS),centos)
-	$(CC) -o $(BDIR)/$@ $^ $(LDIRS) $(LIBS)
+	$(CC) -static -o $(BDIR)/$@ $^ $(LDIRS) $(LIBS)
 endif
 
 .PHONY: clean
