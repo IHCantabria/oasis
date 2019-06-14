@@ -2,12 +2,13 @@
 #include <iostream>
 #include <fstream>
 #include <limits>
-#include <string.h>
+#include <string>
 #include <math.h>
 #include <stdio.h>
 #include <cmath>
 #include <armadillo>
 #include <ctime>
+#include "os_tools.hpp"
 #include "BCPs/BCPs.hpp"
 #include "BCPs/Winchies.hpp"
 #include "BCPs/WinchiesController.hpp"
@@ -237,10 +238,14 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-int main () {
+int main (int argc, char* argv[]) 
+{
+	std::cout << std::endl << "----------------------------------------------"  << std::endl; //////////////////////////////////////////
+	std::cout << "Starting OASIS: Offshore Advanced Simulation Software" << std::endl << std::endl; //////////////////////////////////////////
 
+	// Declare variables
 	int flag_read_eq, flag_write_eq;
-	int nLines;
+	int numLines;
 	int nSprings;
 	int nWinchies;
 	int nBodies;
@@ -252,13 +257,23 @@ int main () {
 	double t;
 	double t_max;
 	double dt;
+	std::string project_path;
+
+	// Read input arguments
+	if (argc < 2)
+	{
+		printf("Not enought input arguments. First argument must be the project root path.");
+		return 1;
+	}
+	else
+	{
+		project_path = argv[1];
+		printf("PROJECT ROOT PATH: %s\n\n", project_path.c_str());
+	}
 
 	PI=acos(-1.0);
 	t = 0.0;
 	nNodosTotal=0;
-
-	std::cout << std::endl << "----------------------------------------------"  << std::endl; //////////////////////////////////////////
-	std::cout << "Starting OASIS: Offshore Advanced Simulation Software" << std::endl << std::endl; //////////////////////////////////////////
 
 	std::cout << "  Reading datosProblema.dat ..." << std::endl << std::endl; //////////////////////////////////////////
 
@@ -346,14 +361,16 @@ int main () {
 
 	std::cout<< "  Reading and starting all Lines ..." << std::endl << std::endl; //////////////////////////////////////////
 
-	//LEO DE FICHERO CUANTAS LINEAS SE VAN A ESTUDIAR
+	// Read Lines properties
+	//FILE* fidLines;
+	//fopen();
 	std::ifstream datosLines ("input/datosLines.dat");
-	datosLines >> nLines; datosLines.ignore(std::numeric_limits<int>::max(), '\n');
+	datosLines >> numLines; datosLines.ignore(std::numeric_limits<int>::max(), '\n');
 	datosLines.close();
 	//ALOCATO UN VECTOR DE POINTERS A OBJETOS, UNO PARA CADA LINEA
-	Line * Lines = new Line[nLines];
+	Line * Lines = new Line[numLines];
 	//INICIO LAS LINEAS
-	for(int ii=0; ii<nLines; ii=ii+1){
+	for(int ii=0; ii<numLines; ii=ii+1){
 		Lines[ii].set_nLine(ii+1);
 		try
 		{
@@ -449,7 +466,7 @@ int main () {
 				y.rows(ini,ini+5) = Bodies[ii].pos;
 				ini=ini+6;
 		}
-		for(int ii=0; ii<nLines; ii=ii+1){
+		for(int ii=0; ii<numLines; ii=ii+1){
 			for(int jj=0; jj<Lines[ii].N; jj=jj+1){
 					y.rows(ini,ini+2) = Lines[ii].pos.row(jj).t();
 					ini=ini+3;
@@ -463,7 +480,7 @@ int main () {
 		equi.close();
 
 		ini=6*nBodies;
-		for(int ii=0; ii<nLines; ii=ii+1){
+		for(int ii=0; ii<numLines; ii=ii+1){
 			for(int jj=0; jj<Lines[ii].N; jj=jj+1){
 				Lines[ii].pos.row(jj) = y.rows(ini,ini+2).t();
 				ini=ini+3;
@@ -472,11 +489,11 @@ int main () {
 	}
 
 	// ESCIBIENDO CONDICION INICIAL A FICHEROS
-	for(int ii=0; ii<nLines; ii=ii+1) Lines[ii].write_out(t);
+	for(int ii=0; ii<numLines; ii=ii+1) Lines[ii].write_out(t);
 	for(int ii=0; ii<nBodies; ii=ii+1) Bodies[ii].write_out(t);
 
 	// GUARDANDO DATOS LEIDOS EN ESTRUCTURA DEL SOLVER TEMPORAL
-	SD.nLines = nLines;
+	SD.nLines = numLines;
 	SD.Lines = Lines;
 	SD.nSprings = nSprings;
 	SD.Springs = Springs;
@@ -502,7 +519,7 @@ int main () {
 				t = t + dt;
 				std::cout<< "    t = " << t << " s"  << std::endl;
 				if (nWinchies>0) CW.controlWinchies();
-				for(int ii=0; ii<nLines; ii=ii+1) Lines[ii].write_out(S.t);
+				for(int ii=0; ii<numLines; ii=ii+1) Lines[ii].write_out(S.t);
 				for(int ii=0; ii<nBodies; ii=ii+1) Bodies[ii].write_out(S.t);
 			}
 		} while (S.t<=t_max);
@@ -522,7 +539,7 @@ int main () {
 			for(int ii=6*nBodies;ii<nSistema2;ii=ii+1) equi << y(ii,0) << std::endl;
 		equi.close();
 	}
-
+	
 	std::cout << "End of the program." << std::endl; //////////////////////////////////////////
 	std::cout << "----------------------------------------------" << std::endl << std::endl; //////////////////////////////////////////
 	return 0;
