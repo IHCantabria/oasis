@@ -6,8 +6,9 @@
 #include <string>
 #include <vector>
 
-std::string GetWorkingDir(void);
+bool CheckDirExits(std::string folderPath);
 std::string CorrectBackSlashes(std::string path);
+std::string GetWorkingDir(void);
 std::string JoinPath(std::string basePath, std::string subdirName);
 std::string JoinPaths(std::string basePath, std::vector<std::string> subDirs);
 

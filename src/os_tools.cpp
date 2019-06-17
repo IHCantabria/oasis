@@ -9,6 +9,8 @@
 #include <experimental/filesystem>
 #include <string>
 #include <vector>
+#include <sys/types.h>
+#include <sys/stat.h>
 namespace fs = std::experimental::filesystem;
 
 #if defined(_WIN32) || defined(_WIN64) || defined(__CYGWIN__)
@@ -30,6 +32,23 @@ namespace fs = std::experimental::filesystem;
 		return std::string( buffer ).substr( 0, pos);
 	}
 #endif
+
+
+bool CheckDirExits(std::string folderPath)
+{
+	
+	bool exists = false;
+	struct stat info;
+
+	if( stat( folderPath.c_str(), &info ) != 0 ) // S_ISDIR() doesn't exist on my windows 
+		exists = false;
+	else if( info.st_mode & S_IFDIR )  
+		exists = true;
+	else
+		exists = false;
+
+	return exists;
+}
 
 
 std::string CorrectBackSlashes(std::string path)
