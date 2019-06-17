@@ -8,7 +8,7 @@
 #include <cmath>
 #include <armadillo>
 #include <ctime>
-#include "os_tools.hpp"
+
 #include "BCPs/BCPs.hpp"
 #include "BCPs/Winchies.hpp"
 #include "BCPs/WinchiesController.hpp"
@@ -17,6 +17,7 @@
 #include "Bodies/Bodies.hpp"
 #include "Hydro/Hydro.hpp"
 #include "ODE_solvers/ODE_solvers.hpp"
+#include "os_tools.hpp"
 
 // GLOBAL VARIABLES
 double PI;
@@ -24,6 +25,7 @@ double g;
 double rhoW;
 double fondo;
 int nCalls = 0;
+
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -258,6 +260,7 @@ int main (int argc, char* argv[])
 	double t_max;
 	double dt;
 	std::string project_path;
+	std::string file_path;
 
 	// Read input arguments
 	if (argc < 2)
@@ -277,7 +280,8 @@ int main (int argc, char* argv[])
 
 	std::cout << "  Reading datosProblema.dat ..." << std::endl << std::endl; //////////////////////////////////////////
 
- 	std::ifstream datosProblema ("input/datosProblema.dat");
+	file_path = JoinPath(project_path, "input/datosProblema.dat");
+ 	std::ifstream datosProblema(file_path.c_str());
 	datosProblema >> g;    datosProblema.ignore(std::numeric_limits<int>::max(), '\n');
 	datosProblema >> rhoW;    datosProblema.ignore(std::numeric_limits<int>::max(), '\n');
 	datosProblema >> fondo;    datosProblema.ignore(std::numeric_limits<int>::max(), '\n');
@@ -294,7 +298,8 @@ int main (int argc, char* argv[])
 	std::cout<< "  Reading and starting all BCPs ..." << std::endl << std::endl; //////////////////////////////////////////
 
 	//LEO DE FICHERO CUANTOS BCPs SE VAN A ESTUDIAR
-	std::ifstream datosBCPs ("input/datosBCPs.dat");
+	file_path = JoinPath(project_path, "input/datosBCPs.dat");
+	std::ifstream datosBCPs (file_path.c_str());
 	datosBCPs >> nFairBCPs; datosBCPs.ignore(std::numeric_limits<int>::max(), '\n');
 	datosBCPs >> nAnchBCPs; datosBCPs.ignore(std::numeric_limits<int>::max(), '\n');
 	datosBCPs >> nJointBCPs; datosBCPs.ignore(std::numeric_limits<int>::max(), '\n');
@@ -308,7 +313,7 @@ int main (int argc, char* argv[])
 	BCP * F_BCPs = new FairleadBCP [nFairBCPs];
 	for(int ii=0; ii<nFairBCPs; ii=ii+1){
 		F_BCPs[ii].set_nBCP(BCPcounter+1);
-		F_BCPs[ii].leer_datosBCPs();
+		F_BCPs[ii].leer_datosBCPs(file_path);
 		F_BCPs[ii].getValues(0.0);
 		BCPs[BCPcounter] = &F_BCPs[ii];
 		BCPcounter = BCPcounter + 1;
@@ -316,7 +321,7 @@ int main (int argc, char* argv[])
 	BCP * A_BCPs = new AnchorBCP [nAnchBCPs];
 	for(int ii=0; ii<nAnchBCPs; ii=ii+1){
 		A_BCPs[ii].set_nBCP(BCPcounter+1);
-		A_BCPs[ii].leer_datosBCPs();
+		A_BCPs[ii].leer_datosBCPs(file_path);
 		A_BCPs[ii].getValues(0.0);
 		BCPs[BCPcounter] = &A_BCPs[ii];
 		BCPcounter = BCPcounter + 1;
@@ -324,7 +329,7 @@ int main (int argc, char* argv[])
 	BCP * J_BCPs = new JointBCP [nJointBCPs];
 	for(int ii=0; ii<nJointBCPs; ii=ii+1){
 		J_BCPs[ii].set_nBCP(BCPcounter+1);
-		J_BCPs[ii].leer_datosBCPs();
+		J_BCPs[ii].leer_datosBCPs(file_path);
 		J_BCPs[ii].getValues(0.0);
 		BCPs[BCPcounter] = &J_BCPs[ii];
 		BCPcounter = BCPcounter + 1;
@@ -332,7 +337,7 @@ int main (int argc, char* argv[])
 	BCP * B_BCPs = new BodyBCP [nBodyBCPs];
 	for(int ii=0; ii<nBodyBCPs; ii=ii+1){
 		B_BCPs[ii].set_nBCP(BCPcounter+1);
-		B_BCPs[ii].leer_datosBCPs();
+		B_BCPs[ii].leer_datosBCPs(file_path);
 		BCPs[BCPcounter] = &B_BCPs[ii];
 		BCPcounter = BCPcounter + 1;
 	}
@@ -340,7 +345,8 @@ int main (int argc, char* argv[])
 	std::cout<< "  Reading and starting all Bodies ..." << std::endl << std::endl; //////////////////////////////////////////
 
 	//LEO DE FICHERO CUANTOS CUERPOS SE VAN A ESTUDIAR
-	std::ifstream datosBodies ("input/datosBodies.dat");
+	file_path = JoinPath(project_path, "input/datosBodies.dat");
+	std::ifstream datosBodies (file_path.c_str());
 	datosBodies >> nBodies; datosBodies.ignore(std::numeric_limits<int>::max(), '\n');
 	datosBodies.close();
 	//ALOCATO UN VECTOR DE POINTERS A OBJETOS, UNO PARA CADA CUERPO
@@ -348,7 +354,7 @@ int main (int argc, char* argv[])
 	//INICIO LOS CUERPOS
 	for(int ii=0; ii<nBodies; ii=ii+1){
 		Bodies[ii].set_nBody(ii+1);
-		Bodies[ii].leer_datosBody();
+		Bodies[ii].leer_datosBody(project_path);
 		for(int jj=0; jj<Bodies[ii].nBCPs; jj=jj+1){
 			Bodies[ii].BodyBCPs[jj] = BCPs[Bodies[ii].index_BCPs[jj]-1];
 		}
@@ -362,9 +368,11 @@ int main (int argc, char* argv[])
 	std::cout<< "  Reading and starting all Lines ..." << std::endl << std::endl; //////////////////////////////////////////
 
 	// Read Lines properties
-	//FILE* fidLines;
-	//fopen();
-	std::ifstream datosLines ("input/datosLines.dat");
+	FILE* fid_lines;
+	file_path = JoinPath(project_path, "input/datosLines.dat");
+	printf("Lines files path: %s\n", file_path.c_str());
+	fid_lines = fopen(file_path.c_str(), "r");
+	std::ifstream datosLines (file_path.c_str());
 	datosLines >> numLines; datosLines.ignore(std::numeric_limits<int>::max(), '\n');
 	datosLines.close();
 	//ALOCATO UN VECTOR DE POINTERS A OBJETOS, UNO PARA CADA LINEA
@@ -372,9 +380,11 @@ int main (int argc, char* argv[])
 	//INICIO LAS LINEAS
 	for(int ii=0; ii<numLines; ii=ii+1){
 		Lines[ii].set_nLine(ii+1);
+		printf("aquiii\n");
 		try
 		{
-		Lines[ii].leer_datosLines();
+		Lines[ii].leer_datosLines(file_path);
+		Lines[ii].print_out();
 		Lines[ii].LineBCP[0] = BCPs[Lines[ii].BCP_1-1];
 		Lines[ii].LineBCP[1] = BCPs[Lines[ii].BCP_N-1];
 		Lines[ii].pos_1 = BCPs[Lines[ii].BCP_1-1]->pos;
@@ -399,7 +409,8 @@ int main (int argc, char* argv[])
 	std::cout<< "  Reading and starting all Winchies ..." << std::endl << std::endl; //////////////////////////////////////////
 
 	//LEO DE FICHERO CUANTOS WINCHIES SE VAN A ESTUDIAR
-	std::ifstream datosWinchies ("input/datosWinchies.dat");
+	file_path = JoinPath(project_path, "input/datosWinchies.dat");
+	std::ifstream datosWinchies (file_path);
 	datosWinchies >> nWinchies; datosWinchies.ignore(std::numeric_limits<int>::max(), '\n');
 	datosWinchies.close();
 	//ALOCATO UN VECTOR DE POINTERS A OBJETOS, UNO PARA CADA MUELLE
@@ -410,7 +421,7 @@ int main (int argc, char* argv[])
 		Winchies[ii].leer_datosWinchies();
 		Winchies[ii].LineW = &Lines[Winchies[ii].nLine - 1];
 	}
-
+	fclose(fid_lines);
 	std::cout<< "  Reading and starting Winchies controllers ... " << std::endl << std::endl; //////////////////////////////////////////
 
 	// DEFINO UN UN OBJETO DE LA CLASE WINCHIE CONTROLLER
@@ -423,7 +434,8 @@ int main (int argc, char* argv[])
 	std::cout<< "  Reading and starting all Springs ..." << std::endl << std::endl; //////////////////////////////////////////
 
 	//LEO DE FICHERO CUANTOS MUELLES SE VAN A ESTUDIAR
-	std::ifstream datosSprings ("input/datosSprings.dat");
+	file_path = JoinPath(project_path, "input/datosSprings.dat");
+	std::ifstream datosSprings (file_path);
 	datosSprings >> nSprings; datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
 	datosSprings.close();
 	//ALOCATO UN VECTOR DE POINTERS A OBJETOS, UNO PARA CADA MUELLE
@@ -431,7 +443,7 @@ int main (int argc, char* argv[])
 	//INICIO LLOS MUELLES
 	for(int ii=0; ii<nSprings; ii=ii+1){
 		Springs[ii].set_nSpring(ii+1);
-		Springs[ii].leer_datosSprings();
+		Springs[ii].leer_datosSprings(file_path);
 		Springs[ii].SpringBCP[0] = BCPs[Springs[ii].BCP_1-1];
 		Springs[ii].SpringBCP[1] = BCPs[Springs[ii].BCP_2-1];
 	}
@@ -439,10 +451,11 @@ int main (int argc, char* argv[])
 	std::cout<< "  Reading and starting Hyrodynamics ... " << std::endl << std::endl; //////////////////////////////////////////
 
 	// DEFINO UN POINTER A UN OBJETO DE LA CLASE HYDRO
+	file_path = JoinPath(project_path, "input/flotante.h5");
 	Hydro * Water = new Hydro;
 	//INICIO EL OBJETO QUE CONTIENE LA HIDRODINAMICA
 	Water->set_Hydro(nBodies,Bodies);
-	Water->leer_datosHydro();
+	Water->leer_datosHydro(file_path);
 	Water->computeIRF();
 	Water->computeWaveSpectrum();
 	Water->computeFe();
@@ -473,7 +486,8 @@ int main (int argc, char* argv[])
 			}
 		}
 	}else if (flag_read_eq==1){
-	 	std::ifstream equi("input/Equilibrio.dat");
+		file_path = JoinPath(project_path, "input/Equilibrio.dat");
+	 	std::ifstream equi(file_path);
 			for(int ii=6*nBodies;ii<nSistema2;ii=ii+1) {
 				equi >> y(ii,0);    equi.ignore(std::numeric_limits<int>::max(), '\n');
 			}

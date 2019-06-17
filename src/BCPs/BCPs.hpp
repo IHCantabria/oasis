@@ -46,7 +46,7 @@ public:
 		vel = arma::zeros(3,1); // Velocidad del punto
 		acc = arma::zeros(3,1); // Aceleracion del punto
 	}
-	void leer_datosBCPs(void);
+	void leer_datosBCPs(std::string file_path);
 	virtual void getValues(double t) =0;
 };
 

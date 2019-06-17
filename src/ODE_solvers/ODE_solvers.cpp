@@ -10,8 +10,61 @@
 #include <armadillo>
 #include "ODE_solvers.hpp"
 
+BDF::BDF(double t_u, double tmax_u, double dt_out_u, arma::mat y_u, arma::mat (*fun_u) (double, arma::mat, solver_data), solver_data SD_u)
+{
+	t = t_u;
+	tmax = tmax_u;
+	dt_out = dt_out_u;
+	y = y_u;
+	fun = fun_u;
+	SD = SD_u;
+
+	h_0 = dt_ini;
+	h_1 = dt_ini;
+	h_2 = dt_ini;
+	dt_max = std::min(0.5*dt_out,dt_max);
+
+	nSistema = y_u.n_rows;
+
+	y_0 = y;
+	y_1 = y;
+	y_2 = y;
+	yprime = arma::zeros(size(y));
+	F = arma::zeros(size(y));
+	LTE = arma::zeros(size(y));
+	EWT = arma::zeros(size(y));
+
+	I = arma::eye(nSistema,nSistema);
+	J = arma::zeros(nSistema,nSistema);
+
+	F(0) = 2*atol;
+	printf("Before bucle....\n");
+	do{
+		printf("Before jac\n");
+		jac(t + h_0, y);
+		M = I - h_0 * J;
+		F = y - y_0 - h_0 * yprime;
+		printf("Before solve\n");
+		std::cout << "size dy: " << arma::size(dy) << std::endl;
+		std::cout << "size M: " << arma::size(M) << std::endl;
+		std::cout << "size F: " << arma::size(F) << std::endl;
+		status = arma::solve(dy,M,F,arma::solve_opts::fast);
+		printf("ddddddd\n");
+		if (!status){
+			dy = arma::solve(M,F);
+		}
+		y = y - dy;
+	} while((arma::norm(F,"inf") > atol));
+	y_0 = y;
+	t = t + h_0;
+
+	jac(t + h_0, y_0);
+}
+
+
 void BDF::jac(double tt, arma::mat yy){
 	yprime = fun(tt, yy, SD);
+	printf("After fun...\n");
 	for(int ii=0;ii<SD.nSistema;ii=ii+1){
 		J.col(ii) = 1e12 * (fun(tt, yy + 1e-12* I.col(ii), SD) - yprime);
 	}

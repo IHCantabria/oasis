@@ -73,7 +73,7 @@ public:
 	// Inicializar el objeto de la clase hydro dandole el numero de cuerpos y el vector de pointers a los cuerpos
 	void set_Hydro(int n, Body * Bs){nBodies=n; Bodies = Bs;}
 
-	void leer_datosHydro(void); // Leer inputs
+	void leer_datosHydro(std::string); // Leer inputs
 
 	void computeIRF(void); // Calcula la impulse response function
 

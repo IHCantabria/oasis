@@ -4,14 +4,14 @@
 #include "Hydro.hpp"
 
 // Leer inputs
-void Hydro::leer_datosHydro(void){
+void Hydro::leer_datosHydro(std::string file_path){
 
 	int ii;
 
 	hydro = arma::zeros(6*nBodies,6*nBodies);
 	arma::cube temp_hydro;
 	arma::mat temp_mat;
-	temp_hydro.load(arma::hdf5_name("input/flotante.h5","hydro"));
+	temp_hydro.load(arma::hdf5_name(file_path.c_str(),"hydro"));
 	for(ii=0;ii<nBodies;ii=ii+1){
 		temp_mat = temp_hydro( arma::span(ii), arma::span::all, arma::span::all);
 		hydro( arma::span(6*ii,6*(ii+1)-1), arma::span(6*ii,6*(ii+1)-1) ) = temp_mat;
@@ -54,7 +54,7 @@ void Hydro::leer_datosHydro(void){
 	inertia = arma::zeros(6*nBodies,6*nBodies);
 	arma::cube temp_inertia;
 	arma::mat temp_mat2;
-	temp_inertia.load(arma::hdf5_name("input/flotante.h5","inertia"));
+	temp_inertia.load(arma::hdf5_name(file_path.c_str(),"inertia"));
 	for(ii=0;ii<nBodies;ii=ii+1){
 		temp_mat2 = temp_inertia( arma::span(ii), arma::span::all, arma::span::all);
 		inertia( arma::span(6*ii,6*(ii+1)-1), arma::span(6*ii,6*(ii+1)-1) ) = temp_mat2;

@@ -4,7 +4,7 @@
 #include "Spring.hpp"
 
 // Lee inputs de los muelles
-void Spring::leer_datosSprings(void){
+void Spring::leer_datosSprings(std::string file_path){
 	
 	int ii, jj, kk, ll, temp_N; 
 	std::string Dummy;
@@ -15,7 +15,7 @@ void Spring::leer_datosSprings(void){
 	data_StressStrain.set_size(6,3);
 
 	//Abro el fichero
-	std::ifstream datosSprings ("input/datosSprings.dat");
+	std::ifstream datosSprings (file_path);
 
 	//Ignoro la primera linea del fichero, que contiene el numero de muelles a estudiar
 	datosSprings >> Dummy; datosSprings.ignore(std::numeric_limits<int>::max(), '\n');  // El ignore sirve para ignorar el texto de la linea

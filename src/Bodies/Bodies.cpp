@@ -9,16 +9,19 @@
 #include <cmath>
 #include <armadillo>
 #include "Bodies.hpp"
+#include "../os_tools.hpp"
 
 // Leer datos de los cuerpos
-void Body::leer_datosBody(void){
+void Body::leer_datosBody(std::string project_path){
 
 	int ii, jj, kk;
 	std::string Dummy;
 	const int nInored=8; // numero de lineas que se leen para cada nueva linea
+	std::string file_path;
 
 	//Abro el fichero
-	std::ifstream datosBodies ("input/datosBodies.dat");
+	file_path = JoinPath(project_path, "input/datosBodies.dat");
+	std::ifstream datosBodies (file_path);
 
 	//Ignoro la primera linea del fichero, que contiene el numero de lineas a estudiar
 	datosBodies >> Dummy; datosBodies.ignore(std::numeric_limits<int>::max(), '\n');  // El ignore sirve para ignorar el texto de la linea
@@ -60,7 +63,8 @@ void Body::leer_datosBody(void){
 
 
 	arma::cube temp_inertia;
-	temp_inertia.load(arma::hdf5_name("input/flotante.h5","inertia"));
+	file_path = JoinPath(project_path, "input/flotante.h5");
+	temp_inertia.load(arma::hdf5_name(file_path,"inertia"));
 
 	inertia = temp_inertia.subcube(arma::span(nBody-1),arma::span::all,arma::span::all);
 

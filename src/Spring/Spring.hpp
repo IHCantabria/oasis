@@ -26,7 +26,7 @@ public:
 	arma::field<arma::mat> data_StressStrain;
 
 	void set_nSpring(int n){nSpring=n;} // Inicializa un objeto de clase muelle dandole el indice
-	void leer_datosSprings(void); // Lee inputs de los muelles
+	void leer_datosSprings(std::string file_path); // Lee inputs de los muelles
 	void computeSpringForces(void); // Calcula las fuerzas que aplica el muelle en los BCPs y las guarda en variables de los BCPs
 };
 

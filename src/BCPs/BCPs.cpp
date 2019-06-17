@@ -10,16 +10,17 @@ Libreria para las condiciones de contorno
 #include <stdio.h>
 #include <stdlib.h>
 #include <cmath>
+#include <string>
 #include <armadillo>
 #include "BCPs.hpp"
 
-void BCP::leer_datosBCPs(void){
+void BCP::leer_datosBCPs(std::string file_path){
 	int ii, jj; 
 	std::string Dummy;
 	const int nInored=8; // numero de lineas de texto que se leen para cada nuevo BCP
 
 	//Abro el fichero
-	std::ifstream datosBCPs ("input/datosBCPs.dat");
+	std::ifstream datosBCPs (file_path.c_str());
 
 	//Ignoro las cuatro primeras lineas del fichero, que contiene el numero de BCPs a estudiar
 	for(ii=1;ii<=4;ii=ii+1){

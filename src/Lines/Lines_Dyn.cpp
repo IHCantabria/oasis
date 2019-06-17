@@ -16,14 +16,15 @@ extern double g;
 extern double rhoW;
 extern double fondo;
 
-void Line::leer_datosLines (void) {
+void Line::leer_datosLines (std::string file_path) {
 
 	int ii, jj, kk; 
 	std::string Dummy;
 	const int nInored=23; // numero de lineas que se leen para cada nueva linea
 
 	//Abro el fichero
-	std::ifstream datosLines ("input/datosLines.dat");
+	printf("Line file path: %s\n", file_path.c_str());
+	std::ifstream datosLines (file_path.c_str());
 
 	//Ignoro la primera linea del fichero, que contiene el numero de lineas a estudiar
 	datosLines >> Dummy; datosLines.ignore(std::numeric_limits<int>::max(), '\n');  // El ignore sirve para ignorar el texto de la linea

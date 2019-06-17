@@ -26,7 +26,7 @@ public:
 	double xF, zF, HF, VF, HA, VA, cosa, sina;
 
 	void set_nLine(int n){nLine=n;}
-	void leer_datosLines(void);
+	void leer_datosLines(std::string file_path);
 	void print_out(void);
 	void initLine(void);
 	void qs_Functions(double& ff,double& gg,double& DfDH,double& DfDV,double& DgDH,double& DgDV);
