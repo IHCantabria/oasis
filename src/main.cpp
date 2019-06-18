@@ -9,6 +9,8 @@
 #include <armadillo>
 #include <ctime>
 
+#include "Simulations/Simulation.hpp"
+#include "Exceptions/Exception.hpp"
 #include "BCPs/BCPs.hpp"
 #include "BCPs/Winchies.hpp"
 #include "BCPs/WinchiesController.hpp"
@@ -260,6 +262,8 @@ int main (int argc, char* argv[])
 	double t_max;
 	double dt;
 	std::string project_path;
+	std::string inputs_path;
+	std::string outputs_path;
 	std::string file_path;
 
 	// Read input arguments
@@ -278,6 +282,20 @@ int main (int argc, char* argv[])
 	t = 0.0;
 	nNodosTotal=0;
 
+	try
+	{
+		Simulation* mySim = new Simulation(project_path, "ASCII");
+		mySim->ReadProperties();
+		printf("Water Depth: %f\n", mySim->waterDepth);
+	}
+	catch(Exception& error)
+	{
+		error.PrintDebug();
+	}
+	
+	
+
+	/**
 	std::cout << "  Reading datosProblema.dat ..." << std::endl << std::endl; //////////////////////////////////////////
 
 	file_path = JoinPath(project_path, "input/datosProblema.dat");
@@ -553,7 +571,7 @@ int main (int argc, char* argv[])
 			for(int ii=6*nBodies;ii<nSistema2;ii=ii+1) equi << y(ii,0) << std::endl;
 		equi.close();
 	}
-	
+	**/
 	std::cout << "End of the program." << std::endl; //////////////////////////////////////////
 	std::cout << "----------------------------------------------" << std::endl << std::endl; //////////////////////////////////////////
 	return 0;
