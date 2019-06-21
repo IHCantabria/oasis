@@ -14,55 +14,67 @@ Libreria para las condiciones de contorno
 #include <armadillo>
 #include "BCPs.hpp"
 
-void BCP::leer_datosBCPs(std::string file_path){
-	int ii, jj; 
-	std::string Dummy;
-	const int nInored=8; // numero de lineas de texto que se leen para cada nuevo BCP
 
-	//Abro el fichero
-	std::ifstream datosBCPs (file_path.c_str());
+////////////////////////////////////////////////////////////////////////////
+/////////////////////////// BCP CLASS DEFINITION ///////////////////////////
+////////////////////////////////////////////////////////////////////////////
+void BCP::BCP(int incId)
+{
+	id = incId;
+}
 
-	//Ignoro las cuatro primeras lineas del fichero, que contiene el numero de BCPs a estudiar
-	for(ii=1;ii<=4;ii=ii+1){
-		datosBCPs >> Dummy; datosBCPs.ignore(std::numeric_limits<int>::max(), '\n');  // El ignore sirve para ignorar el texto de la linea
+
+int BCP::GetValues(void)
+{
+	return this->typeBCP;
+}
+
+void BCP::ReadPropertiesASCII(FILE* pFilePointer)
+{
+	// Declare variables
+	char buffer_line [1000];
+
+	//Ignoro las tres primeras lineas, donde pone "New Body"
+	for(int ii=0; ii<3; ii++)
+	{
+		fscanf(pFilePointer, "%[^\n]", buffer_line);
 	}
 
-	//Ignoro las lineas que ya se han leido
-	for(ii=1;ii<nBCP;ii=ii+1){
-		for(jj=1;jj<=nInored;jj=jj+1){
-			datosBCPs >> Dummy; datosBCPs.ignore(std::numeric_limits<int>::max(), '\n');
-		}
-	}
+	//Read data
+	//¡¡¡¡¡¡¡ IMPORTANT: FIRST THREEE LINES (CONTAINING DATA) OF EACH BCP ARE IGNORED. ITS FUNCTIONALITY IS DEPRECATED !!!!!
+	fscanf(pFilePointer, "%[^\n]", buffer_line);
+	fscanf(pFilePointer, "%[^\n]", buffer_line);
+	fscanf(pFilePointer, "%[^\n]", buffer_line);
 
-	//Ignoro las tres primeras lineas, donde pone "New BCP"
-	for(ii=1;ii<=3;ii=ii+1){
-		datosBCPs >> Dummy; datosBCPs.ignore(std::numeric_limits<int>::max(), '\n');
-	}
-
-	//Leo todo
 	datosBCPs >> nLinesBCP; datosBCPs.ignore(std::numeric_limits<int>::max(), '\n');
 	BCPLineIndex = new int[nLinesBCP];
 	BCPLineNode = new int[nLinesBCP];
-	for(ii=0;ii<nLinesBCP;ii=ii+1){
-		datosBCPs >> BCPLineIndex[ii];
-	}
-	datosBCPs.ignore(std::numeric_limits<int>::max(), '\n');
-	for(ii=0;ii<nLinesBCP;ii=ii+1){
-		datosBCPs >> BCPLineNode[ii];
-	}
-	datosBCPs.ignore(std::numeric_limits<int>::max(), '\n');
-	datosBCPs >> pos(0,0); datosBCPs >> pos(1,0); datosBCPs >> pos(2,0);  datosBCPs.ignore(std::numeric_limits<int>::max(), '\n');
+	fscanf(pFilePointer, "%lf %lf %lf %[^\n]", &pos(0, 0), &pos(1, 0), &pos(2, 0), buffer_line);
 
-	datosBCPs >> fileName; datosBCPs.ignore(std::numeric_limits<int>::max(), '\n');
-
-	//Cierro el fichero
-	datosBCPs.close();
+	if (this->typeBcp == 2)
+	{
+		fscanf(pFilePointer, "%s %[^\n]", &actuatorFileName, buffer_line);
+	}
+	else
+	{
+		fscanf(pFilePointer, "%[\n]", buffer_line);
+	}
 
 	posL = pos;
 	posG_BCP.rows(0,2) = pos;
 }
 
-void AnchorBCP::getValues(double t){
+
+////////////////////////////////////////////////////////////////////////////
+///////////////////////// ANCHOR CLASS DEFINITION //////////////////////////
+////////////////////////////////////////////////////////////////////////////
+int AnchorBCP::GetValues(void)
+{
+	return this->typeBCP;
+}
+
+
+void AnchorBCP::GetValues(double t){
 	if (t<1e-12){
 		typeBCP = 1;
 	}
@@ -70,7 +82,17 @@ void AnchorBCP::getValues(double t){
 	acc = arma::zeros(3,1);
 }
 
-void FairleadBCP::getValues(double t){
+
+////////////////////////////////////////////////////////////////////////////
+///////////////////////// FAIRLEAD CLASS DEFINITION ////////////////////////
+////////////////////////////////////////////////////////////////////////////
+int FairleadBCP::GetValues(void)
+{
+	return this->typeBCP;
+}
+
+
+void FairleadBCP::GetValues(double t){
 
 	tBCP = t;
 
@@ -114,7 +136,17 @@ void FairleadBCP::getValues(double t){
 
 }
 
-void JointBCP::getValues(double t){
+
+////////////////////////////////////////////////////////////////////////////
+///////////////////////// JOINT CLASS DEFINITION ///////////////////////////
+////////////////////////////////////////////////////////////////////////////
+int JointBCP::GetValues(void)
+{
+	return this->typeBCP;
+}
+
+
+void JointBCP::GetValues(double t){
 	if (t<1e-12){
 		typeBCP = 3;
 		iLJ = 0;
@@ -130,8 +162,17 @@ void JointBCP::getValues(double t){
 }
 
 
-void BodyBCP::getValues(double t){
+////////////////////////////////////////////////////////////////////////////
+///////////////////////// BODYBCP CLASS DEFINITION /////////////////////////
+////////////////////////////////////////////////////////////////////////////
+int BodyBCP::GetValues(void)
+{
+	return this->typeBCP;
+}
 
+
+void BodyBCP::GetValues(double t)
+{
 	if (t<1e-12){
 		typeBCP = 4;
 	}

@@ -72,7 +72,7 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 
 	// Update BodyBCP positions and velocities
 	for(int ii=0;ii<SD.nBodies;ii=ii+1){
-		SD.Bodies[ii].updateBCPs();
+		SD.Bodies[ii].UpdateBcps();
 	}
 
 	// Set boundary conditions on pos and vel of Lines if the BCP is not a joint
@@ -145,8 +145,8 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 	arma::mat Fb = SD.Water->HydroForces;
 	// Compute forces on BCPs
 	for(int ii=0;ii<SD.nBodies;ii=ii+1){
-		SD.Bodies[ii].computeBCPForces();
-		Fb(arma::span(6*ii,6*(ii+1)-1), 0) = Fb(arma::span(6*ii,6*(ii+1)-1), 0) + SD.Bodies[ii].BCPForces;
+		SD.Bodies[ii].ComputeBcpForces();
+		Fb(arma::span(6*ii,6*(ii+1)-1), 0) = Fb(arma::span(6*ii,6*(ii+1)-1), 0) + SD.Bodies[ii].bcpForces;
 	}
 
 	// Compute body acceleration
@@ -157,7 +157,7 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 
 	// Update BodyBCP accelerations
 	for(int ii=0;ii<SD.nBodies;ii=ii+1){
-		SD.Bodies[ii].updateBCPs();
+		SD.Bodies[ii].UpdateBcps();
 	}
 
 	// Obtain Lines accelerations, imposing boundary conditions if the BCP is not a joint
@@ -285,7 +285,7 @@ int main (int argc, char* argv[])
 	try
 	{
 		Simulation* mySim = new Simulation(project_path, "ASCII");
-		mySim->ReadProperties();
+		mySim->Initialize();
 		printf("Water Depth: %f\n", mySim->waterDepth);
 	}
 	catch(Exception& error)
@@ -324,11 +324,13 @@ int main (int argc, char* argv[])
 	datosBCPs >> nBodyBCPs; datosBCPs.ignore(std::numeric_limits<int>::max(), '\n');
 	datosBCPs.close();
 	nBCPs = nFairBCPs + nAnchBCPs + nJointBCPs + nBodyBCPs;
+
 	//ALOCATO UN VECTOR DE POINTERS A OBJETOS, UNO PARA CADA BCP
-	BCP * BCPs [nBCPs];
+	BCP* BCPs [nBCPs];
 	int BCPcounter = 0;
+
 	//INICIO LOS BCPs
-	BCP * F_BCPs = new FairleadBCP [nFairBCPs];
+	BCP* F_BCPs = new FairleadBCP [nFairBCPs];
 	for(int ii=0; ii<nFairBCPs; ii=ii+1){
 		F_BCPs[ii].set_nBCP(BCPcounter+1);
 		F_BCPs[ii].leer_datosBCPs(file_path);
@@ -336,7 +338,7 @@ int main (int argc, char* argv[])
 		BCPs[BCPcounter] = &F_BCPs[ii];
 		BCPcounter = BCPcounter + 1;
 	}
-	BCP * A_BCPs = new AnchorBCP [nAnchBCPs];
+	BCP* A_BCPs = new AnchorBCP [nAnchBCPs];
 	for(int ii=0; ii<nAnchBCPs; ii=ii+1){
 		A_BCPs[ii].set_nBCP(BCPcounter+1);
 		A_BCPs[ii].leer_datosBCPs(file_path);
@@ -344,7 +346,7 @@ int main (int argc, char* argv[])
 		BCPs[BCPcounter] = &A_BCPs[ii];
 		BCPcounter = BCPcounter + 1;
 	}
-	BCP * J_BCPs = new JointBCP [nJointBCPs];
+	BCP* J_BCPs = new JointBCP [nJointBCPs];
 	for(int ii=0; ii<nJointBCPs; ii=ii+1){
 		J_BCPs[ii].set_nBCP(BCPcounter+1);
 		J_BCPs[ii].leer_datosBCPs(file_path);
@@ -352,15 +354,13 @@ int main (int argc, char* argv[])
 		BCPs[BCPcounter] = &J_BCPs[ii];
 		BCPcounter = BCPcounter + 1;
 	}
-	BCP * B_BCPs = new BodyBCP [nBodyBCPs];
+	BCP* B_BCPs = new BodyBCP [nBodyBCPs];
 	for(int ii=0; ii<nBodyBCPs; ii=ii+1){
 		B_BCPs[ii].set_nBCP(BCPcounter+1);
 		B_BCPs[ii].leer_datosBCPs(file_path);
 		BCPs[BCPcounter] = &B_BCPs[ii];
 		BCPcounter = BCPcounter + 1;
 	}
-
-	std::cout<< "  Reading and starting all Bodies ..." << std::endl << std::endl; //////////////////////////////////////////
 
 	//LEO DE FICHERO CUANTOS CUERPOS SE VAN A ESTUDIAR
 	file_path = JoinPath(project_path, "input/datosBodies.dat");

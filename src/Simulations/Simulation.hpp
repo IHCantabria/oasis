@@ -1,5 +1,10 @@
 
+#ifndef simulation_hpp__
+#define simulation_hpp__
+
 #include <string>
+#include "../Bodies/Bodies.hpp"
+#include "../BCPs/BCPs.hpp"
 
 
 class Simulation
@@ -26,11 +31,42 @@ public:
     double waterDepth;
     bool writeEquilibrium;
 
-    // Declare class functions
+    // Declare Components Setup Attributes
+    BCP** pAnchorBcps;
+    BCP** pFairleadBcps;
+    BCP** pJointBcps;
+    BCP** pBodyBcps;
+    BCP** pBcps;
+    Body** pBodies;
+    int numAnchorBcps;
+    int numBcps;
+    int numBodies;
+    int numBodyBcps;
+    int numFairBcps;
+    int numJointBcps;
+
+    // Declare constructors
+    Simulation(std::string projectPath, std::string incDataFormat);
+
+    // Declare IO methods
+    void Initialize(void);
     void (Simulation::*pReadProperties)(void);
+    void (Simulation::*pReadBcps)(void);
+    void (Simulation::*pReadBodies)(void);
+    void ReadBcps(void);
+    void ReadBcpsASCII(void);
+    void ReadBcpsHDF5(void);
+    void ReadBodies(void);
+    void ReadBodiesASCII(void);
+    void ReadBodiesHDF5(void);
+    void ReadLines(void);
+    void ReadLinesASCII(void);
+    void ReadLinesHDF5(void);
     void ReadProperties(void);
     void ReadPropertiesASCII(void);
     void ReadPropertiesHDF5(void);
-    Simulation(std::string projectPath, std::string incDataFormat);
     
+
 };
+
+#endif // simulation_hpp__
