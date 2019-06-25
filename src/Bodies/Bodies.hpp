@@ -31,7 +31,7 @@ public:
 
 	Body(int n); // Inicializa un objeto de clase cuerpo dandole el indice
 	void ComputeBcpForces(void); // Calcula el efecto de las fuerzas sobre los BCPs sobre su CDG
-	int GetBodyId(void); // Returns the body identification number
+	int GetId(void); // Returns the body identification number
 	void ReadPropertiesASCII(FILE* filePointer); // Leer datos de los cuerpos
 	void UpdateBcps(void); // Actualiza valores del BCP
 	void WriteOut(double t); // Escribir datos a fichero

@@ -4,7 +4,7 @@
 #include "Spring.hpp"
 
 // Lee inputs de los muelles
-void Spring::leer_datosSprings(std::string file_path){
+void Spring::ReadPropertiesASCII(std::string file_path){
 	
 	int ii, jj, kk, ll, temp_N; 
 	std::string Dummy;
@@ -93,14 +93,15 @@ void Spring::leer_datosSprings(std::string file_path){
 }
 
 // Calcula las fuerzas que aplica el muelle en los BCPs y las guarda en estos
-void Spring::computeSpringForces(void){
+void Spring::computeSpringForces(void)
+{
 
 	// Calculo los vectores unitarios del muelle en global para cada cuerpo
 	arma::field<arma::mat> SpringVectorsG;
 	SpringVectorsG.set_size(3,2);
 	for(int ii=0;ii<2;ii=ii+1){ // Bucle sobre los dos BCPs
 		for(int jj=0;jj<3;jj=jj+1){ // Bucle sobre los tres vectores del muelle
-			SpringVectorsG(jj,ii) = SpringBCP[ii]->RotMat*SpringVectors(jj,0);
+			SpringVectorsG(jj,ii) = SpringBCP[ii]->rotMat*SpringVectors(jj,0);
 		}
 	}
 
@@ -121,7 +122,8 @@ void Spring::computeSpringForces(void){
 			SpringStrains(jj+3,ii) = SpringVectorG(jj+3,0);
 
 			// Lo mismo para la derivada temporal
-			if(dampingFlag == 1){
+			if(dampingFlag == 1)
+			{
 				SpringStrains_dot(jj,ii) = arma::dot(temp_pos_dot,SpringVectorsG(jj,ii));
 				SpringStrains_dot(jj+3,ii) = SpringVectorG_dot(jj+3,0);
 			}
@@ -136,7 +138,8 @@ void Spring::computeSpringForces(void){
 	int tempN, tempI;
 	arma::mat temp_strainData, temp_stressData, temp_slope;
 
-	for(int ii=0;ii<2;ii=ii+1){ // Bucle sobre los dos BCPs
+	for(int ii=0;ii<2;ii=ii+1)
+	{ // Bucle sobre los dos BCPs
 
 		tempF_L = arma::zeros(6,1); // Fuerza registrada en el muelle en coordenadas del cuerpo, la reseteo a cero
 
@@ -193,9 +196,9 @@ void Spring::computeSpringForces(void){
 
 		// Paso de coordenadas locales a coordenadas globales la fuerza del muelle
 		tempF_G.rows(0,2) = tempF_L(0,0)*SpringVectorsG(0,ii) + tempF_L(1,0)*SpringVectorsG(1,ii) + tempF_L(2,0)*SpringVectorsG(2,ii);
-		tempF_G.rows(3,5) = SpringBCP[ii]->RotMat*tempF_L.rows(3,5);
+		tempF_G.rows(3,5) = SpringBCP[ii]->rotMat*tempF_L.rows(3,5);
 
-		SpringBCP[ii]->ForceBCP = SpringBCP[ii]->ForceBCP + tempF_G; // Acumulo la fuerza obtenida en el BCP
+		SpringBCP[ii]->forceBcp = SpringBCP[ii]->forceBcp + tempF_G; // Acumulo la fuerza obtenida en el BCP
 
 	}
 

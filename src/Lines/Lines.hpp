@@ -1,12 +1,13 @@
 
-#ifndef LINE_FLAG
-#define LINE_FLAG
+#ifndef linedef_hpp__
+#define linedef_hpp__
 #include <armadillo>
 #include <string>
 #include "../BCPs/BCPs.hpp"
 
 class Line {
 private:
+	int id;
 	double fg, fs, fd;
 	arma::mat v, vt, vn;
 	arma::mat FF, ff, t; 
@@ -25,8 +26,8 @@ public:
 	BCP * LineBCP [2];
 	double xF, zF, HF, VF, HA, VA, cosa, sina;
 
-	void set_nLine(int n){nLine=n;}
-	void leer_datosLines(std::string file_path);
+	Line(int id);
+	void ReadPropertiesASCII(FILE* pFilePointer);
 	void print_out(void);
 	void initLine(void);
 	void qs_Functions(double& ff,double& gg,double& DfDH,double& DfDV,double& DgDH,double& DgDV);

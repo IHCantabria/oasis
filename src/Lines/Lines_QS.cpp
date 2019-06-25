@@ -75,7 +75,8 @@ void Line::qs_Functions(double& ff,double& gg,double& DfDH,double& DfDV,double& 
 	};
 }
 
-void Line::qs_GetTen(void){
+void Line::qs_GetTen(void
+){
 
 	/*
     This function provides the fairlead's tension of the catenary.

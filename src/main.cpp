@@ -43,23 +43,28 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 
 	// Copy info from y to the objects.
 	int ini = 0;
-	for(int ii=0;ii<SD.nBodies;ii=ii+1){
+	for(int ii=0;ii<SD.nBodies;ii=ii+1)
+	{
 		SD.Bodies[ii].pos = y.rows(ini,ini+5);
 		ini = ini + 6;
 	}
-	for(int ii=0;ii<SD.nLines;ii=ii+1){
+	for(int ii=0;ii<SD.nLines;ii=ii+1)
+	{
 		for(int jj=0;jj<SD.Lines[ii].N;jj=jj+1){
 			SD.Lines[ii].pos.row(jj) = y.rows(ini,ini+2).t();
 			ini = ini + 3;
 		}
 	}
 	ini = ini + SD.nWinchies;
-	for(int ii=0;ii<SD.nBodies;ii=ii+1){
+	for(int ii=0;ii<SD.nBodies;ii=ii+1)
+	{
 		SD.Bodies[ii].vel = y.rows(ini,ini+5);
 		ini = ini + 6;
 	}
-	for(int ii=0;ii<SD.nLines;ii=ii+1){
-		for(int jj=0;jj<SD.Lines[ii].N;jj=jj+1){
+	for(int ii=0;ii<SD.nLines;ii=ii+1)
+	{
+		for(int jj=0;jj<SD.Lines[ii].N;jj=jj+1)
+		{
 			SD.Lines[ii].vel.row(jj) = y.rows(ini,ini+2).t();
 			ini = ini + 3;
 		}
@@ -79,52 +84,52 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 	if (SD.nLines >= 1){
 		if (SD.Lines[0].LineBCP[0]->tBCP != t){
 			for(int ii=0;ii<SD.nLines;ii=ii+1){		
-				if(SD.Lines[ii].LineBCP[0]->typeBCP != 3){
-					SD.Lines[ii].LineBCP[0]->getValues(t);
+				if(SD.Lines[ii].LineBCP[0]->GetType() != 3){
+					SD.Lines[ii].LineBCP[0]->GetValues(t);
 				}
-				if(SD.Lines[ii].LineBCP[1]->typeBCP != 3){
-					SD.Lines[ii].LineBCP[1]->getValues(t);
+				if(SD.Lines[ii].LineBCP[1]->GetType() != 3){
+					SD.Lines[ii].LineBCP[1]->GetValues(t);
 				}
 			}
 		}
 	}
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
-		if(SD.Lines[ii].LineBCP[0]->typeBCP != 3){
+		if(SD.Lines[ii].LineBCP[0]->GetType() != 3){
 			SD.Lines[ii].pos.row(0)                = SD.Lines[ii].LineBCP[0]->pos.t();
 			SD.Lines[ii].vel.row(0)                = SD.Lines[ii].LineBCP[0]->vel.t();
 		}
-		if(SD.Lines[ii].LineBCP[1]->typeBCP != 3){
+		if(SD.Lines[ii].LineBCP[1]->GetType() != 3){
 			SD.Lines[ii].pos.row(SD.Lines[ii].N-1) = SD.Lines[ii].LineBCP[1]->pos.t();
 			SD.Lines[ii].vel.row(SD.Lines[ii].N-1) = SD.Lines[ii].LineBCP[1]->vel.t();
 		}
 	}
 	// Set boundary conditions on pos and vel of Lines if the BCP is a joint
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
-		if(SD.Lines[ii].LineBCP[0]->typeBCP == 3){
+		if(SD.Lines[ii].LineBCP[0]->GetType() == 3){
 			SD.Lines[ii].LineBCP[0]->posLines.row(SD.Lines[ii].LineBCP[0]->iLJ) = SD.Lines[ii].pos.row(0);
 			SD.Lines[ii].LineBCP[0]->velLines.row(SD.Lines[ii].LineBCP[0]->iLJ) = SD.Lines[ii].vel.row(0);
 			SD.Lines[ii].LineBCP[0]->iLJ = SD.Lines[ii].LineBCP[0]->iLJ + 1;
 		}
-		if(SD.Lines[ii].LineBCP[1]->typeBCP == 3){
+		if(SD.Lines[ii].LineBCP[1]->GetType() == 3){
 			SD.Lines[ii].LineBCP[1]->posLines.row(SD.Lines[ii].LineBCP[1]->iLJ) = SD.Lines[ii].pos.row(SD.Lines[ii].N-1);
 			SD.Lines[ii].LineBCP[1]->velLines.row(SD.Lines[ii].LineBCP[1]->iLJ) = SD.Lines[ii].vel.row(SD.Lines[ii].N-1);
 			SD.Lines[ii].LineBCP[1]->iLJ = SD.Lines[ii].LineBCP[1]->iLJ + 1;
 		}
 	}
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
-		if(SD.Lines[ii].LineBCP[0]->typeBCP == 3){
-			SD.Lines[ii].LineBCP[0]->getValues(t);
+		if(SD.Lines[ii].LineBCP[0]->GetType() == 3){
+			SD.Lines[ii].LineBCP[0]->GetValues(t);
 		}
-		if(SD.Lines[ii].LineBCP[1]->typeBCP == 3){
-			SD.Lines[ii].LineBCP[1]->getValues(t);
+		if(SD.Lines[ii].LineBCP[1]->GetType() == 3){
+			SD.Lines[ii].LineBCP[1]->GetValues(t);
 		}
 	}
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
-		if(SD.Lines[ii].LineBCP[0]->typeBCP == 3){
+		if(SD.Lines[ii].LineBCP[0]->GetType() == 3){
 			SD.Lines[ii].pos.row(0)                = SD.Lines[ii].LineBCP[0]->pos.t();
 			SD.Lines[ii].vel.row(0)                = SD.Lines[ii].LineBCP[0]->vel.t();
 		}
-		if(SD.Lines[ii].LineBCP[1]->typeBCP == 3){
+		if(SD.Lines[ii].LineBCP[1]->GetType() == 3){
 			SD.Lines[ii].pos.row(SD.Lines[ii].N-1) = SD.Lines[ii].LineBCP[1]->pos.t();
 			SD.Lines[ii].vel.row(SD.Lines[ii].N-1) = SD.Lines[ii].LineBCP[1]->vel.t();
 		}
@@ -162,46 +167,46 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 
 	// Obtain Lines accelerations, imposing boundary conditions if the BCP is not a joint
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
-		if(SD.Lines[ii].LineBCP[0]->typeBCP != 3){
+		if(SD.Lines[ii].LineBCP[0]->GetType() != 3){
 			SD.Lines[ii].F.row(0)                = SD.Lines[ii].LineBCP[0]->acc.t();
 		}
-		if(SD.Lines[ii].LineBCP[1]->typeBCP != 3){
+		if(SD.Lines[ii].LineBCP[1]->GetType() != 3){
 			SD.Lines[ii].F.row(SD.Lines[ii].N-1) = SD.Lines[ii].LineBCP[1]->acc.t();
 		}
-		if((SD.Lines[ii].LineBCP[0]->typeBCP != 3)&&(SD.Lines[ii].LineBCP[1]->typeBCP != 3)){
+		if((SD.Lines[ii].LineBCP[0]->GetType() != 3)&&(SD.Lines[ii].LineBCP[1]->GetType() != 3)){
 			SD.Lines[ii].acc = SD.Lines[ii].inv_MM_1N * SD.Lines[ii].F / SD.Lines[ii].dL;
-		} else if ((SD.Lines[ii].LineBCP[0]->typeBCP == 3)&&(SD.Lines[ii].LineBCP[1]->typeBCP != 3)){
+		} else if ((SD.Lines[ii].LineBCP[0]->GetType() == 3)&&(SD.Lines[ii].LineBCP[1]->GetType() != 3)){
 			SD.Lines[ii].acc = SD.Lines[ii].inv_MM_N * SD.Lines[ii].F / SD.Lines[ii].dL;
-		} else if ((SD.Lines[ii].LineBCP[0]->typeBCP != 3)&&(SD.Lines[ii].LineBCP[1]->typeBCP == 3)){
+		} else if ((SD.Lines[ii].LineBCP[0]->GetType() != 3)&&(SD.Lines[ii].LineBCP[1]->GetType() == 3)){
 			SD.Lines[ii].acc = SD.Lines[ii].inv_MM_1 * SD.Lines[ii].F / SD.Lines[ii].dL;
-		} else if ((SD.Lines[ii].LineBCP[0]->typeBCP == 3)&&(SD.Lines[ii].LineBCP[1]->typeBCP == 3)){
+		} else if ((SD.Lines[ii].LineBCP[0]->GetType() == 3)&&(SD.Lines[ii].LineBCP[1]->GetType() == 3)){
 			SD.Lines[ii].acc = SD.Lines[ii].inv_MM * SD.Lines[ii].F / SD.Lines[ii].dL;
 		}
 	}
 	// Obtain Lines accelerations, imposing boundary conditions if the BCP is a joint
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
-		if(SD.Lines[ii].LineBCP[0]->typeBCP == 3){
+		if(SD.Lines[ii].LineBCP[0]->GetType() == 3){
 			SD.Lines[ii].LineBCP[0]->accLines.row(SD.Lines[ii].LineBCP[0]->iLJ) = SD.Lines[ii].acc.row(0);
 			SD.Lines[ii].LineBCP[0]->iLJ = SD.Lines[ii].LineBCP[0]->iLJ + 1;
 		}
-		if(SD.Lines[ii].LineBCP[1]->typeBCP == 3){
+		if(SD.Lines[ii].LineBCP[1]->GetType() == 3){
 			SD.Lines[ii].LineBCP[1]->accLines.row(SD.Lines[ii].LineBCP[1]->iLJ) = SD.Lines[ii].acc.row(SD.Lines[ii].N-1);
 			SD.Lines[ii].LineBCP[1]->iLJ = SD.Lines[ii].LineBCP[1]->iLJ + 1;
 		}
 	}
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
-		if(SD.Lines[ii].LineBCP[0]->typeBCP == 3){
-			SD.Lines[ii].LineBCP[0]->getValues(t);
+		if(SD.Lines[ii].LineBCP[0]->GetType() == 3){
+			SD.Lines[ii].LineBCP[0]->GetValues(t);
 		}
-		if(SD.Lines[ii].LineBCP[1]->typeBCP == 3){
-			SD.Lines[ii].LineBCP[1]->getValues(t);
+		if(SD.Lines[ii].LineBCP[1]->GetType() == 3){
+			SD.Lines[ii].LineBCP[1]->GetValues(t);
 		}
 	}
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
-		if(SD.Lines[ii].LineBCP[0]->typeBCP == 3){
+		if(SD.Lines[ii].LineBCP[0]->GetType() == 3){
 			SD.Lines[ii].acc.row(0)                = SD.Lines[ii].LineBCP[0]->acc.t();
 		}
-		if(SD.Lines[ii].LineBCP[1]->typeBCP == 3){
+		if(SD.Lines[ii].LineBCP[1]->GetType() == 3){
 			SD.Lines[ii].acc.row(SD.Lines[ii].N-1) = SD.Lines[ii].LineBCP[1]->acc.t();
 		}
 	}
@@ -277,14 +282,16 @@ int main (int argc, char* argv[])
 		project_path = argv[1];
 		printf("PROJECT ROOT PATH: %s\n\n", project_path.c_str());
 	}
-
+	printf("Before initializing...\n");
 	PI=acos(-1.0);
 	t = 0.0;
 	nNodosTotal=0;
-
+	printf("Before initializing...\n");
 	try
 	{
+		printf("Before initializing...\n");
 		Simulation* mySim = new Simulation(project_path, "ASCII");
+		printf("Before initializing...\n");
 		mySim->Initialize();
 		printf("Water Depth: %f\n", mySim->waterDepth);
 	}

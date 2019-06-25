@@ -73,8 +73,6 @@ std::string JoinPath(std::string basePath, std::string subdirName)
 	p1 /= subdirName.c_str();
 	std::string full_dir = CorrectBackSlashes(p1.u8string());
 	
-	printf("Resulting path is: %s\n", full_dir.c_str());
-	
 	return full_dir;
 }
 

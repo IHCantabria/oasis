@@ -25,8 +25,8 @@ public:
 	// Para 6 grados de libertad y para los dos BCPs, una matriz nx1 con los estados de strain y otra nx6 con los stresses correspondientes
 	arma::field<arma::mat> data_StressStrain;
 
-	void set_nSpring(int n){nSpring=n;} // Inicializa un objeto de clase muelle dandole el indice
-	void leer_datosSprings(std::string file_path); // Lee inputs de los muelles
+	Spring(int n){nSpring=n;} // Inicializa un objeto de clase muelle dandole el indice
+	void ReadPropertiesASCII(std::string filePath); // Lee inputs de los muelles
 	void computeSpringForces(void); // Calcula las fuerzas que aplica el muelle en los BCPs y las guarda en variables de los BCPs
 };
 

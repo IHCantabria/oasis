@@ -1,6 +1,6 @@
 
-#ifndef ODE_FLAG
-#define ODE_FLAG
+#ifndef odedef_hpp__
+#define odedef_hpp__
 #include <armadillo>
 #include <string>
 #include "../Hydro/Hydro.hpp"

@@ -1,7 +1,8 @@
 
-#ifndef WINCHIE_FLAG
-#define WINCHIE_FLAG
+#ifndef winchiedef_hpp__
+#define winchiedef_hpp__
 #include <armadillo>
+#include <cstdio>
 #include <string>
 #include "../Lines/Lines.hpp"
 
@@ -23,13 +24,11 @@ public:
 
 	double tau = 0.0; // Momento que aplica el motor sobre el winchie
 
-	void set_nWinchie(int n){nWinchie = n;} // Inicializar el objeto de la clase winchie
-
-	void leer_datosWinchies(void); // Leer inputs
-
+	Winchie(int n){nWinchie = n;} // Inicializar el objeto de la clase winchie
+	void ReadPropertiesASCII(FILE* pFile); // Leer inputs
 	void computeWinchie(void); // Obten las aceleraciones del winchie y el cambio de longitud de las lineas
 	
 };
 
 
-#endif
+#endif //winchiedef_hpp__

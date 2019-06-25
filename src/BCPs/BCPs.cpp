@@ -13,23 +13,31 @@ Libreria para las condiciones de contorno
 #include <string>
 #include <armadillo>
 #include "BCPs.hpp"
+#include "../os_tools.hpp"
 
 
 ////////////////////////////////////////////////////////////////////////////
 /////////////////////////// BCP CLASS DEFINITION ///////////////////////////
 ////////////////////////////////////////////////////////////////////////////
-void BCP::BCP(int incId)
+BCP::BCP(int incId)
 {
 	id = incId;
 }
 
 
-int BCP::GetValues(void)
+int BCP::GetType(void)
 {
-	return this->typeBCP;
+	return this->typeBcp;
 }
 
-void BCP::ReadPropertiesASCII(FILE* pFilePointer)
+
+void BCP::Initialize()
+{
+	double a = 0.0;
+}
+
+
+void BCP::ReadPropertiesASCII(FILE* &pFilePointer)
 {
 	// Declare variables
 	char buffer_line [1000];
@@ -37,47 +45,43 @@ void BCP::ReadPropertiesASCII(FILE* pFilePointer)
 	//Ignoro las tres primeras lineas, donde pone "New Body"
 	for(int ii=0; ii<3; ii++)
 	{
-		fscanf(pFilePointer, "%[^\n]", buffer_line);
+		fgets(buffer_line, sizeof(buffer_line), pFilePointer);
 	}
 
 	//Read data
 	//¡¡¡¡¡¡¡ IMPORTANT: FIRST THREEE LINES (CONTAINING DATA) OF EACH BCP ARE IGNORED. ITS FUNCTIONALITY IS DEPRECATED !!!!!
-	fscanf(pFilePointer, "%[^\n]", buffer_line);
-	fscanf(pFilePointer, "%[^\n]", buffer_line);
-	fscanf(pFilePointer, "%[^\n]", buffer_line);
-
-	datosBCPs >> nLinesBCP; datosBCPs.ignore(std::numeric_limits<int>::max(), '\n');
-	BCPLineIndex = new int[nLinesBCP];
-	BCPLineNode = new int[nLinesBCP];
-	fscanf(pFilePointer, "%lf %lf %lf %[^\n]", &pos(0, 0), &pos(1, 0), &pos(2, 0), buffer_line);
-
-	if (this->typeBcp == 2)
+	fscanf(pFilePointer, "%[^\n]\n", buffer_line);
+	fscanf(pFilePointer, "%[^\n]\n", buffer_line);
+	fscanf(pFilePointer, "%[^\n]\n", buffer_line);
+	//fscanf(pFilePointer, "%lf %[^\n]", &numLinesBcp, buffer_line);
+	//pBcpLineIndex = new int[numLinesBcp];
+	//pBcpLineNode = new int[numLinesBcp];
+	fscanf(pFilePointer, "%lf %lf %lf %[^\n]\n", &pos(0, 0), &pos(1, 0), &pos(2, 0), buffer_line);
+	if (this->GetType() == 2)
 	{
-		fscanf(pFilePointer, "%s %[^\n]", &actuatorFileName, buffer_line);
+		fscanf(pFilePointer, "%s %[^\n]\n", &actuatorFileName, buffer_line);
 	}
 	else
 	{
-		fscanf(pFilePointer, "%[\n]", buffer_line);
+		fscanf(pFilePointer, "%[\n]\n", buffer_line);
 	}
-
-	posL = pos;
+	posWrtCdgLocal = pos;
 	posG_BCP.rows(0,2) = pos;
+	
+}
+
+
+void BCP::UpdateBoundary()
+{
+	double a = 0.0;
 }
 
 
 ////////////////////////////////////////////////////////////////////////////
 ///////////////////////// ANCHOR CLASS DEFINITION //////////////////////////
 ////////////////////////////////////////////////////////////////////////////
-int AnchorBCP::GetValues(void)
+void AnchorBCP::GetValues(double t)
 {
-	return this->typeBCP;
-}
-
-
-void AnchorBCP::GetValues(double t){
-	if (t<1e-12){
-		typeBCP = 1;
-	}
 	vel = arma::zeros(3,1);
 	acc = arma::zeros(3,1);
 }
@@ -86,39 +90,37 @@ void AnchorBCP::GetValues(double t){
 ////////////////////////////////////////////////////////////////////////////
 ///////////////////////// FAIRLEAD CLASS DEFINITION ////////////////////////
 ////////////////////////////////////////////////////////////////////////////
-int FairleadBCP::GetValues(void)
+void FairleadBCP::Initialize(std::string folder_path)
 {
-	return this->typeBCP;
+	// Inicializo la variable donde guardar el numero de pasos temporales
+	int nt;
+	//Abro el fichero
+	std::string file_path = JoinPath(folder_path, actuatorFileName);
+	std::ifstream datosPosF (file_path);
+	// Leo el numero de pasos temporales a leer
+	datosPosF >> nt;
+	// Alocato la matriz que contiene la informacion
+	tF = arma::zeros(nt,1);
+	posF = arma::zeros(nt,3);
+	velF = arma::zeros(nt,3);
+	accF = arma::zeros(nt,3);
+	// Leo toda la info
+	for (int i=0; i<nt; i=i+1){
+		datosPosF >> tF(i,0) >> posF(i,0) >> posF(i,1) >> posF(i,2) >> velF(i,0) >> velF(i,1) >> velF(i,2) >> accF(i,0) >> accF(i,1) >> accF(i,2);
+	}
+	//Cierro el fichero
+	datosPosF.close();
+
+	pos0 = pos;
+
+	this->GetValues(0.0);
 }
 
 
-void FairleadBCP::GetValues(double t){
+void FairleadBCP::GetValues(double t)
+{
 
 	tBCP = t;
-
-	if (t<1e-12){
-		typeBCP = 2;
-		// Inicializo la variable donde guardar el numero de pasos temporales
-		int nt;
-		//Abro el fichero
-		std::ifstream datosPosF (fileName);
-		// Leo el numero de pasos temporales a leer
-		datosPosF >> nt;
-		// Alocato la matriz que contiene la informacion
-		tF = arma::zeros(nt,1);
-		posF = arma::zeros(nt,3);
-		velF = arma::zeros(nt,3);
-		accF = arma::zeros(nt,3);
-		// Leo toda la info
-		for (int i=0; i<nt; i=i+1){
-			datosPosF >> tF(i,0) >> posF(i,0) >> posF(i,1) >> posF(i,2) >> velF(i,0) >> velF(i,1) >> velF(i,2) >> accF(i,0) >> accF(i,1) >> accF(i,2);
-		}
-		//Cierro el fichero
-		datosPosF.close();
-
-		pos0 = pos;
-	}
-
 	ni = std::max(0,ni-10);
 	do{
 		ni = ni + 1;
@@ -140,46 +142,22 @@ void FairleadBCP::GetValues(double t){
 ////////////////////////////////////////////////////////////////////////////
 ///////////////////////// JOINT CLASS DEFINITION ///////////////////////////
 ////////////////////////////////////////////////////////////////////////////
-int JointBCP::GetValues(void)
+void JointBCP::GetValues(double t)
 {
-	return this->typeBCP;
-}
-
-
-void JointBCP::GetValues(double t){
-	if (t<1e-12){
-		typeBCP = 3;
-		iLJ = 0;
-		posLines = arma::zeros(nLinesBCP,3);
-		velLines = arma::zeros(nLinesBCP,3);
-		accLines = arma::zeros(nLinesBCP,3);
-	} else{
-		iLJ = 0;
-		pos = arma::mean(posLines).t();
-		vel = arma::mean(velLines).t();
-		acc = arma::mean(accLines).t();
-	}
+	iLJ = 0;
+	pos = arma::mean(posLines).t();
+	vel = arma::mean(velLines).t();
+	acc = arma::mean(accLines).t();
 }
 
 
 ////////////////////////////////////////////////////////////////////////////
 ///////////////////////// BODYBCP CLASS DEFINITION /////////////////////////
 ////////////////////////////////////////////////////////////////////////////
-int BodyBCP::GetValues(void)
-{
-	return this->typeBCP;
-}
-
-
 void BodyBCP::GetValues(double t)
 {
-	if (t<1e-12){
-		typeBCP = 4;
-	}
-
 	pos = posG_BCP.rows(0,2);
 	vel = velG_BCP.rows(0,2);
 	acc = accG_BCP.rows(0,2);
-
 };
 

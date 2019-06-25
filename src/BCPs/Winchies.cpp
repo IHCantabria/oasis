@@ -4,38 +4,22 @@
 #include "Winchies.hpp"
 
 // Leer inputs
-void Winchie::leer_datosWinchies(void){
-
-	int ii, jj, kk; 
-	std::string Dummy;
-	const int nInored=7; // numero de lineas que se leen para cada nuevo winchie
-
-	//Abro el fichero
-	std::ifstream datosWinchies ("input/datosWinchies.dat");
-
-	//Ignoro la primera linea del fichero, que contiene el numero de winchies a estudiar
-	datosWinchies >> Dummy; datosWinchies.ignore(std::numeric_limits<int>::max(), '\n');  // El ignore sirve para ignorar el texto de la linea
-
-	//Ignoro las lineas que ya se han leido
-	for(ii=1;ii<nLine;ii=ii+1){
-		for(jj=1;jj<=nInored;jj=jj+1){
-			datosWinchies >> Dummy; datosWinchies.ignore(std::numeric_limits<int>::max(), '\n');
-		}
-	}
+void Winchie::ReadPropertiesASCII(FILE* pFile)
+{
+	// Declare variables
+	char buffer_line [1000];
 
 	//Ignoro las tres primeras lineas, donde pone "New winchie"
-	for(ii=1;ii<=3;ii=ii+1){
-		datosWinchies >> Dummy; datosWinchies.ignore(std::numeric_limits<int>::max(), '\n');
+	for(int ii=0; ii<3; ii++)
+	{
+		fgets(buffer_line, sizeof(buffer_line), pFile);
 	}
 
 	//Leo todo
-	datosWinchies >> nLine; datosWinchies.ignore(std::numeric_limits<int>::max(), '\n');
-	datosWinchies >> LineBCP; datosWinchies.ignore(std::numeric_limits<int>::max(), '\n');
-	datosWinchies >> inertia; datosWinchies.ignore(std::numeric_limits<int>::max(), '\n');
-	datosWinchies >> radius; datosWinchies.ignore(std::numeric_limits<int>::max(), '\n');
-
-	//Cierro el fichero
-	datosWinchies.close();
+	fscanf(pFile, "%d %[^\n]\n", &nLine, buffer_line);
+	fscanf(pFile, "%d %[^\n]\n", &LineBCP, buffer_line);
+	fscanf(pFile, "%lf %[^\n]\n", &inertia, buffer_line);
+	fscanf(pFile, "%lf %[^\n]\n", &radius, buffer_line);
 
 }
 

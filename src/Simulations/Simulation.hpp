@@ -1,10 +1,13 @@
 
-#ifndef simulation_hpp__
-#define simulation_hpp__
+#ifndef simulationdef_hpp__
+#define simulationdef_hpp__
 
 #include <string>
 #include "../Bodies/Bodies.hpp"
 #include "../BCPs/BCPs.hpp"
+#include "../BCPs/Winchies.hpp"
+#include "../Lines/Lines.hpp"
+#include "../Spring/Spring.hpp"
 
 
 class Simulation
@@ -32,27 +35,36 @@ public:
     bool writeEquilibrium;
 
     // Declare Components Setup Attributes
-    BCP** pAnchorBcps;
-    BCP** pFairleadBcps;
-    BCP** pJointBcps;
-    BCP** pBodyBcps;
+    AnchorBCP** pAnchorBcps;
     BCP** pBcps;
     Body** pBodies;
+    BodyBCP** pBodyBcps;
+    FairleadBCP** pFairleadBcps;
+    JointBCP** pJointBcps;
+    Line** pLines;
+    Spring** pSprings;
+    Winchie** pWinches;
     int numAnchorBcps;
     int numBcps;
     int numBodies;
     int numBodyBcps;
     int numFairBcps;
     int numJointBcps;
+    int numLines;
+    int numSprings;
+    int numWinches;
 
     // Declare constructors
     Simulation(std::string projectPath, std::string incDataFormat);
 
     // Declare IO methods
     void Initialize(void);
-    void (Simulation::*pReadProperties)(void);
     void (Simulation::*pReadBcps)(void);
     void (Simulation::*pReadBodies)(void);
+    void (Simulation::*pReadLines)(void);
+    void (Simulation::*pReadSprings)(void);
+    void (Simulation::*pReadProperties)(void);
+    void (Simulation::*pReadWinches)(void);
     void ReadBcps(void);
     void ReadBcpsASCII(void);
     void ReadBcpsHDF5(void);
@@ -62,10 +74,18 @@ public:
     void ReadLines(void);
     void ReadLinesASCII(void);
     void ReadLinesHDF5(void);
+    void ReadSprings(void);
+    void ReadSpringsASCII(void);
+    void ReadSpringsHDF5(void);
+    void ReadWinches(void);
+    void ReadWinchesASCII(void);
+    void ReadWinchesHDF5(void);
     void ReadProperties(void);
     void ReadPropertiesASCII(void);
     void ReadPropertiesHDF5(void);
-    
+
+    // Declare general purpose class methods
+    void SetupCase();
 
 };
 

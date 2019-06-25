@@ -1,14 +1,13 @@
 
 #include <iostream>
-#include <fstream>
 #include <limits>
 #include <string>
 #include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
 #include <cmath>
 #include <armadillo>
 #include "Bodies.hpp"
+#include "../BCPs/BCPs.hpp"
 #include "../os_tools.hpp"
 
 
@@ -32,8 +31,8 @@ void Body::ComputeBcpForces(void)
 
 	for(int ii=0; ii<numBcps; ii++){ // Bucle sobre los BCPs
 
-		posG_temp = pBodyBcps[ii]->posG; // Guardo en variable temporal la posicion global del BCP
-		ForceBCP_temp = pBodyBcps[ii]->ForceBCP; // Guardo en variable temporal las fuerzas y momentos sobre el BCP
+		posG_temp = pBodyBcps[ii]->posWrtCdgGlobal; // Guardo en variable temporal la posicion global del BCP
+		ForceBCP_temp = pBodyBcps[ii]->forceBcp; // Guardo en variable temporal las fuerzas y momentos sobre el BCP
 
 		F_M = arma::zeros(3,1); // Inicio a cero al fuerza en el cdg causada por el momento sobre el BCP 
 		M_norm = arma::norm(ForceBCP_temp.rows(3,5)); // Calculo la norma del momento sobre el BCP
@@ -77,7 +76,7 @@ void Body::ComputeBcpForces(void)
 }
 
 
-int Body::GetBodyId(void)
+int Body::GetId(void)
 {
 	return id;
 }
@@ -92,42 +91,41 @@ void Body::ReadPropertiesASCII(FILE* pFilePointer)
 	//Ignoro las tres primeras lineas, donde pone "New Body"
 	for(int ii=0; ii<3; ii++)
 	{
-		fscanf(pFilePointer, "%[^\n]", buffer_line);
+		fgets(buffer_line, sizeof(buffer_line), pFilePointer);
 	}
 
 	// Read the total number DOFs to consider in the body
-	fscanf(pFilePointer, "%d %[^\n]", &numDofs, buffer_line); // Read DOF to consider in the body
+	fscanf(pFilePointer, "%d %[^\n]\n", &numDofs, buffer_line); // Read DOF to consider in the body
 
 	// Read body DOFs to consider in the problem
 	pDofs = new int[numDofs];
 	for(int ii=0; ii<numDofs; ii++)
 	{
-		fscanf(pFilePointer, "%lf", &pDofs[ii]);
+		fscanf(pFilePointer, "%d", &pDofs[ii]);
 		pDofs[ii] -= 1;
 	}
-	fscanf(pFilePointer, "%[^\n]", buffer_line);
+	fscanf(pFilePointer, "%[^\n]\n", buffer_line);
 
 	// Read number of BCPs in the body
-	fscanf(pFilePointer, "%d %[^\n]", numBcps);
+	fscanf(pFilePointer, "%d %[^\n]\n", &numBcps, buffer_line);
 
 	// Read BCP indexes
 	pIndexBcps = new int[numBcps];
-	
 	for(int ii=0; ii<numBcps; ii++)
 	{
 		fscanf(pFilePointer, "%lf", &pIndexBcps[ii]);
 		pIndexBcps[ii] -= 1;
 	}
-	fscanf(pFilePointer, "%[^\n]", buffer_line);
+	fscanf(pFilePointer, "%[^\n]\n", buffer_line);
 
 	for (int ii=0; ii<6; ii++)
 	{
 		fscanf(pFilePointer, "%lf", &pos(ii, 0));
 	}
-	fscanf(pFilePointer, "%[^\n]", buffer_line);
+	fscanf(pFilePointer, "%[^\n]\n", buffer_line);
 
 	// Generate array of pointers in order to storage the BCPs pointers
-	pBodyBcps = new BCP*[numBcps];
+	pBodyBcps = new BCP* [numBcps];
 
 	//arma::cube temp_inertia;
 	//file_path = JoinPath(project_path, "input/flotante.h5");
@@ -165,9 +163,9 @@ void Body::UpdateBcps(void)
 	for(int ii=0; ii<numBcps; ii++)
 	{
 		// Bucle sobre todos los BCPs
-		posG_temp =  rotMat*(pBodyBcps[ii]->posL); // Brazo cdg-bcp en global
-		pBodyBcps[ii]->posG = posG_temp; // Brazo cdg-bcp en global
-		pBodyBcps[ii]->RotMat = rotMat; // Matriz de rotacion
+		posG_temp =  rotMat*(pBodyBcps[ii]->posWrtCdgLocal); // Brazo cdg-bcp en global
+		pBodyBcps[ii]->posWrtCdgLocal = posG_temp; // Brazo cdg-bcp en global
+		pBodyBcps[ii]->rotMat = rotMat; // Matriz de rotacion
 		// Posicion del BCP en global, lo mismo para vel y acc.
 		pBodyBcps[ii]->posG_BCP.rows(0,2) = pos.rows(0,2) + posG_temp; // Posicion del BCP en global
 		pBodyBcps[ii]->velG_BCP.rows(0,2) = vel.rows(0,2) + arma::cross(vel.rows(3,5),posG_temp);
@@ -176,7 +174,7 @@ void Body::UpdateBcps(void)
 		pBodyBcps[ii]->velG_BCP.rows(3,5) = vel.rows(3,5);
 		pBodyBcps[ii]->accG_BCP.rows(3,5) = acc.rows(3,5);
 		// Reseteo a cero la fuerza sobre el BCP
-		pBodyBcps[ii]->ForceBCP = arma::zeros(6,1);
+		pBodyBcps[ii]->forceBcp = arma::zeros(6,1);
 	}
 
 	// Reseteo a cero la fuerza total de todos los BCPs
@@ -185,7 +183,8 @@ void Body::UpdateBcps(void)
 
 
 // Escibir datos a fichero
-void Body::WriteOut(double t){
+void Body::WriteOut(double t)
+{
 
 	int ii, nn1, nn2, nn3, nn4, nn5, nn6;
 

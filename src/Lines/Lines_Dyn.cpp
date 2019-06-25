@@ -16,55 +16,46 @@ extern double g;
 extern double rhoW;
 extern double fondo;
 
-void Line::leer_datosLines (std::string file_path) {
+Line::Line(int incId)
+{
+	id = incId;
+}
 
-	int ii, jj, kk; 
-	std::string Dummy;
-	const int nInored=23; // numero de lineas que se leen para cada nueva linea
 
-	//Abro el fichero
-	printf("Line file path: %s\n", file_path.c_str());
-	std::ifstream datosLines (file_path.c_str());
-
-	//Ignoro la primera linea del fichero, que contiene el numero de lineas a estudiar
-	datosLines >> Dummy; datosLines.ignore(std::numeric_limits<int>::max(), '\n');  // El ignore sirve para ignorar el texto de la linea
-
-	//Ignoro las lineas que ya se han leido
-	for(ii=1;ii<nLine;ii=ii+1){
-		for(jj=1;jj<=nInored;jj=jj+1){
-			datosLines >> Dummy; datosLines.ignore(std::numeric_limits<int>::max(), '\n');
-		}
-	}
+void Line::ReadPropertiesASCII(FILE* pFilePointer) 
+{	
+	// Declare variables
+	char buffer_line [1000];
 
 	//Ignoro las tres primeras lineas, donde pone "New line"
-	for(ii=1;ii<=3;ii=ii+1){
-		datosLines >> Dummy; datosLines.ignore(std::numeric_limits<int>::max(), '\n');
+	for(int ii=0; ii<3; ii++)
+	{
+		fgets(buffer_line, sizeof(buffer_line), pFilePointer);
 	}
 
 	//Leo todo
-	datosLines >> lineType; datosLines.ignore(std::numeric_limits<int>::max(), '\n');
-	datosLines >> flag_tension; datosLines.ignore(std::numeric_limits<int>::max(), '\n');
-	datosLines >> nNodos; datosLines.ignore(std::numeric_limits<int>::max(), '\n');
-	datosLines >> p; datosLines.ignore(std::numeric_limits<int>::max(), '\n');
-	datosLines >> L;    datosLines.ignore(std::numeric_limits<int>::max(), '\n');
-	datosLines >> rho0; datosLines.ignore(std::numeric_limits<int>::max(), '\n');
-	datosLines >> d;    datosLines.ignore(std::numeric_limits<int>::max(), '\n');
-	datosLines >> EA;   datosLines.ignore(std::numeric_limits<int>::max(), '\n');
-	datosLines >> beta; datosLines.ignore(std::numeric_limits<int>::max(), '\n');
-	datosLines >> CB;   datosLines.ignore(std::numeric_limits<int>::max(), '\n');
-	datosLines >> Cmn;  datosLines.ignore(std::numeric_limits<int>::max(), '\n');
-	datosLines >> Cdn;  datosLines.ignore(std::numeric_limits<int>::max(), '\n');
-	datosLines >> Cdt;  datosLines.ignore(std::numeric_limits<int>::max(), '\n');
-	datosLines >> GK;   datosLines.ignore(std::numeric_limits<int>::max(), '\n');
-	datosLines >> GC;   datosLines.ignore(std::numeric_limits<int>::max(), '\n');
-	datosLines >> Gmu;  datosLines.ignore(std::numeric_limits<int>::max(), '\n');
-	datosLines >> Gvc;  datosLines.ignore(std::numeric_limits<int>::max(), '\n');
-	datosLines >> Dz;   datosLines.ignore(std::numeric_limits<int>::max(), '\n');
-	datosLines >> BCP_N;  datosLines.ignore(std::numeric_limits<int>::max(), '\n');
-	datosLines >> BCP_1;  datosLines.ignore(std::numeric_limits<int>::max(), '\n');
+	fscanf(pFilePointer, "%d %[^\n]\n", &lineType, buffer_line);
+	fscanf(pFilePointer, "%d %[^\n]\n", &flag_tension, buffer_line);
+	fscanf(pFilePointer, "%d %[^\n]\n", &nNodos, buffer_line);
+	fscanf(pFilePointer, "%d %[^\n]\n", &p, buffer_line);
+	fscanf(pFilePointer, "%lf %[^\n]\n", &L, buffer_line);
+	fscanf(pFilePointer, "%lf %[^\n]\n", &rho0, buffer_line);
+	fscanf(pFilePointer, "%lf %[^\n]\n", &d, buffer_line);
+	fscanf(pFilePointer, "%lf %[^\n]\n", &EA, buffer_line);
+	fscanf(pFilePointer, "%lf %[^\n]\n", &beta, buffer_line);
+	fscanf(pFilePointer, "%lf %[^\n]\n", &CB, buffer_line);
+	fscanf(pFilePointer, "%lf %[^\n]\n", &Cmn, buffer_line);
+	fscanf(pFilePointer, "%lf %[^\n]\n", &Cdn, buffer_line);
+	fscanf(pFilePointer, "%lf %[^\n]\n", &Cdt, buffer_line);
+	fscanf(pFilePointer, "%lf %[^\n]\n", &GK, buffer_line);
+	fscanf(pFilePointer, "%lf %[^\n]\n", &GC, buffer_line);
+	fscanf(pFilePointer, "%lf %[^\n]\n", &Gmu, buffer_line);
+	fscanf(pFilePointer, "%lf %[^\n]\n", &Gvc, buffer_line);
+	fscanf(pFilePointer, "%lf %[^\n]\n", &Dz, buffer_line);
+	fscanf(pFilePointer, "%d %[^\n]\n", &BCP_N, buffer_line);
+	fscanf(pFilePointer, "%d %[^\n]\n", &BCP_1, buffer_line);
 
-	//Cierro el fichero
-	datosLines.close();
+	printf("Read polynomial order: %d\n", p);
 
 	A = PI*d*d*0.25;
 	dL = L/(nNodos-1);
@@ -95,18 +86,22 @@ void Line::leer_datosLines (std::string file_path) {
 
 	lobatto_set(p+1,roots_temp,weights_temp);
 
-	for(ii=0;ii<p+1;ii=ii+1){
+	for(int ii=0; ii<p+1; ii++)
+	{
 		roots(ii) = roots_temp[ii];
 		weights(ii) = weights_temp[ii];
 	}
 
-	for(ii=0;ii<N;ii=ii+1){
+	int kk;
+	for(int ii=0; ii<N; ii++){
 		kk = ii % p;
 		s(ii,0) = dL * ( (ii-kk)/p + ( roots(kk) + 1.0 ) * 0.5 );
 	}
 }
 
-void Line::SEM_getBaseFunctions(void){
+
+void Line::SEM_getBaseFunctions(void)
+{
 
 	pos.reshape(3,N);
 	pos = pos.t();
@@ -172,7 +167,9 @@ void Line::SEM_getBaseFunctions(void){
 	MM_sp = arma::sp_mat(MM);
 }
 
-void Line::SEM_coefficients(void){
+
+void Line::SEM_coefficients(void)
+{
 
 	C = arma::zeros(p+1,p+1);
 	arma::mat M = arma::zeros(p+1,p+1);
@@ -184,7 +181,9 @@ void Line::SEM_coefficients(void){
 	C = C.t();
 }
 
-double Line::SEM_poly(double x, int i){
+
+double Line::SEM_poly(double x, int i)
+{
 	double y = 0.0;
 	arma::mat cc = C.row(i);
 	for(int ii=0;ii<p+1;ii=ii+1){
@@ -193,7 +192,9 @@ double Line::SEM_poly(double x, int i){
 	return y;
 }
 
-double Line::SEM_poly_first_derivative(double x, int i){
+
+double Line::SEM_poly_first_derivative(double x, int i)
+{
 	double y = 0.0;
 	arma::mat cc = C.row(i);
 	for(int ii=1;ii<p+1;ii=ii+1){
@@ -202,7 +203,9 @@ double Line::SEM_poly_first_derivative(double x, int i){
 	return y;
 }
 
-arma::mat Line::SEM_get_D_local(void){
+
+arma::mat Line::SEM_get_D_local(void)
+{
 	arma::mat D = arma::zeros(p+1,p+1);
 	for(int ii=0;ii<p+1;ii=ii+1){
 		for(int jj=0;jj<p+1;jj=jj+1){
@@ -212,7 +215,9 @@ arma::mat Line::SEM_get_D_local(void){
 	return D;
 }
 
-void Line::SEM_computeF(void){
+
+void Line::SEM_computeF(void)
+{
 
 	//drds = (D_sp * pos) * (2.0/dL0);
 	//drdsdt = (D_sp * vel) * (2.0/dL0);
@@ -256,11 +261,13 @@ void Line::SEM_computeF(void){
 	ten_1 = FF.row(0).t();
 	ten_N = FF.row(N-1).t();
 
-	LineBCP[0]->ForceBCP.rows(0,2) = LineBCP[0]->ForceBCP.rows(0,2) - ten_1;
-	LineBCP[1]->ForceBCP.rows(0,2) = LineBCP[1]->ForceBCP.rows(0,2) - ten_N;
+	LineBCP[0]->forceBcp.rows(0,2) = LineBCP[0]->forceBcp.rows(0,2) - ten_1;
+	LineBCP[1]->forceBcp.rows(0,2) = LineBCP[1]->forceBcp.rows(0,2) - ten_N;
 }
 
-void Line::print_out (void) {
+
+void Line::print_out (void)
+{
 
 		std::cout << "Para la linea " << this->nLine << " , se ha leido:" << std::endl << std::endl;
 		std::cout << "nNodos   " << this->nNodos << std::endl;
@@ -283,7 +290,9 @@ void Line::print_out (void) {
 		std::cout << "pos_1  " << this->pos_1(0,0) << " " << this->pos_1(1,0) << " " << this->pos_1(2,0) << std::endl << std::endl;
 }
 
-void Line::initLine (void) {
+
+void Line::initLine (void) 
+{
 
 	if (pos_N(2,0)<fondo || pos_1(2,0)<fondo) throw 0;
 
@@ -445,7 +454,9 @@ void Line::initLine (void) {
 	}
 }
 
-void Line::write_out (double t) {
+
+void Line::write_out (double t) 
+{
 
 	int ii, nn1, nn2, nn3, nn4;
 
