@@ -23,9 +23,6 @@
 
 // GLOBAL VARIABLES
 double PI;
-double g;
-double rhoW;
-double fondo;
 int nCalls = 0;
 
 
@@ -40,7 +37,6 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 
 	arma::mat yprime = arma::zeros(size(y));
 	int i0;
-	printf("Antes de copy objects\n");
 	// Copy info from y to the objects.
 	int ini = 0;
 	for(int ii=0;ii<SD.nBodies;ii=ii+1)
@@ -74,12 +70,10 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 		SD.Winchies[ii]->omega = arma::as_scalar(y.row(SD.nSistema-(ii+1)));
 	}
 	
-	printf("Update BodyBCP positions and velocities\n");
 	// Update BodyBCP positions and velocities
 	for(int ii=0;ii<SD.nBodies;ii=ii+1){
 		SD.Bodies[ii]->UpdateBcps();
 	}
-	printf("Set boundary conditions if BCP is not a joint\n");
 	// Set boundary conditions on pos and vel of Lines if the BCP is not a joint
 	if (SD.nLines >= 1){
 		if (SD.Lines[0]->pLineBcps[0]->tBCP != t){
@@ -103,7 +97,6 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 			SD.Lines[ii]->vel.row(SD.Lines[ii]->N-1) = SD.Lines[ii]->pLineBcps[1]->vel.t();
 		}
 	}
-	printf("Set boundary conditions if BCP is a joint\n");
 	// Set boundary conditions on pos and vel of Lines if the BCP is a joint
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
 		if(SD.Lines[ii]->pLineBcps[0]->GetType() == 3){
@@ -135,28 +128,22 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 			SD.Lines[ii]->vel.row(SD.Lines[ii]->N-1) = SD.Lines[ii]->pLineBcps[1]->vel.t();
 		}
 	}
-	printf("Comput forces vecotr for the different lines\n");
 	// Compute forces vector for the different Lines
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
 		SD.Lines[ii]->SEM_computeF();
 	}
-	printf("Compute forces of springs\n");
 	// Compute forces of Springs
 	for(int ii=0;ii<SD.nSprings;ii=ii+1){
 		SD.Springs[ii]->computeSpringForces();
 	}
-	printf("Compute hydro forces\n");
 	// Compute hydrostatic and hidrodynamic forces
 	SD.Water->computeHydroForces(t);
-	printf("Sali de compute forces\n");
 	arma::mat Fb = SD.Water->HydroForces;
-	printf("Compute forces on bcps\n");
 	// Compute forces on BCPs
 	for(int ii=0;ii<SD.nBodies;ii=ii+1){
 		SD.Bodies[ii]->ComputeBcpForces();
 		Fb(arma::span(6*ii,6*(ii+1)-1), 0) = Fb(arma::span(6*ii,6*(ii+1)-1), 0) + SD.Bodies[ii]->bcpForces;
 	}
-	printf("Compute body acceleration\n");
 	// Compute body acceleration
 	arma::mat accB = (SD.Water->invM)*Fb;
 	for(int ii=0;ii<SD.nBodies;ii=ii+1){
@@ -164,13 +151,11 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 	}
 
 	// Update BodyBCP accelerations
-	printf("Compute BodyBCP acceleration\n");
 	for(int ii=0;ii<SD.nBodies;ii=ii+1){
 		SD.Bodies[ii]->UpdateBcps();
 	}
 
 	// Obtain Lines accelerations, imposing boundary conditions if the BCP is not a joint
-	printf("Compute Lines accelerations\n");
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
 		if(SD.Lines[ii]->pLineBcps[0]->GetType() != 3){
 			SD.Lines[ii]->F.row(0)                = SD.Lines[ii]->pLineBcps[0]->acc.t();
@@ -276,6 +261,10 @@ int main (int argc, char* argv[])
 	std::string inputs_path;
 	std::string outputs_path;
 	std::string file_path;
+
+	// PI
+	PI=acos(-1.0);
+	t = 0.0;
 
 	// Read input arguments
 	if (argc < 2)

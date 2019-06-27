@@ -221,7 +221,7 @@ void Simulation::ReadLinesASCII()
 	//INICIO LAS LINEAS
 	for(int ii=0; ii<numLines; ii++)
     {
-		pLines[ii] = new Line(ii);
+		pLines[ii] = new Line(ii, gravity, waterDensity, waterDepth);
 		try
 		{
             pLines[ii]->ReadPropertiesASCII(file_pointer);
@@ -493,6 +493,7 @@ void Simulation::SetupCase()
     }
 
     // Check every thing is correct
+    /**
     for (int ii=0; ii<numBodies; ii++)
     {
         for (int jj=0; jj<pBodies[ii]->numBcps; jj++)
@@ -513,6 +514,7 @@ void Simulation::SetupCase()
         }
         std::cout << "heree2" << std::endl;
     }
+    **/
 
 
     // Count the number of Lines in each body and create pointer array
@@ -542,9 +544,7 @@ void Simulation::SetupCase()
                 defined_lines_bcps[pLines[ii]->indexBcps[jj]] = true;
             }
         }
-        numDofTotal += pLines[ii]->N;
-        if(readEquilibrium) pLines[ii]->initLine();
-        pLines[ii]->SEM_getBaseFunctions();
+        
     }
 
     // Assing to each Line the corresponding Body pointer
@@ -556,6 +556,23 @@ void Simulation::SetupCase()
             pLines[ii]->pLineBcps[jj]->pLines[pLines[ii]->pLineBcps[jj]->countLine] = pLines[ii];
             pLines[ii]->pLineBcps[jj]->countLine++;
         }
+        numDofTotal += pLines[ii]->N;
+        pLines[ii]->print_out();
+        try
+        {
+            if(!readEquilibrium) pLines[ii]->initLine();
+            pLines[ii]->SEM_getBaseFunctions();
+        }
+        catch (int e) 
+		{
+			if (e==0) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " is under the floor level." << std::endl << std::endl;
+			if (e==1) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " touches the seafloor and it shouldn't. " << std::endl << std::endl;
+			if (e==2) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " is not tense and laying on the seafloor. It should be pretensed. " << std::endl << std::endl;
+			if (e==3) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " is not tense and vertical. It should be pretensed. " << std::endl << std::endl;
+			if (e==4) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " is not tense and it should. " << std::endl << std::endl;
+			if (e==5) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " initial shape can't be computed with QS method. " << std::endl;
+			if (e==6) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " touches the seafloor althoug none of its ends are there. " << std::endl << std::endl;
+		}
     }
 
     // Check every thing is correct

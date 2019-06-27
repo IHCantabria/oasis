@@ -28,7 +28,11 @@ public:
 	BCP* pLineBcps [2];
 	double xF, zF, HF, VF, HA, VA, cosa, sina;
 
-	Line(int id);
+	double g;
+	double rhoW;
+	double fondo;
+
+	Line(int incId, double incG, double incRhoW, double incFondo);
 	int GetId();
 	void ReadPropertiesASCII(FILE* pFilePointer);
 	void print_out(void);

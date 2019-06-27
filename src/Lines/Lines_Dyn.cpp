@@ -12,9 +12,6 @@
 #include "../SEM_math/quadrule.hpp"
 
 extern double PI;
-extern double g;
-extern double rhoW;
-extern double fondo;
 
 
 int Line::GetId()
@@ -22,9 +19,12 @@ int Line::GetId()
 	return id;
 }
 
-Line::Line(int incId)
+Line::Line(int incId, double incG, double incRhoW, double incFondo)
 {
 	id = incId;
+	g = incG;
+	rhoW = incRhoW;
+	fondo = incFondo;
 }
 
 
@@ -303,7 +303,11 @@ void Line::print_out (void)
 
 void Line::initLine (void) 
 {
+	// Load BCP data
+	pos_1 = pLineBcps[0]->pos;
+	pos_N = pLineBcps[1]->pos;
 
+	// Init Line
 	if (pos_N(2,0)<fondo || pos_1(2,0)<fondo) throw 0;
 
 	if (lineType == 1){

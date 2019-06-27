@@ -103,11 +103,7 @@ void Hydro::computeFe(void){
 
 // Obten las fuerzas hidroestaticas e hidrodinamicas en el tiempo deseado
 void Hydro::computeHydroForces(double t){
-	printf("Inside computeHydroForces\n");
-	std::cout << "Number of bodies(hydro): " << std::endl;
-	std::cout << "Number of bodies(hydro): " << 5 << std::endl;
 	HydroForces = arma::zeros(6*nBodies,1);
-	printf("sñdlkfja\n");
 	/**
 	arma::mat positions = arma::zeros(6*nBodies,1);
 	for(int ii=0;ii<nBodies;ii=ii+1){

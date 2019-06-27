@@ -38,18 +38,14 @@ BDF::BDF(double t_u, double tmax_u, double dt_out_u, arma::mat y_u, arma::mat (*
 	J = arma::zeros(nSistema,nSistema);
 
 	F(0) = 2*atol;
-	printf("Before bucle....\n");
 	do{
-		printf("Before jac\n");
 		jac(t + h_0, y);
 		M = I - h_0 * J;
 		F = y - y_0 - h_0 * yprime;
-		printf("Before solve\n");
 		std::cout << "size dy: " << arma::size(dy) << std::endl;
 		std::cout << "size M: " << arma::size(M) << std::endl;
 		std::cout << "size F: " << arma::size(F) << std::endl;
 		status = arma::solve(dy,M,F,arma::solve_opts::fast);
-		printf("ddddddd\n");
 		if (!status){
 			dy = arma::solve(M,F);
 		}
@@ -64,7 +60,6 @@ BDF::BDF(double t_u, double tmax_u, double dt_out_u, arma::mat y_u, arma::mat (*
 
 void BDF::jac(double tt, arma::mat yy){
 	yprime = fun(tt, yy, SD);
-	printf("After fun...\n");
 	for(int ii=0;ii<SD.nSistema;ii=ii+1){
 		J.col(ii) = 1e12 * (fun(tt, yy + 1e-12* I.col(ii), SD) - yprime);
 	}
