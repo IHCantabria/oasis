@@ -9,7 +9,7 @@
 1 // Indices of lines attached
 1 // Flags to show where the lines are attached [1 : attached at node 1, 2 : attached at node N]
 0.0  100.0  -70.0  // Initial position. [Actuator, Anchor, Joint: global, Fairlead: Local body cdg coordinades [Line: point of contact,  Spring: mean point of the spring] ]
-input/datosPosicionFairlead.dat // If it is  an actuator, file where data is kept. In other case, dummy input.
+0 // Winch ID
 ////////////////// 
 ////////////////// New BCP [2]
 //////////////////
@@ -17,7 +17,7 @@ input/datosPosicionFairlead.dat // If it is  an actuator, file where data is kep
 0 // Indices of lines attached
 0 // Flags to show where the lines are attached [1 : attached at node 1, 2 : attached at node N]
 -25.0  0.0  0.0  // Initial position. [Actuator, Anchor, Joint: global, Fairlead: Local body cdg coordinades [Line: point of contact,  Spring: mean point of the spring] ]
-input/datosPosicionFairlead.dat // If it is  an actuator, file where data is kept. In other case, dummy input.
+0 // Winch ID
 ////////////////// 
 ////////////////// New BCP [3]
 //////////////////
@@ -25,7 +25,7 @@ input/datosPosicionFairlead.dat // If it is  an actuator, file where data is kep
 1 // Indices of lines attached
 2 // Flags to show where the lines are attached [1 : attached at node 1, 2 : attached at node N]
 25.0  0.0  0.0  // Initial position. [Actuator, Anchor, Joint: global, Fairlead: Local body cdg coordinades [Line: point of contact,  Spring: mean point of the spring] ]
-input/datosPosicionFairlead.dat // If it is  an actuator, file where data is kept. In other case, dummy input.
+0 // Winch ID
 ////////////////// 
 ////////////////// New BCP [4]
 //////////////////
@@ -33,5 +33,5 @@ input/datosPosicionFairlead.dat // If it is  an actuator, file where data is kep
 0 // Indices of lines attached
 0 // Flags to show where the lines are attached [1 : attached at node 1, 2 : attached at node N]
 -25.0  0.0  0.0  // Initial position. [Actuator, Anchor, Joint: global, Fairlead: Local body cdg coordinades [Line: point of contact,  Spring: mean point of the spring] ]
-input/datosPosicionFairlead.dat // If it is  an actuator, file where data is kept. In other case, dummy input.
+0 // Winch ID
 
