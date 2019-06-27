@@ -16,6 +16,12 @@ extern double g;
 extern double rhoW;
 extern double fondo;
 
+
+int Line::GetId()
+{
+	return id;
+}
+
 Line::Line(int incId)
 {
 	id = incId;
@@ -53,7 +59,11 @@ void Line::ReadPropertiesASCII(FILE* pFilePointer)
 	fscanf(pFilePointer, "%lf %[^\n]\n", &Gvc, buffer_line);
 	fscanf(pFilePointer, "%lf %[^\n]\n", &Dz, buffer_line);
 	fscanf(pFilePointer, "%d %[^\n]\n", &BCP_N, buffer_line);
+	BCP_N -= 1;
+	indexBcps[1] = BCP_N;
 	fscanf(pFilePointer, "%d %[^\n]\n", &BCP_1, buffer_line);
+	BCP_1 -= 1;
+	indexBcps[0] = BCP_1;
 
 	printf("Read polynomial order: %d\n", p);
 
@@ -261,8 +271,8 @@ void Line::SEM_computeF(void)
 	ten_1 = FF.row(0).t();
 	ten_N = FF.row(N-1).t();
 
-	LineBCP[0]->forceBcp.rows(0,2) = LineBCP[0]->forceBcp.rows(0,2) - ten_1;
-	LineBCP[1]->forceBcp.rows(0,2) = LineBCP[1]->forceBcp.rows(0,2) - ten_N;
+	pLineBcps[0]->forceBcp.rows(0,2) = pLineBcps[0]->forceBcp.rows(0,2) - ten_1;
+	pLineBcps[1]->forceBcp.rows(0,2) = pLineBcps[1]->forceBcp.rows(0,2) - ten_N;
 }
 
 

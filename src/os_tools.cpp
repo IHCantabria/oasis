@@ -5,12 +5,14 @@
 #include "os_tools.hpp"
 #include <cstdio>
 #include <string>
+#include <sstream>
 #include <iostream>
 #include <experimental/filesystem>
 #include <string>
 #include <vector>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include "./Exceptions/Exception.hpp"
 namespace fs = std::experimental::filesystem;
 
 #if defined(_WIN32) || defined(_WIN64) || defined(__CYGWIN__)
@@ -48,6 +50,44 @@ bool CheckDirExits(std::string folderPath)
 		exists = false;
 
 	return exists;
+}
+
+
+inline bool CheckFileExists (const std::string& name) {
+    if (FILE *file = fopen(name.c_str(), "r")) {
+        fclose(file);
+        return true;
+    } else {
+        return false;
+    }   
+}
+
+
+void CheckInputFile(std::string inputFile, std::string specsStr)
+{
+	std::cout << "Input file name: " << inputFile.c_str() << std::endl;
+	std::cout << !CheckFileExists(inputFile) << std::endl;
+	if (inputFile.length() > 4)
+	{
+		if (inputFile.substr(inputFile.length()-4, 4).compare(".dat") != 0)
+		{
+			std::stringstream ss;
+			ss << "Invalid file data format for: " << specsStr.c_str();
+			throw ValueError(ss.str());
+		}
+		else if (!CheckFileExists(inputFile))
+		{
+			std::stringstream ss;
+			ss << "Actuator file does not exits for: " << specsStr.c_str();
+			throw ValueError(ss.str());
+		}
+	}
+	else
+	{
+		std::stringstream ss;
+		ss << "No input file name for: " << specsStr.c_str();
+		throw ValueError(ss.str());
+	}
 }
 
 

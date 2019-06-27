@@ -13,6 +13,7 @@ Libreria para las condiciones de contorno
 #include <string>
 #include <armadillo>
 #include "BCPs.hpp"
+#include "../Exceptions/Exception.hpp"
 #include "../os_tools.hpp"
 
 
@@ -22,6 +23,12 @@ Libreria para las condiciones de contorno
 BCP::BCP(int incId)
 {
 	id = incId;
+}
+
+
+int BCP::GetId(void)
+{
+	return this->id;
 }
 
 
@@ -40,12 +47,22 @@ void BCP::Initialize()
 void BCP::ReadPropertiesASCII(FILE* &pFilePointer)
 {
 	// Declare variables
+	std::string header_check;
 	char buffer_line [1000];
+	char cActuatorFileName [1000];
 
 	//Ignoro las tres primeras lineas, donde pone "New Body"
+
 	for(int ii=0; ii<3; ii++)
 	{
 		fgets(buffer_line, sizeof(buffer_line), pFilePointer);
+		header_check = buffer_line;
+		if (header_check.substr(0, 3).compare("///"))
+		{
+			std::stringstream ss;
+			ss << "Error while parsing file: datosBCPs.dat - HINT BCP ID: " << this->GetId() << " - Please check that each type of BCP has its correct number of inputs.";
+			throw IOError(ss.str());
+		}
 	}
 
 	//Read data
@@ -56,15 +73,27 @@ void BCP::ReadPropertiesASCII(FILE* &pFilePointer)
 	//fscanf(pFilePointer, "%lf %[^\n]", &numLinesBcp, buffer_line);
 	//pBcpLineIndex = new int[numLinesBcp];
 	//pBcpLineNode = new int[numLinesBcp];
+
+	// Read BCP position
 	fscanf(pFilePointer, "%lf %lf %lf %[^\n]\n", &pos(0, 0), &pos(1, 0), &pos(2, 0), buffer_line);
 	if (this->GetType() == 2)
 	{
-		fscanf(pFilePointer, "%s %[^\n]\n", &actuatorFileName, buffer_line);
+		fscanf(pFilePointer, "%s %[^\n]\n", &cActuatorFileName, buffer_line);
+		actuatorFileName = cActuatorFileName;
+		std::cout << actuatorFileName.c_str() << std::endl;
 	}
-	else
+
+	// Read Wind ID
+	fscanf(pFilePointer, "%d %[^\n]\n", &winchId, buffer_line);
+
+	// Check Winch ID and Fairlead coexistence
+	if ((winchId !=0) && (this->GetType() == 2))
 	{
-		fscanf(pFilePointer, "%[\n]\n", buffer_line);
+		std::stringstream ss;
+		ss << "Actuator and Winch boundary conditions defined at the same BCP --> BCP num: " << this->GetId()+1;
+		throw ValueError(ss.str());
 	}
+
 	posWrtCdgLocal = pos;
 	posG_BCP.rows(0,2) = pos;
 	
@@ -80,6 +109,12 @@ void BCP::UpdateBoundary()
 ////////////////////////////////////////////////////////////////////////////
 ///////////////////////// ANCHOR CLASS DEFINITION //////////////////////////
 ////////////////////////////////////////////////////////////////////////////
+int AnchorBCP::GetType(void)
+{
+	return this->typeBcp;
+}
+
+
 void AnchorBCP::GetValues(double t)
 {
 	vel = arma::zeros(3,1);
@@ -90,15 +125,23 @@ void AnchorBCP::GetValues(double t)
 ////////////////////////////////////////////////////////////////////////////
 ///////////////////////// FAIRLEAD CLASS DEFINITION ////////////////////////
 ////////////////////////////////////////////////////////////////////////////
+int FairleadBCP::GetType(void)
+{
+	return this->typeBcp;
+}
+
+
 void FairleadBCP::Initialize(std::string folder_path)
 {
 	// Inicializo la variable donde guardar el numero de pasos temporales
 	int nt;
 	//Abro el fichero
-	std::string file_path = JoinPath(folder_path, actuatorFileName);
+ 	std::string file_path = JoinPath(folder_path, actuatorFileName);
 	std::ifstream datosPosF (file_path);
+
 	// Leo el numero de pasos temporales a leer
 	datosPosF >> nt;
+
 	// Alocato la matriz que contiene la informacion
 	tF = arma::zeros(nt,1);
 	posF = arma::zeros(nt,3);
@@ -114,6 +157,19 @@ void FairleadBCP::Initialize(std::string folder_path)
 	pos0 = pos;
 
 	this->GetValues(0.0);
+}
+
+
+void FairleadBCP::ReadPropertiesASCII(FILE* &pFilePointer, std::string inputFilePath)
+{	
+	// Read properties from file
+	BCP::ReadPropertiesASCII(pFilePointer);
+
+	// Check if the actuator file exists
+	std::string actuatorFilePath = JoinPath(inputFilePath, actuatorFileName);
+	std::stringstream ss;
+	ss << "ACTUATOR BCP NUMBER: " << this->GetId();
+	CheckInputFile(actuatorFilePath, ss.str());
 }
 
 
@@ -142,6 +198,12 @@ void FairleadBCP::GetValues(double t)
 ////////////////////////////////////////////////////////////////////////////
 ///////////////////////// JOINT CLASS DEFINITION ///////////////////////////
 ////////////////////////////////////////////////////////////////////////////
+int JointBCP::GetType(void)
+{
+	return this->typeBcp;
+}
+
+
 void JointBCP::GetValues(double t)
 {
 	iLJ = 0;
@@ -154,6 +216,12 @@ void JointBCP::GetValues(double t)
 ////////////////////////////////////////////////////////////////////////////
 ///////////////////////// BODYBCP CLASS DEFINITION /////////////////////////
 ////////////////////////////////////////////////////////////////////////////
+int BodyBCP::GetType(void)
+{
+	return this->typeBcp;
+}
+
+
 void BodyBCP::GetValues(double t)
 {
 	pos = posG_BCP.rows(0,2);

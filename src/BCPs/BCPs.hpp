@@ -5,15 +5,30 @@
 #include <string>
 #include <cstdio>
 
+
+// Class predefinition in order to avoid class cross-linking
+class Body;
+class Line;
+
+
+// Define class BCP and subclasses
 class BCP
 {
 private:
 	int id;
 	int typeBcp=0;
 public:
+	// Conexion attributes
+	int countBody=0;
+	int countLine=0;
+	Line** pLines; // Array the pointers a las lineas que confluyen en el punto
+	Body** pBodies; // Array the pointers a las lineas que confluyen en el punto
+	int numBodiesBcp=0; // Number of bodies connected to the BCP
+	int numLinesBcp=0; // Numero de lineas que confluyen en el punto
+	int winchId; // Id of the winch connected to the instance of the BCP
+
 	//Atributos comunes a todos los BCPs
 	double tBCP;
-	int numLinesBcp; // Numero de lineas que confluyen en el punto
 	int* pBcpLineIndex; // Array con los indices identificadores de las lineas que confluyen en el punto
 	int* pBcpLineNode; // Array de flags que, para cada linea ii que confluye al punto, indica si la linea confluye al nodo 1 (BCPLineNode[ii]=1) o al nodo N (BCPLineNode[ii]=2)
 	arma::mat pos = arma::zeros(3, 1); // Posicion del punto
@@ -44,6 +59,7 @@ public:
 
 	// Methods	
 	BCP(int incId);
+	int GetId(void);
 	virtual int GetType(void);
 	virtual void GetValues(double t) = 0;
 	virtual void Initialize();
@@ -57,6 +73,7 @@ private:
 	int typeBcp=1;
 public:
 	AnchorBCP(int incId): BCP(incId) {};
+	int GetType(void);
 	void GetValues(double t);
 };
 
@@ -66,6 +83,7 @@ private:
 	int typeBcp=4;
 public:
 	BodyBCP(int incId): BCP(incId) {};
+	int GetType(void);
 	void GetValues(double t);
 };
 
@@ -75,8 +93,10 @@ private:
 	int typeBcp=2;
 public:
 	FairleadBCP(int incId): BCP(incId) {};
+	int GetType(void);
 	void GetValues(double t);
 	void Initialize(std::string folder_path);
+	void ReadPropertiesASCII(FILE* &pFilePointer, std::string inputFilePath);
 };
 
 class JointBCP: public BCP
@@ -85,6 +105,7 @@ private:
 	int typeBcp=3;
 public:
 	JointBCP(int incId): BCP(incId) {};
+	int GetType(void);
 	void GetValues(double t);
 };
 

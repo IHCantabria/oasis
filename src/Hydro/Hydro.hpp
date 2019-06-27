@@ -9,7 +9,7 @@ class Hydro {
 public:
 
 	int nBodies; // Numero de cuerpos
-	Body * Bodies; // Array de pointers a los cuerpos
+	Body** Bodies; // Array de pointers a los cuerpos
 
 	arma::mat hydro; // matriz de hidrostatica de los cuerpos
 	arma::mat inertia; // matriz de inercia de los cuerpos
@@ -71,7 +71,7 @@ public:
 	arma::mat HydroForces;
 
 	// Inicializar el objeto de la clase hydro dandole el numero de cuerpos y el vector de pointers a los cuerpos
-	void set_Hydro(int n, Body * Bs){nBodies=n; Bodies = Bs;}
+	void set_Hydro(int n, Body** Bs){nBodies=n; Bodies = Bs;}
 
 	void leer_datosHydro(std::string); // Leer inputs
 

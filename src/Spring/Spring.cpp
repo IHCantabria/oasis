@@ -37,6 +37,8 @@ void Spring::ReadPropertiesASCII(std::string file_path){
 	datosSprings >> dampingFlag; datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
 	datosSprings >> BCP_1; datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
 	datosSprings >> BCP_2; datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
+	BCP_1 -= 1;
+	BCP_2 -= 1;
 
 	for(ii=0;ii<3;ii=ii+1){
 		temp_vec = arma::zeros(3,1);

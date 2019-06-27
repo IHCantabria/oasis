@@ -42,7 +42,7 @@ LIBS=$(SCI_LIBS) -lstdc++fs
 
 _DEPS=Lines/Lines.hpp Bodies/Bodies.hpp Spring/Spring.hpp Hydro/Hydro.hpp BCPs/BCPs.hpp BCPs/Winchies.hpp BCPs/WinchiesController.hpp ODE_solvers/ODE_solvers.hpp SEM_math/quadrule.hpp os_tools.hpp Exceptions/Exception.hpp Simulations/Simulation.hpp
 DEPS=$(patsubst %,$(SDIR)/%,$(_DEPS))
-_OBJS=main.o SEM_math/quadrule.o BCPs/BCPs.o BCPs/Winchies.o BCPs/WinchiesController.o Lines/Lines_Dyn.o Lines/Lines_QS.o Bodies/Bodies.o Spring/Spring.o Hydro/Hydro.o ODE_solvers/ODE_solvers.o os_tools.o Exceptions/ValueError.o Exceptions/Exception.o Simulations/Simulation.o Exceptions/IOError.o
+_OBJS=main.o SEM_math/quadrule.o BCPs/BCPs.o BCPs/Winchies.o BCPs/WinchiesController.o Lines/Lines_Dyn.o Lines/Lines_QS.o Bodies/Bodies.o Spring/Spring.o Hydro/Hydro.o ODE_solvers/ODE_solvers.o os_tools.o Exceptions/Exception.o Simulations/Simulation.o
 OBJS=$(patsubst %,$(ODIR)/%,$(_OBJS))
 
 $(ODIR)/%.o: $(SDIR)/%.cpp $(DEPS)

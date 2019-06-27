@@ -15,6 +15,8 @@ private:
 	arma::mat e_z;
 	
 public:
+	int numBcps=2;
+	int indexBcps [2];
 	int lineType, nLine, nNodos, p, N, floor_flag, BCP_1, BCP_N, flag_tension;
 	double L, dL, dL0, EA, beta, rho0, d, A, Cdt, Cdn, Cmn, CB, GK, GC, Gmu, Gvc, Dz, Kn;
 	arma::mat ten_1 = arma::zeros(3,1), ten_N = arma::zeros(3,1);
@@ -23,10 +25,11 @@ public:
 	arma::mat C, D, MassMatrix, MM, StiffMatrix, MSMatrix, MassMatrix_diag;
 	arma::mat inv_MM, inv_MM_1, inv_MM_N, inv_MM_1N;
 	arma::sp_mat D_sp, MassMatrix_sp, MM_sp, StiffMatrix_sp, MSMatrix_sp;
-	BCP * LineBCP [2];
+	BCP* pLineBcps [2];
 	double xF, zF, HF, VF, HA, VA, cosa, sina;
 
 	Line(int id);
+	int GetId();
 	void ReadPropertiesASCII(FILE* pFilePointer);
 	void print_out(void);
 	void initLine(void);

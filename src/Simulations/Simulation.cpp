@@ -57,17 +57,22 @@ void Simulation::ReadBcpsASCII()
     fscanf(file_pointer, "%d %[^\n]\n", &numJointBcps, bufferLine);
     fscanf(file_pointer, "%d %[^\n]\n", &numBodyBcps, bufferLine);
 	numBcps = numFairBcps + numAnchorBcps + numJointBcps + numBodyBcps;
-    printf("Number of bcps read!!\n");
+
+    printf("Number of fairleads: %d\n", numFairBcps);
+    printf("Number of anchor: %d\n", numAnchorBcps);
+    printf("Number of joint: %d\n", numJointBcps);
+    printf("Number of body: %d\n", numBodyBcps);
+
 	//ALOCATO UN VECTOR DE POINTERS A OBJETOS, UNO PARA CADA BCP
 	pBcps = new BCP* [numBcps];
 	int bcp_count = 0;
-    printf("Allocated BCPs\n");
+
     // Se leen los BCPs
 	pFairleadBcps = new FairleadBCP* [numFairBcps];
 	for(int ii=0; ii<numFairBcps; ii++)
     {
 		pFairleadBcps[ii] = new FairleadBCP(bcp_count);
-		pFairleadBcps[ii]->ReadPropertiesASCII(file_pointer);
+		pFairleadBcps[ii]->ReadPropertiesASCII(file_pointer, inputFolderPath);
 		dynamic_cast<FairleadBCP*>(pFairleadBcps[ii])->Initialize(inputFolderPath);
 		pBcps[bcp_count] = pFairleadBcps[ii];
 		bcp_count++;
@@ -96,6 +101,16 @@ void Simulation::ReadBcpsASCII()
 		pBcps[bcp_count] = pBodyBcps[ii];
 		bcp_count++;
 	}
+
+    // Loop over BCPs to check if it is necessary to read the winches file
+    for (int ii=0; ii<numBcps; ii++)
+    {
+        if (pBcps[ii]->winchId !=0)
+        {
+            useWinches = true;
+            break;
+        }
+    }
 
     // Close file
     fclose(file_pointer);
@@ -210,7 +225,7 @@ void Simulation::ReadLinesASCII()
 		try
 		{
             pLines[ii]->ReadPropertiesASCII(file_pointer);
-            pLines[ii]->print_out();
+            //pLines[ii]->print_out();
             /**
             pLines[ii]->LineBCP[0] = BCPs[pLines[ii]->BCP_1-1];
             pLines[ii]->LineBCP[1] = BCPs[pLines[ii]->BCP_N-1];
@@ -326,23 +341,39 @@ void Simulation::ReadPropertiesASCII()
 	
     char bufferLine [1000];
     int dummyBool;
-    fscanf(file_pointer, "%lf %[^\n]", &gravity, bufferLine);
-	fscanf(file_pointer, "%lf %[^\n]", &waterDensity, bufferLine);
-	fscanf(file_pointer, "%lf %[^\n]", &waterDepth, bufferLine);
-	fscanf(file_pointer, "%lf %[^\n]", &maxTimeStep, bufferLine);
-	fscanf(file_pointer, "%lf %[^\n]", &simulationTime, bufferLine);
-	fscanf(file_pointer, "%s %[^\n]", &timeIntMethod, bufferLine);
-	fscanf(file_pointer, "%lf %[^\n]", &timeIntAbsTol, bufferLine);
-	fscanf(file_pointer, "%lf %[^\n]", &timeIntRelTol, bufferLine);
-	fscanf(file_pointer, "%d %[^\n]", &maxIterStep, bufferLine);
-	fscanf(file_pointer, "%d %[^\n]", &dummyBool, bufferLine);
+    fscanf(file_pointer, "%lf %[^\n]\n", &gravity, bufferLine);
+	fscanf(file_pointer, "%lf %[^\n]\n", &waterDensity, bufferLine);
+	fscanf(file_pointer, "%lf %[^\n]\n", &waterDepth, bufferLine);
+	fscanf(file_pointer, "%lf %[^\n]\n", &maxTimeStep, bufferLine);
+	fscanf(file_pointer, "%lf %[^\n]\n", &simulationTime, bufferLine);
+	fscanf(file_pointer, "%d %[^\n]\n", &timeIntMethod, bufferLine);
+	fscanf(file_pointer, "%lf %[^\n]\n", &timeIntAbsTol, bufferLine);
+	fscanf(file_pointer, "%lf %[^\n]\n", &timeIntRelTol, bufferLine);
+	fscanf(file_pointer, "%d %[^\n]\n", &maxIterStep, bufferLine);
+	fscanf(file_pointer, "%d %[^\n]\n", &dummyBool, bufferLine);
     readEquilibrium = dummyBool;
-	fscanf(file_pointer, "%d %[^\n]", &dummyBool, bufferLine);
+	fscanf(file_pointer, "%d %[^\n]\n", &dummyBool, bufferLine);
     writeEquilibrium = dummyBool;
-    printf("MaxIterStep: %d\n", maxIterStep);
 
     // Close file
     fclose(file_pointer);
+
+
+    // Show inputs
+    if (true)
+    {
+        std::cout << "Gravity: " << gravity << std::endl;
+        std::cout << "Water Density: " << waterDensity << std::endl;
+        std::cout << "Water Depth: " << waterDepth << std::endl;
+        std::cout << "Max Time Step: " << maxTimeStep << std::endl;
+        std::cout << "Simulation Time: " << simulationTime << std::endl;
+        std::cout << "Time Integration Method: " << timeIntMethod << std::endl;
+        std::cout << "Time Integration Absolute Tolerace: " << timeIntAbsTol << std::endl;
+        std::cout << "Time Integration Relative Tolerace: " << timeIntRelTol << std::endl;
+        std::cout << "Max Iterations per Step: " << maxIterStep << std::endl;
+        std::cout << "Read Equilibrium: " << readEquilibrium << std::endl;
+        std::cout << "Write Equilibrium: " << writeEquilibrium << std::endl;
+    }
 
     std::cout << "----> Simulation Properties Read" << std::endl;
 }
@@ -382,12 +413,18 @@ void Simulation::ReadWinchesASCII()
         throw IOError(ss.str());
 	}
 
-    // Read file contents
+    // Read number of winches defined in the file
 	fscanf(file_pointer, "%d %[^\n]\n", &numWinches, bufferLine);
 
-	//ALOCATO UN VECTOR DE POINTERS A OBJETOS, UNO PARA CADA MUELLE
+    if ((numWinches ==0) && useWinches)
+    {
+        throw ValueError("Use of winches is requested when loading BCPs but there is no winches specified in datosWinches.dat\n");
+    }
+
+	// Allocate a vector of pointers to Winch class objects
 	pWinches = new Winchie*[numWinches];
-	//INICIO LLOS MUELLES
+
+	// Read Winches
 	for(int ii=0; ii<numWinches; ii++)
     {
 		pWinches[ii] = new Winchie(ii);
@@ -413,22 +450,138 @@ void Simulation::ReadWinchesHDF5()
 
 void Simulation::SetupCase()
 {
-    // Setup Bodies
-    double a = 0.0;
-    /**
-    // Setup Lines
+    std::cout << "--> Setting up the case configuration..." << std::endl;
+    // Count the number of BCP in each body and create pointer array
+    for (int ii=0; ii<numBodies; ii++)
+    {
+        for (int jj=0; jj<pBodies[ii]->numBcps; jj++)
+        {
+            if (pBodies[ii]->pIndexBcps[jj]+1 > numBcps)
+            {
+                std::stringstream ss;
+                ss << "BCP index: " << pBodies[ii]->pIndexBcps[jj] << " in Body: " << pBodies[ii]->GetId() \
+                    << " is out of range when compare with the Number of BCPs(" << numBcps << ") defined in" \
+                    << " datosBCPs.dat";
+                throw ValueError(ss.str());
+            }
+            pBcps[pBodies[ii]->pIndexBcps[jj]]->numBodiesBcp++;
+        }
+    }
+    bool defined_body_bcps [numBcps] = {0}; 
+    for (int ii=0; ii<numBodies; ii++)
+    {
+        for (int jj=0; jj<pBodies[ii]->numBcps; jj++)
+        {
+            if (!defined_body_bcps[pBodies[ii]->pIndexBcps[jj]])
+            {
+                pBcps[pBodies[ii]->pIndexBcps[jj]]->pBodies = new Body* [pBcps[pBodies[ii]->pIndexBcps[jj]]->numBodiesBcp];
+                defined_body_bcps[pBodies[ii]->pIndexBcps[jj]] = true;
+            }
+        }
+    }
+
+    // Assing to each BCP the corresponding Body pointer
+    for (int ii=0; ii<numBodies; ii++)
+    {
+        for(int jj=0; jj<pBodies[ii]->numBcps; jj++)
+        {
+            pBodies[ii]->pBodyBcps[jj] = pBcps[pBodies[ii]->pIndexBcps[jj]];
+            pBodies[ii]->pBodyBcps[jj]->pBodies[pBodies[ii]->pBodyBcps[jj]->countBody] = pBodies[ii];
+            pBodies[ii]->pBodyBcps[jj]->countBody++;
+        }
+        pBodies[ii]->UpdateBcps();
+    }
+
+    // Check every thing is correct
+    for (int ii=0; ii<numBodies; ii++)
+    {
+        for (int jj=0; jj<pBodies[ii]->numBcps; jj++)
+        {
+            std::cout << "Body ID: " << pBodies[ii]->GetId() << " - BCP ID: " << pBodies[ii]->pBodyBcps[jj]->GetId() << std::endl;
+        }
+    }
+    
+    for (int ii=0; ii<numBcps; ii++)
+    {
+        std::cout << "heree" << std::endl;
+        std::cout << "BCP ID: " << ii << " - NumBodies: " << pBcps[ii]->numBodiesBcp << std::endl;
+        for (int jj=0; jj<pBcps[ii]->numBodiesBcp; jj++)
+        {
+            std::cout << "BCP ID: " << pBcps[ii]->GetId() << std::endl;
+            std::cout << " - Body ID: " <<  pBcps[ii]->pBodies[0]->GetId() << std::endl;
+            std::cout << "BCP ID: " << pBcps[ii]->GetId() << " - Body ID: " <<  pBcps[ii]->pBodies[jj]->GetId() << std::endl;
+        }
+        std::cout << "heree2" << std::endl;
+    }
+
+
+    // Count the number of Lines in each body and create pointer array
     for (int ii=0; ii<numLines; ii++)
     {
-
+        for (int jj=0; jj<pLines[ii]->numBcps; jj++)
+        {
+            if (pLines[ii]->indexBcps[jj]+1 > numBcps)
+            {
+                std::stringstream ss;
+                ss << "BCP index: " << pLines[ii]->indexBcps[jj] << " in Line: " << pLines[ii]->GetId() \
+                    << " is out of range when compare with the Number of BCPs(" << numBcps << ") defined in" \
+                    << " datosBCPs.dat";
+                throw ValueError(ss.str());
+            }
+            pBcps[pLines[ii]->indexBcps[jj]]->numLinesBcp++;
+        }
     }
+    bool defined_lines_bcps [numBcps] = {0}; 
+    for (int ii=0; ii<numLines; ii++)
+    {
+        for (int jj=0; jj<pLines[ii]->numBcps; jj++)
+        {
+            if (!defined_lines_bcps[pLines[ii]->indexBcps[jj]])
+            {
+                pBcps[pLines[ii]->indexBcps[jj]]->pLines = new Line* [pBcps[pLines[ii]->indexBcps[jj]]->numLinesBcp];
+                defined_lines_bcps[pLines[ii]->indexBcps[jj]] = true;
+            }
+        }
+        numDofTotal += pLines[ii]->N;
+        if(readEquilibrium) pLines[ii]->initLine();
+        pLines[ii]->SEM_getBaseFunctions();
+    }
+
+    // Assing to each Line the corresponding Body pointer
+    for (int ii=0; ii<numLines; ii++)
+    {
+        for(int jj=0; jj<pLines[ii]->numBcps; jj++)
+        {
+            pLines[ii]->pLineBcps[jj] = pBcps[pLines[ii]->indexBcps[jj]];
+            pLines[ii]->pLineBcps[jj]->pLines[pLines[ii]->pLineBcps[jj]->countLine] = pLines[ii];
+            pLines[ii]->pLineBcps[jj]->countLine++;
+        }
+    }
+
+    // Check every thing is correct
+    for (int ii=0; ii<numBodies; ii++)
+    {
+        for (int jj=0; jj<pLines[ii]->numBcps; jj++)
+        {
+            std::cout << "Line ID: " << pLines[ii]->GetId() << " - BCP ID: " << pLines[ii]->pLineBcps[jj]->GetId() << std::endl;
+        }
+    }
+    for (int ii=0; ii<numBcps; ii++)
+    {
+        for (int jj=0; jj<pBcps[ii]->numLinesBcp; jj++)
+        {
+            std::cout << "BCP ID: " << pBcps[ii]->GetId() << " - Line ID: " <<  pBcps[ii]->pLines[jj]->GetId() << std::endl;
+        }
+    }
+    
 
     // Setup Springs
 	for(int ii=0; ii<numSprings; ii++)
     {
-		pSprings[ii].SpringBCP[0] = BCPs[Springs[ii].BCP_1-1];
-		pSprings[ii].SpringBCP[1] = BCPs[Springs[ii].BCP_2-1];
+		pSprings[ii]->SpringBCP[0] = pBcps[pSprings[ii]->BCP_1];
+		pSprings[ii]->SpringBCP[1] = pBcps[pSprings[ii]->BCP_2];
 	}
-    **/
+    std::cout << "----> Case configuration done" << std::endl;
 }
 
 

@@ -113,7 +113,7 @@ void Body::ReadPropertiesASCII(FILE* pFilePointer)
 	pIndexBcps = new int[numBcps];
 	for(int ii=0; ii<numBcps; ii++)
 	{
-		fscanf(pFilePointer, "%lf", &pIndexBcps[ii]);
+		fscanf(pFilePointer, "%d", &pIndexBcps[ii]);
 		pIndexBcps[ii] -= 1;
 	}
 	fscanf(pFilePointer, "%[^\n]\n", buffer_line);

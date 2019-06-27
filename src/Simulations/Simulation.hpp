@@ -21,6 +21,9 @@ public:
     std::string projectFolderPath;
     std::string outputFolderPath;
 
+    // Declare IO attributes
+    bool useWinches = false;
+
     // Declare simulation properties attributes
     double gravity;
     int maxIterStep;
@@ -28,7 +31,7 @@ public:
     double simulationTime;
     bool readEquilibrium;
     double timeIntAbsTol;
-    std::string timeIntMethod;
+    int timeIntMethod;
     double timeIntRelTol;
     double waterDensity;
     double waterDepth;
@@ -48,6 +51,7 @@ public:
     int numBcps;
     int numBodies;
     int numBodyBcps;
+    int numDofTotal;
     int numFairBcps;
     int numJointBcps;
     int numLines;

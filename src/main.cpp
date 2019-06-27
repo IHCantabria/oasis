@@ -40,180 +40,185 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 
 	arma::mat yprime = arma::zeros(size(y));
 	int i0;
-
+	printf("Antes de copy objects\n");
 	// Copy info from y to the objects.
 	int ini = 0;
 	for(int ii=0;ii<SD.nBodies;ii=ii+1)
 	{
-		SD.Bodies[ii].pos = y.rows(ini,ini+5);
+		SD.Bodies[ii]->pos = y.rows(ini,ini+5);
 		ini = ini + 6;
 	}
 	for(int ii=0;ii<SD.nLines;ii=ii+1)
 	{
-		for(int jj=0;jj<SD.Lines[ii].N;jj=jj+1){
-			SD.Lines[ii].pos.row(jj) = y.rows(ini,ini+2).t();
+		for(int jj=0;jj<SD.Lines[ii]->N;jj=jj+1){
+			SD.Lines[ii]->pos.row(jj) = y.rows(ini,ini+2).t();
 			ini = ini + 3;
 		}
 	}
 	ini = ini + SD.nWinchies;
 	for(int ii=0;ii<SD.nBodies;ii=ii+1)
 	{
-		SD.Bodies[ii].vel = y.rows(ini,ini+5);
+		SD.Bodies[ii]->vel = y.rows(ini,ini+5);
 		ini = ini + 6;
 	}
 	for(int ii=0;ii<SD.nLines;ii=ii+1)
 	{
-		for(int jj=0;jj<SD.Lines[ii].N;jj=jj+1)
+		for(int jj=0;jj<SD.Lines[ii]->N;jj=jj+1)
 		{
-			SD.Lines[ii].vel.row(jj) = y.rows(ini,ini+2).t();
+			SD.Lines[ii]->vel.row(jj) = y.rows(ini,ini+2).t();
 			ini = ini + 3;
 		}
 	}
 	for(int ii=0;ii<SD.nWinchies;ii=ii+1){
-		SD.Winchies[ii].theta = arma::as_scalar(y.row(SD.nSistema2-(ii+1)));
-		SD.Winchies[ii].omega = arma::as_scalar(y.row(SD.nSistema-(ii+1)));
+		SD.Winchies[ii]->theta = arma::as_scalar(y.row(SD.nSistema2-(ii+1)));
+		SD.Winchies[ii]->omega = arma::as_scalar(y.row(SD.nSistema-(ii+1)));
 	}
 	
-
+	printf("Update BodyBCP positions and velocities\n");
 	// Update BodyBCP positions and velocities
 	for(int ii=0;ii<SD.nBodies;ii=ii+1){
-		SD.Bodies[ii].UpdateBcps();
+		SD.Bodies[ii]->UpdateBcps();
 	}
-
+	printf("Set boundary conditions if BCP is not a joint\n");
 	// Set boundary conditions on pos and vel of Lines if the BCP is not a joint
 	if (SD.nLines >= 1){
-		if (SD.Lines[0].LineBCP[0]->tBCP != t){
+		if (SD.Lines[0]->pLineBcps[0]->tBCP != t){
 			for(int ii=0;ii<SD.nLines;ii=ii+1){		
-				if(SD.Lines[ii].LineBCP[0]->GetType() != 3){
-					SD.Lines[ii].LineBCP[0]->GetValues(t);
+				if(SD.Lines[ii]->pLineBcps[0]->GetType() != 3){
+					SD.Lines[ii]->pLineBcps[0]->GetValues(t);
 				}
-				if(SD.Lines[ii].LineBCP[1]->GetType() != 3){
-					SD.Lines[ii].LineBCP[1]->GetValues(t);
+				if(SD.Lines[ii]->pLineBcps[1]->GetType() != 3){
+					SD.Lines[ii]->pLineBcps[1]->GetValues(t);
 				}
 			}
 		}
 	}
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
-		if(SD.Lines[ii].LineBCP[0]->GetType() != 3){
-			SD.Lines[ii].pos.row(0)                = SD.Lines[ii].LineBCP[0]->pos.t();
-			SD.Lines[ii].vel.row(0)                = SD.Lines[ii].LineBCP[0]->vel.t();
+		if(SD.Lines[ii]->pLineBcps[0]->GetType() != 3){
+			SD.Lines[ii]->pos.row(0)                = SD.Lines[ii]->pLineBcps[0]->pos.t();
+			SD.Lines[ii]->vel.row(0)                = SD.Lines[ii]->pLineBcps[0]->vel.t();
 		}
-		if(SD.Lines[ii].LineBCP[1]->GetType() != 3){
-			SD.Lines[ii].pos.row(SD.Lines[ii].N-1) = SD.Lines[ii].LineBCP[1]->pos.t();
-			SD.Lines[ii].vel.row(SD.Lines[ii].N-1) = SD.Lines[ii].LineBCP[1]->vel.t();
+		if(SD.Lines[ii]->pLineBcps[1]->GetType() != 3){
+			SD.Lines[ii]->pos.row(SD.Lines[ii]->N-1) = SD.Lines[ii]->pLineBcps[1]->pos.t();
+			SD.Lines[ii]->vel.row(SD.Lines[ii]->N-1) = SD.Lines[ii]->pLineBcps[1]->vel.t();
 		}
 	}
+	printf("Set boundary conditions if BCP is a joint\n");
 	// Set boundary conditions on pos and vel of Lines if the BCP is a joint
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
-		if(SD.Lines[ii].LineBCP[0]->GetType() == 3){
-			SD.Lines[ii].LineBCP[0]->posLines.row(SD.Lines[ii].LineBCP[0]->iLJ) = SD.Lines[ii].pos.row(0);
-			SD.Lines[ii].LineBCP[0]->velLines.row(SD.Lines[ii].LineBCP[0]->iLJ) = SD.Lines[ii].vel.row(0);
-			SD.Lines[ii].LineBCP[0]->iLJ = SD.Lines[ii].LineBCP[0]->iLJ + 1;
+		if(SD.Lines[ii]->pLineBcps[0]->GetType() == 3){
+			SD.Lines[ii]->pLineBcps[0]->posLines.row(SD.Lines[ii]->pLineBcps[0]->iLJ) = SD.Lines[ii]->pos.row(0);
+			SD.Lines[ii]->pLineBcps[0]->velLines.row(SD.Lines[ii]->pLineBcps[0]->iLJ) = SD.Lines[ii]->vel.row(0);
+			SD.Lines[ii]->pLineBcps[0]->iLJ = SD.Lines[ii]->pLineBcps[0]->iLJ + 1;
 		}
-		if(SD.Lines[ii].LineBCP[1]->GetType() == 3){
-			SD.Lines[ii].LineBCP[1]->posLines.row(SD.Lines[ii].LineBCP[1]->iLJ) = SD.Lines[ii].pos.row(SD.Lines[ii].N-1);
-			SD.Lines[ii].LineBCP[1]->velLines.row(SD.Lines[ii].LineBCP[1]->iLJ) = SD.Lines[ii].vel.row(SD.Lines[ii].N-1);
-			SD.Lines[ii].LineBCP[1]->iLJ = SD.Lines[ii].LineBCP[1]->iLJ + 1;
-		}
-	}
-	for(int ii=0;ii<SD.nLines;ii=ii+1){
-		if(SD.Lines[ii].LineBCP[0]->GetType() == 3){
-			SD.Lines[ii].LineBCP[0]->GetValues(t);
-		}
-		if(SD.Lines[ii].LineBCP[1]->GetType() == 3){
-			SD.Lines[ii].LineBCP[1]->GetValues(t);
+		if(SD.Lines[ii]->pLineBcps[1]->GetType() == 3){
+			SD.Lines[ii]->pLineBcps[1]->posLines.row(SD.Lines[ii]->pLineBcps[1]->iLJ) = SD.Lines[ii]->pos.row(SD.Lines[ii]->N-1);
+			SD.Lines[ii]->pLineBcps[1]->velLines.row(SD.Lines[ii]->pLineBcps[1]->iLJ) = SD.Lines[ii]->vel.row(SD.Lines[ii]->N-1);
+			SD.Lines[ii]->pLineBcps[1]->iLJ = SD.Lines[ii]->pLineBcps[1]->iLJ + 1;
 		}
 	}
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
-		if(SD.Lines[ii].LineBCP[0]->GetType() == 3){
-			SD.Lines[ii].pos.row(0)                = SD.Lines[ii].LineBCP[0]->pos.t();
-			SD.Lines[ii].vel.row(0)                = SD.Lines[ii].LineBCP[0]->vel.t();
+		if(SD.Lines[ii]->pLineBcps[0]->GetType() == 3){
+			SD.Lines[ii]->pLineBcps[0]->GetValues(t);
 		}
-		if(SD.Lines[ii].LineBCP[1]->GetType() == 3){
-			SD.Lines[ii].pos.row(SD.Lines[ii].N-1) = SD.Lines[ii].LineBCP[1]->pos.t();
-			SD.Lines[ii].vel.row(SD.Lines[ii].N-1) = SD.Lines[ii].LineBCP[1]->vel.t();
+		if(SD.Lines[ii]->pLineBcps[1]->GetType() == 3){
+			SD.Lines[ii]->pLineBcps[1]->GetValues(t);
 		}
 	}
-
+	for(int ii=0;ii<SD.nLines;ii=ii+1){
+		if(SD.Lines[ii]->pLineBcps[0]->GetType() == 3){
+			SD.Lines[ii]->pos.row(0)                = SD.Lines[ii]->pLineBcps[0]->pos.t();
+			SD.Lines[ii]->vel.row(0)                = SD.Lines[ii]->pLineBcps[0]->vel.t();
+		}
+		if(SD.Lines[ii]->pLineBcps[1]->GetType() == 3){
+			SD.Lines[ii]->pos.row(SD.Lines[ii]->N-1) = SD.Lines[ii]->pLineBcps[1]->pos.t();
+			SD.Lines[ii]->vel.row(SD.Lines[ii]->N-1) = SD.Lines[ii]->pLineBcps[1]->vel.t();
+		}
+	}
+	printf("Comput forces vecotr for the different lines\n");
 	// Compute forces vector for the different Lines
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
-		SD.Lines[ii].SEM_computeF();
+		SD.Lines[ii]->SEM_computeF();
 	}
-
+	printf("Compute forces of springs\n");
 	// Compute forces of Springs
 	for(int ii=0;ii<SD.nSprings;ii=ii+1){
-		SD.Springs[ii].computeSpringForces();
+		SD.Springs[ii]->computeSpringForces();
 	}
-
+	printf("Compute hydro forces\n");
 	// Compute hydrostatic and hidrodynamic forces
 	SD.Water->computeHydroForces(t);
+	printf("Sali de compute forces\n");
 	arma::mat Fb = SD.Water->HydroForces;
+	printf("Compute forces on bcps\n");
 	// Compute forces on BCPs
 	for(int ii=0;ii<SD.nBodies;ii=ii+1){
-		SD.Bodies[ii].ComputeBcpForces();
-		Fb(arma::span(6*ii,6*(ii+1)-1), 0) = Fb(arma::span(6*ii,6*(ii+1)-1), 0) + SD.Bodies[ii].bcpForces;
+		SD.Bodies[ii]->ComputeBcpForces();
+		Fb(arma::span(6*ii,6*(ii+1)-1), 0) = Fb(arma::span(6*ii,6*(ii+1)-1), 0) + SD.Bodies[ii]->bcpForces;
 	}
-
+	printf("Compute body acceleration\n");
 	// Compute body acceleration
 	arma::mat accB = (SD.Water->invM)*Fb;
 	for(int ii=0;ii<SD.nBodies;ii=ii+1){
-		SD.Bodies[ii].acc = accB(arma::span(6*ii,6*(ii+1)-1), 0);
+		SD.Bodies[ii]->acc = accB(arma::span(6*ii,6*(ii+1)-1), 0);
 	}
 
 	// Update BodyBCP accelerations
+	printf("Compute BodyBCP acceleration\n");
 	for(int ii=0;ii<SD.nBodies;ii=ii+1){
-		SD.Bodies[ii].UpdateBcps();
+		SD.Bodies[ii]->UpdateBcps();
 	}
 
 	// Obtain Lines accelerations, imposing boundary conditions if the BCP is not a joint
+	printf("Compute Lines accelerations\n");
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
-		if(SD.Lines[ii].LineBCP[0]->GetType() != 3){
-			SD.Lines[ii].F.row(0)                = SD.Lines[ii].LineBCP[0]->acc.t();
+		if(SD.Lines[ii]->pLineBcps[0]->GetType() != 3){
+			SD.Lines[ii]->F.row(0)                = SD.Lines[ii]->pLineBcps[0]->acc.t();
 		}
-		if(SD.Lines[ii].LineBCP[1]->GetType() != 3){
-			SD.Lines[ii].F.row(SD.Lines[ii].N-1) = SD.Lines[ii].LineBCP[1]->acc.t();
+		if(SD.Lines[ii]->pLineBcps[1]->GetType() != 3){
+			SD.Lines[ii]->F.row(SD.Lines[ii]->N-1) = SD.Lines[ii]->pLineBcps[1]->acc.t();
 		}
-		if((SD.Lines[ii].LineBCP[0]->GetType() != 3)&&(SD.Lines[ii].LineBCP[1]->GetType() != 3)){
-			SD.Lines[ii].acc = SD.Lines[ii].inv_MM_1N * SD.Lines[ii].F / SD.Lines[ii].dL;
-		} else if ((SD.Lines[ii].LineBCP[0]->GetType() == 3)&&(SD.Lines[ii].LineBCP[1]->GetType() != 3)){
-			SD.Lines[ii].acc = SD.Lines[ii].inv_MM_N * SD.Lines[ii].F / SD.Lines[ii].dL;
-		} else if ((SD.Lines[ii].LineBCP[0]->GetType() != 3)&&(SD.Lines[ii].LineBCP[1]->GetType() == 3)){
-			SD.Lines[ii].acc = SD.Lines[ii].inv_MM_1 * SD.Lines[ii].F / SD.Lines[ii].dL;
-		} else if ((SD.Lines[ii].LineBCP[0]->GetType() == 3)&&(SD.Lines[ii].LineBCP[1]->GetType() == 3)){
-			SD.Lines[ii].acc = SD.Lines[ii].inv_MM * SD.Lines[ii].F / SD.Lines[ii].dL;
+		if((SD.Lines[ii]->pLineBcps[0]->GetType() != 3)&&(SD.Lines[ii]->pLineBcps[1]->GetType() != 3)){
+			SD.Lines[ii]->acc = SD.Lines[ii]->inv_MM_1N * SD.Lines[ii]->F / SD.Lines[ii]->dL;
+		} else if ((SD.Lines[ii]->pLineBcps[0]->GetType() == 3)&&(SD.Lines[ii]->pLineBcps[1]->GetType() != 3)){
+			SD.Lines[ii]->acc = SD.Lines[ii]->inv_MM_N * SD.Lines[ii]->F / SD.Lines[ii]->dL;
+		} else if ((SD.Lines[ii]->pLineBcps[0]->GetType() != 3)&&(SD.Lines[ii]->pLineBcps[1]->GetType() == 3)){
+			SD.Lines[ii]->acc = SD.Lines[ii]->inv_MM_1 * SD.Lines[ii]->F / SD.Lines[ii]->dL;
+		} else if ((SD.Lines[ii]->pLineBcps[0]->GetType() == 3)&&(SD.Lines[ii]->pLineBcps[1]->GetType() == 3)){
+			SD.Lines[ii]->acc = SD.Lines[ii]->inv_MM * SD.Lines[ii]->F / SD.Lines[ii]->dL;
 		}
 	}
 	// Obtain Lines accelerations, imposing boundary conditions if the BCP is a joint
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
-		if(SD.Lines[ii].LineBCP[0]->GetType() == 3){
-			SD.Lines[ii].LineBCP[0]->accLines.row(SD.Lines[ii].LineBCP[0]->iLJ) = SD.Lines[ii].acc.row(0);
-			SD.Lines[ii].LineBCP[0]->iLJ = SD.Lines[ii].LineBCP[0]->iLJ + 1;
+		if(SD.Lines[ii]->pLineBcps[0]->GetType() == 3){
+			SD.Lines[ii]->pLineBcps[0]->accLines.row(SD.Lines[ii]->pLineBcps[0]->iLJ) = SD.Lines[ii]->acc.row(0);
+			SD.Lines[ii]->pLineBcps[0]->iLJ = SD.Lines[ii]->pLineBcps[0]->iLJ + 1;
 		}
-		if(SD.Lines[ii].LineBCP[1]->GetType() == 3){
-			SD.Lines[ii].LineBCP[1]->accLines.row(SD.Lines[ii].LineBCP[1]->iLJ) = SD.Lines[ii].acc.row(SD.Lines[ii].N-1);
-			SD.Lines[ii].LineBCP[1]->iLJ = SD.Lines[ii].LineBCP[1]->iLJ + 1;
-		}
-	}
-	for(int ii=0;ii<SD.nLines;ii=ii+1){
-		if(SD.Lines[ii].LineBCP[0]->GetType() == 3){
-			SD.Lines[ii].LineBCP[0]->GetValues(t);
-		}
-		if(SD.Lines[ii].LineBCP[1]->GetType() == 3){
-			SD.Lines[ii].LineBCP[1]->GetValues(t);
+		if(SD.Lines[ii]->pLineBcps[1]->GetType() == 3){
+			SD.Lines[ii]->pLineBcps[1]->accLines.row(SD.Lines[ii]->pLineBcps[1]->iLJ) = SD.Lines[ii]->acc.row(SD.Lines[ii]->N-1);
+			SD.Lines[ii]->pLineBcps[1]->iLJ = SD.Lines[ii]->pLineBcps[1]->iLJ + 1;
 		}
 	}
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
-		if(SD.Lines[ii].LineBCP[0]->GetType() == 3){
-			SD.Lines[ii].acc.row(0)                = SD.Lines[ii].LineBCP[0]->acc.t();
+		if(SD.Lines[ii]->pLineBcps[0]->GetType() == 3){
+			SD.Lines[ii]->pLineBcps[0]->GetValues(t);
 		}
-		if(SD.Lines[ii].LineBCP[1]->GetType() == 3){
-			SD.Lines[ii].acc.row(SD.Lines[ii].N-1) = SD.Lines[ii].LineBCP[1]->acc.t();
+		if(SD.Lines[ii]->pLineBcps[1]->GetType() == 3){
+			SD.Lines[ii]->pLineBcps[1]->GetValues(t);
+		}
+	}
+	for(int ii=0;ii<SD.nLines;ii=ii+1){
+		if(SD.Lines[ii]->pLineBcps[0]->GetType() == 3){
+			SD.Lines[ii]->acc.row(0)                = SD.Lines[ii]->pLineBcps[0]->acc.t();
+		}
+		if(SD.Lines[ii]->pLineBcps[1]->GetType() == 3){
+			SD.Lines[ii]->acc.row(SD.Lines[ii]->N-1) = SD.Lines[ii]->pLineBcps[1]->acc.t();
 		}
 	}
 
 	// Compute Winchies
 	for(int ii=0;ii<SD.nWinchies;ii=ii+1){
-		SD.Winchies[ii].computeWinchie();
+		SD.Winchies[ii]->computeWinchie();
 	}
 
 	// Copy info from the objects to yprime
@@ -221,14 +226,14 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 	yprime.rows(SD.nSistema2,SD.nSistema2+6*SD.nBodies-1) = accB;
 	ini = SD.nSistema2+6*SD.nBodies;
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
-		for(int jj=0;jj<SD.Lines[ii].N;jj=jj+1){
-			yprime.rows(ini,ini+2) = SD.Lines[ii].acc.row(jj).t();
+		for(int jj=0;jj<SD.Lines[ii]->N;jj=jj+1){
+			yprime.rows(ini,ini+2) = SD.Lines[ii]->acc.row(jj).t();
 			ini = ini + 3;
 		}
 	}
 	for(int ii=0;ii<SD.nWinchies;ii=ii+1){
-		yprime.row(SD.nSistema2-(ii+1)) = SD.Winchies[ii].omega;
-		yprime.row(SD.nSistema-(ii+1)) = SD.Winchies[ii].alpha;
+		yprime.row(SD.nSistema2-(ii+1)) = SD.Winchies[ii]->omega;
+		yprime.row(SD.nSistema-(ii+1)) = SD.Winchies[ii]->alpha;
 	}
 
 
@@ -237,6 +242,7 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 		throw std::exception();
 	}
 	return yprime;
+	
 }
 
 
@@ -294,11 +300,11 @@ int main (int argc, char* argv[])
 		printf("Before initializing...\n");
 		mySim->Initialize();
 		printf("Water Depth: %f\n", mySim->waterDepth);
-	}
-	catch(Exception& error)
-	{
-		error.PrintDebug();
-	}
+	//}
+	//catch(Exception& error)
+	//{
+//		error.PrintDebug();
+	//}
 	
 	
 
@@ -474,111 +480,123 @@ int main (int argc, char* argv[])
 	}
 
 	std::cout<< "  Reading and starting Hyrodynamics ... " << std::endl << std::endl; //////////////////////////////////////////
-
-	// DEFINO UN POINTER A UN OBJETO DE LA CLASE HYDRO
-	file_path = JoinPath(project_path, "input/flotante.h5");
-	Hydro * Water = new Hydro;
-	//INICIO EL OBJETO QUE CONTIENE LA HIDRODINAMICA
-	Water->set_Hydro(nBodies,Bodies);
-	Water->leer_datosHydro(file_path);
-	Water->computeIRF();
-	Water->computeWaveSpectrum();
-	Water->computeFe();
-
-	std::cout<< "End of input reading" << std::endl << std::endl; //////////////////////////////////////////
-
-
-	std::cout<< "  Initializing ODE system vector ..." << std::endl << std::endl; //////////////////////////////////////////
-	// Inicio el vector del sistema
-	nSistema = 2*(3*nNodosTotal + 6*nBodies + nWinchies);
-	nSistema2 = 3*nNodosTotal + 6*nBodies + nWinchies;
-	SD.nSistema = nSistema;
-	SD.nSistema2 = nSistema2;
-
-	arma::mat y = arma::zeros(nSistema,1);
-	arma::mat yprime = arma::zeros(nSistema,1);
-
-	int ini=0;
-	if(flag_read_eq==0){
-		for(int ii=0; ii<nBodies; ii=ii+1){
-				y.rows(ini,ini+5) = Bodies[ii].pos;
-				ini=ini+6;
-		}
-		for(int ii=0; ii<numLines; ii=ii+1){
-			for(int jj=0; jj<Lines[ii].N; jj=jj+1){
-					y.rows(ini,ini+2) = Lines[ii].pos.row(jj).t();
-					ini=ini+3;
-			}
-		}
-	}else if (flag_read_eq==1){
-		file_path = JoinPath(project_path, "input/Equilibrio.dat");
-	 	std::ifstream equi(file_path);
-			for(int ii=6*nBodies;ii<nSistema2;ii=ii+1) {
-				equi >> y(ii,0);    equi.ignore(std::numeric_limits<int>::max(), '\n');
-			}
-		equi.close();
-
-		ini=6*nBodies;
-		for(int ii=0; ii<numLines; ii=ii+1){
-			for(int jj=0; jj<Lines[ii].N; jj=jj+1){
-				Lines[ii].pos.row(jj) = y.rows(ini,ini+2).t();
-				ini=ini+3;
-			}
-		}
-	}
-
-	// ESCIBIENDO CONDICION INICIAL A FICHEROS
-	for(int ii=0; ii<numLines; ii=ii+1) Lines[ii].write_out(t);
-	for(int ii=0; ii<nBodies; ii=ii+1) Bodies[ii].write_out(t);
-
-	// GUARDANDO DATOS LEIDOS EN ESTRUCTURA DEL SOLVER TEMPORAL
-	SD.nLines = numLines;
-	SD.Lines = Lines;
-	SD.nSprings = nSprings;
-	SD.Springs = Springs;
-	SD.nBodies = nBodies;
-	SD.Bodies = Bodies;
-	SD.Water = Water;
-	SD.nWinchies = nWinchies;
-	SD.Winchies = Winchies;
-
-	std::cout<< "  Starting temporal integration ..." << std::endl << std::endl; //////////////////////////////////////////
-
-	if (solver_flag == 1){
-		BDF S (t, t_max, dt, y, *fun, SD);
-		S.atol = atol;
-		S.rtol = rtol;
-		S.nIterMax = nIterMax;
-		time_t tstart, tend; 
- 		tstart = time(0);
-		std::cout<< "    t = " << t << " s" << std::endl;
-		do{
-			S.step();
-			if (S.t >= t + dt){
-				t = t + dt;
-				std::cout<< "    t = " << t << " s"  << std::endl;
-				if (nWinchies>0) CW.controlWinchies();
-				for(int ii=0; ii<numLines; ii=ii+1) Lines[ii].write_out(S.t);
-				for(int ii=0; ii<nBodies; ii=ii+1) Bodies[ii].write_out(S.t);
-			}
-		} while (S.t<=t_max);
-
-		tend = time(0); 
-		std::cout << std::endl << "    Computational time  : " << difftime(tend, tstart) << " seconds" << std::endl;
-		std::cout << "    Total function calls: " << nCalls << std::endl;
-		std::cout << "    Total jac calls: " << S.iJ << std::endl << std::endl;
-	}
-
-
-	if (flag_write_eq == 1) {
-
-		std::cout << "  Writting data to Equilibrio.dat ..." << std::endl << std::endl; //////////////////////////////////////////
-
-		std::ofstream equi("output/Equilibrio.dat");
-			for(int ii=6*nBodies;ii<nSistema2;ii=ii+1) equi << y(ii,0) << std::endl;
-		equi.close();
-	}
 	**/
+		// DEFINO UN POINTER A UN OBJETO DE LA CLASE HYDRO
+		file_path = JoinPath(project_path, "input/flotante.h5");
+		Hydro * Water = new Hydro;
+		//INICIO EL OBJETO QUE CONTIENE LA HIDRODINAMICA
+		Water->set_Hydro(mySim->numBodies, mySim->pBodies);
+		std::cout << "Number of bodies: " << Water->nBodies << std::endl;
+		Water->leer_datosHydro(file_path);
+		//Water->computeIRF();
+		//Water->computeWaveSpectrum();
+		//Water->computeFe();
+
+		std::cout<< "End of input reading" << std::endl << std::endl; //////////////////////////////////////////
+
+		
+		std::cout<< "  Initializing ODE system vector ..." << std::endl << std::endl; //////////////////////////////////////////
+		// Inicio el vector del sistema
+		nSistema2 = 3*mySim->numDofTotal + 6*mySim->numBodies + mySim->numWinches;
+		nSistema = 2*nSistema2;
+		SD.nSistema = nSistema;
+		SD.nSistema2 = nSistema2;
+
+		arma::mat y = arma::zeros(nSistema,1);
+		arma::mat yprime = arma::zeros(nSistema,1);
+
+		int ini=0;
+		if(flag_read_eq==0){
+			for(int ii=0; ii<mySim->numBodies; ii=ii+1){
+					y.rows(ini,ini+5) = mySim->pBodies[ii]->pos;
+					ini=ini+6;
+			}
+			for(int ii=0; ii<mySim->numLines; ii=ii+1){
+				for(int jj=0; jj<mySim->pLines[ii]->N; jj=jj+1){
+						y.rows(ini,ini+2) = mySim->pLines[ii]->pos.row(jj).t();
+						ini=ini+3;
+				}
+			}
+		}else if (mySim->readEquilibrium){
+			file_path = JoinPath(mySim->inputFolderPath, "Equilibrio.dat");
+			std::ifstream equi(file_path);
+				for(int ii=6*mySim->numBodies;ii<nSistema2;ii=ii+1) {
+					equi >> y(ii,0);    equi.ignore(std::numeric_limits<int>::max(), '\n');
+				}
+			equi.close();
+
+			ini=6*mySim->numBodies;
+			for(int ii=0; ii<mySim->numLines; ii=ii+1){
+				for(int jj=0; jj<mySim->pLines[ii]->N; jj=jj+1){
+					mySim->pLines[ii]->pos.row(jj) = y.rows(ini,ini+2).t();
+					ini=ini+3;
+				}
+			}
+		}
+		
+
+		// ESCIBIENDO CONDICION INICIAL A FICHEROS
+		for(int ii=0; ii<mySim->numLines; ii=ii+1) mySim->pLines[ii]->write_out(t);
+		for(int ii=0; ii<mySim->numBodies; ii=ii+1) mySim->pBodies[ii]->WriteOut(t);
+
+		// GUARDANDO DATOS LEIDOS EN ESTRUCTURA DEL SOLVER TEMPORAL
+		SD.nLines = mySim->numLines;
+		SD.Lines = mySim->pLines;
+		SD.nSprings = mySim->numSprings;
+		SD.Springs = mySim->pSprings;
+		SD.nBodies = mySim->numBodies;
+		SD.Bodies = mySim->pBodies;
+		SD.Water = Water;
+		SD.nWinchies = mySim->numWinches;
+		SD.Winchies = mySim->pWinches;
+
+		std::cout<< "  Starting temporal integration ..." << std::endl << std::endl; //////////////////////////////////////////
+		std::cout<< "  Starting temporal integration ... " << mySim->timeIntMethod << std::endl;
+		std::cout<< "  Starting temporal integration ... " << mySim->simulationTime << std::endl;
+		//if (mySim->timeIntMethod == 1)
+		if (mySim->timeIntMethod == 1)
+		{
+			std::cout << "Initializing temporal solver..." << std::endl;
+			BDF S (t, t_max, dt, y, *fun, SD);
+			std::cout << "Temporal solver initialized" << std::endl;
+			S.atol = atol;
+			S.rtol = rtol;
+			S.nIterMax = nIterMax;
+			time_t tstart, tend; 
+			tstart = time(0);
+			std::cout<< "    t = " << t << " s" << std::endl;
+			do{
+				S.step();
+				if (S.t >= t + dt){
+					t = t + dt;
+					std::cout<< "    t = " << t << " s"  << std::endl;
+					//if (nWinchies>0) CW.controlWinchies();
+					for(int ii=0; ii<numLines; ii=ii+1) mySim->pLines[ii]->write_out(S.t);
+					for(int ii=0; ii<nBodies; ii=ii+1) mySim->pBodies[ii]->WriteOut(S.t);
+				}
+			} while (S.t<=t_max);
+
+			tend = time(0); 
+			std::cout << std::endl << "    Computational time  : " << difftime(tend, tstart) << " seconds" << std::endl;
+			std::cout << "    Total function calls: " << nCalls << std::endl;
+			std::cout << "    Total jac calls: " << S.iJ << std::endl << std::endl;
+		}
+
+
+		if (flag_write_eq == 1) {
+
+			std::cout << "  Writting data to Equilibrio.dat ..." << std::endl << std::endl; //////////////////////////////////////////
+
+			std::ofstream equi("output/Equilibrio.dat");
+				for(int ii=6*nBodies;ii<nSistema2;ii=ii+1) equi << y(ii,0) << std::endl;
+			equi.close();
+		}
+	}
+	catch(Exception& error)
+	{
+		error.PrintDebug();
+	}
+	
 	std::cout << "End of the program." << std::endl; //////////////////////////////////////////
 	std::cout << "----------------------------------------------" << std::endl << std::endl; //////////////////////////////////////////
 	return 0;

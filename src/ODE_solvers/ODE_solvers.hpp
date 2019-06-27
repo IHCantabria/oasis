@@ -12,14 +12,14 @@
 struct solver_data{
 	int nSistema, nSistema2;
 	int nLines;
-	Line * Lines;
+	Line** Lines;
 	int nSprings;
-	Spring * Springs;
+	Spring** Springs;
 	int nBodies;
-	Body * Bodies;
-	Hydro * Water;
+	Body** Bodies;
+	Hydro* Water;
 	int nWinchies;
-	Winchie * Winchies;
+	Winchie** Winchies;
 };
 
 class BDF{
