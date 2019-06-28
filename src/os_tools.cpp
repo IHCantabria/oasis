@@ -7,11 +7,13 @@
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <iomanip>
 #include <experimental/filesystem>
 #include <string>
 #include <vector>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <armadillo>
 #include "./Exceptions/Exception.hpp"
 namespace fs = std::experimental::filesystem;
 
@@ -125,6 +127,21 @@ std::string JoinPaths(std::string basePath, std::vector<std::string> subDirs)
 	}
 	
 	return basePath;
+}
+
+
+void WriteASCII(std::string filePath, arma::mat outVec, bool showColsNum)
+{
+	std::ofstream xpos;
+		xpos.open(filePath);
+		if (showColsNum)
+		{
+			for(int ii=0;ii<outVec.n_rows;ii++) xpos << std::setw(15) <<  ii;
+			xpos << std::endl;
+		}
+		for(int ii=0;ii<outVec.n_rows;ii++) xpos << std::setw(15) <<  outVec(ii,0);
+		xpos << std::endl;
+	xpos.close();
 }
 
 #endif

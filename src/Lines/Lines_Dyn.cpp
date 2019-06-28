@@ -65,7 +65,6 @@ void Line::ReadPropertiesASCII(FILE* pFilePointer)
 	BCP_1 -= 1;
 	indexBcps[0] = BCP_1;
 
-	printf("Read polynomial order: %d\n", p);
 
 	A = PI*d*d*0.25;
 	dL = L/(nNodos-1);
@@ -304,8 +303,8 @@ void Line::print_out (void)
 void Line::initLine (void) 
 {
 	// Load BCP data
-	pos_1 = pLineBcps[0]->pos;
-	pos_N = pLineBcps[1]->pos;
+	pos_1 = pLineBcps[0]->posG_BCP;
+	pos_N = pLineBcps[1]->posG_BCP;
 
 	// Init Line
 	if (pos_N(2,0)<fondo || pos_1(2,0)<fondo) throw 0;
@@ -471,7 +470,7 @@ void Line::initLine (void)
 
 void Line::write_out (double t) 
 {
-
+	std::cout << "Writting out line data..." << std::endl;
 	int ii, nn1, nn2, nn3, nn4;
 
 	char buffer1[50], buffer2[50], buffer3[50], buffer4[50];

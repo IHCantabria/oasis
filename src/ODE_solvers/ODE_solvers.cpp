@@ -38,6 +38,8 @@ BDF::BDF(double t_u, double tmax_u, double dt_out_u, arma::mat y_u, arma::mat (*
 	J = arma::zeros(nSistema,nSistema);
 
 	F(0) = 2*atol;
+	//yprime = fun(t + h_0, y, SD);
+	
 	do{
 		jac(t + h_0, y);
 		M = I - h_0 * J;
@@ -55,6 +57,8 @@ BDF::BDF(double t_u, double tmax_u, double dt_out_u, arma::mat y_u, arma::mat (*
 	t = t + h_0;
 
 	jac(t + h_0, y_0);
+	
+	
 }
 
 
@@ -67,9 +71,8 @@ void BDF::jac(double tt, arma::mat yy){
 
 
 void BDF::step(void){
-
 	q = 0;
-
+	
 	LOOP:
 	k = 0;
 	y = y_0 + h_0*(y_0 - y_1)/h_1;
@@ -117,4 +120,5 @@ void BDF::step(void){
 	y_2 = y_1;
 	y_1 = y_0;
 	y_0 = y;
+	
 }

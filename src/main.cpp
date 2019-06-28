@@ -144,8 +144,10 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 		SD.Bodies[ii]->ComputeBcpForces();
 		Fb(arma::span(6*ii,6*(ii+1)-1), 0) = Fb(arma::span(6*ii,6*(ii+1)-1), 0) + SD.Bodies[ii]->bcpForces;
 	}
+	WriteASCII("output/bcpForces.dat", SD.Bodies[0]->bcpForces, true);
 	// Compute body acceleration
 	arma::mat accB = (SD.Water->invM)*Fb;
+	WriteASCII("output/accB.dat", accB, true);
 	for(int ii=0;ii<SD.nBodies;ii=ii+1){
 		SD.Bodies[ii]->acc = accB(arma::span(6*ii,6*(ii+1)-1), 0);
 	}
@@ -154,7 +156,7 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 	for(int ii=0;ii<SD.nBodies;ii=ii+1){
 		SD.Bodies[ii]->UpdateBcps();
 	}
-
+	WriteASCII("output/bcpAcceleration.dat", SD.Bodies[0]->pBodyBcps[0]->accG_BCP, true);
 	// Obtain Lines accelerations, imposing boundary conditions if the BCP is not a joint
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
 		if(SD.Lines[ii]->pLineBcps[0]->GetType() != 3){
@@ -226,6 +228,7 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 		std::cout << std::endl << "ERROR: NaN Detected!" << std::endl;
 		throw std::exception();
 	}
+	WriteASCII("output/yprime.dat", yprime, true);
 	return yprime;
 	
 }
@@ -491,6 +494,9 @@ int main (int argc, char* argv[])
 		SD.nSistema = nSistema;
 		SD.nSistema2 = nSistema2;
 
+		printf("Sistema size: %d\n", nSistema);
+		printf("Sistema2 size: %d\n", nSistema2);
+
 		arma::mat y = arma::zeros(nSistema,1);
 		arma::mat yprime = arma::zeros(nSistema,1);
 
@@ -546,29 +552,31 @@ int main (int argc, char* argv[])
 		if (mySim->timeIntMethod == 1)
 		{
 			std::cout << "Initializing temporal solver..." << std::endl;
-			BDF S (t, t_max, dt, y, *fun, SD);
-			std::cout << "Temporal solver initialized" << std::endl;
-			S.atol = atol;
-			S.rtol = rtol;
-			S.nIterMax = nIterMax;
-			time_t tstart, tend; 
+			BDF S (t, mySim->simulationTime, mySim->maxTimeStep, y, *fun, SD);
+			S.atol = mySim->timeIntAbsTol;
+			S.rtol = mySim->timeIntRelTol;
+			S.nIterMax = mySim->maxIterStep;
+			time_t tstart, tend;
+			
 			tstart = time(0);
 			std::cout<< "    t = " << t << " s" << std::endl;
 			do{
 				S.step();
-				if (S.t >= t + dt){
-					t = t + dt;
+				if (S.t >= t + mySim->maxTimeStep){
+					t = t + mySim->maxTimeStep;
 					std::cout<< "    t = " << t << " s"  << std::endl;
 					//if (nWinchies>0) CW.controlWinchies();
 					for(int ii=0; ii<numLines; ii=ii+1) mySim->pLines[ii]->write_out(S.t);
 					for(int ii=0; ii<nBodies; ii=ii+1) mySim->pBodies[ii]->WriteOut(S.t);
 				}
-			} while (S.t<=t_max);
-
+			} while (S.t<=mySim->simulationTime);
+			
 			tend = time(0); 
 			std::cout << std::endl << "    Computational time  : " << difftime(tend, tstart) << " seconds" << std::endl;
 			std::cout << "    Total function calls: " << nCalls << std::endl;
 			std::cout << "    Total jac calls: " << S.iJ << std::endl << std::endl;
+			
+			
 		}
 
 

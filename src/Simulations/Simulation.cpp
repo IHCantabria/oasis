@@ -504,13 +504,12 @@ void Simulation::SetupCase()
     
     for (int ii=0; ii<numBcps; ii++)
     {
-        std::cout << "heree" << std::endl;
-        std::cout << "BCP ID: " << ii << " - NumBodies: " << pBcps[ii]->numBodiesBcp << std::endl;
         for (int jj=0; jj<pBcps[ii]->numBodiesBcp; jj++)
         {
-            std::cout << "BCP ID: " << pBcps[ii]->GetId() << std::endl;
-            std::cout << " - Body ID: " <<  pBcps[ii]->pBodies[0]->GetId() << std::endl;
             std::cout << "BCP ID: " << pBcps[ii]->GetId() << " - Body ID: " <<  pBcps[ii]->pBodies[jj]->GetId() << std::endl;
+            std::cout << "BCP ID: " << pBcps[ii]->GetId() << " - X pos: " <<  pBcps[ii]->pos[0] << std::endl;
+            std::cout << "BCP ID: " << pBcps[ii]->GetId() << " - Y pos: " <<  pBcps[ii]->pos[1] << std::endl;
+            std::cout << "BCP ID: " << pBcps[ii]->GetId() << " - Z pos: " <<  pBcps[ii]->pos[2] << std::endl;
         }
         std::cout << "heree2" << std::endl;
     }
@@ -557,11 +556,12 @@ void Simulation::SetupCase()
             pLines[ii]->pLineBcps[jj]->countLine++;
         }
         numDofTotal += pLines[ii]->N;
-        pLines[ii]->print_out();
         try
         {
             if(!readEquilibrium) pLines[ii]->initLine();
+            pLines[ii]->print_out();
             pLines[ii]->SEM_getBaseFunctions();
+            pLines[ii]->write_out(0.0);
         }
         catch (int e) 
 		{
@@ -576,6 +576,7 @@ void Simulation::SetupCase()
     }
 
     // Check every thing is correct
+    /**
     for (int ii=0; ii<numBodies; ii++)
     {
         for (int jj=0; jj<pLines[ii]->numBcps; jj++)
@@ -590,7 +591,7 @@ void Simulation::SetupCase()
             std::cout << "BCP ID: " << pBcps[ii]->GetId() << " - Line ID: " <<  pBcps[ii]->pLines[jj]->GetId() << std::endl;
         }
     }
-    
+    **/
 
     // Setup Springs
 	for(int ii=0; ii<numSprings; ii++)

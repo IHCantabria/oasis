@@ -64,11 +64,16 @@ void Body::ComputeBcpForces(void)
 				// Obtengo la fuerza en el cdg causada por el momento en el bcp, ya en global, 
 				// por que tanto el brazo posG, como la fuerza ForceBCP, estan en global.
 				F_M = matrix*vector;
+
+				printf("matrix\n");
+				matrix.print();
+				printf("vector\n");
+				vector.print();
 			}
 		}
 
 		M_F = arma::cross(posG_temp,ForceBCP_temp.rows(0,2)); // Momento sobre el cdg causado por la fuerza en el bcp, en global
-
+		
 		bcpForces.rows(0,2) = bcpForces.rows(0,2) + ForceBCP_temp.rows(0,2) + F_M; // Acumulo la fuerza total sobre el cdg en global.
 		bcpForces.rows(3,5) = bcpForces.rows(3,5) + invRotMat * (ForceBCP_temp.rows(3,5) + M_F); // Acumulo el momento total sobre el cdg en local.
 	}
@@ -159,12 +164,11 @@ void Body::UpdateBcps(void)
 
 	// Variable temporal
 	arma::mat posG_temp;
-
 	for(int ii=0; ii<numBcps; ii++)
 	{
 		// Bucle sobre todos los BCPs
 		posG_temp =  rotMat*(pBodyBcps[ii]->posWrtCdgLocal); // Brazo cdg-bcp en global
-		pBodyBcps[ii]->posWrtCdgLocal = posG_temp; // Brazo cdg-bcp en global
+		pBodyBcps[ii]->posWrtCdgGlobal = posG_temp; // Brazo cdg-bcp en global
 		pBodyBcps[ii]->rotMat = rotMat; // Matriz de rotacion
 		// Posicion del BCP en global, lo mismo para vel y acc.
 		pBodyBcps[ii]->posG_BCP.rows(0,2) = pos.rows(0,2) + posG_temp; // Posicion del BCP en global

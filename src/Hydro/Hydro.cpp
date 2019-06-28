@@ -104,13 +104,13 @@ void Hydro::computeFe(void){
 // Obten las fuerzas hidroestaticas e hidrodinamicas en el tiempo deseado
 void Hydro::computeHydroForces(double t){
 	HydroForces = arma::zeros(6*nBodies,1);
-	/**
+	
 	arma::mat positions = arma::zeros(6*nBodies,1);
 	for(int ii=0;ii<nBodies;ii=ii+1){
 		positions(arma::span(6*ii,6*(ii+1)-1),arma::span(0)) = Bodies[ii]->pos;
 	}	
 
 	HydroForces = HydroForces - hydro*positions;
-	**/
+	
 
 }

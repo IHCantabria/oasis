@@ -7,10 +7,13 @@
 #include "../Bodies/Bodies.hpp"
 #include "../Lines/Lines.hpp"
 #include "../Spring/Spring.hpp"
+#include "../BCPs/BCPs.hpp"
 #include "../BCPs/Winchies.hpp"
 
 struct solver_data{
 	int nSistema, nSistema2;
+	int nBcps;
+	BCP** Bcps;
 	int nLines;
 	Line** Lines;
 	int nSprings;
