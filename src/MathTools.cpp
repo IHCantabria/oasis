@@ -86,8 +86,9 @@ double trapz(arma::mat y, double h)
 	double int_value = 0.0;
 	for (int i=0; i<y.n_cols-1; i++)
 	{
-		int_value += h*(y[i+1]+y[i])/2.0;
+		int_value += (y[i+1]+y[i])/2.0;
 	}
+	int_value *= h;
 	
 	return int_value;
 }
