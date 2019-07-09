@@ -9,6 +9,7 @@
 #include "Bodies.hpp"
 #include "../BCPs/BCPs.hpp"
 #include "../os_tools.hpp"
+#include "../ODE_solvers/ODE_solvers.hpp"
 
 
 Body::Body(int n)
@@ -140,11 +141,11 @@ void Body::ReadPropertiesASCII(FILE* pFilePointer)
 }
 
 
-void Body::StoreVelocities(arma::mat pos)
+void Body::StoreVelocities()
 {
 	if (velBufferCount < velBufferSize)
 	{
-		velBuffer.submat(0, velBufferCount, 5, velBufferCount) = pos;
+		velBuffer.submat(0, velBufferCount, 5, velBufferCount) = vel;
 	}
 	else
 	{
@@ -203,13 +204,24 @@ void Body::UpdateBcps(void)
 }
 
 
+void Body::UpdateHydrostaticForces()
+{
+	hydrostaticForces = this->hydro->ComputeHydrostaticForces();
+}
+
+
+void Body::UpdateRadiationForces(solver_data SD)
+{
+	radiationForces = this->hydro->ComputeRadiationForces((*SD.timeBuffer)(0, *SD.timeBufferCount-1), SD);
+}
+
+
 // Escibir datos a fichero
 void Body::WriteOut(double t)
 {
-
 	int ii, nn1, nn2, nn3, nn4, nn5, nn6;
 
-	char buffer1[50], buffer2[50], buffer3[50], buffer4[50], buffer5[50], buffer6[50];
+	char buffer1[50], buffer2[50], buffer3[50], buffer4[50], buffer5[50], buffer6[50], buffer7[60], buffer8[60];
 
 	if (t<1e-12){
 		nn1=sprintf(buffer1,"output/DOF_1_Body_%d.txt", id);
@@ -241,6 +253,26 @@ void Body::WriteOut(double t)
 		std::ofstream yapos(buffer6);
 			yapos << t << "    " <<  this->pos(5,0) << "    "<<  this->vel(5,0) << "    "<<  this->acc(5,0) << std::endl;
 		yapos.close();
+
+		nn6=sprintf(buffer7,"output/HydroStiffnessForce_Body_%d.txt", id);
+		std::ofstream hydStiffForce(buffer7);
+		hydStiffForce << t;
+		for (int i=0; i<6; i++)
+		{
+			hydStiffForce << "    " <<  hydrostaticForces(i, 0);
+		}
+		hydStiffForce << std::endl;
+		hydStiffForce.close();
+
+		nn6=sprintf(buffer8,"output/WaveRadiationForce_Body_%d.txt", id);
+		std::ofstream waveRadForce(buffer8);
+		waveRadForce << t;
+		for (int i=0; i<6; i++)
+		{
+			waveRadForce << "    " <<  radiationForces(i, 0);
+		}
+		waveRadForce << std::endl;
+		waveRadForce.close();
 
 	}else{
 		nn1=sprintf(buffer1,"output/DOF_1_Body_%d.txt", id);
@@ -278,6 +310,26 @@ void Body::WriteOut(double t)
 			yapos.open(buffer6, std::ios_base::app);
 			yapos << t << "    " <<  this->pos(5,0) << "    "<<  this->vel(5,0) << "    "<<  this->acc(5,0) << std::endl;
 		yapos.close();
+
+		nn6=sprintf(buffer7,"output/HydroStiffnessForce_Body_%d.txt", id);
+		std::ofstream hydStiffForce(buffer7, std::ios_base::app);
+		hydStiffForce << t;
+		for (int i=0; i<6; i++)
+		{
+			hydStiffForce << "    " <<  hydrostaticForces(i, 0);
+		}
+		hydStiffForce << std::endl;
+		hydStiffForce.close();
+
+		nn6=sprintf(buffer8,"output/WaveRadiationForce_Body_%d.txt", id);
+		std::ofstream waveRadForce(buffer8, std::ios_base::app);
+		waveRadForce << t;
+		for (int i=0; i<6; i++)
+		{
+			waveRadForce << "    " <<  radiationForces(i, 0);
+		}
+		waveRadForce << std::endl;
+		waveRadForce.close();
 	}
 
 }

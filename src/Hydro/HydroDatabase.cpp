@@ -13,7 +13,7 @@
 
 arma::mat HydroDatabase::ComputeHydrostaticForces()
 {	
-	arma::mat hydrostatic_force = -(*pHydrostaticStiffness)*((*pBodies)[id].pos);
+	arma::mat hydrostatic_force = (*pHydrostaticStiffness)*((*pBodies)[id].pos);
 	return hydrostatic_force;
 }
 
@@ -57,7 +57,7 @@ arma::mat HydroDatabase::ComputeRadiationForces(double t, solver_data SD)
 					vel_local_interp = interp1((*SD.timeBuffer).cols(idx_begin, idx_end)-(*SD.timeBuffer)(0, idx_end), vel_local, IRFTime.cols(0, (*pIRF[ib])(0, i, j)));
 
 					// Calulate Duhamel integral
-					vel_local_filter = arma::fliplr(irf_local)%(vel_local_interp.t());
+					vel_local_filter = arma::flipud(irf_local)%(vel_local_interp.t());
 					radiation_force(i) += trapz(vel_local_filter, dt);
 				}
 				else if ((*pBodies[ib]).velBufferCount > 0)
@@ -73,11 +73,21 @@ arma::mat HydroDatabase::ComputeRadiationForces(double t, solver_data SD)
 
 					// Interpolate local velocity vector in order to fit with IRF resolution
 					time_local = IRFTime.cols(0, numPointsIRF-1) - IRFTime(0, numPointsIRF-1) + (*SD.timeBuffer)(0, idx_end);
-					irf_local_interp = interp1(time_local, arma::fliplr(irf_local), (*SD.timeBuffer).cols(0, idx_end));
+					irf_local_interp = interp1(time_local, arma::flipud(irf_local), (*SD.timeBuffer).cols(0, idx_end));
 
 					// Calulate Duhamel integral
 					vel_local_filter = irf_local_interp%vel_local;
 					radiation_force(i) += trapzi((*SD.timeBuffer).cols(0, idx_end), vel_local_filter);
+
+					if ((idx_end == 500) && (i==2) && (j==2))
+					{
+						time_local.save(arma::hdf5_name("time_local_2500.h5","irf"));
+						irf_local.save(arma::hdf5_name("irf_2500.h5","irf"));
+						irf_local_interp.save(arma::hdf5_name("irf_interp_2500.h5","irf_interp"));
+						vel_local.save(arma::hdf5_name("vel_2500.h5","vel"));
+						time_local = (*SD.timeBuffer).cols(0, idx_end);
+						time_local.save(arma::hdf5_name("time_2500.h5","time"));
+					}
 				}
 			}
 		}
@@ -117,7 +127,7 @@ void HydroDatabase::ComputeIRF(void)
 	}
 	
 	// Calculate maximum time allowed
-	double dt=0.05;
+	double dt=0.01;
 	double df = (*pFrequencies)(1)-(*pFrequencies)(0);
 	double tmax = 1/df/2.0;
 	IRFTime = arange(0, tmax, dt);
@@ -127,6 +137,11 @@ void HydroDatabase::ComputeIRF(void)
 	pIRF = new arma::cube* [numBodies];
 	pIRFPoints = new arma::mat* [numBodies];
 	
+	std::cout << "IRF Time: " << tmax << std::endl;
+	std::cout << "IRF Time Points: " << numPointsIRF << std::endl;
+	std::cout << "Frequency(0): " << (*pFrequencies)(0) << std::endl;
+	std::cout << "Frequency(1): " << (*pFrequencies)(1) << std::endl;
+	std::cout << "Frequency diff: " << df << std::endl;
 
 	// Loop to find the IRF value for each body influence and DOF
 	std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
@@ -150,17 +165,21 @@ void HydroDatabase::ComputeIRF(void)
 				dampingFreq = (*pDampingRadiation[ib]).subcube(i,j,0,i,j,numFrequencies-1);
 				dummy_mat = dampingFreq%cos(2*M_PI*(*pFrequencies)*IRFTime(0, 0));
 				(*pIRFPoints[ib])(i, j) = IRFTime.n_cols - 1;
-				(*pIRF[ib])(0, i, j) = 2*trapz(dummy_mat, df);
+				(*pIRF[ib])(0, i, j) = 2*trapz(dummy_mat, 2*M_PI*df)/M_PI;
 				for (int k=1; k<IRFTime.n_cols; k++)
 				{
 					// Calculate new value of IRF
 					dummy_mat = dampingFreq%cos(2*M_PI*(*pFrequencies)*IRFTime(0, k));
-					(*pIRF[ib])(k, i, j) = 2*trapz(dummy_mat, df);
+					(*pIRF[ib])(k, i, j) = 2*trapz(dummy_mat, 2*M_PI*df)/M_PI;
 					
 				}
 			}
 		}
 	}
+
+	(*pIRF[0]).save(arma::hdf5_name("IRF.h5", "irf"));
+
+	std::cout << "Maximum retardation time: " << tmax << std::endl;
 	std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
 	int elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 	std::cout << "Time elapsed ComputeIRF: " << elapsed << std::endl;
@@ -320,7 +339,6 @@ void HydroDatabase::ReadHydroMechanicsHDF5(std::string filePath)
 	}
 	
 }
-
 
 /**
 // Calcula la impulse response function

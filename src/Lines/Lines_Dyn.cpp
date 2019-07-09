@@ -470,7 +470,6 @@ void Line::initLine (void)
 
 void Line::write_out (double t) 
 {
-	std::cout << "Writting out line data..." << std::endl;
 	int ii, nn1, nn2, nn3, nn4;
 
 	char buffer1[50], buffer2[50], buffer3[50], buffer4[50];

@@ -7,6 +7,8 @@
 #include "../BCPs/BCPs.hpp"
 #include "../Hydro/HydroDatabase.hpp"
 
+class solver_data;
+
 class Body {
 private:
 	int id; // Body index. It is an unique number assigned to each body in the simulation
@@ -34,12 +36,17 @@ public:
 
 	arma::mat bcpForces = arma::zeros(6,1); // Fuerzas que los BCPs ejercen sobre el cuerpo, en la referencia del CDG
 
+	arma::mat hydrostaticForces = arma::zeros(6, 1); // Storage for the hydrostatic forces
+	arma::mat radiationForces = arma::zeros(6, 1); // Storage for the wave radiation forces
+
 	Body(int n); // Inicializa un objeto de clase cuerpo dandole el indice
 	void ComputeBcpForces(void); // Calcula el efecto de las fuerzas sobre los BCPs sobre su CDG
 	int GetId(void); // Returns the body identification number
 	void ReadPropertiesASCII(FILE* filePointer); // Leer datos de los cuerpos
-	void StoreVelocities(arma::mat pos); // Store last step velocity into the velocity buffer matrix
+	void StoreVelocities(); // Store last step velocity into the velocity buffer matrix
 	void UpdateBcps(void); // Actualiza valores del BCP
+	void UpdateHydrostaticForces(); // Update the value of the wave radiation forces the current step
+	void UpdateRadiationForces(solver_data SD); // Update the value of the wave radiation forces the current step
 	void WriteOut(double t); // Escribir datos a fichero
 };
 

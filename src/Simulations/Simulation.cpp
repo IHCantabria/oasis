@@ -8,6 +8,7 @@
 #include "../os_tools.hpp"
 #include "../Bodies/Bodies.hpp"
 #include "../BCPs/BCPs.hpp"
+#include "../ODE_solvers/ODE_solvers.hpp"
 
 
 void Simulation::Initialize()
@@ -190,7 +191,7 @@ void Simulation::ReadHydrodynamicsHDF5()
 {
     std::cout << "--> Reading Hydrodynamics Properties (HDF5 format)" << std::endl;
     // Read associated hydrodynamics
-    std::string file_path = JoinPath(inputFolderPath, "myBox.ehydb");
+    std::string file_path = JoinPath(inputFolderPath, "cajon1_LC1.ehydb");
     for (int ii=0; ii<numBodies; ii++)
     {
         pBodies[ii]->hydro = new HydroDatabase(ii, pBodies);
@@ -656,14 +657,23 @@ Simulation::Simulation(std::string incProjectPath, std::string incDataFormat)
 }
 
 
-void Simulation::UpdateSystem(arma::mat y)
+void Simulation::UpdateSystem(arma::mat y, solver_data SD)
 {
     // Update bodies velocity
     int ini = 0;
     for(int ii=0; ii<numBodies; ii++)
 	{
-		pBodies[ii]->StoreVelocities(y.rows(ini,ini+5));
+		pBodies[ii]->StoreVelocities();
 		ini = ini + 6;
 	}
 
+    // Update hydrodynamic properties
+    if (*SD.timeBufferCount > 0)
+    {
+        for(int ii=0; ii<numBodies; ii++)
+        {
+            pBodies[ii]->UpdateHydrostaticForces();
+            pBodies[ii]->UpdateRadiationForces(SD);
+        }
+    }
 }

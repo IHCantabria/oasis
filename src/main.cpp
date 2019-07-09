@@ -142,7 +142,7 @@ arma::mat fun(double t, arma::mat y, solver_data& SD){
 	// Compute forces on BCPs
 	for(int ii=0;ii<SD.nBodies;ii=ii+1){
 		SD.Bodies[ii]->ComputeBcpForces();
-		Fb(arma::span(6*ii,6*(ii+1)-1), 0) = Fb(arma::span(6*ii,6*(ii+1)-1), 0) + SD.Bodies[ii]->bcpForces;
+		Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  -(Fr + Fb(arma::span(6*ii,6*(ii+1)-1), 0)) + SD.Bodies[ii]->bcpForces;
 	}
 	WriteASCII("output/bcpForces.dat", SD.Bodies[0]->bcpForces, true);
 	// Compute body acceleration
@@ -152,6 +152,7 @@ arma::mat fun(double t, arma::mat y, solver_data& SD){
 	WriteASCII("output/accB.dat", accB, true);
 	for(int ii=0;ii<SD.nBodies;ii=ii+1){
 		accB = arma::solve(*SD.Water->pStructuralMass+(**SD.Water->pAddedMassHf)[ii],Fb);
+		//accB = arma::solve(*SD.Water->pStructuralMass,Fb);
 		SD.Bodies[ii]->acc = accB(arma::span(6*ii,6*(ii+1)-1), 0);
 	}
 
@@ -226,12 +227,11 @@ arma::mat fun(double t, arma::mat y, solver_data& SD){
 		yprime.row(SD.nSistema-(ii+1)) = SD.Winchies[ii]->alpha;
 	}
 
-
+	WriteASCII("output/yprime.dat", yprime, true);
 	if (yprime.has_nan()){
 		std::cout << std::endl << "ERROR: NaN Detected!" << std::endl;
 		throw std::exception();
 	}
-	WriteASCII("output/yprime.dat", yprime, true);
 	return yprime;
 	
 }
@@ -548,7 +548,8 @@ int main (int argc, char* argv[])
 		(*SD.timeBuffer)(0,0) = 1;
 
 		// Save first data
-		mySim->UpdateSystem(y);
+		std::cout << "Antes de update system" << std::endl;
+		mySim->UpdateSystem(y, SD);
 		// Update time vector if any
 		if ((*SD.timeBufferCount) < SD.timeBufferSize)
 		{
@@ -581,7 +582,7 @@ int main (int argc, char* argv[])
 			std::cout<< "    t = " << t << " s" << std::endl;
 			do{
 				S.step();
-				mySim->UpdateSystem(S.y);
+				
 				
 				// Update time vector if any
 				if ((*SD.timeBufferCount) < SD.timeBufferSize)
@@ -597,6 +598,8 @@ int main (int argc, char* argv[])
 					delete timeBufferNew;
 				}
 				(*SD.timeBufferCount)++;
+
+				mySim->UpdateSystem(S.y, SD);
 				
 				// Print out time if any
 				if (S.t >= t + mySim->maxTimeStep)
@@ -604,8 +607,8 @@ int main (int argc, char* argv[])
 					t = t + mySim->maxTimeStep;
 					std::cout<< "    t = " << t << " s"  << std::endl;
 					//if (nWinchies>0) CW.controlWinchies();
-					for(int ii=0; ii<numLines; ii=ii+1) mySim->pLines[ii]->write_out(S.t);
-					for(int ii=0; ii<nBodies; ii=ii+1) mySim->pBodies[ii]->WriteOut(S.t);
+					for(int ii=0; ii<mySim->numLines; ii=ii+1) mySim->pLines[ii]->write_out(S.t);
+					for(int ii=0; ii<mySim->numBodies; ii=ii+1) mySim->pBodies[ii]->WriteOut(S.t);
 				}
 			} while (S.t<=mySim->simulationTime);
 			
@@ -617,7 +620,6 @@ int main (int argc, char* argv[])
 			
 		}
 		std::cout << "Time buffer count: " << SD.timeBufferCount << std::endl;
-		SD.timeBuffer->print();
 
 		if (flag_write_eq == 1) {
 

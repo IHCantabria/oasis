@@ -8,6 +8,7 @@
 #include "../BCPs/Winchies.hpp"
 #include "../Lines/Lines.hpp"
 #include "../Spring/Spring.hpp"
+#include "../ODE_solvers/ODE_solvers.hpp"
 
 
 class Simulation
@@ -96,7 +97,7 @@ public:
 
     // Declare general purpose class methods
     void SetupCase();
-    void UpdateSystem(arma::mat y);
+    void UpdateSystem(arma::mat y, solver_data SD);
 
 };
 
