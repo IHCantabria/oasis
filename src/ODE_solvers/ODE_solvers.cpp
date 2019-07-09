@@ -10,7 +10,7 @@
 #include <armadillo>
 #include "ODE_solvers.hpp"
 
-BDF::BDF(double t_u, double tmax_u, double dt_out_u, arma::mat y_u, arma::mat (*fun_u) (double, arma::mat, solver_data), solver_data SD_u)
+BDF::BDF(double t_u, double tmax_u, double dt_out_u, arma::mat y_u, arma::mat (*fun_u) (double, arma::mat, solver_data &), solver_data & SD_u)
 {
 	t = t_u;
 	tmax = tmax_u;
@@ -48,6 +48,7 @@ BDF::BDF(double t_u, double tmax_u, double dt_out_u, arma::mat y_u, arma::mat (*
 		std::cout << "size M: " << arma::size(M) << std::endl;
 		std::cout << "size F: " << arma::size(F) << std::endl;
 		status = arma::solve(dy,M,F,arma::solve_opts::fast);
+		std::cout << "After solver..." << std::endl;
 		if (!status){
 			dy = arma::solve(M,F);
 		}

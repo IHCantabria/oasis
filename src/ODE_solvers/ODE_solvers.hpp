@@ -3,7 +3,7 @@
 #define odedef_hpp__
 #include <armadillo>
 #include <string>
-#include "../Hydro/Hydro.hpp"
+#include "../Hydro/HydroDatabase.hpp"
 #include "../Bodies/Bodies.hpp"
 #include "../Lines/Lines.hpp"
 #include "../Spring/Spring.hpp"
@@ -20,9 +20,12 @@ struct solver_data{
 	Spring** Springs;
 	int nBodies;
 	Body** Bodies;
-	Hydro* Water;
+	HydroDatabase* Water;
 	int nWinchies;
 	Winchie** Winchies;
+	int timeBufferSize=1e4;
+	arma::mat* timeBuffer;
+	int* timeBufferCount;
 };
 
 class BDF{
@@ -50,9 +53,9 @@ public:
 	double t, tmax, dt_out;
 	arma::mat y;
 	solver_data SD;
-	arma::mat (*fun) (double, arma::mat, solver_data);
+	arma::mat (*fun) (double, arma::mat, solver_data &);
 
-	BDF(double t_u, double tmax_u, double dt_out_u, arma::mat y_u, arma::mat (*fun_u) (double, arma::mat, solver_data), solver_data SD_u);
+	BDF(double t_u, double tmax_u, double dt_out_u, arma::mat y_u, arma::mat (*fun_u) (double, arma::mat, solver_data &), solver_data & SD_u);
 	void step(void);
 	void jac(double tt, arma::mat yy);
 };

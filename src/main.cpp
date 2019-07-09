@@ -17,7 +17,7 @@
 #include "Lines/Lines.hpp"
 #include "Spring/Spring.hpp"
 #include "Bodies/Bodies.hpp"
-#include "Hydro/Hydro.hpp"
+#include "Hydro/HydroDatabase.hpp"
 #include "ODE_solvers/ODE_solvers.hpp"
 #include "os_tools.hpp"
 
@@ -31,7 +31,7 @@ int nCalls = 0;
 //////////////////////////////////////////////////////           fun           ///////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-arma::mat fun(double t, arma::mat y, solver_data SD){
+arma::mat fun(double t, arma::mat y, solver_data& SD){
 
 	nCalls = nCalls + 1;
 
@@ -137,8 +137,8 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 		SD.Springs[ii]->computeSpringForces();
 	}
 	// Compute hydrostatic and hidrodynamic forces
-	SD.Water->computeHydroForces(t);
-	arma::mat Fb = SD.Water->HydroForces;
+	arma::mat Fb = SD.Water->ComputeHydrostaticForces();
+	arma::mat Fr = SD.Water->ComputeRadiationForces(t, SD);
 	// Compute forces on BCPs
 	for(int ii=0;ii<SD.nBodies;ii=ii+1){
 		SD.Bodies[ii]->ComputeBcpForces();
@@ -146,9 +146,12 @@ arma::mat fun(double t, arma::mat y, solver_data SD){
 	}
 	WriteASCII("output/bcpForces.dat", SD.Bodies[0]->bcpForces, true);
 	// Compute body acceleration
-	arma::mat accB = (SD.Water->invM)*Fb;
+	//(**SD.Water->pAddedMassHf).print();
+	//arma::mat accB = (*SD.Water->pStructuralMass+**SD.Water->pAddedMassHf)*Fb;
+	arma::mat accB;
 	WriteASCII("output/accB.dat", accB, true);
 	for(int ii=0;ii<SD.nBodies;ii=ii+1){
+		accB = arma::solve(*SD.Water->pStructuralMass+(**SD.Water->pAddedMassHf)[ii],Fb);
 		SD.Bodies[ii]->acc = accB(arma::span(6*ii,6*(ii+1)-1), 0);
 	}
 
@@ -474,12 +477,7 @@ int main (int argc, char* argv[])
 	std::cout<< "  Reading and starting Hyrodynamics ... " << std::endl << std::endl; //////////////////////////////////////////
 	**/
 		// DEFINO UN POINTER A UN OBJETO DE LA CLASE HYDRO
-		file_path = JoinPath(project_path, "input/flotante.h5");
-		Hydro * Water = new Hydro;
-		//INICIO EL OBJETO QUE CONTIENE LA HIDRODINAMICA
-		Water->set_Hydro(mySim->numBodies, mySim->pBodies);
-		std::cout << "Number of bodies: " << Water->nBodies << std::endl;
-		Water->leer_datosHydro(file_path);
+		
 		//Water->computeIRF();
 		//Water->computeWaveSpectrum();
 		//Water->computeFe();
@@ -541,9 +539,30 @@ int main (int argc, char* argv[])
 		SD.Springs = mySim->pSprings;
 		SD.nBodies = mySim->numBodies;
 		SD.Bodies = mySim->pBodies;
-		SD.Water = Water;
+		SD.Water = mySim->pBodies[0]->hydro;
 		SD.nWinchies = mySim->numWinches;
 		SD.Winchies = mySim->pWinches;
+		arma::mat* timeBufferNew;
+		SD.timeBufferCount = new int(0);
+		SD.timeBuffer = new arma::mat(1, SD.timeBufferSize, arma::fill::zeros);
+		(*SD.timeBuffer)(0,0) = 1;
+
+		// Save first data
+		mySim->UpdateSystem(y);
+		// Update time vector if any
+		if ((*SD.timeBufferCount) < SD.timeBufferSize)
+		{
+			(*SD.timeBuffer)(0, (*SD.timeBufferCount)) = 0.0;
+		}
+		else
+		{
+			timeBufferNew = new arma::mat(1, SD.timeBufferSize, arma::fill::zeros);
+			(*timeBufferNew).cols(0, mySim->pBodies[0]->hydro->numPointsIRF-1) = (*SD.timeBuffer).cols(SD.timeBufferSize-mySim->pBodies[0]->hydro->numPointsIRF, SD.timeBufferSize-1);
+			SD.timeBuffer = timeBufferNew;
+			(*SD.timeBufferCount) = mySim->pBodies[0]->hydro->numPointsIRF-1;
+			delete timeBufferNew;
+		}
+		(*SD.timeBufferCount)++;
 
 		std::cout<< "  Starting temporal integration ..." << std::endl << std::endl; //////////////////////////////////////////
 		std::cout<< "  Starting temporal integration ... " << mySim->timeIntMethod << std::endl;
@@ -562,7 +581,26 @@ int main (int argc, char* argv[])
 			std::cout<< "    t = " << t << " s" << std::endl;
 			do{
 				S.step();
-				if (S.t >= t + mySim->maxTimeStep){
+				mySim->UpdateSystem(S.y);
+				
+				// Update time vector if any
+				if ((*SD.timeBufferCount) < SD.timeBufferSize)
+				{
+					(*SD.timeBuffer)(0, (*SD.timeBufferCount)) = S.t;
+				}
+				else
+				{
+					timeBufferNew = new arma::mat(1, SD.timeBufferSize, arma::fill::zeros);
+					(*timeBufferNew).cols(0, mySim->pBodies[0]->hydro->numPointsIRF-1) = (*SD.timeBuffer).cols(SD.timeBufferSize-mySim->pBodies[0]->hydro->numPointsIRF, SD.timeBufferSize-1);
+					SD.timeBuffer = timeBufferNew;
+					(*SD.timeBufferCount) = mySim->pBodies[0]->hydro->numPointsIRF-1;
+					delete timeBufferNew;
+				}
+				(*SD.timeBufferCount)++;
+				
+				// Print out time if any
+				if (S.t >= t + mySim->maxTimeStep)
+				{
 					t = t + mySim->maxTimeStep;
 					std::cout<< "    t = " << t << " s"  << std::endl;
 					//if (nWinchies>0) CW.controlWinchies();
@@ -578,7 +616,8 @@ int main (int argc, char* argv[])
 			
 			
 		}
-
+		std::cout << "Time buffer count: " << SD.timeBufferCount << std::endl;
+		SD.timeBuffer->print();
 
 		if (flag_write_eq == 1) {
 

@@ -73,7 +73,7 @@ void Body::ComputeBcpForces(void)
 		}
 
 		M_F = arma::cross(posG_temp,ForceBCP_temp.rows(0,2)); // Momento sobre el cdg causado por la fuerza en el bcp, en global
-		
+
 		bcpForces.rows(0,2) = bcpForces.rows(0,2) + ForceBCP_temp.rows(0,2) + F_M; // Acumulo la fuerza total sobre el cdg en global.
 		bcpForces.rows(3,5) = bcpForces.rows(3,5) + invRotMat * (ForceBCP_temp.rows(3,5) + M_F); // Acumulo el momento total sobre el cdg en local.
 	}
@@ -137,6 +137,23 @@ void Body::ReadPropertiesASCII(FILE* pFilePointer)
 	//temp_inertia.load(arma::hdf5_name(file_path,"inertia"));
 
 	//inertia = temp_inertia.subcube(arma::span(id-1),arma::span::all,arma::span::all);
+}
+
+
+void Body::StoreVelocities(arma::mat pos)
+{
+	if (velBufferCount < velBufferSize)
+	{
+		velBuffer.submat(0, velBufferCount, 5, velBufferCount) = pos;
+	}
+	else
+	{
+		arma::mat velBufferNew = arma::zeros(6, velBufferSize);
+		velBufferNew.cols(0, hydro->numPointsIRF-1) = velBuffer.cols(velBufferSize-hydro->numPointsIRF, velBufferSize-1);
+		velBuffer = velBufferNew;
+		velBufferCount = hydro->numPointsIRF-1;
+	}
+	velBufferCount++;
 }
 
 

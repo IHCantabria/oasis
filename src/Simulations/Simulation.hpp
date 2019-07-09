@@ -37,6 +37,11 @@ public:
     double waterDepth;
     bool writeEquilibrium;
 
+    // Declare time simulation attributes
+    int timeBufferSize=1e4;
+	arma::mat timeBuffer = arma::zeros(1, timeBufferSize);
+    int timeBufferCount=0;
+
     // Declare Components Setup Attributes
     AnchorBCP** pAnchorBcps;
     BCP** pBcps;
@@ -75,6 +80,7 @@ public:
     void ReadBodies(void);
     void ReadBodiesASCII(void);
     void ReadBodiesHDF5(void);
+    void ReadHydrodynamicsHDF5(void);
     void ReadLines(void);
     void ReadLinesASCII(void);
     void ReadLinesHDF5(void);
@@ -90,6 +96,7 @@ public:
 
     // Declare general purpose class methods
     void SetupCase();
+    void UpdateSystem(arma::mat y);
 
 };
 

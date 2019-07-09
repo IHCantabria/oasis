@@ -17,6 +17,7 @@ void Simulation::Initialize()
 
     // Read Components Data
     this->ReadBodies();
+    this->ReadHydrodynamicsHDF5();
     this->ReadLines();
     this->ReadBcps();
     this->ReadWinches();
@@ -154,20 +155,14 @@ void Simulation::ReadBodiesASCII()
     // Read total number of bodies to read
     fscanf(file_pointer, "%d %[^\n]\n", &numBodies, bufferLine);
 
-	//INICIO LOS CUERPOS
+	//Read all bodies
     pBodies = new Body* [numBodies];
     printf("Total number of bodies: %d\n", numBodies);
 	for(int ii=0; ii<numBodies; ii++)
     {
 		pBodies[ii] = new Body(ii);
 		pBodies[ii]->ReadPropertiesASCII(file_pointer);
-        /**
-		for(int jj=0; jj<pBodies[ii]->numBcps; jj++)
-        {
-			pBodies[ii]->pBodyBcps[jj] = BCPs[pBodies[ii]->pIndexBcps[jj]];
-		}
-		pBodies[ii]->UpdateBcps();
-        **/
+
 	}
     /**
 	for(int ii=0; ii<nBCPs; ii=ii+1)
@@ -175,6 +170,7 @@ void Simulation::ReadBodiesASCII()
 		BCPs[ii]->getValues(0.0);
 	}
     **/
+
     fclose(file_pointer);
     std::cout << "----> Bodies Properties Read" << std::endl;
 }
@@ -187,6 +183,22 @@ void Simulation::ReadBodiesHDF5()
     ss << "Method ReadBodiesHDF5 in class Simulation not implemented yet.";
     throw NotImplementedError(ss.str());
     std::cout << "----> Bodies Properties Read" << std::endl;
+}
+
+
+void Simulation::ReadHydrodynamicsHDF5()
+{
+    std::cout << "--> Reading Hydrodynamics Properties (HDF5 format)" << std::endl;
+    // Read associated hydrodynamics
+    std::string file_path = JoinPath(inputFolderPath, "myBox.ehydb");
+    for (int ii=0; ii<numBodies; ii++)
+    {
+        pBodies[ii]->hydro = new HydroDatabase(ii, pBodies);
+        pBodies[ii]->hydro->ReadHydroMechanicsHDF5(file_path);
+        pBodies[ii]->hydro->ComputeIRF();
+        std::cout << "This is the time vector..." << std::endl;
+    }
+    std::cout << "----> Hydrodynamic Properties Read" << std::endl;
 }
 
 
@@ -203,7 +215,6 @@ void Simulation::ReadLinesASCII()
     char bufferLine [1000];
 
     // Open file
-    FILE* fid_lines;
 	std::string file_path = JoinPath(inputFolderPath, "datosLines.dat");
     FILE* file_pointer = fopen(file_path.c_str(), "r");
 	
@@ -278,7 +289,6 @@ void Simulation::ReadSpringsASCII()
     char bufferLine [1000];
 
     // Open file
-    FILE* fid_lines;
 	std::string file_path = JoinPath(inputFolderPath, "datosSprings.dat");
     FILE* file_pointer = fopen(file_path.c_str(), "r");
 	
@@ -402,7 +412,6 @@ void Simulation::ReadWinchesASCII()
     char bufferLine [1000];
 
     // Open file
-    FILE* fid_lines;
 	std::string file_path = JoinPath(inputFolderPath, "datosWinchies.dat");
     FILE* file_pointer = fopen(file_path.c_str(), "r");
 	
@@ -643,5 +652,18 @@ Simulation::Simulation(std::string incProjectPath, std::string incDataFormat)
     }
 
     // 
+
+}
+
+
+void Simulation::UpdateSystem(arma::mat y)
+{
+    // Update bodies velocity
+    int ini = 0;
+    for(int ii=0; ii<numBodies; ii++)
+	{
+		pBodies[ii]->StoreVelocities(y.rows(ini,ini+5));
+		ini = ini + 6;
+	}
 
 }
