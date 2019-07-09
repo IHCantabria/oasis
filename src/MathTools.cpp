@@ -53,7 +53,6 @@ arma::mat interp1(arma::mat x, arma::mat y, arma::mat xi)
 			ss << "Not possible to find an interval for the abcissa value: " << xi[i];
 			perror(ss.str().c_str());
 		}
-		std::cout << "Index: " << index << std::endl;
 		dx = x[index+1] - x[index];
 		y1[i] = y[index+1]*(xi[i]-x[index])/dx + y[index]*(x[index+1]-xi[i])/dx;
 		m = index;
@@ -89,6 +88,20 @@ double trapz(arma::mat y, double h)
 		int_value += (y[i+1]+y[i])/2.0;
 	}
 	int_value *= h;
+	
+	return int_value;
+}
+
+
+double trapzi(arma::mat t, arma::mat y)
+{
+	double int_value = 0.0;
+	double h;
+	for (int i=0; i<y.n_cols-1; i++)
+	{
+		h = t[i+1] - t[i];
+		int_value += h*(y[i+1]+y[i])/2.0;
+	}
 	
 	return int_value;
 }
