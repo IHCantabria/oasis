@@ -5,7 +5,166 @@
 #include <sstream>
 #include <chrono>
 #include "HydroDatabase.hpp"
+#include "../ODE_solvers/ODE_solvers.hpp"
+#include "../Simulations/Simulation.hpp"
+#include "../Bodies/Bodies.hpp"
 #include "../MathTools.hpp"
+
+
+arma::mat HydroDatabase::ComputeHydrostaticForces()
+{	
+	arma::mat hydrostatic_force = -(*pHydrostaticStiffness)*((*pBodies)[id].pos);
+	return hydrostatic_force;
+}
+
+
+arma::mat HydroDatabase::ComputeRadiationForces(double t, solver_data SD)
+{	
+	// Allocate radiation force solution vector
+	arma::mat radiation_force = arma::zeros(6, 1);
+
+	// Declare local auxiliary variables
+	arma::mat time_local;
+	arma::mat irf_local;
+	arma::mat irf_local_interp;
+	arma::mat vel_local;
+	arma::mat vel_local_interp;
+	arma::mat vel_local_filter;
+	int idx_begin, idx_end;
+	double dt = IRFTime(0, 1) - IRFTime(0, 0);
+	int aux;
+
+	// Compute radiation forces for the 6DOFs
+	for(int ib=0; ib<numBodies; ib++)
+	{
+		for(int i=0; i<6; i++)
+		{
+			for(int j=0; j<6; j++)
+			{
+				if ((*SD.timeBuffer)(0, *SD.timeBufferCount) > IRFTime(0, (*pIRFPoints[ib])(i, j)))
+				{
+					// Get IRF function from the storage
+					irf_local = (*pIRF[ib]).subcube(0, i, j, numPointsIRF-1, i, j);
+					
+					// Calculate begin and end indexes for matrix slicing
+					idx_begin = (*pBodies[ib]).velBufferCount-(*pIRFPoints[ib])(i, j)+1;
+					idx_end = (*pBodies[ib]).velBufferCount-1;
+
+					// Get velocity chunck from the storage
+					vel_local = (*pBodies[ib]).velBuffer.submat(j, idx_begin, j, idx_end);
+
+					// Interpolate local velocity vector in order to fit with IRF resolution
+					vel_local_interp = interp1((*SD.timeBuffer).cols(idx_begin, idx_end)-(*SD.timeBuffer)(0, idx_end), vel_local, IRFTime.cols(0, (*pIRF[ib])(0, i, j)));
+
+					// Calulate Duhamel integral
+					vel_local_filter = arma::fliplr(irf_local)%(vel_local_interp.t());
+					radiation_force(i) += trapz(vel_local_filter, dt);
+				}
+				else if ((*pBodies[ib]).velBufferCount > 0)
+				{
+					// Calculate begin and end indexes for matrix slicing
+					idx_end = (*pBodies[ib]).velBufferCount-1;
+
+					// Get IRF function from the storage
+					irf_local = (*pIRF[ib]).subcube(0, i, j, numPointsIRF-1, i, j);
+
+					// Get velocity chunk from the storage
+					vel_local = (*pBodies[ib]).velBuffer.submat(j, 0, j, idx_end);
+
+					// Interpolate local velocity vector in order to fit with IRF resolution
+					time_local = IRFTime.cols(0, numPointsIRF-1) - IRFTime(0, numPointsIRF-1) + (*SD.timeBuffer)(0, idx_end);
+					irf_local_interp = interp1(time_local, arma::fliplr(irf_local), (*SD.timeBuffer).cols(0, idx_end));
+
+					// Calulate Duhamel integral
+					vel_local_filter = irf_local_interp%vel_local;
+					radiation_force(i) += trapzi((*SD.timeBuffer).cols(0, idx_end), vel_local_filter);
+				}
+			}
+		}
+	}
+	
+	/**
+	if((*pBodies)[id].velBufferCount > 0)
+	{
+		for(int ii=0; ii<6; ii++)
+		{
+			for(int jj=0; jj<6; jj++)
+			{
+				if(mySim.time > )
+			}
+		}
+	}
+	**/
+	return radiation_force;
+}
+
+
+void HydroDatabase::ComputeIRF(void)
+{
+	// Declare local variables
+	int count_max;
+	int count_zero;
+	int max_consec;
+	arma::mat dummy_mat;
+	arma::mat max_position;
+	arma::mat zero_cross;
+	arma::mat dampingFreq;
+	
+	// Check input arguments
+	if ((*pFrequencies)(1)<(*pFrequencies)(0))
+	{
+		perror("Frequencies does not increase monotonically...\n");
+	}
+	
+	// Calculate maximum time allowed
+	double dt=0.05;
+	double df = (*pFrequencies)(1)-(*pFrequencies)(0);
+	double tmax = 1/df/2.0;
+	IRFTime = arange(0, tmax, dt);
+	
+	// Allocate IRF matrix
+	numPointsIRF = IRFTime.n_cols;
+	pIRF = new arma::cube* [numBodies];
+	pIRFPoints = new arma::mat* [numBodies];
+	
+
+	// Loop to find the IRF value for each body influence and DOF
+	std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
+	for (int ib=0; ib<numBodies; ib++)
+	{
+		pIRFPoints[ib] = new arma::mat(6, 6, arma::fill::zeros);
+		pIRF[ib] = new arma::cube(IRFTime.n_cols, 6, 6, arma::fill::zeros);
+		for (int i=0; i<6; i++)
+		{
+			for (int j=0; j<6; j++)
+			{
+				// Clear previous results
+				count_max = 1;
+				count_zero = -1;
+				max_consec = 0;
+				max_position = arma::zeros(1, IRFTime.n_cols);
+				zero_cross = arma::zeros(1, IRFTime.n_cols);
+				
+				// Start new Dof data
+				
+				dampingFreq = (*pDampingRadiation[ib]).subcube(i,j,0,i,j,numFrequencies-1);
+				dummy_mat = dampingFreq%cos(2*M_PI*(*pFrequencies)*IRFTime(0, 0));
+				(*pIRFPoints[ib])(i, j) = IRFTime.n_cols - 1;
+				(*pIRF[ib])(0, i, j) = 2*trapz(dummy_mat, df);
+				for (int k=1; k<IRFTime.n_cols; k++)
+				{
+					// Calculate new value of IRF
+					dummy_mat = dampingFreq%cos(2*M_PI*(*pFrequencies)*IRFTime(0, k));
+					(*pIRF[ib])(k, i, j) = 2*trapz(dummy_mat, df);
+					
+				}
+			}
+		}
+	}
+	std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
+	int elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+	std::cout << "Time elapsed ComputeIRF: " << elapsed << std::endl;
+}
 
 
 int HydroDatabase::GetId(void)
@@ -14,9 +173,18 @@ int HydroDatabase::GetId(void)
 }
 
 
-HydroDatabase::HydroDatabase(int incId)
+HydroDatabase::HydroDatabase(int incId, Body** incBody)
 {
 	id = incId;
+	pBodies = incBody;
+}
+
+
+void HydroDatabase::Print()
+{
+	std::cout << "Number of bodies associated: " << numBodies << std::endl;
+	std::cout << "Number of frequencies: " << numFrequencies << std::endl;
+	std::cout << "Number of headings: " << numHeadings << std::endl;
 }
 
 
@@ -153,93 +321,6 @@ void HydroDatabase::ReadHydroMechanicsHDF5(std::string filePath)
 	
 }
 
-
-void HydroDatabase::ComputeIRF(void)
-{
-	// Declare local variables
-	int count_max;
-	int count_zero;
-	int max_consec;
-	arma::mat dummy_mat;
-	arma::mat max_position;
-	arma::mat zero_cross;
-	arma::mat dampingFreq;
-	
-	// Check input arguments
-	if ((*pFrequencies)(1)<(*pFrequencies)(0))
-	{
-		perror("Frequencies does not increase monotonically...\n");
-	}
-	
-	// Calculate maximum time allowed
-	double dt=0.05;
-	double df = (*pFrequencies)(1)-(*pFrequencies)(0);
-	double tmax = 1/df/2.0;
-	arma::mat time = arange(0, tmax, dt);
-	double val = trapz(time, 1);
-	
-	// Allocate IRF matrix
-	pIRF = new arma::cube* [numBodies];
-	std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
-	for (int ib=0; ib<numBodies; ib++)
-	{
-		arma::cube local_irf(time.n_cols+1, 6, 6, arma::fill::zeros);
-		for (int i=0; i<6; i++)
-		{
-			for (int j=0; j<6; j++)
-			{
-				// Clear previous results
-				count_max = 1;
-				count_zero = -1;
-				max_consec = 0;
-				max_position = arma::zeros(1, time.n_cols);
-				zero_cross = arma::zeros(1, time.n_cols);
-				
-				// Start new Dof data
-				
-				dampingFreq = (*pDampingRadiation[ib]).subcube(i,j,0,i,j,numFrequencies-1);
-				dummy_mat = dampingFreq%cos(2*M_PI*(*pFrequencies)*time(0, 0));
-				local_irf(0, i, j) = time.n_cols;
-				local_irf(1, i, j) = 2*trapz(dummy_mat, df);
-				for (int k=1; k<time.n_cols; k++)
-				{
-					// Calculate new value of IRF
-					dummy_mat = dampingFreq%cos(2*M_PI*(*pFrequencies)*time(0, k));
-					local_irf(k+1, i, j) = 2*trapz(dummy_mat, df);
-					
-					/**
-					// Check if zero crossing
-					if ((*pIRF)(k+1, i, j)*(*pIRF)(k, i, j) < 0)
-					{
-						// Add zero cross
-						count_zero++;
-						zero_cross(1, count_zero) = k;
-						
-						// Add intermediate maximum
-						count_max++;
-						if(count_zero>0)
-						{
-							
-						
-					}
-					**/
-				}
-			}
-		}
-		pIRF[ib] = &local_irf;
-	}
-	std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
-	int elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-	std::cout << "Time elapsed ComputeIRF: " << elapsed << std::endl;
-}
-
-
-void HydroDatabase::Print()
-{
-	std::cout << "Number of bodies associated: " << numBodies << std::endl;
-	std::cout << "Number of frequencies: " << numFrequencies << std::endl;
-	std::cout << "Number of headings: " << numHeadings << std::endl;
-}
 
 /**
 // Calcula la impulse response function

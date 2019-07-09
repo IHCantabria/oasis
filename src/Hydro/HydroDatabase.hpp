@@ -3,7 +3,11 @@
 #define hydrodatabasedef_hpp__
 #include <armadillo>
 #include <string>
-//#include "../Bodies/Bodies.hpp"
+
+// Attribute class objects forward declaration
+class Body;
+class Simulation;
+class solver_data;
 
 class HydroDatabase
 {
@@ -12,9 +16,9 @@ private:
 	int activeDofs=6;
 	
 public:
+	int numPointsIRF; // Maximum number of points to describe the IRF function
 	//int nBodies; // Numero de cuerpos
-	//Body** Bodies; // Array de pointers a los cuerpos
-
+	Body** pBodies; // Array de pointers a los cuerpos
 	arma::cube** pAddedMass; // Matrix components: [body, dof, dof, freqs]
 	arma::mat** pAddedMassHf; // Matrix components: [body, dof, dof]
 	arma::mat** pAddedMassLf; // Matrix components: [body, dof, dof]
@@ -25,6 +29,8 @@ public:
 	arma::mat* pHeadings; // Vector: [1, headings]
 	arma::mat* pHydrostaticStiffness; // Matrix components: [dof, dof]
 	arma::cube** pIRF; // Matrix components: [body, numTime, dof, dof]
+	arma::mat** pIRFPoints; // Matrix components: [body, dof, dof]
+	arma::mat IRFTime; // Matrix size containing the IRF time. Matrix dims: (1, numPointsIRF)
 	arma::mat* pStructuralMass; // Matrix components: [dof, dof]
 	arma::cube* pMeanDrift; // Matrix components: [dofs, freqs, headings];
 	int numBodies;
@@ -37,12 +43,14 @@ public:
 
 	// Inicializar el objeto de la clase hydro dandole el numero de cuerpos y el vector de pointers a los cuerpos
 	//void set_Hydro(int n, Body** Bs){nBodies=n; Bodies = Bs;}
-	HydroDatabase(int incId);
+	HydroDatabase(int incId, Body** incBodies);
+	arma::mat ComputeHydrostaticForces(void);
+	arma::mat ComputeRadiationForces(double t, solver_data SD);
+	void ComputeIRF(void); // Calcula la impulse response function
+	void ReadHydroMechanicsHDF5(std::string filePath); // Leer inputs
 	int GetId(void);
 	void Print();
-	void ReadHydroMechanicsHDF5(std::string filePath); // Leer inputs
-	void ComputeIRF(void); // Calcula la impulse response function
-
+	
 	//void computeWaveSpectrum(void); // Calcula el espectro del oleaje
 	//void computeFe(void); // Calcula la serie temporal de fuerzas de excitación
 
