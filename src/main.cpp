@@ -149,9 +149,12 @@ arma::mat fun(double t, arma::mat y, solver_data& SD){
 	//(**SD.Water->pAddedMassHf).print();
 	//arma::mat accB = (*SD.Water->pStructuralMass+**SD.Water->pAddedMassHf)*Fb;
 	arma::mat accB;
+	arma::mat total_mass;
 	WriteASCII("output/accB.dat", accB, true);
 	for(int ii=0;ii<SD.nBodies;ii=ii+1){
-		accB = arma::solve(*SD.Water->pStructuralMass+(**SD.Water->pAddedMassHf)[ii],Fb);
+		total_mass = *SD.Water->pStructuralMass+(*SD.Water->pAddedMassHf[ii]);
+		//std::cout << "Total mass matrix(2,2): " << mmm(2,2) << std::endl;
+		accB = arma::solve(total_mass,Fb);
 		//accB = arma::solve(*SD.Water->pStructuralMass,Fb);
 		SD.Bodies[ii]->acc = accB(arma::span(6*ii,6*(ii+1)-1), 0);
 	}

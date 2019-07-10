@@ -197,6 +197,9 @@ void Simulation::ReadHydrodynamicsHDF5()
         pBodies[ii]->hydro = new HydroDatabase(ii, pBodies);
         pBodies[ii]->hydro->ReadHydroMechanicsHDF5(file_path);
         pBodies[ii]->hydro->ComputeIRF();
+        std::cout << "Structural Mass (2,2): " << (*pBodies[ii]->hydro->pStructuralMass)(2,2) << std::endl;
+        std::cout << "Added Mass Hf (2,2): " << (*pBodies[ii]->hydro->pAddedMassHf[ii])(2,2) << std::endl;
+        std::cout << "Stiffness (2,2): " << (*pBodies[ii]->hydro->pHydrostaticStiffness)(2,2) << std::endl;
         std::cout << "This is the time vector..." << std::endl;
     }
     std::cout << "----> Hydrodynamic Properties Read" << std::endl;
