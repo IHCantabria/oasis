@@ -147,24 +147,14 @@ void Body::StoreVelocities()
 {
 	if (pSim->timeBufferCount < pSim->timeBufferSize)
 	{
-		std::cout << "Body::StoreVelocities - One step more stored" << std::endl;
-		std::cout << "Body::StoreVelocities - TimeBufferCoun: " << pSim->timeBufferCount << std::endl;
-		std::cout << "Body::StoreVelocities - velBufferSize: " << arma::size(velBuffer) << std::endl;
 		velBuffer.submat(0, pSim->timeBufferCount, 5, pSim->timeBufferCount) = vel;
-		std::cout << "Body::StoreVelocities - One step more stored --> Done" << std::endl;
 	}
 	else
 	{
-		std::cout << "Body::StoreVelocities - Reaload info" << std::endl;
-		std::cout << "Body::StoreVelocities - timeBufferSize: " << pSim->timeBufferSize << std::endl;
-		std::cout << "Body::StoreVelocities - numPointsIRF: " << hydro->numPointsIRF << std::endl;
-		std::cout << "Body::StoreVelocities - Interval1: " << 0 << " - " << hydro->numPointsIRF-1 << std::endl;
-		std::cout << "Body::StoreVelocities - Interval2: " << pSim->timeBufferSize-hydro->numPointsIRF << " - " << pSim->timeBufferSize-1 << std::endl;
 		arma::mat velBufferNew = arma::zeros(6, pSim->timeBufferSize);
 		velBufferNew.cols(0, hydro->numPointsIRF-1) = velBuffer.cols(pSim->timeBufferSize-hydro->numPointsIRF, pSim->timeBufferSize-1);
 		velBuffer = velBufferNew;
 		velBufferCount = hydro->numPointsIRF-1;
-		std::cout << "Body::StoreVelocities - Reaload info --> Done" << std::endl;
 	}
 }
 
@@ -221,9 +211,7 @@ void Body::UpdateHydrostaticForces()
 
 void Body::UpdateRadiationForces()
 {
-	std::cout << "Body::UpdateRadiationForces - Time" << std::endl;
 	radiationForces = this->hydro->ComputeRadiationForces();
-	std::cout << "Body::UpdateRadiationForces - Time --> Done" << std::endl;
 }
 
 

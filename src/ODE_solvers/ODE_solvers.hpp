@@ -60,6 +60,7 @@ public:
 	Simulation* pSim;
 	BDF(double t_u, double tmax_u, double dt_out_u, arma::mat y_u, Simulation* pIncSim);
 	arma::mat fun(double, arma::mat);
+	void Initialize(void);
 	void step(void);
 	void jac(double tt, arma::mat yy);
 };

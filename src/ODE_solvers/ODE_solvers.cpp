@@ -30,12 +30,31 @@ BDF::BDF(double t_u, double tmax_u, double dt_out_u, arma::mat y_u, Simulation* 
 	y_1 = y;
 	y_2 = y;
 	yprime = arma::zeros(size(y));
-	F = arma::zeros(size(y));
+	this->F = arma::zeros(size(y));
 	LTE = arma::zeros(size(y));
 	EWT = arma::zeros(size(y));
 	I = arma::eye(nSistema,nSistema);
 	J = arma::zeros(nSistema,nSistema);
+	
+}
 
+
+arma::mat BDF::fun(double tt, arma::mat yy)
+{
+	return pSim->CalculateSystemDynamics(tt, yy);
+}
+
+
+void BDF::jac(double tt, arma::mat yy){
+	yprime = fun(tt, yy);
+	for(int ii=0;ii<nSistema;ii=ii+1){
+		J.col(ii) = 1e12 * (fun(tt, yy + 1e-12* I.col(ii)) - yprime);
+	}
+}
+
+
+void BDF::Initialize()
+{
 	F(0) = 2*atol;
 	do{
 		jac(t + h_0, y);
@@ -55,24 +74,8 @@ BDF::BDF(double t_u, double tmax_u, double dt_out_u, arma::mat y_u, Simulation* 
 	t = t + h_0;
 
 	jac(t + h_0, y_0);
-	
-	
+
 }
-
-
-arma::mat BDF::fun(double tt, arma::mat yy)
-{
-	return pSim->CalculateSystemDynamics(tt, yy);
-}
-
-
-void BDF::jac(double tt, arma::mat yy){
-	yprime = fun(tt, yy);
-	for(int ii=0;ii<nSistema;ii=ii+1){
-		J.col(ii) = 1e12 * (fun(tt, yy + 1e-12* I.col(ii)) - yprime);
-	}
-}
-
 
 void BDF::step(void){
 	q = 0;

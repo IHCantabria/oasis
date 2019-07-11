@@ -106,7 +106,6 @@ arma::mat HydroDatabase::ComputeFirstWaveExcForce()
 	// Get First Order Wave exciting data from storage
 	arma::mat wave_exc_mag = pWaveExcitingMag->subcube(0, 0, 0, 5, 0, 0);
 	arma::mat wave_exc_pha = pWaveExcitingPha->subcube(0, 0, 0, 5, 0, 0);
-
 	// Calculate wave force
 	double time_slope = 60;
 	arma::mat wave_force = arma::zeros(6, 1);
