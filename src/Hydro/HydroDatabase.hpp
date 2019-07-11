@@ -16,9 +16,12 @@ private:
 	int activeDofs=6;
 	
 public:
-	int numPointsIRF; // Maximum number of points to describe the IRF function
-	//int nBodies; // Numero de cuerpos
+	// General Management variables
 	Body** pBodies; // Array de pointers a los cuerpos
+	Simulation* pSim; // Pointer to the simulation instance. It gives fast access to the necessary simulation variables
+
+	// Declare Hydrodynamic Storage Variables
+	int numPointsIRF; // Maximum number of points to describe the IRF function
 	arma::cube** pAddedMass; // Matrix components: [body, dof, dof, freqs]
 	arma::mat** pAddedMassHf; // Matrix components: [body, dof, dof]
 	arma::mat** pAddedMassLf; // Matrix components: [body, dof, dof]
@@ -41,16 +44,17 @@ public:
 	arma::cube* pWaveExcitingMag; // Matrix components: [dofs, freqs, headings];
 	arma::cube* pWaveExcitingPha; // Matrix components: [dofs, freqs, headings];
 
-	// Inicializar el objeto de la clase hydro dandole el numero de cuerpos y el vector de pointers a los cuerpos
-	//void set_Hydro(int n, Body** Bs){nBodies=n; Bodies = Bs;}
-	HydroDatabase(int incId, Body** incBodies);
+	// Class Constructors
+	HydroDatabase(int incId, Body** incBodies, Simulation* pIncSim);
+
+	// Class Methods
 	arma::mat ComputeHydrostaticForces(void);
-	arma::mat ComputeRadiationForces(double t, solver_data SD);
-	arma::mat ComputeFirstWaveExcForce(double t);
+	arma::mat ComputeRadiationForces();
+	arma::mat ComputeFirstWaveExcForce();
 	void ComputeIRF(void); // Calcula la impulse response function
 	void ReadHydroMechanicsHDF5(std::string filePath); // Leer inputs
 	int GetId(void);
-	void Print();
+	void Print(void);
 	
 	//void computeWaveSpectrum(void); // Calcula el espectro del oleaje
 	//void computeFe(void); // Calcula la serie temporal de fuerzas de excitación

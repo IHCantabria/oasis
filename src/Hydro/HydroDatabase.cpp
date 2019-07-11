@@ -18,7 +18,7 @@ arma::mat HydroDatabase::ComputeHydrostaticForces()
 }
 
 
-arma::mat HydroDatabase::ComputeRadiationForces(double t, solver_data SD)
+arma::mat HydroDatabase::ComputeRadiationForces()
 {	
 	// Allocate radiation force solution vector
 	arma::mat radiation_force = arma::zeros(6, 1);
@@ -41,7 +41,7 @@ arma::mat HydroDatabase::ComputeRadiationForces(double t, solver_data SD)
 		{
 			for(int j=0; j<6; j++)
 			{
-				if ((*SD.timeBuffer)(0, *SD.timeBufferCount) > IRFTime(0, (*pIRFPoints[ib])(i, j)))
+				if (pSim->timeBuffer(0, pSim->timeBufferCount) > IRFTime(0, (*pIRFPoints[ib])(i, j)))
 				{
 					// Get IRF function from the storage
 					irf_local = (*pIRF[ib]).subcube(0, i, j, numPointsIRF-1, i, j);
@@ -54,7 +54,7 @@ arma::mat HydroDatabase::ComputeRadiationForces(double t, solver_data SD)
 					vel_local = (*pBodies[ib]).velBuffer.submat(j, idx_begin, j, idx_end);
 
 					// Interpolate local velocity vector in order to fit with IRF resolution
-					vel_local_interp = interp1((*SD.timeBuffer).cols(idx_begin, idx_end)-(*SD.timeBuffer)(0, idx_end), vel_local, IRFTime.cols(0, (*pIRF[ib])(0, i, j)));
+					vel_local_interp = interp1(pSim->timeBuffer.cols(idx_begin, idx_end)-pSim->timeBuffer(0, idx_end), vel_local, IRFTime.cols(0, (*pIRF[ib])(0, i, j)));
 
 					// Calulate Duhamel integral
 					vel_local_filter = arma::flipud(irf_local)%(vel_local_interp.t());
@@ -72,13 +72,14 @@ arma::mat HydroDatabase::ComputeRadiationForces(double t, solver_data SD)
 					vel_local = (*pBodies[ib]).velBuffer.submat(j, 0, j, idx_end);
 
 					// Interpolate local velocity vector in order to fit with IRF resolution
-					time_local = IRFTime.cols(0, numPointsIRF-1) - IRFTime(0, numPointsIRF-1) + (*SD.timeBuffer)(0, idx_end);
-					irf_local_interp = interp1(time_local, arma::flipud(irf_local), (*SD.timeBuffer).cols(0, idx_end));
+					time_local = IRFTime.cols(0, numPointsIRF-1) - IRFTime(0, numPointsIRF-1) + pSim->timeBuffer(0, idx_end);
+					irf_local_interp = interp1(time_local, arma::flipud(irf_local), pSim->timeBuffer.cols(0, idx_end));
 
 					// Calulate Duhamel integral
 					vel_local_filter = irf_local_interp%vel_local;
-					radiation_force(i) += trapzi((*SD.timeBuffer).cols(0, idx_end), vel_local_filter);
+					radiation_force(i) += trapzi(pSim->timeBuffer.cols(0, idx_end), vel_local_filter);
 
+					/**
 					if ((idx_end == 500) && (i==2) && (j==2))
 					{
 						time_local.save(arma::hdf5_name("time_local_2500.h5","irf"));
@@ -88,29 +89,20 @@ arma::mat HydroDatabase::ComputeRadiationForces(double t, solver_data SD)
 						time_local = (*SD.timeBuffer).cols(0, idx_end);
 						time_local.save(arma::hdf5_name("time_2500.h5","time"));
 					}
+					**/
 				}
 			}
 		}
 	}
 	
-	/**
-	if((*pBodies)[id].velBufferCount > 0)
-	{
-		for(int ii=0; ii<6; ii++)
-		{
-			for(int jj=0; jj<6; jj++)
-			{
-				if(mySim.time > )
-			}
-		}
-	}
-	**/
 	return radiation_force;
 }
 
 
-arma::mat HydroDatabase::ComputeFirstWaveExcForce(double t)
+arma::mat HydroDatabase::ComputeFirstWaveExcForce()
 {
+	// Create local variables
+	double time = pSim->pTimeSolver->t;
 	// Get First Order Wave exciting data from storage
 	arma::mat wave_exc_mag = pWaveExcitingMag->subcube(0, 0, 0, 5, 0, 0);
 	arma::mat wave_exc_pha = pWaveExcitingPha->subcube(0, 0, 0, 5, 0, 0);
@@ -122,11 +114,11 @@ arma::mat HydroDatabase::ComputeFirstWaveExcForce(double t)
 	double angular_freq = 2*M_PI*(*pFrequencies)(0, 0);
 	for (int i=0; i<6; i++)
 	{
-		wave_force(i, 0) = wave_exc_mag(i, 0)*wave_amplitude*cos(angular_freq*t + wave_exc_pha(i, 0));
+		wave_force(i, 0) = wave_exc_mag(i, 0)*wave_amplitude*cos(angular_freq*time + wave_exc_pha(i, 0));
 
-		if (t < time_slope)
+		if (time < time_slope)
 		{
-			wave_force(i, 0) = wave_force(i, 0)*t/time_slope;
+			wave_force(i, 0) = wave_force(i, 0)*time/time_slope;
 		}
 	}
 
@@ -217,10 +209,11 @@ int HydroDatabase::GetId(void)
 }
 
 
-HydroDatabase::HydroDatabase(int incId, Body** incBody)
+HydroDatabase::HydroDatabase(int incId, Body** incBody, Simulation* pIncSim)
 {
 	id = incId;
 	pBodies = incBody;
+	pSim = pIncSim;
 }
 
 

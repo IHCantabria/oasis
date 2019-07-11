@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <string>
 #include <sstream>
+#include <ctime>
 #include "Simulation.hpp"
 #include "../Exceptions/Exception.hpp"
 #include "../os_tools.hpp"
@@ -11,7 +12,83 @@
 #include "../ODE_solvers/ODE_solvers.hpp"
 
 
+arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
+{
+    numCallsSysFun++;
+
+    return y;
+}
+
+
 void Simulation::Initialize()
+{
+    double start_time = 0.0;
+
+    // Initialize system vector
+    std::cout << "Num DOFs Total: " << this->numDofTotal << std::endl;
+    std::cout << "Num NumBodies: " << this->numBodies << std::endl;
+    std::cout << "Num NumWinchies: " << this->numWinches << std::endl;
+    numSystem2 = 3*this->numDofTotal + 6*this->numBodies + this->numWinches;
+    numSystem = 2*numSystem2;
+
+    printf("Sistema size: %d\n", numSystem);
+    printf("Sistema2 size: %d\n", numSystem);
+
+    arma::mat y = arma::zeros(numSystem,1);
+    arma::mat yprime = arma::zeros(numSystem,1);
+
+    int ini=0;
+    std::string file_path;
+    if(this->readEquilibrium==0){
+        for(int ii=0; ii<this->numBodies; ii=ii+1){
+                y.rows(ini,ini+5) = this->pBodies[ii]->pos;
+                ini=ini+6;
+        }
+        for(int ii=0; ii<this->numLines; ii=ii+1){
+            for(int jj=0; jj<this->pLines[ii]->N; jj=jj+1){
+                    y.rows(ini,ini+2) = this->pLines[ii]->pos.row(jj).t();
+                    ini=ini+3;
+            }
+        }
+    }else if (this->readEquilibrium){
+        file_path = JoinPath(this->inputFolderPath, "Equilibrio.dat");
+        std::ifstream equi(file_path);
+            for(int ii=6*this->numBodies;ii<this->numSystem2;ii=ii+1) {
+                equi >> y(ii,0);    equi.ignore(std::numeric_limits<int>::max(), '\n');
+            }
+        equi.close();
+
+        ini=6*this->numBodies;
+        for(int ii=0; ii<this->numLines; ii=ii+1){
+            for(int jj=0; jj<this->pLines[ii]->N; jj=jj+1){
+                this->pLines[ii]->pos.row(jj) = y.rows(ini,ini+2).t();
+                ini=ini+3;
+            }
+        }
+    }
+
+     // Initialize Temporal Solver
+    if (this->timeIntMethod == 1)
+	{
+        std::cout << "Initializing temporal solver..." << std::endl;
+        pTimeSolver = new BDF(start_time, this->simulationTime, this->maxTimeStep, y, this);
+        pTimeSolver->atol = this->timeIntAbsTol;
+        pTimeSolver->rtol = this->timeIntRelTol;
+        pTimeSolver->nIterMax = this->maxIterStep;
+    }
+
+    // Write initial condition to files
+    for(int ii=0; ii<this->numLines; ii=ii+1) this->pLines[ii]->WriteOut(start_time);
+    for(int ii=0; ii<this->numBodies; ii=ii+1) this->pBodies[ii]->WriteOut(start_time);
+
+    // Save first data
+    std::cout << "Antes de update system" << std::endl;
+    this->UpdateSystem();
+    
+}
+
+
+void Simulation::LoadCase()
 {
     // Read Simulation Properties
     this->ReadProperties();
@@ -26,7 +103,6 @@ void Simulation::Initialize()
 
     // Setup case
     this->SetupCase();
-    
 }
 
 
@@ -161,7 +237,7 @@ void Simulation::ReadBodiesASCII()
     printf("Total number of bodies: %d\n", numBodies);
 	for(int ii=0; ii<numBodies; ii++)
     {
-		pBodies[ii] = new Body(ii);
+		pBodies[ii] = new Body(ii, this);
 		pBodies[ii]->ReadPropertiesASCII(file_pointer);
 
 	}
@@ -194,7 +270,7 @@ void Simulation::ReadHydrodynamicsHDF5()
     std::string file_path = JoinPath(inputFolderPath, "cajon1_LC1.ehydb");
     for (int ii=0; ii<numBodies; ii++)
     {
-        pBodies[ii]->hydro = new HydroDatabase(ii, pBodies);
+        pBodies[ii]->hydro = new HydroDatabase(ii, pBodies, this);
         pBodies[ii]->hydro->ReadHydroMechanicsHDF5(file_path);
         pBodies[ii]->hydro->ComputeIRF();
         std::cout << "Structural Mass (2,2): " << (*pBodies[ii]->hydro->pStructuralMass)(2,2) << std::endl;
@@ -202,6 +278,20 @@ void Simulation::ReadHydrodynamicsHDF5()
         std::cout << "Stiffness (2,2): " << (*pBodies[ii]->hydro->pHydrostaticStiffness)(2,2) << std::endl;
         std::cout << "This is the time vector..." << std::endl;
     }
+
+    // Check time buffere w.r.t IRF size
+    if (this->timeBufferSize < 10*pBodies[0]->hydro->numPointsIRF)
+    {
+        this->timeBufferSize = 10*pBodies[0]->hydro->numPointsIRF;
+        this->timeBuffer = arma::zeros(1, this->timeBufferSize);
+
+        for (int ii=0; ii<numBodies; ii++)
+        {
+            pBodies[ii]->velBufferSize = 10*pBodies[ii]->hydro->numPointsIRF;
+            pBodies[ii]->velBuffer = arma::zeros(6, pBodies[ii]->velBufferSize);
+        }
+    }
+    
     std::cout << "----> Hydrodynamic Properties Read" << std::endl;
 }
 
@@ -461,6 +551,51 @@ void Simulation::ReadWinchesHDF5()
 }
 
 
+void Simulation::Run()
+{
+    time_t tstart, tend;
+	double wallTime = 0.0;
+    tstart = time(0);
+    timeBufferCount=11700;
+    //pTimeSolver.t = 58;
+    std::cout<< "    t = " << wallTime << " s" << std::endl;
+    do
+    {
+        std::cout << "Antes de Step" << std::endl;
+        pTimeSolver->step();
+        
+        std::cout << "Antes de Update System" << std::endl;
+        UpdateSystem();
+        std::cout << "Despues de Update System" << std::endl;
+        
+        // Print out time if any
+        if (pTimeSolver->t >= wallTime + maxTimeStep)
+        {
+            wallTime = wallTime + maxTimeStep;
+            std::cout<< "    t = " << wallTime << " s"  << std::endl;
+            //if (nWinchies>0) CW.controlWinchies();
+            for(int ii=0; ii<numLines; ii=ii+1) pLines[ii]->WriteOut(wallTime);
+            for(int ii=0; ii<numBodies; ii=ii+1) pBodies[ii]->WriteOut(wallTime);
+        }
+    } while (pTimeSolver->t <= simulationTime);
+    
+    tend = time(0); 
+    std::cout << std::endl << "    Computational time  : " << difftime(tend, tstart) << " seconds" << std::endl;
+    std::cout << "    Total function calls: " << numCallsSysFun << std::endl;
+    std::cout << "    Total jac calls: " << pTimeSolver->iJ << std::endl << std::endl;
+
+    /**
+    if (writeEquilibrium == 1) {
+
+        std::cout << "  Writting data to Equilibrio.dat ..." << std::endl << std::endl; //////////////////////////////////////////
+
+        std::ofstream equi("output/Equilibrio.dat");
+            for(int ii=6*nBodies;ii<nSistema2;ii=ii+1) equi << y(ii,0) << std::endl;
+        equi.close();
+    }
+    **/
+}
+
 void Simulation::SetupCase()
 {
     std::cout << "--> Setting up the case configuration..." << std::endl;
@@ -574,7 +709,6 @@ void Simulation::SetupCase()
             if(!readEquilibrium) pLines[ii]->initLine();
             pLines[ii]->print_out();
             pLines[ii]->SEM_getBaseFunctions();
-            pLines[ii]->write_out(0.0);
         }
         catch (int e) 
 		{
@@ -660,8 +794,24 @@ Simulation::Simulation(std::string incProjectPath, std::string incDataFormat)
 }
 
 
-void Simulation::UpdateSystem(double t, arma::mat y, solver_data SD)
+void Simulation::UpdateSystem()
 {
+    // Update time vector if any
+    timeBufferCount++;
+    std::cout << "Store time" << std::endl;
+    if (timeBufferCount < timeBufferSize)
+    {
+        timeBuffer(0, timeBufferCount) = pTimeSolver->t;
+    }
+    else
+    {
+        arma::mat timeBufferNew = arma::zeros(1, timeBufferSize);
+        timeBufferNew.cols(0, pBodies[0]->hydro->numPointsIRF-1) = timeBuffer.cols(timeBufferSize-pBodies[0]->hydro->numPointsIRF, timeBufferSize-1);
+        timeBuffer = timeBufferNew;
+        timeBufferCount = pBodies[0]->hydro->numPointsIRF-1;
+    }
+
+    std::cout << "Store hydrodynamic velocities -->Done" << std::endl;
     // Update bodies velocity
     int ini = 0;
     std::cout << "Store body velocities" << std::endl;
@@ -673,15 +823,18 @@ void Simulation::UpdateSystem(double t, arma::mat y, solver_data SD)
 
     // Update hydrodynamic properties
     std::cout << "Store hydrodynamic velocities" << std::endl;
-    
-    if (*SD.timeBufferCount > 0)
+    if (timeBufferCount > 0)
     {
         for(int ii=0; ii<numBodies; ii++)
         {
+            std::cout << "Store hydrodynamic velocities" << std::endl;
             pBodies[ii]->UpdateHydrostaticForces();
-            pBodies[ii]->UpdateRadiationForces(t, SD);
+            std::cout << "Store hydrodynamic velocities" << std::endl;
+            pBodies[ii]->UpdateRadiationForces();
         }
     }
+    std::cout << "Store time -->Done" << std::endl;
+    std::cout << "Time buffer count: " << timeBufferCount << std::endl;
     
-    std::cout << "Store hydrodynamic velocities -->Done" << std::endl;
+    
 }

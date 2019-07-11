@@ -468,7 +468,7 @@ void Line::initLine (void)
 }
 
 
-void Line::write_out (double t) 
+void Line::WriteOut (double t) 
 {
 	int ii, nn1, nn2, nn3, nn4;
 

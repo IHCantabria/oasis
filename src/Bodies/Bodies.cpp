@@ -6,15 +6,17 @@
 #include <cstdio>
 #include <cmath>
 #include <armadillo>
+#include "../Simulations/Simulation.hpp"
 #include "Bodies.hpp"
 #include "../BCPs/BCPs.hpp"
 #include "../os_tools.hpp"
 #include "../ODE_solvers/ODE_solvers.hpp"
 
 
-Body::Body(int n)
+Body::Body(int n, Simulation* pIncSim)
 {
 	id = n;
+	pSim = pIncSim;
 }
 
 
@@ -143,22 +145,27 @@ void Body::ReadPropertiesASCII(FILE* pFilePointer)
 
 void Body::StoreVelocities()
 {
-	if (velBufferCount < velBufferSize)
+	if (pSim->timeBufferCount < pSim->timeBufferSize)
 	{
 		std::cout << "Body::StoreVelocities - One step more stored" << std::endl;
-		velBuffer.submat(0, velBufferCount, 5, velBufferCount) = vel;
+		std::cout << "Body::StoreVelocities - TimeBufferCoun: " << pSim->timeBufferCount << std::endl;
+		std::cout << "Body::StoreVelocities - velBufferSize: " << arma::size(velBuffer) << std::endl;
+		velBuffer.submat(0, pSim->timeBufferCount, 5, pSim->timeBufferCount) = vel;
 		std::cout << "Body::StoreVelocities - One step more stored --> Done" << std::endl;
 	}
 	else
 	{
 		std::cout << "Body::StoreVelocities - Reaload info" << std::endl;
-		arma::mat velBufferNew = arma::zeros(6, velBufferSize);
-		velBufferNew.cols(0, hydro->numPointsIRF-1) = velBuffer.cols(velBufferSize-hydro->numPointsIRF, velBufferSize-1);
+		std::cout << "Body::StoreVelocities - timeBufferSize: " << pSim->timeBufferSize << std::endl;
+		std::cout << "Body::StoreVelocities - numPointsIRF: " << hydro->numPointsIRF << std::endl;
+		std::cout << "Body::StoreVelocities - Interval1: " << 0 << " - " << hydro->numPointsIRF-1 << std::endl;
+		std::cout << "Body::StoreVelocities - Interval2: " << pSim->timeBufferSize-hydro->numPointsIRF << " - " << pSim->timeBufferSize-1 << std::endl;
+		arma::mat velBufferNew = arma::zeros(6, pSim->timeBufferSize);
+		velBufferNew.cols(0, hydro->numPointsIRF-1) = velBuffer.cols(pSim->timeBufferSize-hydro->numPointsIRF, pSim->timeBufferSize-1);
 		velBuffer = velBufferNew;
 		velBufferCount = hydro->numPointsIRF-1;
 		std::cout << "Body::StoreVelocities - Reaload info --> Done" << std::endl;
 	}
-	velBufferCount++;
 }
 
 
@@ -212,10 +219,10 @@ void Body::UpdateHydrostaticForces()
 }
 
 
-void Body::UpdateRadiationForces(double t, solver_data SD)
+void Body::UpdateRadiationForces()
 {
 	std::cout << "Body::UpdateRadiationForces - Time" << std::endl;
-	radiationForces = this->hydro->ComputeRadiationForces(t, SD);
+	radiationForces = this->hydro->ComputeRadiationForces();
 	std::cout << "Body::UpdateRadiationForces - Time --> Done" << std::endl;
 }
 

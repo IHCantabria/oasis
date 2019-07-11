@@ -30,7 +30,7 @@ int nCalls = 0;
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////           fun           ///////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+/**
 arma::mat fun(double t, arma::mat y, solver_data& SD){
 
 	nCalls = nCalls + 1;
@@ -254,7 +254,7 @@ arma::mat fun(double t, arma::mat y, solver_data& SD){
 	return yprime;
 	
 }
-
+**/
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -312,7 +312,9 @@ int main (int argc, char* argv[])
 		printf("Before initializing...\n");
 		Simulation* mySim = new Simulation(project_path, "ASCII");
 		printf("Before initializing...\n");
+		mySim->LoadCase();
 		mySim->Initialize();
+		mySim->Run();
 		printf("Water Depth: %f\n", mySim->waterDepth);
 	//}
 	//catch(Exception& error)
@@ -501,11 +503,12 @@ int main (int argc, char* argv[])
 		//Water->computeWaveSpectrum();
 		//Water->computeFe();
 
-		std::cout<< "End of input reading" << std::endl << std::endl; //////////////////////////////////////////
+		//std::cout<< "End of input reading" << std::endl << std::endl; //////////////////////////////////////////
 
 		
-		std::cout<< "  Initializing ODE system vector ..." << std::endl << std::endl; //////////////////////////////////////////
+		//std::cout<< "  Initializing ODE system vector ..." << std::endl << std::endl; //////////////////////////////////////////
 		// Inicio el vector del sistema
+		/**
 		std::cout << "Num DOFs Total: " << mySim->numDofTotal << std::endl;
 		std::cout << "Num NumBodies: " << mySim->numBodies << std::endl;
 		std::cout << "Num NumWinchies: " << mySim->numWinches << std::endl;
@@ -553,8 +556,10 @@ int main (int argc, char* argv[])
 		// ESCIBIENDO CONDICION INICIAL A FICHEROS
 		for(int ii=0; ii<mySim->numLines; ii=ii+1) mySim->pLines[ii]->write_out(t);
 		for(int ii=0; ii<mySim->numBodies; ii=ii+1) mySim->pBodies[ii]->WriteOut(t);
+		**/
 
 		// GUARDANDO DATOS LEIDOS EN ESTRUCTURA DEL SOLVER TEMPORAL
+		/**
 		SD.nLines = mySim->numLines;
 		SD.Lines = mySim->pLines;
 		SD.nSprings = mySim->numSprings;
@@ -633,14 +638,14 @@ int main (int argc, char* argv[])
 					t = t + mySim->maxTimeStep;
 					std::cout<< "    t = " << t << " s"  << std::endl;
 					//if (nWinchies>0) CW.controlWinchies();
-					for(int ii=0; ii<mySim->numLines; ii=ii+1) mySim->pLines[ii]->write_out(S.t);
+					for(int ii=0; ii<mySim->numLines; ii=ii+1) mySim->pLines[ii]->WriteOut(S.t);
 					for(int ii=0; ii<mySim->numBodies; ii=ii+1) mySim->pBodies[ii]->WriteOut(S.t);
 				}
 			} while (S.t<=mySim->simulationTime);
 			
 			tend = time(0); 
 			std::cout << std::endl << "    Computational time  : " << difftime(tend, tstart) << " seconds" << std::endl;
-			std::cout << "    Total function calls: " << nCalls << std::endl;
+			std::cout << "    Total function calls: " << numCallsSysFun << std::endl;
 			std::cout << "    Total jac calls: " << S.iJ << std::endl << std::endl;
 			
 			
@@ -654,6 +659,7 @@ int main (int argc, char* argv[])
 				for(int ii=6*nBodies;ii<nSistema2;ii=ii+1) equi << y(ii,0) << std::endl;
 			equi.close();
 		}
+		**/
 	}
 	catch(Exception& error)
 	{

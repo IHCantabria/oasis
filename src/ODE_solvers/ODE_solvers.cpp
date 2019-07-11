@@ -9,15 +9,16 @@
 #include <cmath>
 #include <armadillo>
 #include "ODE_solvers.hpp"
+#include "../Simulations/Simulation.hpp"
 
-BDF::BDF(double t_u, double tmax_u, double dt_out_u, arma::mat y_u, arma::mat (*fun_u) (double, arma::mat, solver_data &), solver_data & SD_u)
+BDF::BDF(double t_u, double tmax_u, double dt_out_u, arma::mat y_u, Simulation* pIncSim)
 {
+	pSim = pIncSim;
+
 	t = t_u;
 	tmax = tmax_u;
 	dt_out = dt_out_u;
 	y = y_u;
-	fun = fun_u;
-	SD = SD_u;
 
 	h_0 = dt_ini;
 	h_1 = dt_ini;
@@ -36,7 +37,6 @@ BDF::BDF(double t_u, double tmax_u, double dt_out_u, arma::mat y_u, arma::mat (*
 	J = arma::zeros(nSistema,nSistema);
 
 	F(0) = 2*atol;
-	//yprime = fun(t + h_0, y, SD);
 	do{
 		jac(t + h_0, y);
 		M = I - h_0 * J;
@@ -60,10 +60,16 @@ BDF::BDF(double t_u, double tmax_u, double dt_out_u, arma::mat y_u, arma::mat (*
 }
 
 
+arma::mat BDF::fun(double tt, arma::mat yy)
+{
+	return pSim->CalculateSystemDynamics(tt, yy);
+}
+
+
 void BDF::jac(double tt, arma::mat yy){
-	yprime = fun(tt, yy, SD);
-	for(int ii=0;ii<SD.nSistema;ii=ii+1){
-		J.col(ii) = 1e12 * (fun(tt, yy + 1e-12* I.col(ii), SD) - yprime);
+	yprime = fun(tt, yy);
+	for(int ii=0;ii<nSistema;ii=ii+1){
+		J.col(ii) = 1e12 * (fun(tt, yy + 1e-12* I.col(ii)) - yprime);
 	}
 }
 
@@ -75,7 +81,7 @@ void BDF::step(void){
 	k = 0;
 	y = y_0 + h_0*(y_0 - y_1)/h_1;
 	do{
-		F = (1.0 + h_0/(h_1+h_0)) * y - ((h_1+h_0)/h_1) * y_0 + ((h_0*h_0/h_1)/(h_1+h_0)) * y_1 - h_0 * fun(t+h_0,y,SD);
+		F = (1.0 + h_0/(h_1+h_0)) * y - ((h_1+h_0)/h_1) * y_0 + ((h_0*h_0/h_1)/(h_1+h_0)) * y_1 - h_0 * fun(t+h_0,y);
 		M = (1.0 + h_0/(h_1+h_0)) * I - h_0 * J;
 		status = arma::solve(dy,M,F,arma::solve_opts::fast);
 		if (!status){

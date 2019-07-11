@@ -40,7 +40,7 @@ public:
 	void qs_Functions(double& ff,double& gg,double& DfDH,double& DfDV,double& DgDH,double& DgDV);
 	void qs_GetTen(void);
 	void qs_Solution(void);
-	void write_out(double t);
+	void WriteOut(double t);
 	void SEM_getBaseFunctions(void);
 	void SEM_coefficients(void);
 	double SEM_poly(double x, int i);

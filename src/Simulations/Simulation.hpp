@@ -8,7 +8,8 @@
 #include "../BCPs/Winchies.hpp"
 #include "../Lines/Lines.hpp"
 #include "../Spring/Spring.hpp"
-#include "../ODE_solvers/ODE_solvers.hpp"
+
+class BDF;
 
 
 class Simulation
@@ -29,6 +30,8 @@ public:
     double gravity;
     int maxIterStep;
     double maxTimeStep;
+    int numSystem;
+    int numSystem2;
     double simulationTime;
     bool readEquilibrium;
     double timeIntAbsTol;
@@ -39,7 +42,9 @@ public:
     bool writeEquilibrium;
 
     // Declare time simulation attributes
-    int timeBufferSize=1e4;
+    int numCallsSysFun=0;
+    BDF* pTimeSolver;
+    int timeBufferSize=1e2;
 	arma::mat timeBuffer = arma::zeros(1, timeBufferSize);
     int timeBufferCount=0;
 
@@ -68,7 +73,7 @@ public:
     Simulation(std::string projectPath, std::string incDataFormat);
 
     // Declare IO methods
-    void Initialize(void);
+    void LoadCase(void);
     void (Simulation::*pReadBcps)(void);
     void (Simulation::*pReadBodies)(void);
     void (Simulation::*pReadLines)(void);
@@ -96,8 +101,11 @@ public:
     void ReadPropertiesHDF5(void);
 
     // Declare general purpose class methods
-    void SetupCase();
-    void UpdateSystem(double t, arma::mat y, solver_data SD);
+    arma::mat CalculateSystemDynamics(double time, arma::mat y);
+    void Initialize(void);
+    void Run();
+    void SetupCase(void);
+    void UpdateSystem(void);
 
 };
 

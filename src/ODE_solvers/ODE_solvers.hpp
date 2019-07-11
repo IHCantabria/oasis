@@ -3,6 +3,8 @@
 #define odedef_hpp__
 #include <armadillo>
 #include <string>
+
+
 #include "../Hydro/HydroDatabase.hpp"
 #include "../Bodies/Bodies.hpp"
 #include "../Lines/Lines.hpp"
@@ -27,6 +29,7 @@ struct solver_data{
 	arma::mat* timeBuffer;
 	int* timeBufferCount;
 };
+
 
 class BDF{
 private:
@@ -53,9 +56,10 @@ public:
 	double t, tmax, dt_out;
 	arma::mat y;
 	solver_data SD;
-	arma::mat (*fun) (double, arma::mat, solver_data &);
-
-	BDF(double t_u, double tmax_u, double dt_out_u, arma::mat y_u, arma::mat (*fun_u) (double, arma::mat, solver_data &), solver_data & SD_u);
+	//arma::mat (Simulation::*fun) (double, arma::mat);
+	Simulation* pSim;
+	BDF(double t_u, double tmax_u, double dt_out_u, arma::mat y_u, Simulation* pIncSim);
+	arma::mat fun(double, arma::mat);
 	void step(void);
 	void jac(double tt, arma::mat yy);
 };

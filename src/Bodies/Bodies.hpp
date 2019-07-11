@@ -8,13 +8,14 @@
 #include "../Hydro/HydroDatabase.hpp"
 
 class solver_data;
+class Simulation;
 
 class Body {
 private:
 	int id; // Body index. It is an unique number assigned to each body in the simulation
-	int velBufferSize=1e2; // Velocity Buffer size;
 
 public:
+	int velBufferSize=1e2; // Velocity Buffer size;
 	int velBufferCount=0; // Stores the positon of the last columun of the velocity buffer matrix filled.
 	int numDofs; // Numero de grados de libertad que se consideran en el cuerpo
 	int* pDofs; // Array de grados de libertad que se consideran en el cuerpo
@@ -23,6 +24,7 @@ public:
 	int* pIndexBcps;
 	HydroDatabase* hydro; // Hydrodynamnics body associated to the body
 	BCP** pBodyBcps; // Array de pointers a los puntos de condicion de contorno
+	Simulation* pSim; // Pointer to simulation instance
 
 	arma::mat pos = arma::zeros(6,1); // Posicion del cuerpo
 	arma::mat vel = arma::zeros(6,1); // Velocidad del cuerpo
@@ -39,14 +41,14 @@ public:
 	arma::mat hydrostaticForces = arma::zeros(6, 1); // Storage for the hydrostatic forces
 	arma::mat radiationForces = arma::zeros(6, 1); // Storage for the wave radiation forces
 
-	Body(int n); // Inicializa un objeto de clase cuerpo dandole el indice
+	Body(int n, Simulation* pSim); // Inicializa un objeto de clase cuerpo dandole el indice
 	void ComputeBcpForces(void); // Calcula el efecto de las fuerzas sobre los BCPs sobre su CDG
 	int GetId(void); // Returns the body identification number
 	void ReadPropertiesASCII(FILE* filePointer); // Leer datos de los cuerpos
-	void StoreVelocities(); // Store last step velocity into the velocity buffer matrix
+	void StoreVelocities(void); // Store last step velocity into the velocity buffer matrix
 	void UpdateBcps(void); // Actualiza valores del BCP
-	void UpdateHydrostaticForces(); // Update the value of the wave radiation forces the current step
-	void UpdateRadiationForces(double t, solver_data SD); // Update the value of the wave radiation forces the current step
+	void UpdateHydrostaticForces(void); // Update the value of the wave radiation forces the current step
+	void UpdateRadiationForces(void); // Update the value of the wave radiation forces the current step
 	void WriteOut(double t); // Escribir datos a fichero
 };
 
