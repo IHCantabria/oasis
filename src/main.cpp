@@ -34,9 +34,10 @@ int nCalls = 0;
 arma::mat fun(double t, arma::mat y, solver_data& SD){
 
 	nCalls = nCalls + 1;
-
+	//std::cout << "Main::fun - At first" << std::endl; 
 	arma::mat yprime = arma::zeros(size(y));
 	int i0;
+	//std::cout << "Main::fun - Before copy y to objects" << std::endl;
 	// Copy info from y to the objects.
 	int ini = 0;
 	for(int ii=0;ii<SD.nBodies;ii=ii+1)
@@ -71,10 +72,12 @@ arma::mat fun(double t, arma::mat y, solver_data& SD){
 	}
 	
 	// Update BodyBCP positions and velocities
+	//std::cout << "Main::fun - Update BCP positions and velocities" << std::endl;
 	for(int ii=0;ii<SD.nBodies;ii=ii+1){
 		SD.Bodies[ii]->UpdateBcps();
 	}
 	// Set boundary conditions on pos and vel of Lines if the BCP is not a joint
+	//std::cout << "Main::fun - Set Boundary conditios" << std::endl;
 	if (SD.nLines >= 1){
 		if (SD.Lines[0]->pLineBcps[0]->tBCP != t){
 			for(int ii=0;ii<SD.nLines;ii=ii+1){		
@@ -98,6 +101,7 @@ arma::mat fun(double t, arma::mat y, solver_data& SD){
 		}
 	}
 	// Set boundary conditions on pos and vel of Lines if the BCP is a joint
+	//std::cout << "Main::fun - Set Boundary conditios if BCP is a Joint" << std::endl;
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
 		if(SD.Lines[ii]->pLineBcps[0]->GetType() == 3){
 			SD.Lines[ii]->pLineBcps[0]->posLines.row(SD.Lines[ii]->pLineBcps[0]->iLJ) = SD.Lines[ii]->pos.row(0);
@@ -129,25 +133,31 @@ arma::mat fun(double t, arma::mat y, solver_data& SD){
 		}
 	}
 	// Compute forces vector for the different Lines
+	//std::cout << "Main::fun - Compute forces vector for different lines" << std::endl;
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
 		SD.Lines[ii]->SEM_computeF();
 	}
 	// Compute forces of Springs
+	//std::cout << "Main::fun - Compute spring" << std::endl;
 	for(int ii=0;ii<SD.nSprings;ii=ii+1){
 		SD.Springs[ii]->computeSpringForces();
 	}
 	// Compute hydrostatic and hidrodynamic forces
+	//std::cout << "Main::fun - Compute hydrodynamic and hydrostatic forces" << std::endl;
 	arma::mat Fb = SD.Water->ComputeHydrostaticForces();
 	arma::mat Fr = SD.Water->ComputeRadiationForces(t, SD);
+	arma::mat Fe = SD.Water->ComputeFirstWaveExcForce(t);
 	// Compute forces on BCPs
+	//std::cout << "Main::fun - Compute forces on BCPs" << std::endl;
 	for(int ii=0;ii<SD.nBodies;ii=ii+1){
 		SD.Bodies[ii]->ComputeBcpForces();
-		Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  -(Fr + Fb(arma::span(6*ii,6*(ii+1)-1), 0)) + SD.Bodies[ii]->bcpForces;
+		Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  Fe - (Fr + Fb(arma::span(6*ii,6*(ii+1)-1), 0)) + SD.Bodies[ii]->bcpForces;
 	}
 	WriteASCII("output/bcpForces.dat", SD.Bodies[0]->bcpForces, true);
 	// Compute body acceleration
 	//(**SD.Water->pAddedMassHf).print();
 	//arma::mat accB = (*SD.Water->pStructuralMass+**SD.Water->pAddedMassHf)*Fb;
+	//std::cout << "Main::fun - Compute accelerations" << std::endl;
 	arma::mat accB;
 	arma::mat total_mass;
 	WriteASCII("output/accB.dat", accB, true);
@@ -160,11 +170,13 @@ arma::mat fun(double t, arma::mat y, solver_data& SD){
 	}
 
 	// Update BodyBCP accelerations
+	//std::cout << "Main::fun - Compute BCP accelerations" << std::endl;
 	for(int ii=0;ii<SD.nBodies;ii=ii+1){
 		SD.Bodies[ii]->UpdateBcps();
 	}
-	WriteASCII("output/bcpAcceleration.dat", SD.Bodies[0]->pBodyBcps[0]->accG_BCP, true);
+	//WriteASCII("output/bcpAcceleration.dat", SD.Bodies[0]->pBodyBcps[0]->accG_BCP, true);
 	// Obtain Lines accelerations, imposing boundary conditions if the BCP is not a joint
+	//std::cout << "Main::fun - Compute lines accelerations" << std::endl;
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
 		if(SD.Lines[ii]->pLineBcps[0]->GetType() != 3){
 			SD.Lines[ii]->F.row(0)                = SD.Lines[ii]->pLineBcps[0]->acc.t();
@@ -183,6 +195,7 @@ arma::mat fun(double t, arma::mat y, solver_data& SD){
 		}
 	}
 	// Obtain Lines accelerations, imposing boundary conditions if the BCP is a joint
+	//std::cout << "Main::fun - Lines accelerations if the Line is a Joint" << std::endl;
 	for(int ii=0;ii<SD.nLines;ii=ii+1){
 		if(SD.Lines[ii]->pLineBcps[0]->GetType() == 3){
 			SD.Lines[ii]->pLineBcps[0]->accLines.row(SD.Lines[ii]->pLineBcps[0]->iLJ) = SD.Lines[ii]->acc.row(0);
@@ -211,11 +224,13 @@ arma::mat fun(double t, arma::mat y, solver_data& SD){
 	}
 
 	// Compute Winchies
+	//std::cout << "Main::fun - Compute Winchies" << std::endl;
 	for(int ii=0;ii<SD.nWinchies;ii=ii+1){
 		SD.Winchies[ii]->computeWinchie();
 	}
 
 	// Copy info from the objects to yprime
+	//std::cout << "Main::fun - Copy info to yprime" << std::endl;
 	yprime.rows(0,SD.nSistema2-1) = y.rows(SD.nSistema2,SD.nSistema-1);
 	yprime.rows(SD.nSistema2,SD.nSistema2+6*SD.nBodies-1) = accB;
 	ini = SD.nSistema2+6*SD.nBodies;
@@ -229,12 +244,13 @@ arma::mat fun(double t, arma::mat y, solver_data& SD){
 		yprime.row(SD.nSistema2-(ii+1)) = SD.Winchies[ii]->omega;
 		yprime.row(SD.nSistema-(ii+1)) = SD.Winchies[ii]->alpha;
 	}
-
+	//std::cout << "Main::fun - Check if yprime has a NaN" << std::endl;
 	WriteASCII("output/yprime.dat", yprime, true);
 	if (yprime.has_nan()){
 		std::cout << std::endl << "ERROR: NaN Detected!" << std::endl;
 		throw std::exception();
 	}
+	//std::cout << "Main::fun - End of fcn" << std::endl;
 	return yprime;
 	
 }
@@ -490,6 +506,9 @@ int main (int argc, char* argv[])
 		
 		std::cout<< "  Initializing ODE system vector ..." << std::endl << std::endl; //////////////////////////////////////////
 		// Inicio el vector del sistema
+		std::cout << "Num DOFs Total: " << mySim->numDofTotal << std::endl;
+		std::cout << "Num NumBodies: " << mySim->numBodies << std::endl;
+		std::cout << "Num NumWinchies: " << mySim->numWinches << std::endl;
 		nSistema2 = 3*mySim->numDofTotal + 6*mySim->numBodies + mySim->numWinches;
 		nSistema = 2*nSistema2;
 		SD.nSistema = nSistema;
@@ -552,7 +571,7 @@ int main (int argc, char* argv[])
 
 		// Save first data
 		std::cout << "Antes de update system" << std::endl;
-		mySim->UpdateSystem(y, SD);
+		mySim->UpdateSystem(0.0, y, SD);
 		// Update time vector if any
 		if ((*SD.timeBufferCount) < SD.timeBufferSize)
 		{
@@ -584,13 +603,16 @@ int main (int argc, char* argv[])
 			tstart = time(0);
 			std::cout<< "    t = " << t << " s" << std::endl;
 			do{
+				std::cout << "Antes de Step" << std::endl;
 				S.step();
 				
-				
 				// Update time vector if any
+				std::cout << "Antes de Update Time" << std::endl;
 				if ((*SD.timeBufferCount) < SD.timeBufferSize)
 				{
+					std::cout << "New time step" << std::endl;
 					(*SD.timeBuffer)(0, (*SD.timeBufferCount)) = S.t;
+					std::cout << "New time step --> done" << std::endl;
 				}
 				else
 				{
@@ -601,8 +623,9 @@ int main (int argc, char* argv[])
 					delete timeBufferNew;
 				}
 				(*SD.timeBufferCount)++;
-
-				mySim->UpdateSystem(S.y, SD);
+				std::cout << "Antes de Update System" << std::endl;
+				mySim->UpdateSystem(S.t, S.y, SD);
+				std::cout << "Despues de Update System" << std::endl;
 				
 				// Print out time if any
 				if (S.t >= t + mySim->maxTimeStep)
@@ -622,7 +645,6 @@ int main (int argc, char* argv[])
 			
 			
 		}
-		std::cout << "Time buffer count: " << SD.timeBufferCount << std::endl;
 
 		if (flag_write_eq == 1) {
 

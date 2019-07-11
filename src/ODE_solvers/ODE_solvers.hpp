@@ -23,7 +23,7 @@ struct solver_data{
 	HydroDatabase* Water;
 	int nWinchies;
 	Winchie** Winchies;
-	int timeBufferSize=1e4;
+	int timeBufferSize=1e2;
 	arma::mat* timeBuffer;
 	int* timeBufferCount;
 };

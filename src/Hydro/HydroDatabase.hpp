@@ -46,6 +46,7 @@ public:
 	HydroDatabase(int incId, Body** incBodies);
 	arma::mat ComputeHydrostaticForces(void);
 	arma::mat ComputeRadiationForces(double t, solver_data SD);
+	arma::mat ComputeFirstWaveExcForce(double t);
 	void ComputeIRF(void); // Calcula la impulse response function
 	void ReadHydroMechanicsHDF5(std::string filePath); // Leer inputs
 	int GetId(void);

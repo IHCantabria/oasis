@@ -25,7 +25,6 @@ BDF::BDF(double t_u, double tmax_u, double dt_out_u, arma::mat y_u, arma::mat (*
 	dt_max = std::min(0.5*dt_out,dt_max);
 
 	nSistema = y_u.n_rows;
-
 	y_0 = y;
 	y_1 = y;
 	y_2 = y;
@@ -33,13 +32,11 @@ BDF::BDF(double t_u, double tmax_u, double dt_out_u, arma::mat y_u, arma::mat (*
 	F = arma::zeros(size(y));
 	LTE = arma::zeros(size(y));
 	EWT = arma::zeros(size(y));
-
 	I = arma::eye(nSistema,nSistema);
 	J = arma::zeros(nSistema,nSistema);
 
 	F(0) = 2*atol;
 	//yprime = fun(t + h_0, y, SD);
-	
 	do{
 		jac(t + h_0, y);
 		M = I - h_0 * J;

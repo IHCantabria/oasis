@@ -145,14 +145,18 @@ void Body::StoreVelocities()
 {
 	if (velBufferCount < velBufferSize)
 	{
+		std::cout << "Body::StoreVelocities - One step more stored" << std::endl;
 		velBuffer.submat(0, velBufferCount, 5, velBufferCount) = vel;
+		std::cout << "Body::StoreVelocities - One step more stored --> Done" << std::endl;
 	}
 	else
 	{
+		std::cout << "Body::StoreVelocities - Reaload info" << std::endl;
 		arma::mat velBufferNew = arma::zeros(6, velBufferSize);
 		velBufferNew.cols(0, hydro->numPointsIRF-1) = velBuffer.cols(velBufferSize-hydro->numPointsIRF, velBufferSize-1);
 		velBuffer = velBufferNew;
 		velBufferCount = hydro->numPointsIRF-1;
+		std::cout << "Body::StoreVelocities - Reaload info --> Done" << std::endl;
 	}
 	velBufferCount++;
 }
@@ -161,7 +165,6 @@ void Body::StoreVelocities()
 // Actualiza valores del BCP
 void Body::UpdateBcps(void)
 {
-
 	rotMat = arma::zeros(3,3); // Inicio la matriz de rotacion
 
 	// Datos necesarios para la matriz de rotacion
@@ -198,7 +201,6 @@ void Body::UpdateBcps(void)
 		// Reseteo a cero la fuerza sobre el BCP
 		pBodyBcps[ii]->forceBcp = arma::zeros(6,1);
 	}
-
 	// Reseteo a cero la fuerza total de todos los BCPs
 	bcpForces = arma::zeros(6,1);
 }
@@ -210,9 +212,11 @@ void Body::UpdateHydrostaticForces()
 }
 
 
-void Body::UpdateRadiationForces(solver_data SD)
+void Body::UpdateRadiationForces(double t, solver_data SD)
 {
-	radiationForces = this->hydro->ComputeRadiationForces((*SD.timeBuffer)(0, *SD.timeBufferCount-1), SD);
+	std::cout << "Body::UpdateRadiationForces - Time" << std::endl;
+	radiationForces = this->hydro->ComputeRadiationForces(t, SD);
+	std::cout << "Body::UpdateRadiationForces - Time --> Done" << std::endl;
 }
 
 

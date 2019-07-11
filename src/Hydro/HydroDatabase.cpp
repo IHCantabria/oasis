@@ -109,6 +109,31 @@ arma::mat HydroDatabase::ComputeRadiationForces(double t, solver_data SD)
 }
 
 
+arma::mat HydroDatabase::ComputeFirstWaveExcForce(double t)
+{
+	// Get First Order Wave exciting data from storage
+	arma::mat wave_exc_mag = pWaveExcitingMag->subcube(0, 0, 0, 5, 0, 0);
+	arma::mat wave_exc_pha = pWaveExcitingPha->subcube(0, 0, 0, 5, 0, 0);
+
+	// Calculate wave force
+	double time_slope = 60;
+	arma::mat wave_force = arma::zeros(6, 1);
+	double wave_amplitude = 1.0;
+	double angular_freq = 2*M_PI*(*pFrequencies)(0, 0);
+	for (int i=0; i<6; i++)
+	{
+		wave_force(i, 0) = wave_exc_mag(i, 0)*wave_amplitude*cos(angular_freq*t + wave_exc_pha(i, 0));
+
+		if (t < time_slope)
+		{
+			wave_force(i, 0) = wave_force(i, 0)*t/time_slope;
+		}
+	}
+
+	return wave_force;
+}
+
+
 void HydroDatabase::ComputeIRF(void)
 {
 	// Declare local variables

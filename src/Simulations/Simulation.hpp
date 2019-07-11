@@ -97,7 +97,7 @@ public:
 
     // Declare general purpose class methods
     void SetupCase();
-    void UpdateSystem(arma::mat y, solver_data SD);
+    void UpdateSystem(double t, arma::mat y, solver_data SD);
 
 };
 

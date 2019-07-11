@@ -660,10 +660,11 @@ Simulation::Simulation(std::string incProjectPath, std::string incDataFormat)
 }
 
 
-void Simulation::UpdateSystem(arma::mat y, solver_data SD)
+void Simulation::UpdateSystem(double t, arma::mat y, solver_data SD)
 {
     // Update bodies velocity
     int ini = 0;
+    std::cout << "Store body velocities" << std::endl;
     for(int ii=0; ii<numBodies; ii++)
 	{
 		pBodies[ii]->StoreVelocities();
@@ -671,12 +672,16 @@ void Simulation::UpdateSystem(arma::mat y, solver_data SD)
 	}
 
     // Update hydrodynamic properties
+    std::cout << "Store hydrodynamic velocities" << std::endl;
+    
     if (*SD.timeBufferCount > 0)
     {
         for(int ii=0; ii<numBodies; ii++)
         {
             pBodies[ii]->UpdateHydrostaticForces();
-            pBodies[ii]->UpdateRadiationForces(SD);
+            pBodies[ii]->UpdateRadiationForces(t, SD);
         }
     }
+    
+    std::cout << "Store hydrodynamic velocities -->Done" << std::endl;
 }

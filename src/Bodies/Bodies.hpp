@@ -12,7 +12,7 @@ class solver_data;
 class Body {
 private:
 	int id; // Body index. It is an unique number assigned to each body in the simulation
-	int velBufferSize=1e4; // Velocity Buffer size;
+	int velBufferSize=1e2; // Velocity Buffer size;
 
 public:
 	int velBufferCount=0; // Stores the positon of the last columun of the velocity buffer matrix filled.
@@ -46,7 +46,7 @@ public:
 	void StoreVelocities(); // Store last step velocity into the velocity buffer matrix
 	void UpdateBcps(void); // Actualiza valores del BCP
 	void UpdateHydrostaticForces(); // Update the value of the wave radiation forces the current step
-	void UpdateRadiationForces(solver_data SD); // Update the value of the wave radiation forces the current step
+	void UpdateRadiationForces(double t, solver_data SD); // Update the value of the wave radiation forces the current step
 	void WriteOut(double t); // Escribir datos a fichero
 };
 
