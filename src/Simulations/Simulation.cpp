@@ -262,6 +262,13 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 
 void Simulation::Initialize()
 {
+    /**
+    timeBufferCount = 3;
+    timeBuffer(0, 0) = 0.0;
+    timeBuffer(0, 1) = 50.0;
+    timeBuffer(0, 2) = 100.0;
+    double start_time = 117.0;
+    **/
     double start_time = 0.0;
 
     // Initialize system vector

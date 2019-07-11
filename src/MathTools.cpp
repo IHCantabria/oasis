@@ -51,6 +51,7 @@ arma::mat interp1(arma::mat x, arma::mat y, arma::mat xi)
 		{
 			std::stringstream ss;
 			ss << "Not possible to find an interval for the abcissa value: " << xi[i];
+			x.print();
 			perror(ss.str().c_str());
 		}
 		dx = x[index+1] - x[index];

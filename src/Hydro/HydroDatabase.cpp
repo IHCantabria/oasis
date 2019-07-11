@@ -43,22 +43,48 @@ arma::mat HydroDatabase::ComputeRadiationForces()
 			{
 				if (pSim->timeBuffer(0, pSim->timeBufferCount) > IRFTime(0, (*pIRFPoints[ib])(i, j)))
 				{
+					//std::cout << "HydroDatabase::ComputeRadiationForces - TimeBuffer exceed" << std::endl;
+					//std::cout << "HydroDatabase::ComputeRadiationForces - timeBuffer size: " << arma::size(pSim->timeBuffer) << std::endl;
+					//std::cout << "HydroDatabase::ComputeRadiationForces - IRFTime: " << IRFTime(0, (*pIRFPoints[ib])(i, j)) << std::endl;
+					
 					// Get IRF function from the storage
 					irf_local = (*pIRF[ib]).subcube(0, i, j, numPointsIRF-1, i, j);
 					
 					// Calculate begin and end indexes for matrix slicing
-					idx_begin = (*pBodies[ib]).velBufferCount-(*pIRFPoints[ib])(i, j)+1;
-					idx_end = (*pBodies[ib]).velBufferCount-1;
+					for (int k=0; k<pSim->timeBufferCount; k++)
+					{
+						//std::cout << "here" << std::endl;
+						if (pSim->timeBuffer(0, k) > (pSim->timeBuffer(0, pSim->timeBufferCount)-IRFTime(0, (*pIRFPoints[ib])(i, j))))
+						{
+							//std::cout << "here" << std::endl;
+							(*pTimeStartPos)(ib, i, j) = k-1;
+							//std::cout << "here" << std::endl;
+							break;
+						}
+					}
+					idx_begin = (*pTimeStartPos)(ib, i, j);
+					idx_end = pSim->timeBufferCount;
+					//std::cout << "HydroDatabase::ComputeRadiationForces - idx_begin: " << idx_begin << std::endl;
+					//std::cout << "HydroDatabase::ComputeRadiationForces - idx_end: " << idx_end << std::endl;
 
 					// Get velocity chunck from the storage
 					vel_local = (*pBodies[ib]).velBuffer.submat(j, idx_begin, j, idx_end);
 
 					// Interpolate local velocity vector in order to fit with IRF resolution
-					vel_local_interp = interp1(pSim->timeBuffer.cols(idx_begin, idx_end)-pSim->timeBuffer(0, idx_end), vel_local, IRFTime.cols(0, (*pIRF[ib])(0, i, j)));
+					//pSim->timeBuffer.cols(idx_begin, idx_end).print();
+					//IRFTime.cols(0, (*pIRFPoints[ib])(i, j)).print();
+					vel_local_interp = interp1(pSim->timeBuffer.cols(idx_begin, idx_end)-pSim->timeBuffer(0, idx_begin), vel_local, IRFTime.cols(0, (*pIRFPoints[ib])(i, j)));
 
 					// Calulate Duhamel integral
 					vel_local_filter = arma::flipud(irf_local)%(vel_local_interp.t());
 					radiation_force(i) += trapz(vel_local_filter, dt);
+					time_local.save(arma::hdf5_name("time_local_x.h5","irf"));
+					irf_local.save(arma::hdf5_name("irf_x.h5","irf"));
+					irf_local_interp.save(arma::hdf5_name("irf_interp_x.h5","irf_interp"));
+					vel_local.save(arma::hdf5_name("vel_x.h5","vel"));
+					vel_local_filter.save(arma::hdf5_name("vel_local_filter_x.h5","vel"));
+					//time_local = (*SD.timeBuffer.cols(0, idx_end);
+					//time_local.save(arma::hdf5_name("time_x.h5","time"));
 				}
 				else if ((*pBodies[ib]).velBufferCount > 0)
 				{
@@ -355,6 +381,8 @@ void HydroDatabase::ReadHydroMechanicsHDF5(std::string filePath)
 		}
 	}
 	
+	// Generate starting pos time matrix
+	pTimeStartPos = new arma::cube(numBodies, 6, 6, arma::fill::zeros);
 }
 
 /**

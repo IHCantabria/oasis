@@ -20,6 +20,9 @@ public:
 	Body** pBodies; // Array de pointers a los cuerpos
 	Simulation* pSim; // Pointer to the simulation instance. It gives fast access to the necessary simulation variables
 
+	// Declare Auxiliar variables
+	arma::cube* pTimeStartPos;
+
 	// Declare Hydrodynamic Storage Variables
 	int numPointsIRF; // Maximum number of points to describe the IRF function
 	arma::cube** pAddedMass; // Matrix components: [body, dof, dof, freqs]
