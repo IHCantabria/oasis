@@ -22,6 +22,7 @@ public:
 
 	// Declare Auxiliar variables
 	arma::cube* pTimeStartPos;
+	int numPeriodExc=0;
 
 	// Declare Hydrodynamic Storage Variables
 	int numPointsIRF; // Maximum number of points to describe the IRF function

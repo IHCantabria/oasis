@@ -9,6 +9,7 @@
 #include "../Simulations/Simulation.hpp"
 #include "../Bodies/Bodies.hpp"
 #include "../MathTools.hpp"
+#include "../os_tools.hpp"
 
 
 arma::mat HydroDatabase::ComputeHydrostaticForces()
@@ -33,7 +34,6 @@ arma::mat HydroDatabase::ComputeRadiationForces()
 	int idx_begin, idx_end;
 	double dt = IRFTime(0, 1) - IRFTime(0, 0);
 	int aux;
-
 	// Compute radiation forces for the 6DOFs
 	for(int ib=0; ib<numBodies; ib++)
 	{
@@ -86,10 +86,10 @@ arma::mat HydroDatabase::ComputeRadiationForces()
 					//time_local = (*SD.timeBuffer.cols(0, idx_end);
 					//time_local.save(arma::hdf5_name("time_x.h5","time"));
 				}
-				else if ((*pBodies[ib]).velBufferCount > 0)
+				else if (pSim->timeBufferCount > 0)
 				{
 					// Calculate begin and end indexes for matrix slicing
-					idx_end = (*pBodies[ib]).velBufferCount-1;
+					idx_end = pSim->timeBufferCount;
 
 					// Get IRF function from the storage
 					irf_local = (*pIRF[ib]).subcube(0, i, j, numPointsIRF-1, i, j);
@@ -133,10 +133,10 @@ arma::mat HydroDatabase::ComputeFirstWaveExcForce()
 	arma::mat wave_exc_mag = pWaveExcitingMag->subcube(0, 0, 0, 5, 0, 0);
 	arma::mat wave_exc_pha = pWaveExcitingPha->subcube(0, 0, 0, 5, 0, 0);
 	// Calculate wave force
-	double time_slope = 60;
+	double time_slope = 1/(*pFrequencies)(0, numPeriodExc);
 	arma::mat wave_force = arma::zeros(6, 1);
 	double wave_amplitude = 1.0;
-	double angular_freq = 2*M_PI*(*pFrequencies)(0, 0);
+	double angular_freq = 2*M_PI*(*pFrequencies)(0, numPeriodExc);
 	for (int i=0; i<6; i++)
 	{
 		wave_force(i, 0) = wave_exc_mag(i, 0)*wave_amplitude*cos(angular_freq*time + wave_exc_pha(i, 0));
@@ -383,6 +383,12 @@ void HydroDatabase::ReadHydroMechanicsHDF5(std::string filePath)
 	
 	// Generate starting pos time matrix
 	pTimeStartPos = new arma::cube(numBodies, 6, 6, arma::fill::zeros);
+
+	std::string pppPath = JoinPath(pSim->inputFolderPath, "periodNum.txt");
+	char buffer_line [1000];
+	FILE* p_file_pointer = fopen(pppPath.c_str(), "r");
+	fscanf(p_file_pointer, "%d %[^\n]\n", &numPeriodExc, buffer_line);
+	fclose(p_file_pointer);
 }
 
 /**
