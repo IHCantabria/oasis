@@ -130,16 +130,15 @@ arma::mat HydroDatabase::ComputeFirstWaveExcForce()
 	// Create local variables
 	double time = pSim->pTimeSolver->t;
 	// Get First Order Wave exciting data from storage
-	arma::mat wave_exc_mag = pWaveExcitingMag->subcube(0, 0, 0, 5, 0, 0);
-	arma::mat wave_exc_pha = pWaveExcitingPha->subcube(0, 0, 0, 5, 0, 0);
+	arma::mat wave_exc_mag = pWaveExcitingMag->subcube(0, numPeriodExc, numHeadingExc, 5, numPeriodExc, numHeadingExc);
+	arma::mat wave_exc_pha = pWaveExcitingPha->subcube(0, numPeriodExc, numHeadingExc, 5, numPeriodExc, numHeadingExc);
 	// Calculate wave force
 	double time_slope = 1/(*pFrequencies)(0, numPeriodExc);
 	arma::mat wave_force = arma::zeros(6, 1);
-	double wave_amplitude = 1.0;
 	double angular_freq = 2*M_PI*(*pFrequencies)(0, numPeriodExc);
 	for (int i=0; i<6; i++)
 	{
-		wave_force(i, 0) = wave_exc_mag(i, 0)*wave_amplitude*cos(angular_freq*time + wave_exc_pha(i, 0));
+		wave_force(i, 0) = wave_exc_mag(i, 0)*waveAmplitude*cos(angular_freq*time + wave_exc_pha(i, 0));
 
 		if (time < time_slope)
 		{
@@ -387,7 +386,7 @@ void HydroDatabase::ReadHydroMechanicsHDF5(std::string filePath)
 	std::string pppPath = JoinPath(pSim->inputFolderPath, "periodNum.txt");
 	char buffer_line [1000];
 	FILE* p_file_pointer = fopen(pppPath.c_str(), "r");
-	fscanf(p_file_pointer, "%d %[^\n]\n", &numPeriodExc, buffer_line);
+	fscanf(p_file_pointer, "%lf %d %d %[^\n]\n", &waveAmplitude, &numPeriodExc, &numHeadingExc, buffer_line);
 	fclose(p_file_pointer);
 }
 
