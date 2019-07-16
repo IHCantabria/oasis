@@ -26,6 +26,7 @@ arma::mat HydroDatabase::ComputeRadiationForces()
 
 	// Declare local auxiliary variables
 	arma::mat time_local;
+	arma::mat time_irf;
 	arma::mat irf_local;
 	arma::mat irf_local_interp;
 	arma::mat vel_local;
@@ -73,18 +74,24 @@ arma::mat HydroDatabase::ComputeRadiationForces()
 					// Interpolate local velocity vector in order to fit with IRF resolution
 					//pSim->timeBuffer.cols(idx_begin, idx_end).print();
 					//IRFTime.cols(0, (*pIRFPoints[ib])(i, j)).print();
-					vel_local_interp = interp1(pSim->timeBuffer.cols(idx_begin, idx_end)-pSim->timeBuffer(0, idx_begin), vel_local, IRFTime.cols(0, (*pIRFPoints[ib])(i, j)));
+					time_local = pSim->timeBuffer.cols(idx_begin, idx_end)-pSim->timeBuffer(0, idx_begin);
+					time_irf = IRFTime.cols(0, (*pIRFPoints[ib])(i, j));
+					vel_local_interp = interp1(time_local, vel_local, time_irf);
 
 					// Calulate Duhamel integral
-					vel_local_filter = arma::flipud(irf_local)%(vel_local_interp.t());
-					radiation_force(i) += trapz(vel_local_filter, dt);
-					time_local.save(arma::hdf5_name("time_local_x.h5","irf"));
-					irf_local.save(arma::hdf5_name("irf_x.h5","irf"));
-					irf_local_interp.save(arma::hdf5_name("irf_interp_x.h5","irf_interp"));
-					vel_local.save(arma::hdf5_name("vel_x.h5","vel"));
-					vel_local_filter.save(arma::hdf5_name("vel_local_filter_x.h5","vel"));
-					//time_local = (*SD.timeBuffer.cols(0, idx_end);
-					//time_local.save(arma::hdf5_name("time_x.h5","time"));
+					if ((i==2) && (j==2))
+					{
+						vel_local_filter = arma::flipud(irf_local)%(vel_local_interp.t());
+						radiation_force(i) += trapz(vel_local_filter, dt);
+						time_local.save(arma::hdf5_name("time_local_x.h5","irf"));
+						time_irf.save(arma::hdf5_name("time_irf.h5","time_irf"));
+						irf_local.save(arma::hdf5_name("irf_x.h5","irf"));
+						vel_local.save(arma::hdf5_name("vel_x.h5","vel"));
+						vel_local_interp.save(arma::hdf5_name("vel_local_interp_x.h5", "vel_local_interp"));
+						vel_local_filter.save(arma::hdf5_name("vel_local_filter_x.h5","vel"));
+						//time_local = (*SD.timeBuffer.cols(0, idx_end);
+						//time_local.save(arma::hdf5_name("time_x.h5","time"));
+					}
 				}
 				else if (pSim->timeBufferCount > 0)
 				{
@@ -145,6 +152,7 @@ arma::mat HydroDatabase::ComputeFirstWaveExcForce()
 			wave_force(i, 0) = wave_force(i, 0)*time/time_slope;
 		}
 	}
+	//std::cout << "Wave Amplitude: " << waveAmplitude << std::endl;
 
 	return wave_force;
 }
