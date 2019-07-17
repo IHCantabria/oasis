@@ -10,8 +10,7 @@
 #include <armadillo>
 #include "Lines.hpp"
 #include "../SEM_math/quadrule.hpp"
-
-extern double PI;
+#include "../MathTools.hpp"
 
 
 int Line::GetId()
@@ -66,7 +65,7 @@ void Line::ReadPropertiesASCII(FILE* pFilePointer)
 	indexBcps[0] = BCP_1;
 
 
-	A = PI*d*d*0.25;
+	A = M_PI*d*d*0.25;
 	dL = L/(nNodos-1);
 	dL0 = dL;
 	N = p*(nNodos-1)+1;
