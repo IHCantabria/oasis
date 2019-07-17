@@ -79,10 +79,16 @@ arma::mat HydroDatabase::ComputeRadiationForces()
 					vel_local_interp = interp1(time_local, vel_local, time_irf);
 
 					// Calulate Duhamel integral
+					vel_local_filter = arma::flipud(irf_local)%(vel_local_interp.t());
+					vel_local_filter = vel_local_filter.t();
+					radiation_force(i) += trapz(vel_local_filter, dt);
+					/**
 					if ((i==2) && (j==2))
 					{
-						vel_local_filter = arma::flipud(irf_local)%(vel_local_interp.t());
-						radiation_force(i) += trapz(vel_local_filter, dt);
+						std::cout << "dt: " << dt << std::endl;
+						std::cout << "Radidation force (2,2): " << trapz(vel_local_filter, dt) << std::endl;
+						std::cout << "Radidation force Unit time (2,2): " << trapz(vel_local_filter, 1.0) << std::endl;
+						std::cout << "Radiation force: " << radiation_force(i) << std::endl;
 						time_local.save(arma::hdf5_name("time_local_x.h5","irf"));
 						time_irf.save(arma::hdf5_name("time_irf.h5","time_irf"));
 						irf_local.save(arma::hdf5_name("irf_x.h5","irf"));
@@ -92,6 +98,7 @@ arma::mat HydroDatabase::ComputeRadiationForces()
 						//time_local = (*SD.timeBuffer.cols(0, idx_end);
 						//time_local.save(arma::hdf5_name("time_x.h5","time"));
 					}
+					**/
 				}
 				else if (pSim->timeBufferCount > 0)
 				{
