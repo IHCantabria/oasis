@@ -225,32 +225,32 @@ void Body::WriteOut(double t)
 	if (t<1e-12){
 		nn1=sprintf(buffer1,"output/DOF_1_Body_%d.txt", id);
 		std::ofstream xpos(buffer1);
-			xpos << t << "    " <<  this->pos(0,0) << "    "<<  this->vel(0,0) << "    "<<  this->acc(0,0) << std::endl;
+			xpos << t << "    " <<  this->pos(0,0) << "    "<<  this->vel(0,0) << "    "<<  this->acc(0,0) << "\n";
 		xpos.close();
 
 		nn2=sprintf(buffer2,"output/DOF_2_Body_%d.txt", id);
 		std::ofstream ypos(buffer2);
-			ypos << t << "    " <<  this->pos(1,0) << "    "<<  this->vel(1,0) << "    "<<  this->acc(4,0) << std::endl;
+			ypos << t << "    " <<  this->pos(1,0) << "    "<<  this->vel(1,0) << "    "<<  this->acc(4,0) << "\n";
 		ypos.close();
 
 		nn3=sprintf(buffer3,"output/DOF_3_Body_%d.txt", id);
 		std::ofstream zpos(buffer3);
-			zpos << t << "    " <<  this->pos(2,0) << "    "<<  this->vel(2,0) << "    "<<  this->acc(2,0) << std::endl;
+			zpos << t << "    " <<  this->pos(2,0) << "    "<<  this->vel(2,0) << "    "<<  this->acc(2,0) << "\n";
 		zpos.close();
 
 		nn4=sprintf(buffer4,"output/DOF_4_Body_%d.txt", id);
 		std::ofstream ropos(buffer4);
-			ropos << t << "    " <<  this->pos(3,0) << "    "<<  this->vel(3,0) << "    "<<  this->acc(3,0) << std::endl;
+			ropos << t << "    " <<  this->pos(3,0) << "    "<<  this->vel(3,0) << "    "<<  this->acc(3,0) << "\n";
 		ropos.close();
 
 		nn5=sprintf(buffer5,"output/DOF_5_Body_%d.txt", id);
 		std::ofstream pipos(buffer5);
-			pipos << t << "    " <<  this->pos(4,0) << "    "<<  this->vel(4,0) << "    "<<  this->acc(4,0) << std::endl;
+			pipos << t << "    " <<  this->pos(4,0) << "    "<<  this->vel(4,0) << "    "<<  this->acc(4,0) << "\n";
 		pipos.close();
 
 		nn6=sprintf(buffer6,"output/DOF_6_Body_%d.txt", id);
 		std::ofstream yapos(buffer6);
-			yapos << t << "    " <<  this->pos(5,0) << "    "<<  this->vel(5,0) << "    "<<  this->acc(5,0) << std::endl;
+			yapos << t << "    " <<  this->pos(5,0) << "    "<<  this->vel(5,0) << "    "<<  this->acc(5,0) << "\n";
 		yapos.close();
 
 		nn6=sprintf(buffer7,"output/HydroStiffnessForce_Body_%d.txt", id);
@@ -260,7 +260,7 @@ void Body::WriteOut(double t)
 		{
 			hydStiffForce << "    " <<  hydrostaticForces(i, 0);
 		}
-		hydStiffForce << std::endl;
+		hydStiffForce << "\n";
 		hydStiffForce.close();
 
 		nn6=sprintf(buffer8,"output/WaveRadiationForce_Body_%d.txt", id);
@@ -270,44 +270,44 @@ void Body::WriteOut(double t)
 		{
 			waveRadForce << "    " <<  radiationForces(i, 0);
 		}
-		waveRadForce << std::endl;
+		waveRadForce << "\n";
 		waveRadForce.close();
 
 	}else{
 		nn1=sprintf(buffer1,"output/DOF_1_Body_%d.txt", id);
 		std::ofstream xpos;
 			xpos.open(buffer1, std::ios_base::app);
-			xpos << t << "    " <<  this->pos(0,0) << "    "<<  this->vel(0,0) << "    "<<  this->acc(0,0) << std::endl;
+			xpos << t << "    " <<  this->pos(0,0) << "    "<<  this->vel(0,0) << "    "<<  this->acc(0,0) << "\n";
 		xpos.close();
 
 		nn2=sprintf(buffer2,"output/DOF_2_Body_%d.txt", id);
 		std::ofstream ypos;
 			ypos.open(buffer2, std::ios_base::app);
-			ypos << t << "    " <<  this->pos(1,0) << "    "<<  this->vel(1,0) << "    "<<  this->acc(1,0) << std::endl;
+			ypos << t << "    " <<  this->pos(1,0) << "    "<<  this->vel(1,0) << "    "<<  this->acc(1,0) << "\n";
 		ypos.close();
 
 		nn3=sprintf(buffer3,"output/DOF_3_Body_%d.txt", id);
 		std::ofstream zpos;
 			zpos.open(buffer3, std::ios_base::app);
-			zpos << t << "    " <<  this->pos(2,0) << "    "<<  this->vel(2,0) << "    "<<  this->acc(2,0) << std::endl;
+			zpos << t << "    " <<  this->pos(2,0) << "    "<<  this->vel(2,0) << "    "<<  this->acc(2,0) << "\n";
 		zpos.close();
 
 		nn4=sprintf(buffer4,"output/DOF_4_Body_%d.txt", id);
 		std::ofstream ropos;
 			ropos.open(buffer4, std::ios_base::app);
-			ropos << t << "    " <<  this->pos(3,0) << "    "<<  this->vel(3,0) << "    "<<  this->acc(3,0) << std::endl;
+			ropos << t << "    " <<  this->pos(3,0) << "    "<<  this->vel(3,0) << "    "<<  this->acc(3,0) << "\n";
 		ropos.close();
 
 		nn5=sprintf(buffer5,"output/DOF_5_Body_%d.txt", id);
 		std::ofstream pipos;
 			pipos.open(buffer5, std::ios_base::app);;
-			pipos << t << "    " <<  this->pos(4,0) << "    "<<  this->vel(4,0) << "    "<<  this->acc(4,0) << std::endl;
+			pipos << t << "    " <<  this->pos(4,0) << "    "<<  this->vel(4,0) << "    "<<  this->acc(4,0) << "\n";
 		pipos.close();
 
 		nn6=sprintf(buffer6,"output/DOF_6_Body_%d.txt", id);
 		std::ofstream yapos;
 			yapos.open(buffer6, std::ios_base::app);
-			yapos << t << "    " <<  this->pos(5,0) << "    "<<  this->vel(5,0) << "    "<<  this->acc(5,0) << std::endl;
+			yapos << t << "    " <<  this->pos(5,0) << "    "<<  this->vel(5,0) << "    "<<  this->acc(5,0) << "\n";
 		yapos.close();
 
 		nn6=sprintf(buffer7,"output/HydroStiffnessForce_Body_%d.txt", id);
@@ -317,7 +317,7 @@ void Body::WriteOut(double t)
 		{
 			hydStiffForce << "    " <<  hydrostaticForces(i, 0);
 		}
-		hydStiffForce << std::endl;
+		hydStiffForce << "\n";
 		hydStiffForce.close();
 
 		nn6=sprintf(buffer8,"output/WaveRadiationForce_Body_%d.txt", id);
@@ -327,7 +327,7 @@ void Body::WriteOut(double t)
 		{
 			waveRadForce << "    " <<  radiationForces(i, 0);
 		}
-		waveRadForce << std::endl;
+		waveRadForce << "\n";
 		waveRadForce.close();
 	}
 

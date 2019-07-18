@@ -478,27 +478,27 @@ void Line::WriteOut (double t)
 		std::ofstream xpos(buffer1);
 			xpos << t << "    ";
 			for(ii=0;ii<this->N;ii=ii+1) xpos <<  this->pos(ii,0) << "    ";
-			xpos << std::endl;
+			xpos << "\n";
 		xpos.close();
 
 		nn2=sprintf(buffer2,"output/NodePosY_%d.txt", GetId());
 		std::ofstream ypos(buffer2);
 			ypos << t << "    ";
 			for(ii=0;ii<this->N;ii=ii+1) ypos <<  this->pos(ii,1) << "    ";
-			ypos << std::endl;
+			ypos << "\n";
 		ypos.close();
 
 		nn3=sprintf(buffer3,"output/NodePosZ_%d.txt", GetId());
 		std::ofstream zpos(buffer3);
 			zpos << t << "    ";
 			for(ii=0;ii<this->N;ii=ii+1) zpos << this->pos(ii,2) << "    ";
-			zpos << std::endl;
+			zpos << "\n";
 		zpos.close();
 
 		nn4=sprintf(buffer4,"output/CatTen_%d.txt", GetId());
 		std::ofstream ten(buffer4);
 			ten << t << "    " << ten_1(0,0) << "    " << ten_1(1,0) << "    " << ten_1(2,0) << "    "
-			     << ten_N(0,0) << "    " << ten_N(1,0) << "    " << ten_N(2,0) << "    " << std::endl;
+			     << ten_N(0,0) << "    " << ten_N(1,0) << "    " << ten_N(2,0) << "    " << "\n";
 		ten.close();
 	}else{
 	nn1=sprintf(buffer1,"output/NodePosX_%d.txt", GetId());
@@ -506,7 +506,7 @@ void Line::WriteOut (double t)
 		xpos.open(buffer1, std::ios_base::app);
 		xpos << t << "    ";
 		for(ii=0;ii<this->N;ii=ii+1) xpos <<  this->pos(ii,0) << "    ";
-		xpos << std::endl;
+		xpos << "\n";
 	xpos.close();
 
 	nn2=sprintf(buffer2,"output/NodePosY_%d.txt", GetId());
@@ -514,7 +514,7 @@ void Line::WriteOut (double t)
 		ypos.open(buffer2, std::ios_base::app);
 		ypos << t << "    ";
 		for(ii=0;ii<this->N;ii=ii+1) ypos <<  this->pos(ii,1) << "    ";
-		ypos << std::endl;
+		ypos << "\n";
 	ypos.close();
 
 	nn3=sprintf(buffer3,"output/NodePosZ_%d.txt", GetId());
@@ -522,14 +522,14 @@ void Line::WriteOut (double t)
 		zpos.open(buffer3, std::ios_base::app);
 		zpos << t << "    ";
 		for(ii=0;ii<this->N;ii=ii+1) zpos << this->pos(ii,2) << "    ";
-		zpos << std::endl;
+		zpos << "\n";
 	zpos.close();
 
 	nn4=sprintf(buffer4,"output/CatTen_%d.txt", GetId());
 	std::ofstream ten;
 		ten.open(buffer4, std::ios_base::app);
 		ten << t << "    " << ten_1(0,0) << "    " << ten_1(1,0) << "    " << ten_1(2,0) << "    "
-		     << ten_N(0,0) << "    " << ten_N(1,0) << "    " << ten_N(2,0) << "    " << std::endl;
+		     << ten_N(0,0) << "    " << ten_N(1,0) << "    " << ten_N(2,0) << "    " << "\n";
 	ten.close();
 	}
 }
