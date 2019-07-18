@@ -48,7 +48,7 @@ arma::mat BDF::fun(double tt, arma::mat yy)
 void BDF::jac(double tt, arma::mat yy){
 	yprime = fun(tt, yy);
 	for(int ii=0;ii<nSistema;ii=ii+1){
-		J.col(ii) = 1e12 * (fun(tt, yy + 1e-12* I.col(ii)) - yprime);
+		J.col(ii) = 1e5 * (fun(tt, yy + 1e-5* I.col(ii)) - yprime);
 	}
 }
 
