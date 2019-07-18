@@ -155,14 +155,14 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 		pBodies[ii]->ComputeBcpForces();
 		Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  Fb(arma::span(6*ii,6*(ii+1)-1), 0) + pBodies[ii]->bcpForces;
 	}
-	WriteASCII("output/bcpForces.dat", pBodies[0]->bcpForces, true);
+	//WriteASCII("output/bcpForces.dat", pBodies[0]->bcpForces, true);
 	// Compute body acceleration
 	//(**SD.Water->pAddedMassHf).print();
 	//arma::mat accB = (*SD.Water->pStructuralMass+**SD.Water->pAddedMassHf)*Fb;
 	//std::cout << "Main::fun - Compute accelerations" << std::endl;
 	arma::mat accB;
 	arma::mat total_mass;
-	WriteASCII("output/accB.dat", accB, true);
+	//WriteASCII("output/accB.dat", accB, true);
 	for(int ii=0; ii<numBodies; ii++)
     {
 		total_mass = *pBodies[ii]->hydro->pStructuralMass+*pBodies[ii]->hydro->pAddedMassHf[ii];
@@ -250,7 +250,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 		yprime.row(numSystem-(ii+1)) = pWinches[ii]->alpha;
 	}
 	//std::cout << "Main::fun - Check if yprime has a NaN" << std::endl;
-	WriteASCII("output/yprime.dat", yprime, true);
+	//WriteASCII("output/yprime.dat", yprime, true);
 	if (yprime.has_nan()){
 		std::cout << std::endl << "ERROR: NaN Detected!" << std::endl;
 		throw std::exception();
@@ -813,14 +813,19 @@ void Simulation::Run()
         UpdateSystem();
         
         // Print out time if any
+        std::cout<< "    t = " << pTimeSolver->t << " s"  << std::endl;
+        for(int ii=0; ii<numLines; ii=ii+1) pLines[ii]->WriteOut(pTimeSolver->t);
+        for(int ii=0; ii<numBodies; ii=ii+1) pBodies[ii]->WriteOut(pTimeSolver->t);
+        /**
         if (pTimeSolver->t >= wallTime + maxTimeStep)
         {
-            wallTime = wallTime + maxTimeStep;
+            //wallTime = wallTime + maxTimeStep;
             std::cout<< "    t = " << wallTime << " s"  << std::endl;
             //if (nWinchies>0) CW.controlWinchies();
             for(int ii=0; ii<numLines; ii=ii+1) pLines[ii]->WriteOut(wallTime);
             for(int ii=0; ii<numBodies; ii=ii+1) pBodies[ii]->WriteOut(wallTime);
         }
+        **/
     } while (pTimeSolver->t <= simulationTime);
     
     tend = time(0); 
