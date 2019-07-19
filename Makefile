@@ -28,8 +28,22 @@ LDIRS=$(LIB_OPENBLAS_DIR)
 	
 SCI_LIBS=-lopenblas -lhdf5
 	
-else
-USER_NAME=$(USER)
+else ifeq ($(OS),ubuntu)
+
+ifeq ($(USERNAME),feruanos)
+
+LIBS=-lopenblas -larmadillo -lhdf5
+		
+else ifeq ($(USERNAME),rodriguezlua)
+# The following lines are needed to choose the serial version of HDF5
+INC_HDF5_DIR="/usr/include/hdf5/serial"
+IDIRS=-I$(INC_HDF5_DIR)
+LIB_HDF5_DIR="/usr/lib/x86_64-linux-gnu/hdf5/serial"
+LDIRS=-L$(LIB_HDF5_DIR)
+
+LIBS=-larmadillo -lhdf5 -lopenblas
+endif
+
 endif
 
 ODIR=obj
@@ -54,7 +68,13 @@ oasis: $(OBJS)
 ifeq ($(OS),Windows_NT)
 	$(CC) -static -o $(BDIR)/$@.exe $^ $(LDIRS) $(LIBS)
 else ifeq ($(OS),centos)
+<<<<<<< HEAD
 	$(CC) -static -o $(BDIR)/$@ $^ $(LDIRS) $(LIBS)
+=======
+	$(CC) -o $(BDIR)/$@ $^ $(LDIRS) $(LIBS)
+else ifeq ($(OS),ubuntu)
+	$(CC) -o $(BDIR)/$@ $^ $(LDIRS) $(LIBS)
+>>>>>>> master
 endif
 
 .PHONY: clean
@@ -64,6 +84,9 @@ ifeq ($(OS),Windows_NT)
 	del /S/F *.o
 	del $(BDIR)\oasis.exe
 else ifeq ($(OS),centos)
+	find . -name "*.o" -type f -delete
+	rm $(BDIR)/oasis
+else ifeq ($(OS),ubuntu)
 	find . -name "*.o" -type f -delete
 	rm $(BDIR)/oasis
 endif
