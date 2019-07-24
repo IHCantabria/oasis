@@ -1022,12 +1022,12 @@ Simulation::Simulation(std::string incProjectPath, std::string incDataFormat)
         dataFormatStr = "HDF5";
         inputFolderPath = incProjectPath;
         outputFolderPath = incProjectPath;
-        pReadProperties = &(Simulation::ReadPropertiesHDF5);
-        pReadBcps = &(Simulation::ReadBcpsHDF5);
-        pReadBodies = &(Simulation::ReadBodiesHDF5);
-        pReadLines = &(Simulation::ReadLinesHDF5);
-        pReadSprings = &(Simulation::ReadSpringsHDF5);
-        pReadWinches = &(Simulation::ReadWinchesHDF5);
+        pReadProperties = &Simulation::ReadPropertiesHDF5;
+        pReadBcps = &Simulation::ReadBcpsHDF5;
+        pReadBodies = &Simulation::ReadBodiesHDF5;
+        pReadLines = &Simulation::ReadLinesHDF5;
+        pReadSprings = &Simulation::ReadSpringsHDF5;
+        pReadWinches = &Simulation::ReadWinchesHDF5;
     }
     else
     {
