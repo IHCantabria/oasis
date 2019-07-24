@@ -58,16 +58,16 @@ public:
     Line** pLines;
     Spring** pSprings;
     Winchie** pWinches;
-    int numAnchorBcps;
-    int numBcps;
-    int numBodies;
-    int numBodyBcps;
-    int numDofTotal;
-    int numFairBcps;
-    int numJointBcps;
-    int numLines;
-    int numSprings;
-    int numWinches;
+    int numAnchorBcps=0;
+    int numBcps=0;
+    int numBodies=0;
+    int numBodyBcps=0;
+    int numDofTotal=0;
+    int numFairBcps=0;
+    int numJointBcps=0;
+    int numLines=0;
+    int numSprings=0;
+    int numWinches=0;
 
     // Declare constructors
     Simulation(std::string projectPath, std::string incDataFormat);
