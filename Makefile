@@ -68,7 +68,7 @@ oasis: $(OBJS)
 ifeq ($(OS),Windows_NT)
 	$(CC) -static -o $(BDIR)/$@.exe $^ $(LDIRS) $(LIBS)
 else ifeq ($(OS),centos)
-	$(CC) -o $(BDIR)/$@ $^ $(LDIRS) $(LIBS)
+	$(CC) -static -o $(BDIR)/$@ $^ $(LDIRS) $(LIBS)
 else ifeq ($(OS),ubuntu)
 	$(CC) -o $(BDIR)/$@ $^ $(LDIRS) $(LIBS)
 endif
