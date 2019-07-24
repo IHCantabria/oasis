@@ -32,7 +32,7 @@ else ifeq ($(OS),ubuntu)
 
 ifeq ($(USERNAME),feruanos)
 
-LIBS=-lopenblas -larmadillo -lhdf5
+SCI_LIBS=-lopenblas -larmadillo -lhdf5
 		
 else ifeq ($(USERNAME),rodriguezlua)
 # The following lines are needed to choose the serial version of HDF5
@@ -41,7 +41,7 @@ IDIRS=-I$(INC_HDF5_DIR)
 LIB_HDF5_DIR="/usr/lib/x86_64-linux-gnu/hdf5/serial"
 LDIRS=-L$(LIB_HDF5_DIR)
 
-LIBS=-larmadillo -lhdf5 -lopenblas
+SCI_LIBS=-larmadillo -lhdf5 -lopenblas
 endif
 
 endif
@@ -68,13 +68,9 @@ oasis: $(OBJS)
 ifeq ($(OS),Windows_NT)
 	$(CC) -static -o $(BDIR)/$@.exe $^ $(LDIRS) $(LIBS)
 else ifeq ($(OS),centos)
-<<<<<<< HEAD
-	$(CC) -static -o $(BDIR)/$@ $^ $(LDIRS) $(LIBS)
-=======
 	$(CC) -o $(BDIR)/$@ $^ $(LDIRS) $(LIBS)
 else ifeq ($(OS),ubuntu)
 	$(CC) -o $(BDIR)/$@ $^ $(LDIRS) $(LIBS)
->>>>>>> master
 endif
 
 .PHONY: clean
