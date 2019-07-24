@@ -942,7 +942,6 @@ void Simulation::SetupCase()
         }
         
     }
-
     // Assing to each Line the corresponding Body pointer
     for (int ii=0; ii<numLines; ii++)
     {
@@ -970,7 +969,6 @@ void Simulation::SetupCase()
 			if (e==6) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " touches the seafloor althoug none of its ends are there. " << std::endl << std::endl;
 		}
     }
-
     // Check every thing is correct
     /**
     for (int ii=0; ii<numBodies; ii++)
@@ -1011,12 +1009,12 @@ Simulation::Simulation(std::string incProjectPath, std::string incDataFormat)
         dataFormatStr = "ASCII";
         inputFolderPath = JoinPath(incProjectPath, "input");
         outputFolderPath = JoinPath(incProjectPath, "output");
-        pReadProperties = &this->ReadPropertiesASCII;
-        pReadBcps = &this->ReadBcpsASCII;
-        pReadBodies = &this->ReadBodiesASCII;
-        pReadLines = &this->ReadLinesASCII;
-        pReadSprings = &this->ReadSpringsASCII;
-        pReadWinches = &this->ReadWinchesASCII;
+        pReadProperties = &(Simulation::ReadPropertiesASCII);
+        pReadBcps = &(Simulation::ReadBcpsASCII);
+        pReadBodies = &(Simulation::ReadBodiesASCII);
+        pReadLines = &(Simulation::ReadLinesASCII);
+        pReadSprings = &(Simulation::ReadSpringsASCII);
+        pReadWinches = &(Simulation::ReadWinchesASCII);
     }
     else if (!incDataFormat.compare("HDF5"))
     {
@@ -1024,12 +1022,12 @@ Simulation::Simulation(std::string incProjectPath, std::string incDataFormat)
         dataFormatStr = "HDF5";
         inputFolderPath = incProjectPath;
         outputFolderPath = incProjectPath;
-        pReadProperties = &this->ReadPropertiesHDF5;
-        pReadBcps = &this->ReadBcpsHDF5;
-        pReadBodies = &this->ReadBodiesHDF5;
-        pReadLines = &this->ReadLinesHDF5;
-        pReadSprings = &this->ReadSpringsHDF5;
-        pReadWinches = &this->ReadWinchesHDF5;
+        pReadProperties = &(Simulation::ReadPropertiesHDF5);
+        pReadBcps = &(Simulation::ReadBcpsHDF5);
+        pReadBodies = &(Simulation::ReadBodiesHDF5);
+        pReadLines = &(Simulation::ReadLinesHDF5);
+        pReadSprings = &(Simulation::ReadSpringsHDF5);
+        pReadWinches = &(Simulation::ReadWinchesHDF5);
     }
     else
     {
