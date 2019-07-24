@@ -1009,12 +1009,12 @@ Simulation::Simulation(std::string incProjectPath, std::string incDataFormat)
         dataFormatStr = "ASCII";
         inputFolderPath = JoinPath(incProjectPath, "input");
         outputFolderPath = JoinPath(incProjectPath, "output");
-        pReadProperties = &(Simulation::ReadPropertiesASCII);
-        pReadBcps = &(Simulation::ReadBcpsASCII);
-        pReadBodies = &(Simulation::ReadBodiesASCII);
-        pReadLines = &(Simulation::ReadLinesASCII);
-        pReadSprings = &(Simulation::ReadSpringsASCII);
-        pReadWinches = &(Simulation::ReadWinchesASCII);
+        pReadProperties = &Simulation::ReadPropertiesASCII;
+        pReadBcps = &Simulation::ReadBcpsASCII;
+        pReadBodies = &Simulation::ReadBodiesASCII;
+        pReadLines = &Simulation::ReadLinesASCII;
+        pReadSprings = &Simulation::ReadSpringsASCII;
+        pReadWinches = &Simulation::ReadWinchesASCII;
     }
     else if (!incDataFormat.compare("HDF5"))
     {
