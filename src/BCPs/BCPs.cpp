@@ -76,15 +76,17 @@ void BCP::ReadPropertiesASCII(FILE* &pFilePointer)
 
 	// Read BCP position
 	fscanf(pFilePointer, "%lf %lf %lf %[^\n]\n", &pos(0, 0), &pos(1, 0), &pos(2, 0), buffer_line);
+
+	// Read Wind ID
+	fscanf(pFilePointer, "%d %[^\n]\n", &winchId, buffer_line);
+
+	// Read actuator if any
 	if (this->GetType() == 2)
 	{
 		fscanf(pFilePointer, "%s %[^\n]\n", &cActuatorFileName, buffer_line);
 		actuatorFileName = cActuatorFileName;
 		std::cout << actuatorFileName.c_str() << std::endl;
 	}
-
-	// Read Wind ID
-	fscanf(pFilePointer, "%d %[^\n]\n", &winchId, buffer_line);
 
 	// Check Winch ID and Fairlead coexistence
 	if ((winchId !=0) && (this->GetType() == 2))

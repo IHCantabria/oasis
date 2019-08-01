@@ -25,7 +25,7 @@ public:
 	Body** pBodies; // Array the pointers a las lineas que confluyen en el punto
 	int numBodiesBcp=0; // Number of bodies connected to the BCP
 	int numLinesBcp=0; // Numero de lineas que confluyen en el punto
-	int winchId; // Id of the winch connected to the instance of the BCP
+	int winchId=0; // Id of the winch connected to the instance of the BCP
 
 	//Atributos comunes a todos los BCPs
 	double tBCP;
