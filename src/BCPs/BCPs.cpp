@@ -65,15 +65,6 @@ void BCP::ReadPropertiesASCII(FILE* &pFilePointer)
 		}
 	}
 
-	//Read data
-	//¡¡¡¡¡¡¡ IMPORTANT: FIRST THREEE LINES (CONTAINING DATA) OF EACH BCP ARE IGNORED. ITS FUNCTIONALITY IS DEPRECATED !!!!!
-	fscanf(pFilePointer, "%[^\n]\n", buffer_line);
-	fscanf(pFilePointer, "%[^\n]\n", buffer_line);
-	fscanf(pFilePointer, "%[^\n]\n", buffer_line);
-	//fscanf(pFilePointer, "%lf %[^\n]", &numLinesBcp, buffer_line);
-	//pBcpLineIndex = new int[numLinesBcp];
-	//pBcpLineNode = new int[numLinesBcp];
-
 	// Read BCP position
 	fscanf(pFilePointer, "%lf %lf %lf %[^\n]\n", &pos(0, 0), &pos(1, 0), &pos(2, 0), buffer_line);
 
