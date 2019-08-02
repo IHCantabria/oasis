@@ -215,120 +215,66 @@ void Body::UpdateRadiationForces()
 }
 
 
+void Body::OpenOutputFilesASCII (std::string path)
+{
+	char buffer1[50], buffer2[50], buffer3[50], buffer4[50], buffer5[50], buffer6[50], buffer7[50], buffer8[50];
+
+	int nn1 = sprintf(buffer1,"DOF_1_Body_%d.txt", GetId());
+	int nn2 = sprintf(buffer2,"DOF_2_Body_%d.txt", GetId());
+	int nn3 = sprintf(buffer3,"DOF_3_Body_%d.txt", GetId());
+	int nn4 = sprintf(buffer4,"DOF_4_Body_%d.txt", GetId());
+	int nn5 = sprintf(buffer5,"DOF_5_Body_%d.txt", GetId());
+	int nn6 = sprintf(buffer6,"DOF_6_Body_%d.txt", GetId());
+	int nn7 = sprintf(buffer7,"HydroStiffnessForce_Body_%d.txt", GetId());
+	int nn8 = sprintf(buffer8,"WaveRadiationForce_Body_%d.txt", GetId());
+
+	std::string file_path1 = JoinPath(path, buffer1);
+	std::string file_path2 = JoinPath(path, buffer2);
+	std::string file_path3 = JoinPath(path, buffer3);
+	std::string file_path4 = JoinPath(path, buffer4);
+	std::string file_path5 = JoinPath(path, buffer5);
+	std::string file_path6 = JoinPath(path, buffer6);
+	std::string file_path7 = JoinPath(path, buffer7);
+	std::string file_path8 = JoinPath(path, buffer8);
+
+	pfile_DOF_1 = fopen (file_path1.c_str(),"w");
+	pfile_DOF_2 = fopen (file_path2.c_str(),"w");
+	pfile_DOF_3 = fopen (file_path3.c_str(),"w");
+	pfile_DOF_4 = fopen (file_path4.c_str(),"w");
+	pfile_DOF_5 = fopen (file_path5.c_str(),"w");
+	pfile_DOF_6 = fopen (file_path6.c_str(),"w");
+	pfile_HSF = fopen (file_path7.c_str(),"w");
+	pfile_WRF = fopen (file_path8.c_str(),"w");
+}
+
+void Body::CloseOutputFilesASCII (void)
+{
+	fclose(pfile_DOF_1);
+	fclose(pfile_DOF_2);
+	fclose(pfile_DOF_3);
+	fclose(pfile_DOF_4);
+	fclose(pfile_DOF_5);
+	fclose(pfile_DOF_6);
+	fclose(pfile_HSF);
+	fclose(pfile_WRF);
+}
+
+
 // Escibir datos a fichero
 void Body::WriteOut(double t)
 {
-	int ii, nn1, nn2, nn3, nn4, nn5, nn6;
+	fprintf(pfile_DOF_1, "%f    %f    %f    %f \n",t,this->pos(0,0),this->vel(0,0),this->acc(0,0));
+	fprintf(pfile_DOF_2, "%f    %f    %f    %f \n",t,this->pos(1,0),this->vel(1,0),this->acc(1,0));
+	fprintf(pfile_DOF_3, "%f    %f    %f    %f \n",t,this->pos(2,0),this->vel(2,0),this->acc(2,0));
+	fprintf(pfile_DOF_4, "%f    %f    %f    %f \n",t,this->pos(3,0),this->vel(3,0),this->acc(3,0));
+	fprintf(pfile_DOF_5, "%f    %f    %f    %f \n",t,this->pos(4,0),this->vel(4,0),this->acc(4,0));
+	fprintf(pfile_DOF_6, "%f    %f    %f    %f \n",t,this->pos(5,0),this->vel(5,0),this->acc(5,0));
 
-	char buffer1[50], buffer2[50], buffer3[50], buffer4[50], buffer5[50], buffer6[50], buffer7[60], buffer8[60];
+	fprintf(pfile_HSF, "%f    ", t);
+	for(int ii=0;ii<6;ii=ii+1) fprintf(pfile_HSF, "%f    ", hydrostaticForces(ii, 0));
+	fprintf(pfile_HSF, "\n");
 
-	if (t<1e-12){
-		nn1=sprintf(buffer1,"output/DOF_1_Body_%d.txt", id);
-		std::ofstream xpos(buffer1);
-			xpos << t << "    " <<  this->pos(0,0) << "    "<<  this->vel(0,0) << "    "<<  this->acc(0,0) << "\n";
-		xpos.close();
-
-		nn2=sprintf(buffer2,"output/DOF_2_Body_%d.txt", id);
-		std::ofstream ypos(buffer2);
-			ypos << t << "    " <<  this->pos(1,0) << "    "<<  this->vel(1,0) << "    "<<  this->acc(4,0) << "\n";
-		ypos.close();
-
-		nn3=sprintf(buffer3,"output/DOF_3_Body_%d.txt", id);
-		std::ofstream zpos(buffer3);
-			zpos << t << "    " <<  this->pos(2,0) << "    "<<  this->vel(2,0) << "    "<<  this->acc(2,0) << "\n";
-		zpos.close();
-
-		nn4=sprintf(buffer4,"output/DOF_4_Body_%d.txt", id);
-		std::ofstream ropos(buffer4);
-			ropos << t << "    " <<  this->pos(3,0) << "    "<<  this->vel(3,0) << "    "<<  this->acc(3,0) << "\n";
-		ropos.close();
-
-		nn5=sprintf(buffer5,"output/DOF_5_Body_%d.txt", id);
-		std::ofstream pipos(buffer5);
-			pipos << t << "    " <<  this->pos(4,0) << "    "<<  this->vel(4,0) << "    "<<  this->acc(4,0) << "\n";
-		pipos.close();
-
-		nn6=sprintf(buffer6,"output/DOF_6_Body_%d.txt", id);
-		std::ofstream yapos(buffer6);
-			yapos << t << "    " <<  this->pos(5,0) << "    "<<  this->vel(5,0) << "    "<<  this->acc(5,0) << "\n";
-		yapos.close();
-
-		nn6=sprintf(buffer7,"output/HydroStiffnessForce_Body_%d.txt", id);
-		std::ofstream hydStiffForce(buffer7);
-		hydStiffForce << t;
-		for (int i=0; i<6; i++)
-		{
-			hydStiffForce << "    " <<  hydrostaticForces(i, 0);
-		}
-		hydStiffForce << "\n";
-		hydStiffForce.close();
-
-		nn6=sprintf(buffer8,"output/WaveRadiationForce_Body_%d.txt", id);
-		std::ofstream waveRadForce(buffer8);
-		waveRadForce << t;
-		for (int i=0; i<6; i++)
-		{
-			waveRadForce << "    " <<  radiationForces(i, 0);
-		}
-		waveRadForce << "\n";
-		waveRadForce.close();
-
-	}else{
-		nn1=sprintf(buffer1,"output/DOF_1_Body_%d.txt", id);
-		std::ofstream xpos;
-			xpos.open(buffer1, std::ios_base::app);
-			xpos << t << "    " <<  this->pos(0,0) << "    "<<  this->vel(0,0) << "    "<<  this->acc(0,0) << "\n";
-		xpos.close();
-
-		nn2=sprintf(buffer2,"output/DOF_2_Body_%d.txt", id);
-		std::ofstream ypos;
-			ypos.open(buffer2, std::ios_base::app);
-			ypos << t << "    " <<  this->pos(1,0) << "    "<<  this->vel(1,0) << "    "<<  this->acc(1,0) << "\n";
-		ypos.close();
-
-		nn3=sprintf(buffer3,"output/DOF_3_Body_%d.txt", id);
-		std::ofstream zpos;
-			zpos.open(buffer3, std::ios_base::app);
-			zpos << t << "    " <<  this->pos(2,0) << "    "<<  this->vel(2,0) << "    "<<  this->acc(2,0) << "\n";
-		zpos.close();
-
-		nn4=sprintf(buffer4,"output/DOF_4_Body_%d.txt", id);
-		std::ofstream ropos;
-			ropos.open(buffer4, std::ios_base::app);
-			ropos << t << "    " <<  this->pos(3,0) << "    "<<  this->vel(3,0) << "    "<<  this->acc(3,0) << "\n";
-		ropos.close();
-
-		nn5=sprintf(buffer5,"output/DOF_5_Body_%d.txt", id);
-		std::ofstream pipos;
-			pipos.open(buffer5, std::ios_base::app);;
-			pipos << t << "    " <<  this->pos(4,0) << "    "<<  this->vel(4,0) << "    "<<  this->acc(4,0) << "\n";
-		pipos.close();
-
-		nn6=sprintf(buffer6,"output/DOF_6_Body_%d.txt", id);
-		std::ofstream yapos;
-			yapos.open(buffer6, std::ios_base::app);
-			yapos << t << "    " <<  this->pos(5,0) << "    "<<  this->vel(5,0) << "    "<<  this->acc(5,0) << "\n";
-		yapos.close();
-
-		nn6=sprintf(buffer7,"output/HydroStiffnessForce_Body_%d.txt", id);
-		std::ofstream hydStiffForce(buffer7, std::ios_base::app);
-		hydStiffForce << t;
-		for (int i=0; i<6; i++)
-		{
-			hydStiffForce << "    " <<  hydrostaticForces(i, 0);
-		}
-		hydStiffForce << "\n";
-		hydStiffForce.close();
-
-		nn6=sprintf(buffer8,"output/WaveRadiationForce_Body_%d.txt", id);
-		std::ofstream waveRadForce(buffer8, std::ios_base::app);
-		waveRadForce << t;
-		for (int i=0; i<6; i++)
-		{
-			waveRadForce << "    " <<  radiationForces(i, 0);
-		}
-		waveRadForce << "\n";
-		waveRadForce.close();
-	}
-
+	fprintf(pfile_WRF, "%f    ", t);
+	for(int ii=0;ii<6;ii=ii+1) fprintf(pfile_WRF, "%f    ", radiationForces(ii, 0));
+	fprintf(pfile_WRF, "\n");
 }

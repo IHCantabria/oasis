@@ -105,6 +105,7 @@ public:
     void Initialize(void);
     void Run();
     void SetupCase(void);
+    void CloseCase(void);
     void UpdateSystem(void);
 
 };

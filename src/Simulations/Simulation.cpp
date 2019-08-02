@@ -236,7 +236,18 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 
 	// Copy info from the objects to yprime
 	//std::cout << "Main::fun - Copy info to yprime" << std::endl;
-	yprime.rows(0,numSystem2-1) = y.rows(numSystem2, numSystem-1);
+	//yprime.rows(0,numSystem2-1) = y.rows(numSystem2, numSystem-1);
+	ini = 0;
+	for(int ii=0;ii<numBodies;ii=ii+1){
+		yprime.rows(ini,ini+5) = pBodies[ii]->vel;
+		ini = ini + 6;
+	}
+	for(int ii=0;ii<numLines;ii=ii+1){
+		for(int jj=0;jj<pLines[ii]->N;jj=jj+1){
+			yprime.rows(ini,ini+2) = pLines[ii]->vel.row(jj).t();
+			ini = ini + 3;
+		}
+	}
 	yprime.rows(numSystem2,numSystem2+6*numBodies-1) = accB;
 	ini = numSystem2+6*numBodies;
 	for(int ii=0;ii<numLines;ii=ii+1){
@@ -251,10 +262,10 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 	}
 	//std::cout << "Main::fun - Check if yprime has a NaN" << std::endl;
 	//WriteASCII("output/yprime.dat", yprime, true);
-	if (yprime.has_nan()){
-		std::cout << std::endl << "ERROR: NaN Detected!" << std::endl;
-		throw std::exception();
-	}
+	//if (yprime.has_nan()){
+	//	std::cout << std::endl << "ERROR: NaN Detected!" << std::endl;
+	//	throw std::exception();
+	//}
 	//std::cout << "Main::fun - End of fcn" << std::endl;
 	return yprime;
 }
@@ -488,6 +499,7 @@ void Simulation::ReadBodiesASCII()
     {
 		pBodies[ii] = new Body(ii, this);
 		pBodies[ii]->ReadPropertiesASCII(file_pointer);
+		pBodies[ii]->OpenOutputFilesASCII(outputFolderPath);
 
 	}
     /**
@@ -579,6 +591,7 @@ void Simulation::ReadLinesASCII()
 		try
 		{
             pLines[ii]->ReadPropertiesASCII(file_pointer);
+            pLines[ii]->OpenOutputFilesASCII(outputFolderPath);
             //pLines[ii]->print_out();
             /**
             pLines[ii]->LineBCP[0] = BCPs[pLines[ii]->BCP_1-1];
@@ -813,19 +826,19 @@ void Simulation::Run()
         UpdateSystem();
         
         // Print out time if any
-        std::cout<< "    t = " << pTimeSolver->t << " s"  << std::endl;
-        for(int ii=0; ii<numLines; ii=ii+1) pLines[ii]->WriteOut(pTimeSolver->t);
-        for(int ii=0; ii<numBodies; ii=ii+1) pBodies[ii]->WriteOut(pTimeSolver->t);
-        /**
+        //std::cout<< "    t = " << pTimeSolver->t << " s"  << std::endl;
+        //for(int ii=0; ii<numLines; ii=ii+1) pLines[ii]->WriteOut(pTimeSolver->t);
+        //for(int ii=0; ii<numBodies; ii=ii+1) pBodies[ii]->WriteOut(pTimeSolver->t);
+        // /**
         if (pTimeSolver->t >= wallTime + maxTimeStep)
         {
-            //wallTime = wallTime + maxTimeStep;
+            wallTime = wallTime + maxTimeStep;
             std::cout<< "    t = " << wallTime << " s"  << std::endl;
             //if (nWinchies>0) CW.controlWinchies();
             for(int ii=0; ii<numLines; ii=ii+1) pLines[ii]->WriteOut(wallTime);
             for(int ii=0; ii<numBodies; ii=ii+1) pBodies[ii]->WriteOut(wallTime);
         }
-        **/
+        // **/
     } while (pTimeSolver->t <= simulationTime);
     
     tend = time(0); 
@@ -994,6 +1007,20 @@ void Simulation::SetupCase()
 		pSprings[ii]->SpringBCP[1] = pBcps[pSprings[ii]->BCP_2];
 	}
     std::cout << "----> Case configuration done" << std::endl;
+}
+
+void Simulation::CloseCase()
+{
+
+    for (int ii=0; ii<numLines; ii++)
+    {
+    	pLines[ii]->CloseOutputFilesASCII();
+    }
+
+    for (int ii=0; ii<numBodies; ii++)
+    {
+    	pBodies[ii]->CloseOutputFilesASCII();
+    }
 }
 
 

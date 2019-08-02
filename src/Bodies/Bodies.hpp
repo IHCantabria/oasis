@@ -41,10 +41,21 @@ public:
 	arma::mat hydrostaticForces = arma::zeros(6, 1); // Storage for the hydrostatic forces
 	arma::mat radiationForces = arma::zeros(6, 1); // Storage for the wave radiation forces
 
+	FILE* pfile_DOF_1;
+	FILE* pfile_DOF_2;
+	FILE* pfile_DOF_3;
+	FILE* pfile_DOF_4;
+	FILE* pfile_DOF_5;
+	FILE* pfile_DOF_6;
+	FILE* pfile_HSF;
+	FILE* pfile_WRF;
+
 	Body(int n, Simulation* pSim); // Inicializa un objeto de clase cuerpo dandole el indice
 	void ComputeBcpForces(void); // Calcula el efecto de las fuerzas sobre los BCPs sobre su CDG
 	int GetId(void); // Returns the body identification number
 	void ReadPropertiesASCII(FILE* filePointer); // Leer datos de los cuerpos
+	void OpenOutputFilesASCII(std::string path);
+	void CloseOutputFilesASCII (void);
 	void StoreVelocities(void); // Store last step velocity into the velocity buffer matrix
 	void UpdateBcps(void); // Actualiza valores del BCP
 	void UpdateHydrostaticForces(void); // Update the value of the wave radiation forces the current step

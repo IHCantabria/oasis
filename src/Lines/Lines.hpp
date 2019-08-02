@@ -32,9 +32,16 @@ public:
 	double rhoW;
 	double fondo;
 
+	FILE* pfile_xpos;
+	FILE* pfile_ypos;
+	FILE* pfile_zpos;
+	FILE* pfile_ten;
+
 	Line(int incId, double incG, double incRhoW, double incFondo);
 	int GetId();
 	void ReadPropertiesASCII(FILE* pFilePointer);
+	void OpenOutputFilesASCII(std::string path);
+	void CloseOutputFilesASCII (void);
 	void print_out(void);
 	void initLine(void);
 	void qs_Functions(double& ff,double& gg,double& DfDH,double& DfDV,double& DgDH,double& DgDV);
