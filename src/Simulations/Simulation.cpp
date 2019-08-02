@@ -29,7 +29,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 	}
 	for(int ii=0; ii<numLines;ii++)
 	{
-		for(int jj=0; jj<pLines[ii]->N; jj++)
+		for(int jj=pLines[ii]->first_node; jj<pLines[ii]->last_node; jj=jj+1)
         {
 			pLines[ii]->pos.row(jj) = y.rows(ini,ini+2).t();
 			ini = ini + 3;
@@ -43,7 +43,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 	}
 	for(int ii=0; ii<numLines; ii++)
 	{
-		for(int jj=0; jj<pLines[ii]->N; jj++)
+		for(int jj=pLines[ii]->first_node; jj<pLines[ii]->last_node; jj=jj+1)
 		{
 			pLines[ii]->vel.row(jj) = y.rows(ini,ini+2).t();
 			ini = ini + 3;
@@ -52,7 +52,6 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 	for(int ii=0; ii<numWinches; ii++)
     {
 		pWinches[ii]->theta = arma::as_scalar(y.row(numSystem2-(ii+1)));
-		pWinches[ii]->omega = arma::as_scalar(y.row(numSystem-(ii+1)));
 		pWinches[ii]->omega = arma::as_scalar(y.row(numSystem-(ii+1)));
 	}
 	
@@ -243,7 +242,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 	}
 	ini = 6*numBodies;
 	for(int ii=0;ii<numLines;ii=ii+1){
-		for(int jj=0;jj<pLines[ii]->N;jj=jj+1){
+		for(int jj=pLines[ii]->first_node; jj<pLines[ii]->last_node; jj=jj+1){
 			yprime.rows(ini,ini+2) = pLines[ii]->vel.row(jj).t();
 			ini = ini + 3;
 		}
@@ -255,7 +254,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 	}
 	ini = numSystem2+6*numBodies;
 	for(int ii=0;ii<numLines;ii=ii+1){
-		for(int jj=0;jj<pLines[ii]->N;jj=jj+1){
+		for(int jj=pLines[ii]->first_node; jj<pLines[ii]->last_node; jj=jj+1){
 			yprime.rows(ini,ini+2) = pLines[ii]->acc.row(jj).t();
 			ini = ini + 3;
 		}
@@ -275,6 +274,21 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 }
 
 
+void Simulation::CloseCase()
+{
+
+    for (int ii=0; ii<numLines; ii++)
+    {
+    	pLines[ii]->CloseOutputFilesASCII();
+    }
+
+    for (int ii=0; ii<numBodies; ii++)
+    {
+    	pBodies[ii]->CloseOutputFilesASCII();
+    }
+}
+
+
 void Simulation::Initialize()
 {
     /**
@@ -284,6 +298,7 @@ void Simulation::Initialize()
     timeBuffer(0, 2) = 100.0;
     double start_time = 117.0;
     **/
+
     double start_time = 0.0;
 
     // Initialize system vector
@@ -307,7 +322,7 @@ void Simulation::Initialize()
                 ini=ini+6;
         }
         for(int ii=0; ii<this->numLines; ii=ii+1){
-            for(int jj=0; jj<this->pLines[ii]->N; jj=jj+1){
+            for(int jj=pLines[ii]->first_node; jj<pLines[ii]->last_node; jj=jj+1){
                     y.rows(ini,ini+2) = this->pLines[ii]->pos.row(jj).t();
                     ini=ini+3;
             }
@@ -348,7 +363,6 @@ void Simulation::Initialize()
     // Save first data
     std::cout << "Antes de update system" << std::endl;
     this->UpdateSystem();
-    
 }
 
 
@@ -973,7 +987,28 @@ void Simulation::SetupCase()
             pLines[ii]->pLineBcps[jj]->pLines[pLines[ii]->pLineBcps[jj]->countLine] = pLines[ii];
             pLines[ii]->pLineBcps[jj]->countLine++;
         }
-        numDofTotal += pLines[ii]->N;
+
+
+        //numDofTotal += pLines[ii]->N; //////////////////////////////////////////////////////////////
+
+        if (pLines[ii]->pLineBcps[0]->GetType() != 3 && pLines[ii]->pLineBcps[1]->GetType() != 3){
+        	numDofTotal += (pLines[ii]->N-2);
+        	pLines[ii]->first_node = 1;
+        	pLines[ii]->last_node = pLines[ii]->N-1;
+        } else if (pLines[ii]->pLineBcps[0]->GetType() == 3 && pLines[ii]->pLineBcps[1]->GetType() == 3){
+        	numDofTotal += pLines[ii]->N;
+        	pLines[ii]->first_node = 0;
+        	pLines[ii]->last_node = pLines[ii]->N;
+        } else if (pLines[ii]->pLineBcps[0]->GetType() == 3 && pLines[ii]->pLineBcps[1]->GetType() != 3){
+        	numDofTotal += (pLines[ii]->N - 1);
+        	pLines[ii]->first_node = 0;
+        	pLines[ii]->last_node = pLines[ii]->N-1;
+        } else if (pLines[ii]->pLineBcps[0]->GetType() != 3 && pLines[ii]->pLineBcps[1]->GetType() == 3){
+        	numDofTotal += (pLines[ii]->N-1);
+        	pLines[ii]->first_node = 1;
+        	pLines[ii]->last_node = pLines[ii]->N;
+        }
+
         try
         {
             if(!readEquilibrium) pLines[ii]->initLine();
@@ -1018,21 +1053,6 @@ void Simulation::SetupCase()
     std::cout << "----> Case configuration done" << std::endl;
 }
 
-void Simulation::CloseCase()
-{
-
-    for (int ii=0; ii<numLines; ii++)
-    {
-    	pLines[ii]->CloseOutputFilesASCII();
-    }
-
-    for (int ii=0; ii<numBodies; ii++)
-    {
-    	pBodies[ii]->CloseOutputFilesASCII();
-    }
-}
-
-
 Simulation::Simulation(std::string incProjectPath, std::string incDataFormat)
 {
     // Assign direct variables
@@ -1076,7 +1096,6 @@ Simulation::Simulation(std::string incProjectPath, std::string incDataFormat)
 
 }
 
-
 void Simulation::UpdateSystem()
 {
     // Update time vector if any
@@ -1110,5 +1129,4 @@ void Simulation::UpdateSystem()
             pBodies[ii]->UpdateRadiationForces();
         }
     }
-    
 }

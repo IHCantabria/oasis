@@ -26,6 +26,7 @@ public:
 	arma::mat inv_MM, inv_MM_1, inv_MM_N, inv_MM_1N;
 	arma::sp_mat D_sp, MassMatrix_sp, MM_sp, StiffMatrix_sp, MSMatrix_sp;
 	BCP* pLineBcps [2];
+	int first_node, last_node;
 	double xF, zF, HF, VF, HA, VA, cosa, sina;
 
 	double g;
