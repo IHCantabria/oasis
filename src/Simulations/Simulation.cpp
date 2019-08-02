@@ -541,18 +541,20 @@ void Simulation::ReadHydrodynamicsHDF5()
     }
 
     // Check time buffere w.r.t IRF size
-    if (this->timeBufferSize < 10*pBodies[0]->hydro->numPointsIRF)
+    if (numBodies > 0)
     {
-        this->timeBufferSize = 10*pBodies[0]->hydro->numPointsIRF;
-        this->timeBuffer = arma::zeros(1, this->timeBufferSize);
+	    if (this->timeBufferSize < 10*pBodies[0]->hydro->numPointsIRF)
+	    {
+	        this->timeBufferSize = 10*pBodies[0]->hydro->numPointsIRF;
+	        this->timeBuffer = arma::zeros(1, this->timeBufferSize);
 
-        for (int ii=0; ii<numBodies; ii++)
-        {
-            pBodies[ii]->velBufferSize = 10*pBodies[ii]->hydro->numPointsIRF;
-            pBodies[ii]->velBuffer = arma::zeros(6, pBodies[ii]->velBufferSize);
-        }
+	        for (int ii=0; ii<numBodies; ii++)
+	        {
+	            pBodies[ii]->velBufferSize = 10*pBodies[ii]->hydro->numPointsIRF;
+	            pBodies[ii]->velBuffer = arma::zeros(6, pBodies[ii]->velBufferSize);
+	        }
+	    }
     }
-    
     std::cout << "----> Hydrodynamic Properties Read" << std::endl;
 }
 
