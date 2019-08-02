@@ -16,10 +16,10 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 {
     numCallsSysFun++;
 
-    //std::cout << "Main::fun - At first" << std::endl; 
+    // std::cout << "Main::fun - At first" << std::endl; 
 	arma::mat yprime = arma::zeros(size(y));
 	int i0;
-	//std::cout << "Main::fun - Before copy y to objects" << std::endl;
+	// std::cout << "Main::fun - Before copy y to objects" << std::endl;
 	// Copy info from y to the objects.
 	int ini = 0;
 	for(int ii=0; ii<numBodies; ii++)
@@ -57,13 +57,13 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 	}
 	
 	// Update BodyBCP positions and velocities
-	//std::cout << "Main::fun - Update BCP positions and velocities" << std::endl;
+	// std::cout << "Main::fun - Update BCP positions and velocities" << std::endl;
 	for(int ii=0; ii<numBodies; ii++)
     {
 		pBodies[ii]->UpdateBcps();
 	}
 	// Set boundary conditions on pos and vel of Lines if the BCP is not a joint
-	//std::cout << "Main::fun - Set Boundary conditios" << std::endl;
+	// std::cout << "Main::fun - Set Boundary conditios" << std::endl;
 	if (numLines >= 1){
 		if (pLines[0]->pLineBcps[0]->tBCP != time){
 			for(int ii=0; ii<numLines; ii++)
@@ -89,7 +89,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 		}
 	}
 	// Set boundary conditions on pos and vel of Lines if the BCP is a joint
-	//std::cout << "Main::fun - Set Boundary conditios if BCP is a Joint" << std::endl;
+	// std::cout << "Main::fun - Set Boundary conditios if BCP is a Joint" << std::endl;
 	for(int ii=0; ii<numLines; ii++)
     {
 		if(pLines[ii]->pLineBcps[0]->GetType() == 3){
@@ -124,19 +124,19 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 		}
 	}
 	// Compute forces vector for the different Lines
-	//std::cout << "Main::fun - Compute forces vector for different lines" << std::endl;
+	// std::cout << "Main::fun - Compute forces vector for different lines" << std::endl;
 	for(int ii=0; ii<numLines; ii++)
     {
 		pLines[ii]->SEM_computeF();
 	}
 	// Compute forces of Springs
-	//std::cout << "Main::fun - Compute spring" << std::endl;
+	// std::cout << "Main::fun - Compute spring" << std::endl;
 	for(int ii=0; ii<numSprings; ii++)
     {
 		pSprings[ii]->computeSpringForces();
 	}
 	// Compute hydrostatic and hidrodynamic forces
-    //std::cout << "Main::fun - Compute hydrodynamic and hydrostatic forces" << std::endl;
+    // std::cout << "Main::fun - Compute hydrodynamic and hydrostatic forces" << std::endl;
     arma::mat Fb = arma::zeros(6*numBodies, 1);
 	arma::mat Fh;
 	arma::mat Fr;
@@ -149,7 +149,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
         Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  Fe - (Fr + Fh);
     }
 	// Compute forces on BCPs
-	//std::cout << "Main::fun - Compute forces on BCPs" << std::endl;
+	// std::cout << "Main::fun - Compute forces on BCPs" << std::endl;
 	for(int ii=0; ii<numBodies; ii++)
     {
 		pBodies[ii]->ComputeBcpForces();
@@ -159,7 +159,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 	// Compute body acceleration
 	//(**SD.Water->pAddedMassHf).print();
 	//arma::mat accB = (*SD.Water->pStructuralMass+**SD.Water->pAddedMassHf)*Fb;
-	//std::cout << "Main::fun - Compute accelerations" << std::endl;
+	// std::cout << "Main::fun - Compute accelerations" << std::endl;
 	arma::mat accB;
 	arma::mat total_mass;
 	//WriteASCII("output/accB.dat", accB, true);
@@ -173,14 +173,14 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 	}
 
 	// Update BodyBCP accelerations
-	//std::cout << "Main::fun - Compute BCP accelerations" << std::endl;
+	// std::cout << "Main::fun - Compute BCP accelerations" << std::endl;
 	for(int ii=0; ii<numBodies; ii++)
     {
 		pBodies[ii]->UpdateBcps();
 	}
 	//WriteASCII("output/bcpAcceleration.dat", SD.Bodies[0]->pBodyBcps[0]->accG_BCP, true);
 	// Obtain Lines accelerations, imposing boundary conditions if the BCP is not a joint
-	//std::cout << "Main::fun - Compute lines accelerations" << std::endl;
+	// std::cout << "Main::fun - Compute lines accelerations" << std::endl;
 	for(int ii=0; ii<numLines; ii++)
     {
 		if(pLines[ii]->pLineBcps[0]->GetType() != 3){
@@ -200,7 +200,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 		}
 	}
 	// Obtain Lines accelerations, imposing boundary conditions if the BCP is a joint
-	//std::cout << "Main::fun - Lines accelerations if the Line is a Joint" << std::endl;
+	// std::cout << "Main::fun - Lines accelerations if the Line is a Joint" << std::endl;
 	for(int ii=0;ii<numLines;ii=ii+1){
 		if(pLines[ii]->pLineBcps[0]->GetType() == 3){
 			pLines[ii]->pLineBcps[0]->accLines.row(pLines[ii]->pLineBcps[0]->iLJ) = pLines[ii]->acc.row(0);
@@ -229,26 +229,30 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 	}
 
 	// Compute Winchies
-	//std::cout << "Main::fun - Compute Winchies" << std::endl;
+	// std::cout << "Main::fun - Compute Winchies" << std::endl;
 	for(int ii=0;ii<numWinches;ii=ii+1){
 		pWinches[ii]->computeWinchie();
 	}
 
 	// Copy info from the objects to yprime
-	//std::cout << "Main::fun - Copy info to yprime" << std::endl;
-	//yprime.rows(0,numSystem2-1) = y.rows(numSystem2, numSystem-1);
+	// std::cout << "Main::fun - Copy info to yprime" << std::endl;
 	ini = 0;
 	for(int ii=0;ii<numBodies;ii=ii+1){
 		yprime.rows(ini,ini+5) = pBodies[ii]->vel;
 		ini = ini + 6;
 	}
+	ini = 6*numBodies;
 	for(int ii=0;ii<numLines;ii=ii+1){
 		for(int jj=0;jj<pLines[ii]->N;jj=jj+1){
 			yprime.rows(ini,ini+2) = pLines[ii]->vel.row(jj).t();
 			ini = ini + 3;
 		}
 	}
-	yprime.rows(numSystem2,numSystem2+6*numBodies-1) = accB;
+	ini = numSystem2;
+	for(int ii=0;ii<numBodies;ii=ii+1){
+		yprime.rows(ini,ini+5) = pBodies[ii]->acc;
+		ini = ini + 6;
+	}
 	ini = numSystem2+6*numBodies;
 	for(int ii=0;ii<numLines;ii=ii+1){
 		for(int jj=0;jj<pLines[ii]->N;jj=jj+1){
@@ -260,13 +264,13 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 		yprime.row(numSystem2-(ii+1)) = pWinches[ii]->omega;
 		yprime.row(numSystem-(ii+1)) = pWinches[ii]->alpha;
 	}
-	//std::cout << "Main::fun - Check if yprime has a NaN" << std::endl;
+	// std::cout << "Main::fun - Check if yprime has a NaN" << std::endl;
 	//WriteASCII("output/yprime.dat", yprime, true);
-	//if (yprime.has_nan()){
-	//	std::cout << std::endl << "ERROR: NaN Detected!" << std::endl;
-	//	throw std::exception();
-	//}
-	//std::cout << "Main::fun - End of fcn" << std::endl;
+	if (yprime.has_nan()){
+		std::cout << std::endl << "ERROR: NaN Detected!" << std::endl;
+		throw std::exception();
+	}
+	// std::cout << "Main::fun - End of fcn" << std::endl;
 	return yprime;
 }
 
@@ -821,12 +825,15 @@ void Simulation::Run()
 	double wallTime = 0.0;
     tstart = time(0);
     std::cout<< "    t = " << wallTime << " s" << std::endl;
+    // std::cout<< "In Simulation::Run --> Starting temporal integration loop "<< std::endl;
     do
     {
         pTimeSolver->step();
-        
-        UpdateSystem();
-        
+        // std::cout<< "In Simulation::Run --> Call to step() was succesfull "<< std::endl;
+        if (numBodies>0){   
+	        UpdateSystem();
+	        // std::cout<< "In Simulation::Run --> Call to UpdateSystem() was succesfull "<< std::endl;
+	    }
         // Print out time if any
         //std::cout<< "    t = " << pTimeSolver->t << " s"  << std::endl;
         //for(int ii=0; ii<numLines; ii=ii+1) pLines[ii]->WriteOut(pTimeSolver->t);
