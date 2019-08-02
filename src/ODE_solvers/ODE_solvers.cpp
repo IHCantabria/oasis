@@ -48,7 +48,7 @@ arma::mat BDF::fun(double tt, arma::mat yy)
 void BDF::jac(double tt, arma::mat yy){
 	yprime = fun(tt, yy);
 	for(int ii=0;ii<nSistema;ii=ii+1){
-		J.col(ii) = 1e5 * (fun(tt, yy + 1e-5* I.col(ii)) - yprime);
+		J.col(ii) = 1e12 * (fun(tt, yy + 1e-12 * I.col(ii)) - yprime);
 	}
 }
 
@@ -78,43 +78,90 @@ void BDF::Initialize()
 }
 
 void BDF::step(void){
-	q = 0;
 	
+	int NN;
+	q = 0;
+	bool flag_nan = true;
+
 	LOOP:
+
+	if (q<2){
+		NN = 5*(q+1);
+	} else {
+		NN = nIterMax;
+	}
+
 	k = 0;
 	y = y_0 + h_0*(y_0 - y_1)/h_1;
+	F = (1.0 + h_0/(h_1+h_0)) * y - ((h_1+h_0)/h_1) * y_0 + ((h_0*h_0/h_1)/(h_1+h_0)) * y_1 - h_0 * fun(t+h_0,y);
+
 	do{
-		F = (1.0 + h_0/(h_1+h_0)) * y - ((h_1+h_0)/h_1) * y_0 + ((h_0*h_0/h_1)/(h_1+h_0)) * y_1 - h_0 * fun(t+h_0,y);
+		if (q>=2){
+			jac(t + h_0, y);
+			iJ = iJ + 1;
+			q = q + 1;
+		}	
 		M = (1.0 + h_0/(h_1+h_0)) * I - h_0 * J;
 		status = arma::solve(dy,M,F,arma::solve_opts::fast);
 		if (!status){
 			dy = arma::solve(M,F);
 		}
 		y = y - dy;
+		F = (1.0 + h_0/(h_1+h_0)) * y - ((h_1+h_0)/h_1) * y_0 + ((h_0*h_0/h_1)/(h_1+h_0)) * y_1 - h_0 * fun(t+h_0,y);
 		k = k + 1;
-	} while((arma::norm(dy) > atol + rtol*arma::norm(y))&&(k<=nIterMax+1));
+	} while(((arma::norm(dy) > atol + rtol*arma::norm(y)) | (arma::norm(F) > atol)) & (k<NN));
 
-	if(k>=nIterMax-1){
-		if((q==0)){
+	if(k>=NN){
+		if(q<2){
+			h_0 = std::max(pow(10.0,-2*q)*h_0, dt_min);
 			jac(t + h_0, y_0 + h_0*(y_0 - y_1)/h_1);
 			iJ = iJ + 1;
+			q = q + 1;
+			goto LOOP;
 		} else {
-			h_0 = std::max(1e-1*h_0, dt_min);
+			std::cout << std::endl << "ERROR: Convergence Failed!" << std::endl;
+			throw std::exception();
+		}
+	}
+
+	EWT = atol * arma::ones(size(y)) + rtol * arma::abs(y);
+	//EWT = atol  + rtol % arma::abs(y);
+
+	if (EWT.has_nan()){		
+		if (flag_nan){
+			flag_nan = false;
+			h_0 = dt_min;
 			jac(t + h_0, y_0 + h_0*(y_0 - y_1)/h_1);
 			iJ = iJ + 1;
+			std::cout << std::endl << " OJO QUE ESTO CASCA ..." << std::endl;
+			goto LOOP;
+		}else{
+			std::cout << std::endl << "ERROR: NaN Detected!" << std::endl;
+			throw std::exception();
 		}
-		q = q + 1;
+	}
+	
+	//LTE = h_0*h_0*(h_0+h_1)*(y/(h_0*(h_0 + h_1)*(h_0 + h_1 + h_2)) - y_2/(h_2*(h_1 + h_2)*(h_0 + h_1 + h_2)) - y_0/(h_0*h_1*(h_1 + h_2)) + y_1/(h_1*h_2*(h_0 + h_1)));
+	//sigma = pow(0.5*arma::abs(EWT/LTE).min(),0.25);
+
+	arma::mat M1 = I - h_0 * J;
+	arma::mat F1 = y - y_0 - h_0 * fun(t+h_0,y);
+	status = arma::solve(LTE,M1,F1,arma::solve_opts::fast);
+	if (!status){
+		LTE = arma::solve(M,F);
+	}
+
+	sigma = pow(0.5*arma::norm(EWT)/arma::norm(LTE),0.25);
+
+	if(sigma<0.9){
+		h_0 = h_0*sigma;
 		goto LOOP;
 	}
 
+	//std::cout << "   LTE = " << arma::norm(LTE) << std::endl;
+	//std::cout << "   h = " << h_0 << std::endl;
+
 	t = t + h_0;
-	
-	LTE = h_0*h_0*(h_0+h_1)*(y/(h_0*(h_0 + h_1)*(h_0 + h_1 + h_2)) - y_2/(h_2*(h_1 + h_2)*(h_0 + h_1 + h_2)) - y_0/(h_0*h_1*(h_1 + h_2)) + y_1/(h_1*h_2*(h_0 + h_1)));
-	EWT = rtol * arma::abs(y) + atol * arma::ones(size(y));
-	sigma = pow(arma::norm(LTE/EWT)/sqrt(nSistema),-1.0/3.0);
-	if(isnan(sigma)){
-		sigma = 1e-12;
-	}
 
 	h_2 = h_1;
 	h_1 = h_0;
