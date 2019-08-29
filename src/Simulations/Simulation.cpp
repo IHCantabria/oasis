@@ -4,6 +4,7 @@
 #include <string>
 #include <sstream>
 #include <ctime>
+#include "../CommonTools.hpp"
 #include "Simulation.hpp"
 #include "../Exceptions/Exception.hpp"
 #include "../os_tools.hpp"
@@ -143,9 +144,9 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 	arma::mat Fe;
     for (int ii=0; ii<numBodies; ii++)
     {
-        Fh = pBodies[ii]->hydro->ComputeHydrostaticForces();
-        Fr = pBodies[ii]->hydro->ComputeRadiationForces();
-        Fe = pBodies[ii]->hydro->ComputeFirstWaveExcForce();
+        Fh = pBodies[ii]->pHydro->ComputeHydrostaticForces();
+        Fr = pBodies[ii]->pHydro->ComputeRadiationForces();
+        Fe = pBodies[ii]->pHydro->ComputeFirstWaveExcForce();
         Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  Fe - (Fr + Fh);
     }
 	// Compute forces on BCPs
@@ -155,6 +156,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 		pBodies[ii]->ComputeBcpForces();
 		Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  Fb(arma::span(6*ii,6*(ii+1)-1), 0) + pBodies[ii]->bcpForces;
 	}
+
 	//WriteASCII("output/bcpForces.dat", pBodies[0]->bcpForces, true);
 	// Compute body acceleration
 	//(**SD.Water->pAddedMassHf).print();
@@ -165,7 +167,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 	//WriteASCII("output/accB.dat", accB, true);
 	for(int ii=0; ii<numBodies; ii++)
     {
-		total_mass = *pBodies[ii]->hydro->pStructuralMass+*pBodies[ii]->hydro->pAddedMassHf[ii];
+		total_mass = *pBodies[ii]->pHydro->pStructuralMass+*pBodies[ii]->pHydro->pAddedMassHf[ii];
 		//std::cout << "Total mass matrix(2,2): " << mmm(2,2) << std::endl;
 		accB = arma::solve(total_mass,Fb);
 		//accB = arma::solve(*SD.Water->pStructuralMass,Fb);
@@ -344,7 +346,7 @@ void Simulation::LoadCase()
 
     // Read Components Data
     this->ReadBodies();
-    this->ReadHydrodynamicsHDF5();
+    //this->ReadHydrodynamicsHDF5();
     this->ReadLines();
     this->ReadBcps();
     this->ReadWinches();
@@ -465,39 +467,55 @@ void Simulation::ReadBodiesASCII()
 {
     std::cout << "--> Reading Bodies Properties (ASCII format)" << std::endl;
     // Declare local variables
-    char bufferLine [1000];
+    char buffer_line [1000];
+
+    // Parse file in order to guess the number of bodies
+    std::string file_path = JoinPath(inputFolderPath, "datosBodies.dat");
+    this->numBodies = parse_file(file_path);
 
     // Open file
-    std::string file_path = JoinPath(inputFolderPath, "datosBodies.dat");
-    FILE* file_pointer = fopen(file_path.c_str(), "r");
+    FILE* pFile = fopen(file_path.c_str(), "r");
 	
-	if (file_pointer == NULL)
+	if (pFile == NULL)
 	{
         std::stringstream ss;
         ss << "Not possible to open the file: datosBodies.dat\n    ->Dir: " << inputFolderPath << std::endl;
         throw IOError(ss.str());
 	}
-    
-    // Read total number of bodies to read
-    fscanf(file_pointer, "%d %[^\n]\n", &numBodies, bufferLine);
 
 	//Read all bodies
     pBodies = new Body* [numBodies];
     printf("Total number of bodies: %d\n", numBodies);
 	for(int ii=0; ii<numBodies; ii++)
     {
-		pBodies[ii] = new Body(ii, this);
-		pBodies[ii]->ReadPropertiesASCII(file_pointer);
+        // Discard header lines and check for body type
+        for(int ii=0; ii<3; ii++)
+        {
+            fgets(buffer_line, sizeof(buffer_line), pFile);
+        }
 
-	}
-    /**
-	for(int ii=0; ii<nBCPs; ii=ii+1)
-    {
-		BCPs[ii]->getValues(0.0);
-	}
-    **/
+        // Get body type line
+        fgets(buffer_line, sizeof(buffer_line), pFile);
 
-    fclose(file_pointer);
+        // Read body
+        if (strncmp(buffer_line, "RAD_DIFF", 8) == 0)
+        {
+            pBodies[ii] = new Body(ii, this);
+            pBodies[ii]->ReadPropertiesASCII(pFile);
+            pBodies[ii]->LoadDependencies();
+        }
+        else
+        {
+            std::stringstream ss;
+            ss << "Error while parsing file: datosBodies.dat\n --> Expected body: " << ii <<" type definition\n";
+            throw ValueError(ss.str());
+        }
+	}
+
+    // Check if the index of each body for the
+    
+
+    fclose(pFile);
     std::cout << "----> Bodies Properties Read" << std::endl;
 }
 
@@ -519,24 +537,24 @@ void Simulation::ReadHydrodynamicsHDF5()
     std::string file_path = JoinPath(inputFolderPath, "cajon1_LC1.ehydb");
     for (int ii=0; ii<numBodies; ii++)
     {
-        pBodies[ii]->hydro = new HydroDatabase(ii, pBodies, this);
-        pBodies[ii]->hydro->ReadHydroMechanicsHDF5(file_path);
-        pBodies[ii]->hydro->ComputeIRF();
-        std::cout << "Structural Mass (2,2): " << (*pBodies[ii]->hydro->pStructuralMass)(2,2) << std::endl;
-        std::cout << "Added Mass Hf (2,2): " << (*pBodies[ii]->hydro->pAddedMassHf[ii])(2,2) << std::endl;
-        std::cout << "Stiffness (2,2): " << (*pBodies[ii]->hydro->pHydrostaticStiffness)(2,2) << std::endl;
+        pBodies[ii]->pHydro = new HydroDatabase(ii, pBodies, this);
+        pBodies[ii]->pHydro->ReadHydroMechanicsHDF5(file_path);
+        pBodies[ii]->pHydro->ComputeIRF();
+        std::cout << "Structural Mass (2,2): " << (*pBodies[ii]->pHydro->pStructuralMass)(2,2) << std::endl;
+        std::cout << "Added Mass Hf (2,2): " << (*pBodies[ii]->pHydro->pAddedMassHf[ii])(2,2) << std::endl;
+        std::cout << "Stiffness (2,2): " << (*pBodies[ii]->pHydro->pHydrostaticStiffness)(2,2) << std::endl;
         std::cout << "This is the time vector..." << std::endl;
     }
 
     // Check time buffere w.r.t IRF size
-    if (this->timeBufferSize < 10*pBodies[0]->hydro->numPointsIRF)
+    if (this->timeBufferSize < 10*pBodies[0]->pHydro->numPointsIRF)
     {
-        this->timeBufferSize = 10*pBodies[0]->hydro->numPointsIRF;
+        this->timeBufferSize = 10*pBodies[0]->pHydro->numPointsIRF;
         this->timeBuffer = arma::zeros(1, this->timeBufferSize);
 
         for (int ii=0; ii<numBodies; ii++)
         {
-            pBodies[ii]->velBufferSize = 10*pBodies[ii]->hydro->numPointsIRF;
+            pBodies[ii]->velBufferSize = 10*pBodies[ii]->pHydro->numPointsIRF;
             pBodies[ii]->velBuffer = arma::zeros(6, pBodies[ii]->velBufferSize);
         }
     }
@@ -1054,9 +1072,9 @@ void Simulation::UpdateSystem()
     else
     {
         arma::mat timeBufferNew = arma::zeros(1, timeBufferSize);
-        timeBufferNew.cols(0, pBodies[0]->hydro->numPointsIRF-1) = timeBuffer.cols(timeBufferSize-pBodies[0]->hydro->numPointsIRF, timeBufferSize-1);
+        timeBufferNew.cols(0, pBodies[0]->pHydro->numPointsIRF-1) = timeBuffer.cols(timeBufferSize-pBodies[0]->pHydro->numPointsIRF, timeBufferSize-1);
         timeBuffer = timeBufferNew;
-        timeBufferCount = pBodies[0]->hydro->numPointsIRF-1;
+        timeBufferCount = pBodies[0]->pHydro->numPointsIRF-1;
     }
 
     // Update bodies velocity

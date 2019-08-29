@@ -27,6 +27,7 @@ public:
 	int numHeadingExc=0;
 
 	// Declare Hydrodynamic Storage Variables
+	arma::mat cog; // Position of the center of gravity for the hydrodynamic Radiation-Diffraction problem
 	int numPointsIRF; // Maximum number of points to describe the IRF function
 	arma::cube** pAddedMass; // Matrix components: [body, dof, dof, freqs]
 	arma::mat** pAddedMassHf; // Matrix components: [body, dof, dof]

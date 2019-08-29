@@ -2,6 +2,7 @@
 #include <iostream>
 #include <limits>
 #include <string>
+#include <sstream>
 #include <math.h>
 #include <cstdio>
 #include <cmath>
@@ -11,6 +12,7 @@
 #include "../BCPs/BCPs.hpp"
 #include "../os_tools.hpp"
 #include "../ODE_solvers/ODE_solvers.hpp"
+#include "../Exceptions/Exception.hpp"
 
 
 Body::Body(int n, Simulation* pIncSim)
@@ -90,56 +92,187 @@ int Body::GetId(void)
 }
 
 
+// Load Dependencies
+void Body::LoadDependencies()
+{
+	// Load hydrodynamic database
+	this->LoadHydrodynamicDatabase();
+}
+
+
+void Body::LoadHydrodynamicDatabase(void)
+{
+	std::cout << "--> Reading Hydrodynamics Properties (HDF5 format)" << std::endl;
+
+	// File path
+	std::string file_path = JoinPath(this->pSim->inputFolderPath, this->hydroDatabaseName);
+
+	// Load hydrodynamic database
+	this->pHydro = new HydroDatabase(this->hydroDatabaseIndex, this->pSim->pBodies, this->pSim);
+	this->pHydro->ReadHydroMechanicsHDF5(file_path);
+    this->pHydro->ComputeIRF();
+
+	// Check time buffere w.r.t IRF size
+    if (this->pSim->timeBufferSize < 10*this->pHydro->numPointsIRF)
+    {
+        this->pSim->timeBufferSize = 10*this->pHydro->numPointsIRF;
+        this->pSim->timeBuffer = arma::zeros(1, this->pSim->timeBufferSize);
+
+        this->velBufferSize = 10*this->pHydro->numPointsIRF;
+        this->velBuffer = arma::zeros(6, this->velBufferSize);
+    }
+
+	// Load and check the Hydrodynamic C.O.G position
+	if (this->takeCOGHydroDatabase == 1)
+	{
+		// Load inital position
+		this->pos_init(0, 0) = this->pHydro->cog(0, 0);
+		this->pos_init(1, 0) = this->pHydro->cog(0, 1);
+		this->pos_init(2, 0) = this->pHydro->cog(0, 2);
+
+		// Add initial position to the global position
+		this->pos = this->pos + this->pos_init;
+	}
+	else if ((this->takeCOGHydroDatabase == 0) && (this->pHydro->numBodies > 1))
+	{
+		// Declare local variables
+		bool xcond, ycond, zcond;
+
+		// Check if the input C.O.G is in accordance with the hydrodynamic database
+		double cog_tol = 1e-6;
+		xcond = fabs(this->pos_init(0, 0) - this->pHydro->cog(0, 0)) > cog_tol;
+		ycond = fabs(this->pos_init(1, 0) - this->pHydro->cog(0, 1)) > cog_tol;
+		zcond = fabs(this->pos_init(2, 0) - this->pHydro->cog(0, 2)) > cog_tol;
+
+		if (xcond || ycond || zcond)
+		{
+			std::stringstream ss;
+			ss << "Specified Center of Gravity for body: " << this->GetId();
+			ss << " mismatch with the C.O.G value in the Hydrodynamic database.\n";
+			throw ValueError(ss.str());
+		}
+	}
+
+	std::cout << "----> Hydrodynamic Properties Read" << std::endl;
+}
+
+
 // Leer datos de los cuerpos
-void Body::ReadPropertiesASCII(FILE* pFilePointer)
+void Body::ReadPropertiesASCII(FILE* pFile)
 {
 	// Declare variables
 	char buffer_line [1000];
+	fpos_t carriage_init;
+	char cHydroDatabaseName [1000];
+	double dtemp;
+	int itemp;
 
-	//Ignoro las tres primeras lineas, donde pone "New Body"
-	for(int ii=0; ii<3; ii++)
+	// Read Initial position from Hydrodynamic database
+	if (fscanf(pFile, "%d %[^\n]\n", &takeCOGHydroDatabase, buffer_line) != 2)
 	{
-		fgets(buffer_line, sizeof(buffer_line), pFilePointer);
+		std::stringstream ss;
+		ss << "Body: " << this->GetId() <<" - Not possible to read flag to take COG from Hydrodynamic database." << ".\n";
+		throw ValueError(ss.str());
 	}
 
-	// Read the total number DOFs to consider in the body
-	fscanf(pFilePointer, "%d %[^\n]\n", &numDofs, buffer_line); // Read DOF to consider in the body
-
-	// Read body DOFs to consider in the problem
-	pDofs = new int[numDofs];
-	for(int ii=0; ii<numDofs; ii++)
+	// Read dofs considered
+	fgetpos(pFile, &carriage_init);
+	while (fscanf(pFile, "%d", &itemp) == 1)
 	{
-		fscanf(pFilePointer, "%d", &pDofs[ii]);
-		pDofs[ii] -= 1;
+		this->numDofs++;
 	}
-	fscanf(pFilePointer, "%[^\n]\n", buffer_line);
-
-	// Read number of BCPs in the body
-	fscanf(pFilePointer, "%d %[^\n]\n", &numBcps, buffer_line);
-
-	// Read BCP indexes
-	pIndexBcps = new int[numBcps];
-	for(int ii=0; ii<numBcps; ii++)
+	fsetpos(pFile, &carriage_init);
+	
+	this->pDofs = new int [this->numDofs];
+	for (int ii=0; ii<this->numDofs; ii++)
 	{
-		fscanf(pFilePointer, "%d", &pIndexBcps[ii]);
-		pIndexBcps[ii] -= 1;
+		if (fscanf(pFile, "%d", &itemp) != 1) 
+		{
+			std::stringstream ss;
+			ss << "An error ocurred when trying to read the deegres of freedom for body: " << this->GetId() <<"\n";
+			throw ValueError(ss.str());
+		}
+		this->pDofs[ii] = itemp - 1;
 	}
-	fscanf(pFilePointer, "%[^\n]\n", buffer_line);
+	fscanf(pFile, "%[^\n]\n", buffer_line);
 
+	// Read the boundary condition points in the body
+	fgetpos(pFile, &carriage_init);
+	while (fscanf(pFile, "%d", &itemp) == 1)
+	{
+		this->numBcps++;
+	}
+	fsetpos(pFile, &carriage_init);
+
+	this->pIndexBcps = new int[this->numBcps];
+	fgetpos(pFile, &carriage_init);
+	fgets(buffer_line, sizeof(buffer_line), pFile);
+	fsetpos(pFile, &carriage_init);
+	std::cout << buffer_line << std::endl;
+	for(int ii=0; ii<this->numBcps; ii++)
+	{
+		if (fscanf(pFile, "%d", &itemp) != 1)
+		{
+			std::stringstream ss;
+			ss << "An error ocurred when trying to read the boundary condition points of the body: " << this->GetId() << " " << "\n";
+			throw ValueError(ss.str());
+		}
+		this->pIndexBcps[ii] = itemp - 1;
+	}
+	fscanf(pFile, "%[^\n]\n", buffer_line);
+
+	// Read Initial position
 	for (int ii=0; ii<6; ii++)
 	{
-		fscanf(pFilePointer, "%lf", &pos(ii, 0));
+		if (fscanf(pFile, "%lf", &dtemp) != 1)
+		{
+			std::stringstream ss;
+			ss << "An error ocurred when trying to read the initial position of the body: " << this->GetId() << "\n";
+			throw ValueError(ss.str());
+		}
+
+		if (this->takeCOGHydroDatabase == 0)
+		{
+			this->pos_init(ii, 0) = dtemp;
+			this->pos(ii, 0) = dtemp;
+		}
 	}
-	fscanf(pFilePointer, "%[^\n]\n", buffer_line);
+	fscanf(pFile, "%[^\n]\n", buffer_line);
+
+	// Read Initial displacement from reference position
+	for (int ii=0; ii<6; ii++)
+	{
+		if (fscanf(pFile, "%lf", &dtemp) != 1)
+		{
+			std::stringstream ss;
+			ss << "An error ocurred when trying to read the initial displacement of the body: " << this->GetId() << "\n";
+			throw ValueError(ss.str());
+		}
+		pos(ii, 0) +=  dtemp;
+	}
+	fscanf(pFile, "%[^\n]\n", buffer_line);
+
+	// Read hydrodynamic database filename
+	if (fscanf(pFile, "%s %[^\n]\n", cHydroDatabaseName, buffer_line) != 2)
+	{
+		std::stringstream ss;
+		ss << "An error ocurred when trying to read the hydrodynamic database name of the body: " << this->GetId() << "\n";
+		throw ValueError(ss.str());
+	}
+	this->hydroDatabaseName = cHydroDatabaseName;
+
+	// Read body index in the associated database
+	if (fscanf(pFile, "%d %[^\n]\n", &(this->hydroDatabaseIndex), buffer_line) != 2)
+	{
+		std::stringstream ss;
+		ss << "An error ocurred when trying to read the index of the body in the hydrodynamic database: " << this->GetId() << "\n";
+		throw ValueError(ss.str());
+	}
+	this->hydroDatabaseIndex--;
 
 	// Generate array of pointers in order to storage the BCPs pointers
-	pBodyBcps = new BCP* [numBcps];
+	this->pBodyBcps = new BCP* [this->numBcps];
 
-	//arma::cube temp_inertia;
-	//file_path = JoinPath(project_path, "input/flotante.h5");
-	//temp_inertia.load(arma::hdf5_name(file_path,"inertia"));
-
-	//inertia = temp_inertia.subcube(arma::span(id-1),arma::span::all,arma::span::all);
 }
 
 
@@ -152,9 +285,9 @@ void Body::StoreVelocities()
 	else
 	{
 		arma::mat velBufferNew = arma::zeros(6, pSim->timeBufferSize);
-		velBufferNew.cols(0, hydro->numPointsIRF-1) = velBuffer.cols(pSim->timeBufferSize-hydro->numPointsIRF, pSim->timeBufferSize-1);
+		velBufferNew.cols(0, pHydro->numPointsIRF-1) = velBuffer.cols(pSim->timeBufferSize-pHydro->numPointsIRF, pSim->timeBufferSize-1);
 		velBuffer = velBufferNew;
-		velBufferCount = hydro->numPointsIRF-1;
+		velBufferCount = pHydro->numPointsIRF-1;
 	}
 }
 
@@ -205,13 +338,13 @@ void Body::UpdateBcps(void)
 
 void Body::UpdateHydrostaticForces()
 {
-	hydrostaticForces = this->hydro->ComputeHydrostaticForces();
+	hydrostaticForces = this->pHydro->ComputeHydrostaticForces();
 }
 
 
 void Body::UpdateRadiationForces()
 {
-	radiationForces = this->hydro->ComputeRadiationForces();
+	radiationForces = this->pHydro->ComputeRadiationForces();
 }
 
 

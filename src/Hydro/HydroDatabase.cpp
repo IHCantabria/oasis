@@ -270,6 +270,11 @@ void HydroDatabase::ReadHydroMechanicsHDF5(std::string filePath)
 	arma::mat num_bodies_mat;
 	num_bodies_mat.load(arma::hdf5_name(filePath, "num_bodies"));
 	numBodies = num_bodies_mat(0);
+
+	// Read position of the center of gravity
+	std::stringstream cog_fn;
+	cog_fn << "body_" << this->GetId() << "/cog";
+	cog.load(arma::hdf5_name(filePath, cog_fn.str()));
 	
 	// Read frequencies
 	std::stringstream frequencies_fn;
