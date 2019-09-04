@@ -62,7 +62,8 @@ public:
 	int GetId(void);
 	virtual int GetType(void);
 	virtual void GetValues(double t) = 0;
-	virtual void Initialize();
+	virtual void Initialize(void);
+	virtual void Print(void);
 	void ReadPropertiesASCII(FILE*& pFilePointer);
 	virtual void UpdateBoundary();
 };
@@ -97,6 +98,7 @@ public:
 	void GetValues(double t);
 	void Initialize(std::string folder_path);
 	void ReadPropertiesASCII(FILE* &pFilePointer, std::string inputFilePath);
+	void Print(void);
 };
 
 class JointBCP: public BCP

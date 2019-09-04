@@ -38,9 +38,17 @@ int BCP::GetType(void)
 }
 
 
-void BCP::Initialize()
+void BCP::Initialize(void)
 {
 	double a = 0.0;
+}
+
+
+void BCP::Print(void)
+{
+	printf("BCP: %d PROPERTIES:\n", this->GetId());
+	printf("--> PosX: %f - PosY: %f - PosZ: %f\n", this->posG_BCP[0], this->posG_BCP[1], this->posG_BCP[2]);
+	printf("--> Winch Id: %d\n\n", this->winchId);
 }
 
 
@@ -76,15 +84,17 @@ void BCP::ReadPropertiesASCII(FILE* &pFilePointer)
 
 	// Read BCP position
 	fscanf(pFilePointer, "%lf %lf %lf %[^\n]\n", &pos(0, 0), &pos(1, 0), &pos(2, 0), buffer_line);
+
+	// Read Wind ID
+	fscanf(pFilePointer, "%d %[^\n]\n", &winchId, buffer_line);
+
+	// Read Actuator file name if any
 	if (this->GetType() == 2)
 	{
 		fscanf(pFilePointer, "%s %[^\n]\n", &cActuatorFileName, buffer_line);
 		actuatorFileName = cActuatorFileName;
 		std::cout << actuatorFileName.c_str() << std::endl;
 	}
-
-	// Read Wind ID
-	fscanf(pFilePointer, "%d %[^\n]\n", &winchId, buffer_line);
 
 	// Check Winch ID and Fairlead coexistence
 	if ((winchId !=0) && (this->GetType() == 2))
@@ -131,6 +141,28 @@ int FairleadBCP::GetType(void)
 }
 
 
+void FairleadBCP::GetValues(double t)
+{
+
+	tBCP = t;
+	ni = std::max(0,ni-10);
+	do{
+		ni = ni + 1;
+	} while (tF(ni,0)<t);
+
+	if(tF(ni,0)>t){
+		ni = ni - 1;
+	}
+
+	dt = t - tF(ni,0);
+
+	pos = (posF.row(ni) + dt * (posF.row(ni+1) - posF.row(ni)) / (tF(ni+1,0) - tF(ni,0))).t();
+	vel = (velF.row(ni) + dt * (velF.row(ni+1) - velF.row(ni)) / (tF(ni+1,0) - tF(ni,0))).t();
+	acc = (accF.row(ni) + dt * (accF.row(ni+1) - accF.row(ni)) / (tF(ni+1,0) - tF(ni,0))).t();
+
+}
+
+
 void FairleadBCP::Initialize(std::string folder_path)
 {
 	// Inicializo la variable donde guardar el numero de pasos temporales
@@ -173,25 +205,12 @@ void FairleadBCP::ReadPropertiesASCII(FILE* &pFilePointer, std::string inputFile
 }
 
 
-void FairleadBCP::GetValues(double t)
+void FairleadBCP::Print(void)
 {
-
-	tBCP = t;
-	ni = std::max(0,ni-10);
-	do{
-		ni = ni + 1;
-	} while (tF(ni,0)<t);
-
-	if(tF(ni,0)>t){
-		ni = ni - 1;
-	}
-
-	dt = t - tF(ni,0);
-
-	pos = (posF.row(ni) + dt * (posF.row(ni+1) - posF.row(ni)) / (tF(ni+1,0) - tF(ni,0))).t();
-	vel = (velF.row(ni) + dt * (velF.row(ni+1) - velF.row(ni)) / (tF(ni+1,0) - tF(ni,0))).t();
-	acc = (accF.row(ni) + dt * (accF.row(ni+1) - accF.row(ni)) / (tF(ni+1,0) - tF(ni,0))).t();
-
+	printf("BCP: %d PROPERTIES:\n");
+	printf("--> PosX: %f - PosY: %f - PosZ: %f\n", this->posG_BCP[0], this->posG_BCP[1], this->posG_BCP[2]);
+	printf("--> Winch Id: %d\n\n", this->winchId);
+	printf("--> Actuator Filename: %s\n", actuatorFileName.c_str());
 }
 
 

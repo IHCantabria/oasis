@@ -354,6 +354,19 @@ void Simulation::LoadCase()
 
     // Setup case
     this->SetupCase();
+
+    this->PrintSetup();
+}
+
+
+void Simulation::PrintSetup(void)
+{
+
+    // Print BCP properties
+    for (int i=0; i<this->numBcps; i++)
+    {
+        pBcps[i]->Print();
+    }
 }
 
 
@@ -785,7 +798,7 @@ void Simulation::ReadWinchesASCII()
 
     // Read number of winches defined in the file
 	fscanf(file_pointer, "%d %[^\n]\n", &numWinches, bufferLine);
-
+    printf("NumWinches: %d - UseWinches: %d\n", numWinches, useWinches);
     if ((numWinches ==0) && useWinches)
     {
         throw ValueError("Use of winches is requested when loading BCPs but there is no winches specified in datosWinches.dat\n");
@@ -831,19 +844,20 @@ void Simulation::Run()
         UpdateSystem();
         
         // Print out time if any
+        /**
         std::cout<< "    t = " << pTimeSolver->t << " s"  << std::endl;
         for(int ii=0; ii<numLines; ii=ii+1) pLines[ii]->WriteOut(pTimeSolver->t);
         for(int ii=0; ii<numBodies; ii=ii+1) pBodies[ii]->WriteOut(pTimeSolver->t);
-        /**
+        **/
         if (pTimeSolver->t >= wallTime + maxTimeStep)
         {
-            //wallTime = wallTime + maxTimeStep;
+            wallTime = wallTime + maxTimeStep;
             std::cout<< "    t = " << wallTime << " s"  << std::endl;
             //if (nWinchies>0) CW.controlWinchies();
             for(int ii=0; ii<numLines; ii=ii+1) pLines[ii]->WriteOut(wallTime);
             for(int ii=0; ii<numBodies; ii=ii+1) pBodies[ii]->WriteOut(wallTime);
         }
-        **/
+        
     } while (pTimeSolver->t <= simulationTime);
     
     tend = time(0); 
@@ -862,6 +876,7 @@ void Simulation::Run()
     }
     **/
 }
+
 
 void Simulation::SetupCase()
 {
