@@ -481,6 +481,11 @@ void Simulation::ReadBodiesASCII()
     std::cout << "--> Reading Bodies Properties (ASCII format)" << std::endl;
     // Declare local variables
     char buffer_line [1000];
+    int diff_count = 0;
+    int hydro_database_count=0;
+    std::string hydro_databases_name [300];
+    int max_num_bodies_database=0;
+    int pos_database=0;
 
     // Parse file in order to guess the number of bodies
     std::string file_path = JoinPath(inputFolderPath, "datosBodies.dat");
@@ -525,10 +530,85 @@ void Simulation::ReadBodiesASCII()
         }
 	}
 
-    // Check if the index of each body for the
-    
+    // Loop over bodies in order to get the number of hydrodynamic databases
+    hydro_databases_name[hydro_database_count] = pBodies[0]->hydroDatabaseName;
+    hydro_database_count++;
+    for (int ii=1; ii<this->numBodies; ii++)
+    {
+        diff_count = 0;
+        for (int jj=0; jj<hydro_database_count; jj++)
+        {
+            if (pBodies[ii]->hydroDatabaseName.compare(hydro_databases_name[jj]) != 0)
+            {
+                diff_count++;
+            }
+        }
 
+        if (diff_count == hydro_database_count)
+        {
+            hydro_database_count++;
+            hydro_databases_name[hydro_database_count] = pBodies[ii]->hydroDatabaseName;
+        }
+
+        // Check maximum number of bodies in the database
+        if (pBodies[ii]->pHydro->numBodies > max_num_bodies_database)
+        {
+            max_num_bodies_database = pBodies[ii]->pHydro->numBodies;
+        }
+    }
+
+    // Create an array in order to store the indexes of the bodies in each database
+    int **check_hydro_bodies_id = new int* [hydro_database_count];
+    for (int ii=0; ii<hydro_database_count; ii++)
+    {
+        check_hydro_bodies_id[ii] = new int [max_num_bodies_database+1];
+    }
+    for (int ii=0; ii<hydro_database_count; ii++)
+    {
+        for (int jj=0; jj<max_num_bodies_database+1; jj++)
+        {
+            check_hydro_bodies_id[ii][jj] = 0;
+        }
+    }
+
+    // Check if there is some repeated body definition in each database
+    for (int ii=0; ii<this->numBodies; ii++)
+    {
+        // Find database position inside the array of names generated previously
+        pos_database = 0;
+        while (true)
+        {
+            if (pBodies[ii]->hydroDatabaseName.compare(hydro_databases_name[pos_database]) == 0)
+            {
+                break;
+            }
+
+            pos_database++;
+            if (pos_database > hydro_database_count)
+            {
+                std::stringstream ss;
+                ss << "It is not possible to find the name of the hydro database: " << pBodies[ii]->hydroDatabaseName;
+                ss << " in the list of the hydrodatabase names done with bodies definition.";
+                throw ValueError(ss.str());
+            }
+        }
+
+        // Check if the body id already exist
+        for (int jj=1; jj<check_hydro_bodies_id[pos_database][0]; jj++)
+        {
+            if (check_hydro_bodies_id[pos_database][jj] == pBodies[ii]->hydroDatabaseIndex)
+            {
+                std::stringstream ss;
+                ss << "Repeated Hydrodynamic Bodoy Index(" << pBodies[ii]->hydroDatabaseIndex <<") definition for Body: ";
+                ss << ii << " and hydrodynamic database: " << hydro_databases_name[pos_database];
+                throw ValueError(ss.str());
+            }
+        }
+    }
+
+    // Close file
     fclose(pFile);
+
     std::cout << "----> Bodies Properties Read" << std::endl;
 }
 
