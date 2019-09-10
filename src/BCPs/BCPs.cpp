@@ -110,6 +110,7 @@ int AnchorBCP::GetType(void)
 
 void AnchorBCP::GetValues(double t)
 {
+	tBCP = t;
 	vel = arma::zeros(3,1);
 	acc = arma::zeros(3,1);
 }
@@ -148,6 +149,7 @@ void FairleadBCP::Initialize(std::string folder_path)
 	datosPosF.close();
 
 	pos0 = pos;
+	tBCP = -1.0;
 
 	this->GetValues(0.0);
 }
@@ -168,22 +170,24 @@ void FairleadBCP::ReadPropertiesASCII(FILE* &pFilePointer, std::string inputFile
 
 void FairleadBCP::GetValues(double t)
 {
+	if (t != tBCP) {
 
-	tBCP = t;
-	ni = std::max(0,ni-10);
-	do{
-		ni = ni + 1;
-	} while (tF(ni,0)<t);
+		tBCP = t;
+		ni = std::max(0,ni-10);
+		do{
+			ni = ni + 1;
+		} while (tF(ni,0)<t);
 
-	if(tF(ni,0)>t){
-		ni = ni - 1;
+		if(tF(ni,0)>t){
+			ni = ni - 1;
+		}
+
+		dt = t - tF(ni,0);
+
+		pos = (posF.row(ni) + dt * (posF.row(ni+1) - posF.row(ni)) / (tF(ni+1,0) - tF(ni,0))).t();
+		vel = (velF.row(ni) + dt * (velF.row(ni+1) - velF.row(ni)) / (tF(ni+1,0) - tF(ni,0))).t();
+		acc = (accF.row(ni) + dt * (accF.row(ni+1) - accF.row(ni)) / (tF(ni+1,0) - tF(ni,0))).t();
 	}
-
-	dt = t - tF(ni,0);
-
-	pos = (posF.row(ni) + dt * (posF.row(ni+1) - posF.row(ni)) / (tF(ni+1,0) - tF(ni,0))).t();
-	vel = (velF.row(ni) + dt * (velF.row(ni+1) - velF.row(ni)) / (tF(ni+1,0) - tF(ni,0))).t();
-	acc = (accF.row(ni) + dt * (accF.row(ni+1) - accF.row(ni)) / (tF(ni+1,0) - tF(ni,0))).t();
 
 }
 
@@ -200,6 +204,7 @@ int JointBCP::GetType(void)
 void JointBCP::GetValues(double t)
 {
 	iLJ = 0;
+	tBCP = t;
 	pos = arma::mean(posLines).t();
 	vel = arma::mean(velLines).t();
 	acc = arma::mean(accLines).t();
@@ -217,6 +222,7 @@ int BodyBCP::GetType(void)
 
 void BodyBCP::GetValues(double t)
 {
+	tBCP = t;
 	pos = posG_BCP.rows(0,2);
 	vel = velG_BCP.rows(0,2);
 	acc = accG_BCP.rows(0,2);

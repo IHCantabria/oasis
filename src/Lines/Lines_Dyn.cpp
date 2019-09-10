@@ -240,7 +240,8 @@ void Line::SEM_computeF(void)
 	T = EA * (norm_drds - dL/dL0 + beta * dedt);
 
 	if (flag_tension == 2){
-		T = 0.5*(T + arma::abs(T));
+		//T = 0.5*(T + arma::abs(T));
+		T = 0.5*(arma::erf(3.0*T-1.0) + 1.0) % T;
 	}
 
 	for(int k=0;k<N;k=k+1){
@@ -267,11 +268,22 @@ void Line::SEM_computeF(void)
 	//F = 0.5 * dL * (MassMatrix_sp * ff) - (MSMatrix_sp * FF);
 	F = 0.5 * dL * (MassMatrix * ff) - (MSMatrix * FF);
 
+	if (F.has_nan()){
+		std::cout << std::endl << "ERROR: NaN Detected on line with id = " << id << std::endl;
+		std::cout << std::endl << "  F = " << F << std::endl;
+		std::cout << std::endl << "  ff = " << ff << std::endl;
+		std::cout << std::endl << "  FF = " << FF << std::endl;
+		std::cout << std::endl << "  pos = " << pos << std::endl;
+		std::cout << std::endl << "  vel = " << vel << std::endl;
+		
+		throw std::exception();
+	}
+
 	ten_1 = FF.row(0).t();
 	ten_N = FF.row(N-1).t();
 
-	pLineBcps[0]->forceBcp.rows(0,2) = pLineBcps[0]->forceBcp.rows(0,2) - ten_1;
-	pLineBcps[1]->forceBcp.rows(0,2) = pLineBcps[1]->forceBcp.rows(0,2) - ten_N;
+	pLineBcps[0]->forceBcp.rows(0,2) = pLineBcps[0]->forceBcp.rows(0,2) + F.row(0).t();
+	pLineBcps[1]->forceBcp.rows(0,2) = pLineBcps[1]->forceBcp.rows(0,2) + F.row(N-1).t();
 }
 
 

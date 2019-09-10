@@ -81,6 +81,11 @@ void Body::ComputeBcpForces(void)
 		bcpForces.rows(3,5) = bcpForces.rows(3,5) + invRotMat * (ForceBCP_temp.rows(3,5) + M_F); // Acumulo el momento total sobre el cdg en local.
 	}
 
+	if (bcpForces.has_nan()){
+		std::cout << std::endl << "ERROR: NaN Detected on body with id = " << id << std::endl;
+		throw std::exception();
+	}
+
 }
 
 

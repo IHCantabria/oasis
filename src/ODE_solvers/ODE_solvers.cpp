@@ -46,10 +46,18 @@ arma::mat BDF::fun(double tt, arma::mat yy)
 
 
 void BDF::jac(double tt, arma::mat yy){
+
+	//std::cout << std::endl << " JACOBEAN : START" << std::endl;
+
 	yprime = fun(tt, yy);
 	for(int ii=0;ii<nSistema;ii=ii+1){
 		J.col(ii) = 1e12 * (fun(tt, yy + 1e-12 * I.col(ii)) - yprime);
 	}
+
+	//std::cout << "              Determinant      : " << arma::det(J) << std::endl;
+	//std::cout << "              Condition Number : " << arma::cond(J) << std::endl;
+	//std::cout << "          : FINISH" << std::endl << std::endl;
+
 }
 
 
@@ -148,7 +156,7 @@ void BDF::step(void){
 	arma::mat F1 = y - y_0 - h_0 * fun(t+h_0,y);
 	status = arma::solve(LTE,M1,F1,arma::solve_opts::fast);
 	if (!status){
-		LTE = arma::solve(M,F);
+		LTE = arma::solve(M1,F1);
 	}
 
 	sigma = pow(0.5*arma::norm(EWT)/arma::norm(LTE),0.25);
