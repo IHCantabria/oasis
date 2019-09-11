@@ -376,13 +376,61 @@ void Body::OpenOutputFilesASCII (std::string path)
 	std::string file_path8 = JoinPath(path, buffer8);
 
 	pfile_DOF_1 = fopen (file_path1.c_str(),"w");
+	if (pfile_DOF_1 == NULL)
+	{
+        std::stringstream ss;
+        ss << "Not possible to open the file: "<< nn1 <<"\n    ->Dir: " << path << std::endl;
+        throw IOError(ss.str());
+	}
 	pfile_DOF_2 = fopen (file_path2.c_str(),"w");
+	if (pfile_DOF_2 == NULL)
+	{
+        std::stringstream ss;
+        ss << "Not possible to open the file: "<< nn2 <<"\n    ->Dir: " << path << std::endl;
+        throw IOError(ss.str());
+	}
 	pfile_DOF_3 = fopen (file_path3.c_str(),"w");
+	if (pfile_DOF_3 == NULL)
+	{
+        std::stringstream ss;
+        ss << "Not possible to open the file: "<< nn3 <<"\n    ->Dir: " << path << std::endl;
+        throw IOError(ss.str());
+	}
 	pfile_DOF_4 = fopen (file_path4.c_str(),"w");
+	if (pfile_DOF_4 == NULL)
+	{
+        std::stringstream ss;
+        ss << "Not possible to open the file: "<< nn4 <<"\n    ->Dir: " << path << std::endl;
+        throw IOError(ss.str());
+	}
 	pfile_DOF_5 = fopen (file_path5.c_str(),"w");
+	if (pfile_DOF_5 == NULL)
+	{
+        std::stringstream ss;
+        ss << "Not possible to open the file: "<< nn5 <<"\n    ->Dir: " << path << std::endl;
+        throw IOError(ss.str());
+	}
 	pfile_DOF_6 = fopen (file_path6.c_str(),"w");
+	if (pfile_DOF_6 == NULL)
+	{
+        std::stringstream ss;
+        ss << "Not possible to open the file: "<< nn6 <<"\n    ->Dir: " << path << std::endl;
+        throw IOError(ss.str());
+	}
 	pfile_HSF = fopen (file_path7.c_str(),"w");
+	if (pfile_HSF == NULL)
+	{
+        std::stringstream ss;
+        ss << "Not possible to open the file: "<< nn7 <<"\n    ->Dir: " << path << std::endl;
+        throw IOError(ss.str());
+	}
 	pfile_WRF = fopen (file_path8.c_str(),"w");
+	if (pfile_WRF == NULL)
+	{
+        std::stringstream ss;
+        ss << "Not possible to open the file: "<< nn8 <<"\n    ->Dir: " << path << std::endl;
+        throw IOError(ss.str());
+	}
 }
 
 void Body::CloseOutputFilesASCII (void)
@@ -407,7 +455,6 @@ void Body::WriteOut(double t)
 	fprintf(pfile_DOF_4, "%f    %f    %f    %f \n",t,this->pos(3,0),this->vel(3,0),this->acc(3,0));
 	fprintf(pfile_DOF_5, "%f    %f    %f    %f \n",t,this->pos(4,0),this->vel(4,0),this->acc(4,0));
 	fprintf(pfile_DOF_6, "%f    %f    %f    %f \n",t,this->pos(5,0),this->vel(5,0),this->acc(5,0));
-
 	fprintf(pfile_HSF, "%f    ", t);
 	for(int ii=0;ii<6;ii=ii+1) fprintf(pfile_HSF, "%f    ", hydrostaticForces(ii, 0));
 	fprintf(pfile_HSF, "\n");

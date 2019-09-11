@@ -140,12 +140,8 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     {
 		pBodies[ii]->ComputeBcpForces();
 		Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  Fb(arma::span(6*ii,6*(ii+1)-1), 0) + pBodies[ii]->bcpForces;
-<<<<<<< HEAD
 	}
 
-=======
-	}	
->>>>>>> 714a35a0605f2cdab3a139d0134aaabdf6227cec
 	//WriteASCII("output/bcpForces.dat", pBodies[0]->bcpForces, true);
 
 	// Compute body acceleration
@@ -155,14 +151,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 	//WriteASCII("output/accB.dat", accB, true);
 	for(int ii=0; ii<numBodies; ii++)
     {
-<<<<<<< HEAD
-		total_mass = *pBodies[ii]->pHydro->pStructuralMass+*pBodies[ii]->pHydro->pAddedMassHf[ii];
-		//std::cout << "Total mass matrix(2,2): " << mmm(2,2) << std::endl;
-		accB = arma::solve(total_mass,Fb);
-		//accB = arma::solve(*SD.Water->pStructuralMass,Fb);
-=======
-		accB = *pBodies[ii]->hydro->pTotalMass_inv * Fb;
->>>>>>> 714a35a0605f2cdab3a139d0134aaabdf6227cec
+		accB = *pBodies[ii]->pHydro->pTotalMass_inv * Fb;
 		pBodies[ii]->acc = accB(arma::span(6*ii,6*(ii+1)-1), 0);
 	}
 
@@ -360,8 +349,9 @@ void Simulation::Initialize()
 
     // Write initial condition to files
     for(int ii=0; ii<this->numLines; ii=ii+1) this->pLines[ii]->WriteOut(start_time);
+    std::cout << "Lines initial conditions written to file" << std::endl;
     for(int ii=0; ii<this->numBodies; ii=ii+1) this->pBodies[ii]->WriteOut(start_time);
-
+    std::cout << "Lines initial conditions written to file" << std::endl;
     // Save first data
     std::cout << "Antes de update system" << std::endl;
     this->UpdateSystem();
@@ -535,17 +525,11 @@ void Simulation::ReadBodiesASCII()
     printf("Total number of bodies: %d\n", numBodies);
 	for(int ii=0; ii<numBodies; ii++)
     {
-<<<<<<< HEAD
         // Discard header lines and check for body type
         for(int ii=0; ii<3; ii++)
         {
             fgets(buffer_line, sizeof(buffer_line), pFile);
         }
-=======
-		pBodies[ii] = new Body(ii, this);
-		pBodies[ii]->ReadPropertiesASCII(file_pointer);
-		pBodies[ii]->OpenOutputFilesASCII(outputFolderPath);
->>>>>>> 714a35a0605f2cdab3a139d0134aaabdf6227cec
 
         // Get body type line
         fgets(buffer_line, sizeof(buffer_line), pFile);
@@ -556,6 +540,7 @@ void Simulation::ReadBodiesASCII()
             pBodies[ii] = new Body(ii, this);
             pBodies[ii]->ReadPropertiesASCII(pFile);
             pBodies[ii]->LoadDependencies();
+            pBodies[ii]->OpenOutputFilesASCII(outputFolderPath);
         }
         else
         {
@@ -675,7 +660,6 @@ void Simulation::ReadHydrodynamicsHDF5()
     }
 
     // Check time buffere w.r.t IRF size
-<<<<<<< HEAD
     if (this->timeBufferSize < 10*pBodies[0]->pHydro->numPointsIRF)
     {
         this->timeBufferSize = 10*pBodies[0]->pHydro->numPointsIRF;
@@ -686,21 +670,6 @@ void Simulation::ReadHydrodynamicsHDF5()
             pBodies[ii]->velBufferSize = 10*pBodies[ii]->pHydro->numPointsIRF;
             pBodies[ii]->velBuffer = arma::zeros(6, pBodies[ii]->velBufferSize);
         }
-=======
-    if (numBodies > 0)
-    {
-	    if (this->timeBufferSize < 10*pBodies[0]->hydro->numPointsIRF)
-	    {
-	        this->timeBufferSize = 10*pBodies[0]->hydro->numPointsIRF;
-	        this->timeBuffer = arma::zeros(1, this->timeBufferSize);
-
-	        for (int ii=0; ii<numBodies; ii++)
-	        {
-	            pBodies[ii]->velBufferSize = 10*pBodies[ii]->hydro->numPointsIRF;
-	            pBodies[ii]->velBuffer = arma::zeros(6, pBodies[ii]->velBufferSize);
-	        }
-	    }
->>>>>>> 714a35a0605f2cdab3a139d0134aaabdf6227cec
     }
     std::cout << "----> Hydrodynamic Properties Read" << std::endl;
 }
@@ -979,18 +948,11 @@ void Simulation::Run()
 	        // std::cout<< "In Simulation::Run --> Call to UpdateSystem() was succesfull "<< std::endl;
 	    }
         // Print out time if any
-<<<<<<< HEAD
         /**
         std::cout<< "    t = " << pTimeSolver->t << " s"  << std::endl;
         for(int ii=0; ii<numLines; ii=ii+1) pLines[ii]->WriteOut(pTimeSolver->t);
         for(int ii=0; ii<numBodies; ii=ii+1) pBodies[ii]->WriteOut(pTimeSolver->t);
         **/
-=======
-        //std::cout<< "    t = " << pTimeSolver->t << " s"  << std::endl;
-        //for(int ii=0; ii<numLines; ii=ii+1) pLines[ii]->WriteOut(pTimeSolver->t);
-        //for(int ii=0; ii<numBodies; ii=ii+1) pBodies[ii]->WriteOut(pTimeSolver->t);
-        // /**
->>>>>>> 714a35a0605f2cdab3a139d0134aaabdf6227cec
         if (pTimeSolver->t >= wallTime + maxTimeStep)
         {
             wallTime = wallTime + maxTimeStep;
@@ -999,11 +961,7 @@ void Simulation::Run()
             for(int ii=0; ii<numLines; ii=ii+1) pLines[ii]->WriteOut(wallTime);
             for(int ii=0; ii<numBodies; ii=ii+1) pBodies[ii]->WriteOut(wallTime);
         }
-<<<<<<< HEAD
         
-=======
-        // **/
->>>>>>> 714a35a0605f2cdab3a139d0134aaabdf6227cec
     } while (pTimeSolver->t <= simulationTime);
     
     tend = time(0); 

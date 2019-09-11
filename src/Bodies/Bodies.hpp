@@ -43,9 +43,6 @@ public:
 	int velBufferSize=1e2; // Velocity Buffer size;
 	int velBufferCount=0; // Stores the positon of the last columun of the velocity buffer matrix filled.
 
-<<<<<<< HEAD
-	// Methods definition
-=======
 	FILE* pfile_DOF_1;
 	FILE* pfile_DOF_2;
 	FILE* pfile_DOF_3;
@@ -55,7 +52,7 @@ public:
 	FILE* pfile_HSF;
 	FILE* pfile_WRF;
 
->>>>>>> 714a35a0605f2cdab3a139d0134aaabdf6227cec
+	// Methods definition
 	Body(int n, Simulation* pSim); // Inicializa un objeto de clase cuerpo dandole el indice
 	void ComputeBcpForces(void); // Calcula el efecto de las fuerzas sobre los BCPs sobre su CDG
 	int GetId(void); // Returns the body identification number

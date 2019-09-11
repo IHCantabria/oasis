@@ -79,11 +79,7 @@ void BCP::ReadPropertiesASCII(FILE* &pFilePointer)
 	// Read Wind ID
 	fscanf(pFilePointer, "%d %[^\n]\n", &winchId, buffer_line);
 
-<<<<<<< HEAD
-	// Read Actuator file name if any
-=======
 	// Read actuator if any
->>>>>>> 714a35a0605f2cdab3a139d0134aaabdf6227cec
 	if (this->GetType() == 2)
 	{
 		fscanf(pFilePointer, "%s %[^\n]\n", &cActuatorFileName, buffer_line);
@@ -204,32 +200,11 @@ void FairleadBCP::ReadPropertiesASCII(FILE* &pFilePointer, std::string inputFile
 
 void FairleadBCP::Print(void)
 {
-<<<<<<< HEAD
 	printf("BCP: %d PROPERTIES:\n");
 	printf("--> PosX: %f - PosY: %f - PosZ: %f\n", this->posG_BCP[0], this->posG_BCP[1], this->posG_BCP[2]);
 	printf("--> Winch Id: %d\n\n", this->winchId);
 	printf("--> Actuator Filename: %s\n", actuatorFileName.c_str());
-=======
-	if (t != tBCP) {
 
-		tBCP = t;
-		ni = std::max(0,ni-10);
-		do{
-			ni = ni + 1;
-		} while (tF(ni,0)<t);
-
-		if(tF(ni,0)>t){
-			ni = ni - 1;
-		}
-
-		dt = t - tF(ni,0);
-
-		pos = (posF.row(ni) + dt * (posF.row(ni+1) - posF.row(ni)) / (tF(ni+1,0) - tF(ni,0))).t();
-		vel = (velF.row(ni) + dt * (velF.row(ni+1) - velF.row(ni)) / (tF(ni+1,0) - tF(ni,0))).t();
-		acc = (accF.row(ni) + dt * (accF.row(ni+1) - accF.row(ni)) / (tF(ni+1,0) - tF(ni,0))).t();
-	}
-
->>>>>>> 714a35a0605f2cdab3a139d0134aaabdf6227cec
 }
 
 
