@@ -43,13 +43,27 @@ public:
 	int velBufferSize=1e2; // Velocity Buffer size;
 	int velBufferCount=0; // Stores the positon of the last columun of the velocity buffer matrix filled.
 
+<<<<<<< HEAD
 	// Methods definition
+=======
+	FILE* pfile_DOF_1;
+	FILE* pfile_DOF_2;
+	FILE* pfile_DOF_3;
+	FILE* pfile_DOF_4;
+	FILE* pfile_DOF_5;
+	FILE* pfile_DOF_6;
+	FILE* pfile_HSF;
+	FILE* pfile_WRF;
+
+>>>>>>> 714a35a0605f2cdab3a139d0134aaabdf6227cec
 	Body(int n, Simulation* pSim); // Inicializa un objeto de clase cuerpo dandole el indice
 	void ComputeBcpForces(void); // Calcula el efecto de las fuerzas sobre los BCPs sobre su CDG
 	int GetId(void); // Returns the body identification number
 	void LoadDependencies(void); // Load additional files and data necessary for the body type
 	void LoadHydrodynamicDatabase(void); // Loads the hydrodynamics database associated, if any 
 	void ReadPropertiesASCII(FILE* filePointer); // Leer datos de los cuerpos
+	void OpenOutputFilesASCII(std::string path);
+	void CloseOutputFilesASCII (void);
 	void StoreVelocities(void); // Store last step velocity into the velocity buffer matrix
 	void UpdateBcps(void); // Actualiza valores del BCP
 	void UpdateHydrostaticForces(void); // Update the value of the wave radiation forces the current step

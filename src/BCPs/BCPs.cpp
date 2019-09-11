@@ -73,22 +73,17 @@ void BCP::ReadPropertiesASCII(FILE* &pFilePointer)
 		}
 	}
 
-	//Read data
-	//¡¡¡¡¡¡¡ IMPORTANT: FIRST THREEE LINES (CONTAINING DATA) OF EACH BCP ARE IGNORED. ITS FUNCTIONALITY IS DEPRECATED !!!!!
-	fscanf(pFilePointer, "%[^\n]\n", buffer_line);
-	fscanf(pFilePointer, "%[^\n]\n", buffer_line);
-	fscanf(pFilePointer, "%[^\n]\n", buffer_line);
-	//fscanf(pFilePointer, "%lf %[^\n]", &numLinesBcp, buffer_line);
-	//pBcpLineIndex = new int[numLinesBcp];
-	//pBcpLineNode = new int[numLinesBcp];
-
 	// Read BCP position
 	fscanf(pFilePointer, "%lf %lf %lf %[^\n]\n", &pos(0, 0), &pos(1, 0), &pos(2, 0), buffer_line);
 
 	// Read Wind ID
 	fscanf(pFilePointer, "%d %[^\n]\n", &winchId, buffer_line);
 
+<<<<<<< HEAD
 	// Read Actuator file name if any
+=======
+	// Read actuator if any
+>>>>>>> 714a35a0605f2cdab3a139d0134aaabdf6227cec
 	if (this->GetType() == 2)
 	{
 		fscanf(pFilePointer, "%s %[^\n]\n", &cActuatorFileName, buffer_line);
@@ -127,6 +122,7 @@ int AnchorBCP::GetType(void)
 
 void AnchorBCP::GetValues(double t)
 {
+	tBCP = t;
 	vel = arma::zeros(3,1);
 	acc = arma::zeros(3,1);
 }
@@ -187,6 +183,7 @@ void FairleadBCP::Initialize(std::string folder_path)
 	datosPosF.close();
 
 	pos0 = pos;
+	tBCP = -1.0;
 
 	this->GetValues(0.0);
 }
@@ -207,10 +204,32 @@ void FairleadBCP::ReadPropertiesASCII(FILE* &pFilePointer, std::string inputFile
 
 void FairleadBCP::Print(void)
 {
+<<<<<<< HEAD
 	printf("BCP: %d PROPERTIES:\n");
 	printf("--> PosX: %f - PosY: %f - PosZ: %f\n", this->posG_BCP[0], this->posG_BCP[1], this->posG_BCP[2]);
 	printf("--> Winch Id: %d\n\n", this->winchId);
 	printf("--> Actuator Filename: %s\n", actuatorFileName.c_str());
+=======
+	if (t != tBCP) {
+
+		tBCP = t;
+		ni = std::max(0,ni-10);
+		do{
+			ni = ni + 1;
+		} while (tF(ni,0)<t);
+
+		if(tF(ni,0)>t){
+			ni = ni - 1;
+		}
+
+		dt = t - tF(ni,0);
+
+		pos = (posF.row(ni) + dt * (posF.row(ni+1) - posF.row(ni)) / (tF(ni+1,0) - tF(ni,0))).t();
+		vel = (velF.row(ni) + dt * (velF.row(ni+1) - velF.row(ni)) / (tF(ni+1,0) - tF(ni,0))).t();
+		acc = (accF.row(ni) + dt * (accF.row(ni+1) - accF.row(ni)) / (tF(ni+1,0) - tF(ni,0))).t();
+	}
+
+>>>>>>> 714a35a0605f2cdab3a139d0134aaabdf6227cec
 }
 
 
@@ -226,6 +245,7 @@ int JointBCP::GetType(void)
 void JointBCP::GetValues(double t)
 {
 	iLJ = 0;
+	tBCP = t;
 	pos = arma::mean(posLines).t();
 	vel = arma::mean(velLines).t();
 	acc = arma::mean(accLines).t();
@@ -243,6 +263,7 @@ int BodyBCP::GetType(void)
 
 void BodyBCP::GetValues(double t)
 {
+	tBCP = t;
 	pos = posG_BCP.rows(0,2);
 	vel = velG_BCP.rows(0,2);
 	acc = accG_BCP.rows(0,2);

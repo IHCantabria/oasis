@@ -17,10 +17,10 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 {
     numCallsSysFun++;
 
-    //std::cout << "Main::fun - At first" << std::endl; 
+    // std::cout << "Main::fun - At first" << std::endl; 
 	arma::mat yprime = arma::zeros(size(y));
 	int i0;
-	//std::cout << "Main::fun - Before copy y to objects" << std::endl;
+	// std::cout << "Main::fun - Before copy y to objects" << std::endl;
 	// Copy info from y to the objects.
 	int ini = 0;
 	for(int ii=0; ii<numBodies; ii++)
@@ -30,7 +30,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 	}
 	for(int ii=0; ii<numLines;ii++)
 	{
-		for(int jj=0; jj<pLines[ii]->N; jj++)
+		for(int jj=pLines[ii]->first_node; jj<pLines[ii]->last_node; jj=jj+1)
         {
 			pLines[ii]->pos.row(jj) = y.rows(ini,ini+2).t();
 			ini = ini + 3;
@@ -44,7 +44,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 	}
 	for(int ii=0; ii<numLines; ii++)
 	{
-		for(int jj=0; jj<pLines[ii]->N; jj++)
+		for(int jj=pLines[ii]->first_node; jj<pLines[ii]->last_node; jj=jj+1)
 		{
 			pLines[ii]->vel.row(jj) = y.rows(ini,ini+2).t();
 			ini = ini + 3;
@@ -54,43 +54,31 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     {
 		pWinches[ii]->theta = arma::as_scalar(y.row(numSystem2-(ii+1)));
 		pWinches[ii]->omega = arma::as_scalar(y.row(numSystem-(ii+1)));
-		pWinches[ii]->omega = arma::as_scalar(y.row(numSystem-(ii+1)));
 	}
 	
 	// Update BodyBCP positions and velocities
-	//std::cout << "Main::fun - Update BCP positions and velocities" << std::endl;
+	// std::cout << "Main::fun - Update BCP positions and velocities" << std::endl;
 	for(int ii=0; ii<numBodies; ii++)
     {
 		pBodies[ii]->UpdateBcps();
 	}
 	// Set boundary conditions on pos and vel of Lines if the BCP is not a joint
-	//std::cout << "Main::fun - Set Boundary conditios" << std::endl;
-	if (numLines >= 1){
-		if (pLines[0]->pLineBcps[0]->tBCP != time){
-			for(int ii=0; ii<numLines; ii++)
-            {		
-				if(pLines[ii]->pLineBcps[0]->GetType() != 3){
-					pLines[ii]->pLineBcps[0]->GetValues(time);
-				}
-				if(pLines[ii]->pLineBcps[1]->GetType() != 3){
-					pLines[ii]->pLineBcps[1]->GetValues(time);
-				}
-			}
-		}
-	}
+	// std::cout << "Main::fun - Set Boundary conditios" << std::endl;
 	for(int ii=0; ii<numLines; ii++)
     {
 		if(pLines[ii]->pLineBcps[0]->GetType() != 3){
+			pLines[ii]->pLineBcps[0]->GetValues(time);
 			pLines[ii]->pos.row(0)                = pLines[ii]->pLineBcps[0]->pos.t();
 			pLines[ii]->vel.row(0)                = pLines[ii]->pLineBcps[0]->vel.t();
 		}
 		if(pLines[ii]->pLineBcps[1]->GetType() != 3){
+			pLines[ii]->pLineBcps[1]->GetValues(time);
 			pLines[ii]->pos.row(pLines[ii]->N-1) = pLines[ii]->pLineBcps[1]->pos.t();
 			pLines[ii]->vel.row(pLines[ii]->N-1) = pLines[ii]->pLineBcps[1]->vel.t();
 		}
-	}
+	}	
 	// Set boundary conditions on pos and vel of Lines if the BCP is a joint
-	//std::cout << "Main::fun - Set Boundary conditios if BCP is a Joint" << std::endl;
+	// std::cout << "Main::fun - Set Boundary conditios if BCP is a Joint" << std::endl;
 	for(int ii=0; ii<numLines; ii++)
     {
 		if(pLines[ii]->pLineBcps[0]->GetType() == 3){
@@ -108,40 +96,36 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     {
 		if(pLines[ii]->pLineBcps[0]->GetType() == 3){
 			pLines[ii]->pLineBcps[0]->GetValues(time);
-		}
-		if(pLines[ii]->pLineBcps[1]->GetType() == 3){
-			pLines[ii]->pLineBcps[1]->GetValues(time);
-		}
-	}
-	for(int ii=0; ii<numLines; ii++)
-    {
-		if(pLines[ii]->pLineBcps[0]->GetType() == 3){
 			pLines[ii]->pos.row(0)                = pLines[ii]->pLineBcps[0]->pos.t();
 			pLines[ii]->vel.row(0)                = pLines[ii]->pLineBcps[0]->vel.t();
 		}
 		if(pLines[ii]->pLineBcps[1]->GetType() == 3){
+			pLines[ii]->pLineBcps[1]->GetValues(time);
 			pLines[ii]->pos.row(pLines[ii]->N-1) = pLines[ii]->pLineBcps[1]->pos.t();
 			pLines[ii]->vel.row(pLines[ii]->N-1) = pLines[ii]->pLineBcps[1]->vel.t();
 		}
 	}
+
 	// Compute forces vector for the different Lines
-	//std::cout << "Main::fun - Compute forces vector for different lines" << std::endl;
+	// std::cout << "Main::fun - Compute forces vector for different lines" << std::endl;
 	for(int ii=0; ii<numLines; ii++)
     {
 		pLines[ii]->SEM_computeF();
 	}
+
 	// Compute forces of Springs
-	//std::cout << "Main::fun - Compute spring" << std::endl;
+	// std::cout << "Main::fun - Compute spring" << std::endl;
 	for(int ii=0; ii<numSprings; ii++)
     {
 		pSprings[ii]->computeSpringForces();
 	}
+
 	// Compute hydrostatic and hidrodynamic forces
-    //std::cout << "Main::fun - Compute hydrodynamic and hydrostatic forces" << std::endl;
+    // std::cout << "Main::fun - Compute hydrodynamic and hydrostatic forces" << std::endl;
     arma::mat Fb = arma::zeros(6*numBodies, 1);
-	arma::mat Fh;
-	arma::mat Fr;
-	arma::mat Fe;
+	arma::mat Fh = arma::zeros(6, 1);
+	arma::mat Fr = arma::zeros(6, 1);
+	arma::mat Fe = arma::zeros(6, 1);
     for (int ii=0; ii<numBodies; ii++)
     {
         Fh = pBodies[ii]->pHydro->ComputeHydrostaticForces();
@@ -149,48 +133,66 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
         Fe = pBodies[ii]->pHydro->ComputeFirstWaveExcForce();
         Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  Fe - (Fr + Fh);
     }
+
 	// Compute forces on BCPs
-	//std::cout << "Main::fun - Compute forces on BCPs" << std::endl;
+	// std::cout << "Main::fun - Compute forces on BCPs" << std::endl;
 	for(int ii=0; ii<numBodies; ii++)
     {
 		pBodies[ii]->ComputeBcpForces();
 		Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  Fb(arma::span(6*ii,6*(ii+1)-1), 0) + pBodies[ii]->bcpForces;
+<<<<<<< HEAD
 	}
 
+=======
+	}	
+>>>>>>> 714a35a0605f2cdab3a139d0134aaabdf6227cec
 	//WriteASCII("output/bcpForces.dat", pBodies[0]->bcpForces, true);
+
 	// Compute body acceleration
-	//(**SD.Water->pAddedMassHf).print();
-	//arma::mat accB = (*SD.Water->pStructuralMass+**SD.Water->pAddedMassHf)*Fb;
-	//std::cout << "Main::fun - Compute accelerations" << std::endl;
+	// std::cout << "Main::fun - Compute accelerations" << std::endl;
 	arma::mat accB;
 	arma::mat total_mass;
 	//WriteASCII("output/accB.dat", accB, true);
 	for(int ii=0; ii<numBodies; ii++)
     {
+<<<<<<< HEAD
 		total_mass = *pBodies[ii]->pHydro->pStructuralMass+*pBodies[ii]->pHydro->pAddedMassHf[ii];
 		//std::cout << "Total mass matrix(2,2): " << mmm(2,2) << std::endl;
 		accB = arma::solve(total_mass,Fb);
 		//accB = arma::solve(*SD.Water->pStructuralMass,Fb);
+=======
+		accB = *pBodies[ii]->hydro->pTotalMass_inv * Fb;
+>>>>>>> 714a35a0605f2cdab3a139d0134aaabdf6227cec
 		pBodies[ii]->acc = accB(arma::span(6*ii,6*(ii+1)-1), 0);
 	}
 
 	// Update BodyBCP accelerations
-	//std::cout << "Main::fun - Compute BCP accelerations" << std::endl;
+	// std::cout << "Main::fun - Compute BCP accelerations" << std::endl;
 	for(int ii=0; ii<numBodies; ii++)
     {
 		pBodies[ii]->UpdateBcps();
 	}
+
 	//WriteASCII("output/bcpAcceleration.dat", SD.Bodies[0]->pBodyBcps[0]->accG_BCP, true);
 	// Obtain Lines accelerations, imposing boundary conditions if the BCP is not a joint
-	//std::cout << "Main::fun - Compute lines accelerations" << std::endl;
+	// std::cout << "Main::fun - Compute lines accelerations" << std::endl;
 	for(int ii=0; ii<numLines; ii++)
     {
+    	// For body BCPs, the accelertion has changed, so GetValues() routine is called again
+    	if(pLines[ii]->pLineBcps[0]->GetType() == 4){
+					pLines[ii]->pLineBcps[0]->GetValues(time);
+		}
+		if(pLines[ii]->pLineBcps[1]->GetType() == 4){
+					pLines[ii]->pLineBcps[1]->GetValues(time);
+		}
+		// Impose BCP accelerations on lines forces vectors
 		if(pLines[ii]->pLineBcps[0]->GetType() != 3){
 			pLines[ii]->F.row(0)                = pLines[ii]->pLineBcps[0]->acc.t();
 		}
 		if(pLines[ii]->pLineBcps[1]->GetType() != 3){
 			pLines[ii]->F.row(pLines[ii]->N-1) = pLines[ii]->pLineBcps[1]->acc.t();
 		}
+		// Depending on the BCP type, compute line acc with a mass matrix with the BC imposed consequently
 		if((pLines[ii]->pLineBcps[0]->GetType() != 3)&&(pLines[ii]->pLineBcps[1]->GetType() != 3)){
 			pLines[ii]->acc = pLines[ii]->inv_MM_1N * pLines[ii]->F / pLines[ii]->dL;
 		} else if ((pLines[ii]->pLineBcps[0]->GetType() == 3)&&(pLines[ii]->pLineBcps[1]->GetType() != 3)){
@@ -202,7 +204,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 		}
 	}
 	// Obtain Lines accelerations, imposing boundary conditions if the BCP is a joint
-	//std::cout << "Main::fun - Lines accelerations if the Line is a Joint" << std::endl;
+	// std::cout << "Main::fun - Lines accelerations if the Line is a Joint" << std::endl;
 	for(int ii=0;ii<numLines;ii=ii+1){
 		if(pLines[ii]->pLineBcps[0]->GetType() == 3){
 			pLines[ii]->pLineBcps[0]->accLines.row(pLines[ii]->pLineBcps[0]->iLJ) = pLines[ii]->acc.row(0);
@@ -216,33 +218,42 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 	for(int ii=0;ii<numLines;ii=ii+1){
 		if(pLines[ii]->pLineBcps[0]->GetType() == 3){
 			pLines[ii]->pLineBcps[0]->GetValues(time);
-		}
-		if(pLines[ii]->pLineBcps[1]->GetType() == 3){
-			pLines[ii]->pLineBcps[1]->GetValues(time);
-		}
-	}
-	for(int ii=0;ii<numLines;ii=ii+1){
-		if(pLines[ii]->pLineBcps[0]->GetType() == 3){
 			pLines[ii]->acc.row(0)                = pLines[ii]->pLineBcps[0]->acc.t();
 		}
 		if(pLines[ii]->pLineBcps[1]->GetType() == 3){
+			pLines[ii]->pLineBcps[1]->GetValues(time);
 			pLines[ii]->acc.row(pLines[ii]->N-1) = pLines[ii]->pLineBcps[1]->acc.t();
 		}
 	}
 
 	// Compute Winchies
-	//std::cout << "Main::fun - Compute Winchies" << std::endl;
+	// std::cout << "Main::fun - Compute Winchies" << std::endl;
 	for(int ii=0;ii<numWinches;ii=ii+1){
 		pWinches[ii]->computeWinchie();
 	}
 
 	// Copy info from the objects to yprime
-	//std::cout << "Main::fun - Copy info to yprime" << std::endl;
-	yprime.rows(0,numSystem2-1) = y.rows(numSystem2, numSystem-1);
-	yprime.rows(numSystem2,numSystem2+6*numBodies-1) = accB;
+	// std::cout << "Main::fun - Copy info to yprime" << std::endl;
+	ini = 0;
+	for(int ii=0;ii<numBodies;ii=ii+1){
+		yprime.rows(ini,ini+5) = pBodies[ii]->vel;
+		ini = ini + 6;
+	}
+	ini = 6*numBodies;
+	for(int ii=0;ii<numLines;ii=ii+1){
+		for(int jj=pLines[ii]->first_node; jj<pLines[ii]->last_node; jj=jj+1){
+			yprime.rows(ini,ini+2) = pLines[ii]->vel.row(jj).t();
+			ini = ini + 3;
+		}
+	}
+	ini = numSystem2;
+	for(int ii=0;ii<numBodies;ii=ii+1){
+		yprime.rows(ini,ini+5) = pBodies[ii]->acc;
+		ini = ini + 6;
+	}
 	ini = numSystem2+6*numBodies;
 	for(int ii=0;ii<numLines;ii=ii+1){
-		for(int jj=0;jj<pLines[ii]->N;jj=jj+1){
+		for(int jj=pLines[ii]->first_node; jj<pLines[ii]->last_node; jj=jj+1){
 			yprime.rows(ini,ini+2) = pLines[ii]->acc.row(jj).t();
 			ini = ini + 3;
 		}
@@ -251,14 +262,32 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 		yprime.row(numSystem2-(ii+1)) = pWinches[ii]->omega;
 		yprime.row(numSystem-(ii+1)) = pWinches[ii]->alpha;
 	}
-	//std::cout << "Main::fun - Check if yprime has a NaN" << std::endl;
+
+	// std::cout << "Main::fun - Check if yprime has a NaN" << std::endl;
 	//WriteASCII("output/yprime.dat", yprime, true);
-	if (yprime.has_nan()){
-		std::cout << std::endl << "ERROR: NaN Detected!" << std::endl;
+	if (yprime.has_nan() | yprime.has_inf()){
+		std::cout << std::endl << "ERROR: NaN or Inf Detected! yprime = " << std::endl;
+		std::cout << yprime << std::endl;
 		throw std::exception();
 	}
-	//std::cout << "Main::fun - End of fcn" << std::endl;
+	
+	// std::cout << "Main::fun - End of fcn" << std::endl;
 	return yprime;
+}
+
+
+void Simulation::CloseCase()
+{
+
+    for (int ii=0; ii<numLines; ii++)
+    {
+    	pLines[ii]->CloseOutputFilesASCII();
+    }
+
+    for (int ii=0; ii<numBodies; ii++)
+    {
+    	pBodies[ii]->CloseOutputFilesASCII();
+    }
 }
 
 
@@ -271,6 +300,7 @@ void Simulation::Initialize()
     timeBuffer(0, 2) = 100.0;
     double start_time = 117.0;
     **/
+
     double start_time = 0.0;
 
     // Initialize system vector
@@ -294,7 +324,7 @@ void Simulation::Initialize()
                 ini=ini+6;
         }
         for(int ii=0; ii<this->numLines; ii=ii+1){
-            for(int jj=0; jj<this->pLines[ii]->N; jj=jj+1){
+            for(int jj=pLines[ii]->first_node; jj<pLines[ii]->last_node; jj=jj+1){
                     y.rows(ini,ini+2) = this->pLines[ii]->pos.row(jj).t();
                     ini=ini+3;
             }
@@ -335,7 +365,6 @@ void Simulation::Initialize()
     // Save first data
     std::cout << "Antes de update system" << std::endl;
     this->UpdateSystem();
-    
 }
 
 
@@ -506,11 +535,17 @@ void Simulation::ReadBodiesASCII()
     printf("Total number of bodies: %d\n", numBodies);
 	for(int ii=0; ii<numBodies; ii++)
     {
+<<<<<<< HEAD
         // Discard header lines and check for body type
         for(int ii=0; ii<3; ii++)
         {
             fgets(buffer_line, sizeof(buffer_line), pFile);
         }
+=======
+		pBodies[ii] = new Body(ii, this);
+		pBodies[ii]->ReadPropertiesASCII(file_pointer);
+		pBodies[ii]->OpenOutputFilesASCII(outputFolderPath);
+>>>>>>> 714a35a0605f2cdab3a139d0134aaabdf6227cec
 
         // Get body type line
         fgets(buffer_line, sizeof(buffer_line), pFile);
@@ -640,6 +675,7 @@ void Simulation::ReadHydrodynamicsHDF5()
     }
 
     // Check time buffere w.r.t IRF size
+<<<<<<< HEAD
     if (this->timeBufferSize < 10*pBodies[0]->pHydro->numPointsIRF)
     {
         this->timeBufferSize = 10*pBodies[0]->pHydro->numPointsIRF;
@@ -650,8 +686,22 @@ void Simulation::ReadHydrodynamicsHDF5()
             pBodies[ii]->velBufferSize = 10*pBodies[ii]->pHydro->numPointsIRF;
             pBodies[ii]->velBuffer = arma::zeros(6, pBodies[ii]->velBufferSize);
         }
+=======
+    if (numBodies > 0)
+    {
+	    if (this->timeBufferSize < 10*pBodies[0]->hydro->numPointsIRF)
+	    {
+	        this->timeBufferSize = 10*pBodies[0]->hydro->numPointsIRF;
+	        this->timeBuffer = arma::zeros(1, this->timeBufferSize);
+
+	        for (int ii=0; ii<numBodies; ii++)
+	        {
+	            pBodies[ii]->velBufferSize = 10*pBodies[ii]->hydro->numPointsIRF;
+	            pBodies[ii]->velBuffer = arma::zeros(6, pBodies[ii]->velBufferSize);
+	        }
+	    }
+>>>>>>> 714a35a0605f2cdab3a139d0134aaabdf6227cec
     }
-    
     std::cout << "----> Hydrodynamic Properties Read" << std::endl;
 }
 
@@ -690,6 +740,7 @@ void Simulation::ReadLinesASCII()
 		try
 		{
             pLines[ii]->ReadPropertiesASCII(file_pointer);
+            pLines[ii]->OpenOutputFilesASCII(outputFolderPath);
             //pLines[ii]->print_out();
             /**
             pLines[ii]->LineBCP[0] = BCPs[pLines[ii]->BCP_1-1];
@@ -917,18 +968,29 @@ void Simulation::Run()
 	double wallTime = 0.0;
     tstart = time(0);
     std::cout<< "    t = " << wallTime << " s" << std::endl;
+    //pTimeSolver->dt_max = 0.1;
+    // std::cout<< "In Simulation::Run --> Starting temporal integration loop "<< std::endl;
     do
     {
         pTimeSolver->step();
-        
-        UpdateSystem();
-        
+        // std::cout<< "In Simulation::Run --> Call to step() was succesfull "<< std::endl;
+        if (numBodies>0){   
+	        UpdateSystem();
+	        // std::cout<< "In Simulation::Run --> Call to UpdateSystem() was succesfull "<< std::endl;
+	    }
         // Print out time if any
+<<<<<<< HEAD
         /**
         std::cout<< "    t = " << pTimeSolver->t << " s"  << std::endl;
         for(int ii=0; ii<numLines; ii=ii+1) pLines[ii]->WriteOut(pTimeSolver->t);
         for(int ii=0; ii<numBodies; ii=ii+1) pBodies[ii]->WriteOut(pTimeSolver->t);
         **/
+=======
+        //std::cout<< "    t = " << pTimeSolver->t << " s"  << std::endl;
+        //for(int ii=0; ii<numLines; ii=ii+1) pLines[ii]->WriteOut(pTimeSolver->t);
+        //for(int ii=0; ii<numBodies; ii=ii+1) pBodies[ii]->WriteOut(pTimeSolver->t);
+        // /**
+>>>>>>> 714a35a0605f2cdab3a139d0134aaabdf6227cec
         if (pTimeSolver->t >= wallTime + maxTimeStep)
         {
             wallTime = wallTime + maxTimeStep;
@@ -937,7 +999,11 @@ void Simulation::Run()
             for(int ii=0; ii<numLines; ii=ii+1) pLines[ii]->WriteOut(wallTime);
             for(int ii=0; ii<numBodies; ii=ii+1) pBodies[ii]->WriteOut(wallTime);
         }
+<<<<<<< HEAD
         
+=======
+        // **/
+>>>>>>> 714a35a0605f2cdab3a139d0134aaabdf6227cec
     } while (pTimeSolver->t <= simulationTime);
     
     tend = time(0); 
@@ -1064,7 +1130,28 @@ void Simulation::SetupCase()
             pLines[ii]->pLineBcps[jj]->pLines[pLines[ii]->pLineBcps[jj]->countLine] = pLines[ii];
             pLines[ii]->pLineBcps[jj]->countLine++;
         }
-        numDofTotal += pLines[ii]->N;
+
+
+        //numDofTotal += pLines[ii]->N; //////////////////////////////////////////////////////////////
+
+        if (pLines[ii]->pLineBcps[0]->GetType() != 3 && pLines[ii]->pLineBcps[1]->GetType() != 3){
+        	numDofTotal += (pLines[ii]->N-2);
+        	pLines[ii]->first_node = 1;
+        	pLines[ii]->last_node = pLines[ii]->N-1;
+        } else if (pLines[ii]->pLineBcps[0]->GetType() == 3 && pLines[ii]->pLineBcps[1]->GetType() == 3){
+        	numDofTotal += pLines[ii]->N;
+        	pLines[ii]->first_node = 0;
+        	pLines[ii]->last_node = pLines[ii]->N;
+        } else if (pLines[ii]->pLineBcps[0]->GetType() == 3 && pLines[ii]->pLineBcps[1]->GetType() != 3){
+        	numDofTotal += (pLines[ii]->N - 1);
+        	pLines[ii]->first_node = 0;
+        	pLines[ii]->last_node = pLines[ii]->N-1;
+        } else if (pLines[ii]->pLineBcps[0]->GetType() != 3 && pLines[ii]->pLineBcps[1]->GetType() == 3){
+        	numDofTotal += (pLines[ii]->N-1);
+        	pLines[ii]->first_node = 1;
+        	pLines[ii]->last_node = pLines[ii]->N;
+        }
+
         try
         {
             if(!readEquilibrium) pLines[ii]->initLine();
@@ -1109,7 +1196,6 @@ void Simulation::SetupCase()
     std::cout << "----> Case configuration done" << std::endl;
 }
 
-
 Simulation::Simulation(std::string incProjectPath, std::string incDataFormat)
 {
     // Assign direct variables
@@ -1153,7 +1239,6 @@ Simulation::Simulation(std::string incProjectPath, std::string incDataFormat)
 
 }
 
-
 void Simulation::UpdateSystem()
 {
     // Update time vector if any
@@ -1187,5 +1272,4 @@ void Simulation::UpdateSystem()
             pBodies[ii]->UpdateRadiationForces();
         }
     }
-    
 }

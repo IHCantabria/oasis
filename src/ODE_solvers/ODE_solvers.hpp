@@ -56,7 +56,6 @@ public:
 	double t, tmax, dt_out;
 	arma::mat y;
 	solver_data SD;
-	//arma::mat (Simulation::*fun) (double, arma::mat);
 	Simulation* pSim;
 	BDF(double t_u, double tmax_u, double dt_out_u, arma::mat y_u, Simulation* pIncSim);
 	arma::mat fun(double, arma::mat);

@@ -11,3 +11,4 @@ bin/
 output/
 compilar.sh
 .vscode/
+.out

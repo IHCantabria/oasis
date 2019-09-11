@@ -17,6 +17,7 @@ class Simulation
 private:
     int dataFormat;
     std::string dataFormatStr;
+    bool status;
 public:
     // Declare file system attributes
     std::string inputFolderPath;
@@ -106,6 +107,7 @@ public:
     void Initialize(void);
     void Run();
     void SetupCase(void);
+    void CloseCase(void);
     void UpdateSystem(void);
 
 };

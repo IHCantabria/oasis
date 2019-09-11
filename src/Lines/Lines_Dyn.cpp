@@ -11,6 +11,7 @@
 #include "Lines.hpp"
 #include "../SEM_math/quadrule.hpp"
 #include "../MathTools.hpp"
+#include "../os_tools.hpp"
 
 
 int Line::GetId()
@@ -239,7 +240,8 @@ void Line::SEM_computeF(void)
 	T = EA * (norm_drds - dL/dL0 + beta * dedt);
 
 	if (flag_tension == 2){
-		T = 0.5*(T + arma::abs(T));
+		//T = 0.5*(T + arma::abs(T));
+		T = 0.5*(arma::erf(3.0*T-1.0) + 1.0) % T;
 	}
 
 	for(int k=0;k<N;k=k+1){
@@ -266,11 +268,22 @@ void Line::SEM_computeF(void)
 	//F = 0.5 * dL * (MassMatrix_sp * ff) - (MSMatrix_sp * FF);
 	F = 0.5 * dL * (MassMatrix * ff) - (MSMatrix * FF);
 
+	if (F.has_nan()){
+		std::cout << std::endl << "ERROR: NaN Detected on line with id = " << id << std::endl;
+		std::cout << std::endl << "  F = " << F << std::endl;
+		std::cout << std::endl << "  ff = " << ff << std::endl;
+		std::cout << std::endl << "  FF = " << FF << std::endl;
+		std::cout << std::endl << "  pos = " << pos << std::endl;
+		std::cout << std::endl << "  vel = " << vel << std::endl;
+		
+		throw std::exception();
+	}
+
 	ten_1 = FF.row(0).t();
 	ten_N = FF.row(N-1).t();
 
-	pLineBcps[0]->forceBcp.rows(0,2) = pLineBcps[0]->forceBcp.rows(0,2) - ten_1;
-	pLineBcps[1]->forceBcp.rows(0,2) = pLineBcps[1]->forceBcp.rows(0,2) - ten_N;
+	pLineBcps[0]->forceBcp.rows(0,2) = pLineBcps[0]->forceBcp.rows(0,2) + F.row(0).t();
+	pLineBcps[1]->forceBcp.rows(0,2) = pLineBcps[1]->forceBcp.rows(0,2) + F.row(N-1).t();
 }
 
 
@@ -466,70 +479,49 @@ void Line::initLine (void)
 	}
 }
 
+void Line::OpenOutputFilesASCII (std::string path)
+{
+	char buffer1[50], buffer2[50], buffer3[50], buffer4[50];
+
+	int nn1 = sprintf(buffer1,"NodePosX_%d.txt", GetId());
+	int nn2 = sprintf(buffer2,"NodePosY_%d.txt", GetId());
+	int nn3 = sprintf(buffer3,"NodePosZ_%d.txt", GetId());
+	int nn4 = sprintf(buffer4,"CatTen_%d.txt", GetId());
+
+	std::string file_path1 = JoinPath(path, buffer1);
+	std::string file_path2 = JoinPath(path, buffer2);
+	std::string file_path3 = JoinPath(path, buffer3);
+	std::string file_path4 = JoinPath(path, buffer4);
+
+	pfile_xpos = fopen (file_path1.c_str(),"w");
+	pfile_ypos = fopen (file_path2.c_str(),"w");
+	pfile_zpos = fopen (file_path3.c_str(),"w");
+	pfile_ten =  fopen (file_path4.c_str(),"w");
+}
+
+void Line::CloseOutputFilesASCII (void)
+{
+	fclose(pfile_xpos);
+	fclose(pfile_ypos);
+	fclose(pfile_zpos);
+	fclose(pfile_ten);
+}
 
 void Line::WriteOut (double t) 
 {
-	int ii, nn1, nn2, nn3, nn4;
+	int ii;
 
-	char buffer1[50], buffer2[50], buffer3[50], buffer4[50];
+	fprintf(pfile_xpos, "%f    ", t);
+	for(ii=0;ii<this->N;ii=ii+1) fprintf(pfile_xpos, "%f    ", this->pos(ii,0));
+	fprintf(pfile_xpos, "\n");
 
-	if (t<1e-12){
-		nn1=sprintf(buffer1,"output/NodePosX_%d.txt", GetId());
-		std::ofstream xpos(buffer1);
-			xpos << t << "    ";
-			for(ii=0;ii<this->N;ii=ii+1) xpos <<  this->pos(ii,0) << "    ";
-			xpos << "\n";
-		xpos.close();
+	fprintf(pfile_ypos, "%f    ", t);
+	for(ii=0;ii<this->N;ii=ii+1) fprintf(pfile_ypos, "%f    ", this->pos(ii,1));
+	fprintf(pfile_ypos, "\n");
 
-		nn2=sprintf(buffer2,"output/NodePosY_%d.txt", GetId());
-		std::ofstream ypos(buffer2);
-			ypos << t << "    ";
-			for(ii=0;ii<this->N;ii=ii+1) ypos <<  this->pos(ii,1) << "    ";
-			ypos << "\n";
-		ypos.close();
+	fprintf(pfile_zpos, "%f    ", t);
+	for(ii=0;ii<this->N;ii=ii+1) fprintf(pfile_zpos, "%f    ", this->pos(ii,2));
+	fprintf(pfile_zpos, "\n");
 
-		nn3=sprintf(buffer3,"output/NodePosZ_%d.txt", GetId());
-		std::ofstream zpos(buffer3);
-			zpos << t << "    ";
-			for(ii=0;ii<this->N;ii=ii+1) zpos << this->pos(ii,2) << "    ";
-			zpos << "\n";
-		zpos.close();
-
-		nn4=sprintf(buffer4,"output/CatTen_%d.txt", GetId());
-		std::ofstream ten(buffer4);
-			ten << t << "    " << ten_1(0,0) << "    " << ten_1(1,0) << "    " << ten_1(2,0) << "    "
-			     << ten_N(0,0) << "    " << ten_N(1,0) << "    " << ten_N(2,0) << "    " << "\n";
-		ten.close();
-	}else{
-	nn1=sprintf(buffer1,"output/NodePosX_%d.txt", GetId());
-	std::ofstream xpos;
-		xpos.open(buffer1, std::ios_base::app);
-		xpos << t << "    ";
-		for(ii=0;ii<this->N;ii=ii+1) xpos <<  this->pos(ii,0) << "    ";
-		xpos << "\n";
-	xpos.close();
-
-	nn2=sprintf(buffer2,"output/NodePosY_%d.txt", GetId());
-	std::ofstream ypos;
-		ypos.open(buffer2, std::ios_base::app);
-		ypos << t << "    ";
-		for(ii=0;ii<this->N;ii=ii+1) ypos <<  this->pos(ii,1) << "    ";
-		ypos << "\n";
-	ypos.close();
-
-	nn3=sprintf(buffer3,"output/NodePosZ_%d.txt", GetId());
-	std::ofstream zpos;
-		zpos.open(buffer3, std::ios_base::app);
-		zpos << t << "    ";
-		for(ii=0;ii<this->N;ii=ii+1) zpos << this->pos(ii,2) << "    ";
-		zpos << "\n";
-	zpos.close();
-
-	nn4=sprintf(buffer4,"output/CatTen_%d.txt", GetId());
-	std::ofstream ten;
-		ten.open(buffer4, std::ios_base::app);
-		ten << t << "    " << ten_1(0,0) << "    " << ten_1(1,0) << "    " << ten_1(2,0) << "    "
-		     << ten_N(0,0) << "    " << ten_N(1,0) << "    " << ten_N(2,0) << "    " << "\n";
-	ten.close();
-	}
+	fprintf(pfile_ten, "%f    %f    %f    %f    %f    %f    %f \n",t,ten_1(0,0),ten_1(1,0),ten_1(2,0),ten_N(0,0),ten_N(1,0),ten_N(2,0));
 }

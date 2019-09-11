@@ -42,6 +42,8 @@ public:
 	arma::mat** pIRFPoints; // Matrix components: [body, dof, dof]
 	arma::mat IRFTime; // Matrix size containing the IRF time. Matrix dims: (1, numPointsIRF)
 	arma::mat* pStructuralMass; // Matrix components: [dof, dof]
+	arma::mat* pTotalMass; // Matrix components: [dof, dof]
+	arma::mat* pTotalMass_inv; // Matrix components: [dof, dof]
 	arma::cube* pMeanDrift; // Matrix components: [dofs, freqs, headings];
 	int numBodies;
 	int numFrequencies;
