@@ -51,20 +51,26 @@ SDIR=src
 BDIR=bin
 
 CC=g++
+CWIND=windres
 CFLAGS=$(IDIRS) -std=c++14 -O2 -DARMA_DONT_USE_WRAPPER -DARMA_USE_HDF5
 LIBS=$(SCI_LIBS) -lstdc++fs
 
 _DEPS=Lines/Lines.hpp Bodies/Bodies.hpp Spring/Spring.hpp Hydro/HydroDatabase.hpp BCPs/BCPs.hpp BCPs/Winchies.hpp BCPs/WinchiesController.hpp ODE_solvers/ODE_solvers.hpp SEM_math/quadrule.hpp os_tools.hpp Exceptions/Exception.hpp Simulations/Simulation.hpp MathTools.hpp CommonTools.hpp
 DEPS=$(patsubst %,$(SDIR)/%,$(_DEPS))
 _OBJS=main.o SEM_math/quadrule.o BCPs/BCPs.o BCPs/Winchies.o BCPs/WinchiesController.o Lines/Lines_Dyn.o Lines/Lines_QS.o Bodies/Bodies.o Spring/Spring.o Hydro/HydroDatabase.o ODE_solvers/ODE_solvers.o os_tools.o Exceptions/Exception.o Simulations/Simulation.o MathTools.o CommonTools.o
+_RES_OBJS=version.o
 OBJS=$(patsubst %,$(ODIR)/%,$(_OBJS))
+RES_OBJS=$(patsubst %, $(ODIR)/%, $(_RES_OBJS))
 
 $(ODIR)/%.o: $(SDIR)/%.cpp $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 	
-all: oasis
+all: version oasis
+
+version:
+	windres src/version.rc obj/version.o
 	
-oasis: $(OBJS)
+oasis: $(OBJS) $(RES_OBJS)
 ifeq ($(OS),Windows_NT)
 	$(CC) -static -o $(BDIR)/$@.exe $^ $(LDIRS) $(LIBS)
 else ifeq ($(OS),centos)
