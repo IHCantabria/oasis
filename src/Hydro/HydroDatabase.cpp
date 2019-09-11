@@ -14,7 +14,7 @@
 
 arma::mat HydroDatabase::ComputeHydrostaticForces()
 {	
-	arma::mat hydrostatic_force = (*pHydrostaticStiffness)*((*pBodies)[id].pos);
+	arma::mat hydrostatic_force = (*pHydrostaticStiffness)*((*pBodies)[id].pos - (*pBodies)[id].pos_init);
 	return hydrostatic_force;
 }
 
