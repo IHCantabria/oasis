@@ -368,7 +368,10 @@ void Simulation::LoadCase()
     //this->ReadHydrodynamicsHDF5();
     this->ReadLines();
     this->ReadBcps();
-    this->ReadWinches();
+    if (useWinches)
+    {
+        this->ReadWinches();
+    }
     this->ReadSprings();
 
     // Setup case
