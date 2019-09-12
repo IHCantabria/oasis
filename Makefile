@@ -68,13 +68,15 @@ $(ODIR)/%.o: $(SDIR)/%.cpp $(DEPS)
 all: version oasis
 
 version:
+ifeq ($(OS),Windows_NT)
 	windres src/version.rc obj/version.o
+endif
 	
 oasis: $(OBJS) $(RES_OBJS)
 ifeq ($(OS),Windows_NT)
 	$(CC) -static -o $(BDIR)/$@.exe $^ $(LDIRS) $(LIBS)
 else ifeq ($(OS),centos)
-	$(CC) -static -o $(BDIR)/$@ $^ $(LDIRS) $(LIBS)
+	$(CC) -o $(BDIR)/$@ $^ $(LDIRS) $(LIBS)
 else ifeq ($(OS),ubuntu)
 	$(CC) -o $(BDIR)/$@ $^ $(LDIRS) $(LIBS)
 endif
