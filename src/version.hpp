@@ -4,7 +4,7 @@
 #define VERSION_MAJOR               0
 #define VERSION_MINOR               0
 #define VERSION_REVISION            3
-#define VERSION_BUILD               1
+#define VERSION_BUILD               2
  
 #define VER_FILE_DESCRIPTION_STR    "Offshore dynamics simulator"
 #define VER_FILE_VERSION            VERSION_MAJOR, VERSION_MINOR, VERSION_REVISION, VERSION_BUILD

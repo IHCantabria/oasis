@@ -72,9 +72,9 @@ ifeq ($(OS),Windows_NT)
 	windres src/version.rc obj/version.o
 endif
 	
-oasis: $(OBJS) $(RES_OBJS)
+oasis: $(OBJS)
 ifeq ($(OS),Windows_NT)
-	$(CC) -static -o $(BDIR)/$@.exe $^ $(LDIRS) $(LIBS)
+	$(CC) -static -o $(BDIR)/$@.exe $^ $(RES_OBJS) $(LDIRS) $(LIBS)
 else ifeq ($(OS),centos)
 	$(CC) -o $(BDIR)/$@ $^ $(LDIRS) $(LIBS)
 else ifeq ($(OS),ubuntu)
