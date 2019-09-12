@@ -120,9 +120,6 @@ void Body::LoadHydrodynamicDatabase(void)
 	// Check time buffere w.r.t IRF size
     if (this->pSim->timeBufferSize < 10*this->pHydro->numPointsIRF)
     {
-        this->pSim->timeBufferSize = 10*this->pHydro->numPointsIRF;
-        this->pSim->timeBuffer = arma::zeros(1, this->pSim->timeBufferSize);
-
         this->velBufferSize = 10*this->pHydro->numPointsIRF;
         this->velBuffer = arma::zeros(6, this->velBufferSize);
     }
