@@ -523,7 +523,6 @@ void Simulation::ReadBodiesASCII()
 
 	//Read all bodies
     pBodies = new Body* [numBodies];
-    printf("Total number of bodies: %d\n", numBodies);
 	for(int ii=0; ii<numBodies; ii++)
     {
         // Discard header lines and check for body type
@@ -567,8 +566,8 @@ void Simulation::ReadBodiesASCII()
 
         if (diff_count == hydro_database_count)
         {
-            hydro_database_count++;
             hydro_databases_name[hydro_database_count] = pBodies[ii]->hydroDatabaseName;
+            hydro_database_count++;
         }
 
         // Check maximum number of bodies in the database
@@ -576,6 +575,11 @@ void Simulation::ReadBodiesASCII()
         {
             max_num_bodies_database = pBodies[ii]->pHydro->numBodies;
         }
+    }
+
+    for (int ii=0; ii<hydro_database_count+1; ii++)
+    {
+        std::cout << hydro_databases_name[ii].c_str() << std::endl;
     }
 
     // Create an array in order to store the indexes of the bodies in each database
