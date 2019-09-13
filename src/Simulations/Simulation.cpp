@@ -350,9 +350,10 @@ void Simulation::Initialize()
     // Write initial condition to files
     for(int ii=0; ii<this->numLines; ii=ii+1) this->pLines[ii]->WriteOut(start_time);
     for(int ii=0; ii<this->numBodies; ii=ii+1) this->pBodies[ii]->WriteOut(start_time);
-
+    std::cout << "Update system" << std::endl;
     // Save first data
     this->UpdateSystem();
+    std::cout << "System updated!" << std::endl;
 }
 
 
@@ -504,7 +505,7 @@ void Simulation::ReadBodiesASCII()
     int diff_count = 0;
     int hydro_database_count=0;
     std::string hydro_databases_name [300];
-    int max_num_bodies_database=0;
+    int max_num_bodies_database=100;
     int pos_database=0;
 
     // Parse file in order to guess the number of bodies
@@ -539,7 +540,7 @@ void Simulation::ReadBodiesASCII()
         {
             pBodies[ii] = new Body(ii, this);
             pBodies[ii]->ReadPropertiesASCII(pFile);
-            pBodies[ii]->LoadDependencies();
+            //pBodies[ii]->LoadDependencies();
             pBodies[ii]->OpenOutputFilesASCII(outputFolderPath);
         }
         else
@@ -549,7 +550,7 @@ void Simulation::ReadBodiesASCII()
             throw ValueError(ss.str());
         }
 	}
-
+    std::cout << "All bodies read" << std::endl;
     // Loop over bodies in order to get the number of hydrodynamic databases
     hydro_databases_name[hydro_database_count] = pBodies[0]->hydroDatabaseName;
     hydro_database_count++;
@@ -568,12 +569,6 @@ void Simulation::ReadBodiesASCII()
         {
             hydro_databases_name[hydro_database_count] = pBodies[ii]->hydroDatabaseName;
             hydro_database_count++;
-        }
-
-        // Check maximum number of bodies in the database
-        if (pBodies[ii]->pHydro->numBodies > max_num_bodies_database)
-        {
-            max_num_bodies_database = pBodies[ii]->pHydro->numBodies;
         }
     }
 
@@ -644,9 +639,30 @@ void Simulation::ReadBodiesASCII()
     HydroDatabase** hydro_databases = new HydroDatabase* [hydro_database_count];
     for (int ii=0; ii<hydro_database_count; ii++)
     {
-        hydro_databases[ii] = new HydroDatabase()
+        
+        
     }
     **/
+
+    // Set hydrodynamic database to each body
+    std::string hydro_file_path;
+    for (int ii=0; ii<this->numBodies; ii++)
+    {
+        // Look for position of the database
+        pos_database = 0;
+        while (true)
+        {
+            if (this->pBodies[ii]->hydroDatabaseName.compare(hydro_databases_name[pos_database])==0)
+            {
+                break;
+            }
+            pos_database++;
+        }
+
+        // Set database to the target Body object
+        hydro_file_path = JoinPath(this->inputFolderPath, hydro_databases_name[pos_database]);
+        this->pBodies[ii]->LoadHydrodynamicDatabase(check_hydro_bodies[pos_database]);
+    }
 
     // Check the simulation time
     int time_buffer_size = this->timeBufferSize;

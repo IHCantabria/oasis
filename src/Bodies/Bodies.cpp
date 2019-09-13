@@ -101,11 +101,12 @@ int Body::GetId(void)
 void Body::LoadDependencies()
 {
 	// Load hydrodynamic database
-	this->LoadHydrodynamicDatabase();
+	//this->LoadHydrodynamicDatabase();
+	double a = 0.0;
 }
 
 
-void Body::LoadHydrodynamicDatabase(void)
+void Body::LoadHydrodynamicDatabase(Body** hydroDatabaseBodies)
 {
 	std::cout << "--> Reading Hydrodynamics Properties (HDF5 format)" << std::endl;
 
@@ -113,7 +114,7 @@ void Body::LoadHydrodynamicDatabase(void)
 	std::string file_path = JoinPath(this->pSim->inputFolderPath, this->hydroDatabaseName);
 
 	// Load hydrodynamic database
-	this->pHydro = new HydroDatabase(this->hydroDatabaseIndex, this->pSim->pBodies, this->pSim);
+	this->pHydro = new HydroDatabase(this->hydroDatabaseIndex, hydroDatabaseBodies, this->pSim);
 	this->pHydro->ReadHydroMechanicsHDF5(file_path);
     this->pHydro->ComputeIRF();
 
