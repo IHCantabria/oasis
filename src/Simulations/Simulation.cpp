@@ -584,9 +584,11 @@ void Simulation::ReadBodiesASCII()
 
     // Create an array in order to store the indexes of the bodies in each database
     int **check_hydro_bodies_id = new int* [hydro_database_count];
+    Body** check_hydro_bodies = new Body* [hydro_database_count];
     for (int ii=0; ii<hydro_database_count; ii++)
     {
         check_hydro_bodies_id[ii] = new int [max_num_bodies_database+1];
+        check_hydro_bodies[ii] = new Body [max_num_bodies_database];
     }
     for (int ii=0; ii<hydro_database_count; ii++)
     {
@@ -597,8 +599,10 @@ void Simulation::ReadBodiesASCII()
     }
 
     // Check if there is some repeated body definition in each database
+    std::cout << "Looking for body repetition..." << std::endl;
     for (int ii=0; ii<this->numBodies; ii++)
     {
+        std::cout << "Looking for body repetition..." << std::endl;
         // Find database position inside the array of names generated previously
         pos_database = 0;
         while (true)
@@ -619,7 +623,7 @@ void Simulation::ReadBodiesASCII()
         }
 
         // Check if the body id already exist
-        for (int jj=1; jj<check_hydro_bodies_id[pos_database][0]; jj++)
+        for (int jj=1; jj<=check_hydro_bodies_id[pos_database][0]; jj++)
         {
             if (check_hydro_bodies_id[pos_database][jj] == pBodies[ii]->hydroDatabaseIndex)
             {
@@ -629,7 +633,20 @@ void Simulation::ReadBodiesASCII()
                 throw ValueError(ss.str());
             }
         }
+        std::cout << check_hydro_bodies_id[pos_database][0] << std::endl;
+        check_hydro_bodies_id[pos_database][0]++;
+        check_hydro_bodies_id[pos_database][check_hydro_bodies_id[pos_database][0]] = pBodies[ii]->hydroDatabaseIndex;
+        check_hydro_bodies[pos_database][check_hydro_bodies_id[pos_database][0]-1] = pBodies[ii];
     }
+
+    // Read hydrodynamic databases
+    /**
+    HydroDatabase** hydro_databases = new HydroDatabase* [hydro_database_count];
+    for (int ii=0; ii<hydro_database_count; ii++)
+    {
+        hydro_databases[ii] = new HydroDatabase()
+    }
+    **/
 
     // Check the simulation time
     int time_buffer_size = this->timeBufferSize;
@@ -642,6 +659,11 @@ void Simulation::ReadBodiesASCII()
     }
     this->timeBufferSize = time_buffer_size;
     this->timeBuffer = arma::zeros(1, time_buffer_size);
+
+    // Free memory
+    //delete[] hydro_databases;
+    delete[] check_hydro_bodies_id;
+    delete[] check_hydro_bodies;
 
     // Close file
     fclose(pFile);
