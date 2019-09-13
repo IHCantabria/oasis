@@ -80,7 +80,7 @@ void Body::ComputeBcpForces(void)
 		M_F = arma::cross(posG_temp,ForceBCP_temp.rows(0,2)); // Momento sobre el cdg causado por la fuerza en el bcp, en global
 
 		bcpForces.rows(0,2) = bcpForces.rows(0,2) + ForceBCP_temp.rows(0,2) + F_M; // Acumulo la fuerza total sobre el cdg en global.
-		bcpForces.rows(3,5) = bcpForces.rows(3,5) + invRotMat * (ForceBCP_temp.rows(3,5) + M_F); // Acumulo el momento total sobre el cdg en local.
+		bcpForces.rows(3,5) = bcpForces.rows(3,5) + rotMat.t() * (ForceBCP_temp.rows(3,5) + M_F); // Acumulo el momento total sobre el cdg en local.
 	}
 
 	if (bcpForces.has_nan()){
@@ -305,7 +305,7 @@ void Body::UpdateBcps(void)
 	rotMat(2,0) =   -sp; rotMat(2,1) =          cp*sr; rotMat(2,2) =          cp*cr;
 
 	// Inversa de la matriz de rotacion
-	invRotMat = arma::solve(rotMat,arma::eye(3,3));
+	//invRotMat = arma::solve(rotMat,arma::eye(3,3));
 
 	// Variable temporal
 	arma::mat posG_temp;
