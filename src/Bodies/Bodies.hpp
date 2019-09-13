@@ -53,6 +53,7 @@ public:
 	FILE* pfile_WRF;
 
 	// Methods definition
+	Body(void){};
 	Body(int n, Simulation* pSim); // Inicializa un objeto de clase cuerpo dandole el indice
 	void ComputeBcpForces(void); // Calcula el efecto de las fuerzas sobre los BCPs sobre su CDG
 	int GetId(void); // Returns the body identification number
