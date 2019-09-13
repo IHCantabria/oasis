@@ -57,7 +57,6 @@ public:
 	Body(int n, Simulation* pSim); // Inicializa un objeto de clase cuerpo dandole el indice
 	void ComputeBcpForces(void); // Calcula el efecto de las fuerzas sobre los BCPs sobre su CDG
 	int GetId(void); // Returns the body identification number
-	void LoadDependencies(void); // Load additional files and data necessary for the body type
 	void LoadHydrodynamicDatabase(Body** hydroDatabaseBodies); // Loads the hydrodynamics database associated, if any 
 	void ReadPropertiesASCII(FILE* filePointer); // Leer datos de los cuerpos
 	void OpenOutputFilesASCII(std::string path);

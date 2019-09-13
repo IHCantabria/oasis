@@ -97,15 +97,6 @@ int Body::GetId(void)
 }
 
 
-// Load Dependencies
-void Body::LoadDependencies()
-{
-	// Load hydrodynamic database
-	//this->LoadHydrodynamicDatabase();
-	double a = 0.0;
-}
-
-
 void Body::LoadHydrodynamicDatabase(Body** hydroDatabaseBodies)
 {
 	std::cout << "--> Reading Hydrodynamics Properties (HDF5 format)" << std::endl;
