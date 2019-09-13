@@ -584,11 +584,11 @@ void Simulation::ReadBodiesASCII()
 
     // Create an array in order to store the indexes of the bodies in each database
     int **check_hydro_bodies_id = new int* [hydro_database_count];
-    Body** check_hydro_bodies = new Body* [hydro_database_count];
+    Body*** check_hydro_bodies = new Body** [hydro_database_count];
     for (int ii=0; ii<hydro_database_count; ii++)
     {
         check_hydro_bodies_id[ii] = new int [max_num_bodies_database+1];
-        check_hydro_bodies[ii] = new Body [max_num_bodies_database];
+        check_hydro_bodies[ii] = new Body* [max_num_bodies_database];
     }
     for (int ii=0; ii<hydro_database_count; ii++)
     {
