@@ -248,7 +248,7 @@ int HydroDatabase::GetId(void)
 }
 
 
-HydroDatabase::HydroDatabase(int incId, Body** incBody, Simulation* pIncSim)
+HydroDatabase::HydroDatabase(int incId, Body** incBody, Simulation* pIncSim): HydroForce()
 {
 	id = incId;
 	pBodies = incBody;

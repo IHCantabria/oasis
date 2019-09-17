@@ -3,13 +3,14 @@
 #define hydrodatabasedef_hpp__
 #include <armadillo>
 #include <string>
+#include "HydroForce.hpp"
 
 // Attribute class objects forward declaration
 class Body;
 class Simulation;
 class solver_data;
 
-class HydroDatabase
+class HydroDatabase: public HydroForce
 {
 private:
 	int id;
