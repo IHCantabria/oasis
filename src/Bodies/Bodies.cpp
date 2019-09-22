@@ -106,23 +106,13 @@ void Body::LoadHydrodynamicDatabase(Body** hydroDatabaseBodies)
 
 	// Load hydrodynamic database
 	this->pHydro = new HydroDatabase(this->hydroDatabaseIndex, hydroDatabaseBodies, this->pSim);
-	this->pHydro->ReadHydroMechanicsHDF5(file_path);
-    this->pHydro->ComputeIRF();
-
-	// Check time buffere w.r.t IRF size
-    if (this->pSim->timeBufferSize < 10*this->pHydro->numPointsIRF)
-    {
-        this->velBufferSize = 10*this->pHydro->numPointsIRF;
-        this->velBuffer = arma::zeros(6, this->velBufferSize);
-    }
+	this->pHydro->LoadHydrodynamicData(file_path);
 
 	// Load and check the Hydrodynamic C.O.G position
 	if (this->takeCOGHydroDatabase == 1)
 	{
 		// Load inital position
-		this->pos_init(0, 0) = this->pHydro->cog(0, 0);
-		this->pos_init(1, 0) = this->pHydro->cog(0, 1);
-		this->pos_init(2, 0) = this->pHydro->cog(0, 2);
+		this->pos_init = this->pHydro->GetCog()
 
 		// Add initial position to the global position
 		this->pos = this->pos + this->pos_init;
@@ -134,9 +124,10 @@ void Body::LoadHydrodynamicDatabase(Body** hydroDatabaseBodies)
 
 		// Check if the input C.O.G is in accordance with the hydrodynamic database
 		double cog_tol = 1e-6;
-		xcond = fabs(this->pos_init(0, 0) - this->pHydro->cog(0, 0)) > cog_tol;
-		ycond = fabs(this->pos_init(1, 0) - this->pHydro->cog(0, 1)) > cog_tol;
-		zcond = fabs(this->pos_init(2, 0) - this->pHydro->cog(0, 2)) > cog_tol;
+		arma::mat cog = this->pHydro->GetCog()
+		xcond = fabs(this->pos_init(0, 0) - cog(0, 0)) > cog_tol;
+		ycond = fabs(this->pos_init(1, 0) - cog(0, 1)) > cog_tol;
+		zcond = fabs(this->pos_init(2, 0) - cog(0, 2)) > cog_tol;
 
 		if (xcond || ycond || zcond)
 		{
@@ -278,10 +269,11 @@ void Body::StoreVelocities()
 	}
 	else
 	{
+		int num_points_irf = this->pHydro->GetNumPointsIrf();
 		arma::mat velBufferNew = arma::zeros(6, pSim->timeBufferSize);
-		velBufferNew.cols(0, pHydro->numPointsIRF-1) = velBuffer.cols(pSim->timeBufferSize-pHydro->numPointsIRF, pSim->timeBufferSize-1);
+		velBufferNew.cols(0, num_points_irf-1) = velBuffer.cols(pSim->timeBufferSize-num_points_irf, pSim->timeBufferSize-1);
 		velBuffer = velBufferNew;
-		velBufferCount = pHydro->numPointsIRF-1;
+		velBufferCount = num_points_irf-1;
 	}
 }
 

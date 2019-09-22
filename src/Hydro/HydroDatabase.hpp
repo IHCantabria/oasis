@@ -3,13 +3,14 @@
 #define hydrodatabasedef_hpp__
 #include <armadillo>
 #include <string>
+#include "HydroForce.hpp"
 
 // Attribute class objects forward declaration
 class Body;
 class Simulation;
 class solver_data;
 
-class HydroDatabase
+class HydroDatabase: public HydroForce
 {
 private:
 	int id;
@@ -61,9 +62,16 @@ public:
 	arma::mat ComputeRadiationForces();
 	arma::mat ComputeFirstWaveExcForce();
 	void ComputeIRF(void); // Calcula la impulse response function
+	arma::mat GetCog(void); // Interface method, it returns center of gravity
+	int GetNumPointsIrf(void); // Interface mehtods, it returns the number of points of the IRF
+	void LoadHydrodynamicData(void); // Loads the corresponding hydrodynamic data
 	void ReadHydroMechanicsHDF5(std::string filePath); // Leer inputs
 	int GetId(void);
 	void Print(void);
+
+	// Declare inherited virutal methods
+	arma::mat CalculateHydrodynamicForces(double time) {};
+	
 	
 	//void computeWaveSpectrum(void); // Calcula el espectro del oleaje
 	//void computeFe(void); // Calcula la serie temporal de fuerzas de excitación

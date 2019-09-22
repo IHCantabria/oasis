@@ -6,7 +6,7 @@
 #include <string>
 #include <cstdio>
 #include "../BCPs/BCPs.hpp"
-#include "../Hydro/HydroDatabase.hpp"
+#include "../Hydro/HydroForce.hpp"
 
 class solver_data;
 class Simulation;
@@ -20,7 +20,7 @@ public:
 	BCP** pBodyBcps; // Array de pointers a los puntos de condicion de contorno
 	int* pDofs; // Array to store the number of degrees of freedom considered in the body
 	int* pIndexBcps; // Array to store the index of the boundary condition points
-	HydroDatabase* pHydro; // Hydrodynamnics body associated to the body
+	HydroForce* pHydro; // Hydrodynamnics body associated to the body
 	int hydroDatabaseIndex; // Index of the body in the associated hydrodynamic database, if any
 	std::string hydroDatabaseName; // Stores the hydrodynamic database name
 	Simulation* pSim; // Pointer to simulation instance

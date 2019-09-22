@@ -242,6 +242,12 @@ void HydroDatabase::ComputeIRF(void)
 }
 
 
+arma::mat GetCog(void)
+{
+	return this->cog;
+}
+
+
 int HydroDatabase::GetId(void)
 {
 	return id;
@@ -253,6 +259,21 @@ HydroDatabase::HydroDatabase(int incId, Body** incBody, Simulation* pIncSim)
 	id = incId;
 	pBodies = incBody;
 	pSim = pIncSim;
+}
+
+
+void HydroDatabase::LoadHydrodynamicData(std::string file_path)
+{
+	// Load data
+	this->pHydro->ReadHydroMechanicsHDF5(file_path);
+    this->pHydro->ComputeIRF();
+
+	// Check time buffere w.r.t IRF size
+    if (this->pSim->timeBufferSize < 10*this->numPointsIRF)
+    {
+        this->velBufferSize = 10*this->numPointsIRF;
+        this->velBuffer = arma::zeros(6, this->velBufferSize);
+    }
 }
 
 
