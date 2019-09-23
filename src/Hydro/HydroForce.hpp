@@ -11,8 +11,10 @@ public:
     // Declare class interface methods
     virtual arma::mat CalculateHydrodynamicForces(double time) = 0;
     virtual arma::mat GetCog(void) = 0;
+    virtual int GetNumBodies(void) = 0;
     virtual int GetNumPointsIrf(void) = 0;
     virtual void LoadHydrodynamicData(std::string filePath) = 0;
+    virtual void Refresh(void) = 0;
 };
 
 

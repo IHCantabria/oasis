@@ -254,6 +254,12 @@ int HydroDatabase::GetId(void)
 }
 
 
+int HydroDatabase::GetNumBodies(void)
+{
+	return this->GetNumBodies();
+}
+
+
 HydroDatabase::HydroDatabase(int incId, Body** incBody, Simulation* pIncSim)
 {
 	id = incId;
@@ -437,4 +443,12 @@ void HydroDatabase::ReadHydroMechanicsHDF5(std::string filePath)
 	FILE* p_file_pointer = fopen(pppPath.c_str(), "r");
 	fscanf(p_file_pointer, "%lf %d %d %[^\n]\n", &waveAmplitude, &numPeriodExc, &numHeadingExc, buffer_line);
 	fclose(p_file_pointer);
+}
+
+
+void HydroDatabase::Refresh(void)
+{
+	// Refresh the hydrodynamic forces storage
+	hydrostaticForces = this->ComputeHydrostaticForces();
+	radiationForces = this->ComputeRadiationForces();
 }

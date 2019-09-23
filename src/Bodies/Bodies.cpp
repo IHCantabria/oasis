@@ -112,19 +112,19 @@ void Body::LoadHydrodynamicDatabase(Body** hydroDatabaseBodies)
 	if (this->takeCOGHydroDatabase == 1)
 	{
 		// Load inital position
-		this->pos_init = this->pHydro->GetCog()
+		this->pos_init = this->pHydro->GetCog();
 
 		// Add initial position to the global position
 		this->pos = this->pos + this->pos_init;
 	}
-	else if ((this->takeCOGHydroDatabase == 0) && (this->pHydro->numBodies > 1))
+	else if ((this->takeCOGHydroDatabase == 0) && (this->pHydro->GetNumBodies() > 1))
 	{
 		// Declare local variables
 		bool xcond, ycond, zcond;
 
 		// Check if the input C.O.G is in accordance with the hydrodynamic database
 		double cog_tol = 1e-6;
-		arma::mat cog = this->pHydro->GetCog()
+		arma::mat cog = this->pHydro->GetCog();
 		xcond = fabs(this->pos_init(0, 0) - cog(0, 0)) > cog_tol;
 		ycond = fabs(this->pos_init(1, 0) - cog(0, 1)) > cog_tol;
 		zcond = fabs(this->pos_init(2, 0) - cog(0, 2)) > cog_tol;
@@ -413,6 +413,7 @@ void Body::OpenOutputFilesASCII (std::string path)
         throw IOError(ss.str());
 	}
 }
+
 
 void Body::CloseOutputFilesASCII (void)
 {
