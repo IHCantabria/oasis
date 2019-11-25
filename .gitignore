@@ -1,5 +1,6 @@
 obj/
 bin/
+cases/
 *.asv
 *.h5
 *.o
