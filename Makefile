@@ -2,8 +2,8 @@
 ifeq ($(OS),Windows_NT)
 # Check USER environment
 ifeq ($(USERNAME),feruanos)
-INC_ARMADILLO_DIR = "C:/ScientificLibraries/cpp/armadillo940/include"
-INC_HDF5_DIR = "C:/Program Files/HDF5-1.10.5-win64/include"
+INC_ARMADILLO_DIR = "D:/scientific_libraries/cpp/armadillo940/include"
+INC_HDF5_DIR = "C:/Program Files/HDF_Group/HDF5/1.10.5/include"
 IDIRS = -I$(INC_ARMADILLO_DIR) -I$(INC_HDF5_DIR)
 		
 LIB_LAPACK_DIR = "C:/ScientificLibraries/fortran90/lapack380"
