@@ -59,18 +59,13 @@ public:
 
 	// Class Methods
 	arma::mat ComputeHydrostaticForces(void);
-	arma::mat ComputeRadiationForces();
-	arma::mat ComputeFirstWaveExcForce();
 	void ComputeIRF(void); // Calcula la impulse response function
 	void ReadHydroMechanicsHDF5(std::string filePath); // Leer inputs
 	int GetId(void);
 	void Print(void);
 	
-	//void computeWaveSpectrum(void); // Calcula el espectro del oleaje
-	//void computeFe(void); // Calcula la serie temporal de fuerzas de excitación
-
-	//void computeHydroForces(double t); // Obten las fuerzas hidroestaticas e hidrodinamicas en el tiempo deseado
-	
+	double CalculateHydrodynamicForces(double time) {};
+    void Load(void) {};	
 };
 
 

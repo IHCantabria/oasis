@@ -10,7 +10,7 @@ public:
     HydroForce(){};
 
     // Create class methods
-    virtual double CalculateHydrodynamicForces(void) = 0;
+    virtual double CalculateHydrodynamicForces(double time) = 0;
     virtual void Load(void) = 0;
 };
 
