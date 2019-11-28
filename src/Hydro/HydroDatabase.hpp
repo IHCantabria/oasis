@@ -60,9 +60,18 @@ public:
 	// Class Methods
 	arma::mat ComputeHydrostaticForces(void);
 	void ComputeIRF(void); // Calcula la impulse response function
+	arma::mat GetCog(void); // Interface method, it returns center of gravity
+	int GetNumBodies(void); // Returns the number of bodies in the database
+	int GetNumPointsIrf(void); // Interface mehtods, it returns the number of points of the IRF
+	void LoadHydrodynamicData(std::string file_path); // Loads the corresponding hydrodynamic data
 	void ReadHydroMechanicsHDF5(std::string filePath); // Leer inputs
+	void Refresh(void); // This method refresh the state of the object properties
 	int GetId(void);
 	void Print(void);
+
+	// Declare inherited virutal methods
+	arma::mat CalculateHydrodynamicForces(double time) {};
+	
 	
 	double CalculateHydrodynamicForces(double time) {};
     void Load(void) {};	

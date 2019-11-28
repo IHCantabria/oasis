@@ -1281,8 +1281,7 @@ void Simulation::UpdateSystem()
     {
         for(int ii=0; ii<numBodies; ii++)
         {
-            pBodies[ii]->UpdateHydrostaticForces();
-            pBodies[ii]->UpdateRadiationForces();
+            pBodies[ii]->pHydro->Refresh();
         }
     }
 }
