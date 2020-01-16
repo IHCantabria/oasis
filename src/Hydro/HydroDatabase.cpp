@@ -12,6 +12,12 @@
 #include "../os_tools.hpp"
 
 
+arma::mat HydroDatabase::CalculateHydrodynamicForces(double time)
+{
+	return arma::zeros(6, 1);
+}
+
+
 arma::mat HydroDatabase::ComputeHydrostaticForces()
 {	
 	arma::mat hydrostatic_force = (*pHydrostaticStiffness)*((*pBodies)[id].pos - (*pBodies)[id].pos_init);
@@ -222,6 +228,12 @@ int HydroDatabase::GetId(void)
 }
 
 
+// arma::mat HydroDatabase::GetInertiaMatrixInv(void)
+// {
+// 	return *(this->pTotalMass_inv);
+// }
+
+
 HydroDatabase::HydroDatabase(int incId, Body** incBody, Simulation* pIncSim): HydroForce()
 {
 	id = incId;
@@ -230,15 +242,7 @@ HydroDatabase::HydroDatabase(int incId, Body** incBody, Simulation* pIncSim): Hy
 }
 
 
-void HydroDatabase::Print()
-{
-	std::cout << "Number of bodies associated: " << numBodies << std::endl;
-	std::cout << "Number of frequencies: " << numFrequencies << std::endl;
-	std::cout << "Number of headings: " << numHeadings << std::endl;
-}
-
-
-void HydroDatabase::ReadHydroMechanicsHDF5(std::string filePath)
+void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 {
 	// Read number of bodies
 	arma::mat num_bodies_mat;
@@ -390,7 +394,23 @@ void HydroDatabase::ReadHydroMechanicsHDF5(std::string filePath)
 	FILE* p_file_pointer = fopen(pppPath.c_str(), "r");
 	fscanf(p_file_pointer, "%lf %d %d %[^\n]\n", &waveAmplitude, &numPeriodExc, &numHeadingExc, buffer_line);
 	fclose(p_file_pointer);
+
 }
+
+
+arma::mat HydroDatabase::InterpolateWaveExcitation(void)
+{
+	return arma::zeros(6, 1);
+}
+
+
+void HydroDatabase::Print()
+{
+	std::cout << "Number of bodies associated: " << numBodies << std::endl;
+	std::cout << "Number of frequencies: " << numFrequencies << std::endl;
+	std::cout << "Number of headings: " << numHeadings << std::endl;
+}
+
 
 /**
 // Calcula la impulse response function

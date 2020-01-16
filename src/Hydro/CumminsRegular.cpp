@@ -17,12 +17,10 @@ double CumminsRegular::CalculateHydrodynamicForces(double time)
     arma::mat hydrostatic_force = this->ComputeHydrostaticForces();
 
     // Calculate Damping effects
-    arma::mat damping_force = arma::zeros(6, 1);
-    for (int i=0; i<this->numBodies; i++)
-    {
-        damping_force += this->targetDamping * this->pBodies[i]->vel;
-    }
+    arma::mat radiation_force = this->ComputeRadiationForces();
 
     // Calculate Wave exciting forces
     this->
+
+
 }

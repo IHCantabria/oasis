@@ -128,10 +128,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 	arma::mat Fe = arma::zeros(6, 1);
     for (int ii=0; ii<numBodies; ii++)
     {
-        Fh = pBodies[ii]->pHydro->ComputeHydrostaticForces();
-        Fr = pBodies[ii]->pHydro->ComputeRadiationForces();
-        Fe = pBodies[ii]->pHydro->ComputeFirstWaveExcForce();
-        Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  Fe - (Fr + Fh);
+        Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  pBodies[ii]->pHydro->CalculateHydrodynamicForces(time);
     }
 
 	// Compute forces on BCPs
@@ -151,6 +148,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 	//WriteASCII("output/accB.dat", accB, true);
 	for(int ii=0; ii<numBodies; ii++)
     {
+		// accB(arma::span(6*ii,6*(ii+1)-1), 0) = pBodies[ii]->pHydro->GetInertiaMatrixInv() * Fb(arma::span(6*ii,6*(ii+1)-1), 0);
 		accB(arma::span(6*ii,6*(ii+1)-1), 0) = *pBodies[ii]->pHydro->pTotalMass_inv * Fb(arma::span(6*ii,6*(ii+1)-1), 0);
 		pBodies[ii]->acc = accB(arma::span(6*ii,6*(ii+1)-1), 0);
 	}
@@ -668,9 +666,9 @@ void Simulation::ReadBodiesASCII()
     int time_buffer_size = this->timeBufferSize;
     for (int ii=0; ii<this->numBodies; ii++)
     {
-        if (time_buffer_size < 10*this->pBodies[ii]->pHydro->numPointsIRF)
+        if (time_buffer_size < 10*this->pBodies[ii]->pHydro->GetNumPointsIrf())
         {
-            time_buffer_size = 10*this->pBodies[ii]->pHydro->numPointsIRF;
+            time_buffer_size = 10*this->pBodies[ii]->pHydro->GetNumPointsIrf();
         }
     }
     this->timeBufferSize = time_buffer_size;
@@ -698,36 +696,36 @@ void Simulation::ReadBodiesHDF5()
 }
 
 
-void Simulation::ReadHydrodynamicsHDF5()
-{
-    std::cout << "--> Reading Hydrodynamics Properties (HDF5 format)" << std::endl;
-    // Read associated hydrodynamics
-    std::string file_path = JoinPath(inputFolderPath, "cajon1_LC1.ehydb");
-    for (int ii=0; ii<numBodies; ii++)
-    {
-        pBodies[ii]->pHydro = new HydroDatabase(ii, pBodies, this);
-        pBodies[ii]->pHydro->ReadHydroMechanicsHDF5(file_path);
-        pBodies[ii]->pHydro->ComputeIRF();
-        std::cout << "Structural Mass (2,2): " << (*pBodies[ii]->pHydro->pStructuralMass)(2,2) << std::endl;
-        std::cout << "Added Mass Hf (2,2): " << (*pBodies[ii]->pHydro->pAddedMassHf[ii])(2,2) << std::endl;
-        std::cout << "Stiffness (2,2): " << (*pBodies[ii]->pHydro->pHydrostaticStiffness)(2,2) << std::endl;
-        std::cout << "This is the time vector..." << std::endl;
-    }
+// void Simulation::ReadHydrodynamicsHDF5()
+// {
+//     std::cout << "--> Reading Hydrodynamics Properties (HDF5 format)" << std::endl;
+//     // Read associated hydrodynamics
+//     std::string file_path = JoinPath(inputFolderPath, "cajon1_LC1.ehydb");
+//     for (int ii=0; ii<numBodies; ii++)
+//     {
+//         pBodies[ii]->pHydro = new HydroDatabase(ii, pBodies, this);
+//         pBodies[ii]->pHydro->ReadHydroMechanicsHDF5(file_path);
+//         pBodies[ii]->pHydro->ComputeIRF();
+//         std::cout << "Structural Mass (2,2): " << (*pBodies[ii]->pHydro->pStructuralMass)(2,2) << std::endl;
+//         std::cout << "Added Mass Hf (2,2): " << (*pBodies[ii]->pHydro->pAddedMassHf[ii])(2,2) << std::endl;
+//         std::cout << "Stiffness (2,2): " << (*pBodies[ii]->pHydro->pHydrostaticStiffness)(2,2) << std::endl;
+//         std::cout << "This is the time vector..." << std::endl;
+//     }
 
-    // Check time buffere w.r.t IRF size
-    if (this->timeBufferSize < 10*pBodies[0]->pHydro->numPointsIRF)
-    {
-        this->timeBufferSize = 10*pBodies[0]->pHydro->numPointsIRF;
-        this->timeBuffer = arma::zeros(1, this->timeBufferSize);
+//     // Check time buffere w.r.t IRF size
+//     if (this->timeBufferSize < 10*pBodies[0]->pHydro->numPointsIRF)
+//     {
+//         this->timeBufferSize = 10*pBodies[0]->pHydro->numPointsIRF;
+//         this->timeBuffer = arma::zeros(1, this->timeBufferSize);
 
-        for (int ii=0; ii<numBodies; ii++)
-        {
-            pBodies[ii]->velBufferSize = 10*pBodies[ii]->pHydro->numPointsIRF;
-            pBodies[ii]->velBuffer = arma::zeros(6, pBodies[ii]->velBufferSize);
-        }
-    }
-    std::cout << "----> Hydrodynamic Properties Read" << std::endl;
-}
+//         for (int ii=0; ii<numBodies; ii++)
+//         {
+//             pBodies[ii]->velBufferSize = 10*pBodies[ii]->pHydro->numPointsIRF;
+//             pBodies[ii]->velBuffer = arma::zeros(6, pBodies[ii]->velBufferSize);
+//         }
+//     }
+//     std::cout << "----> Hydrodynamic Properties Read" << std::endl;
+// }
 
 
 void Simulation::ReadLines()
@@ -1263,9 +1261,9 @@ void Simulation::UpdateSystem()
     else
     {
         arma::mat timeBufferNew = arma::zeros(1, timeBufferSize);
-        timeBufferNew.cols(0, pBodies[0]->pHydro->numPointsIRF-1) = timeBuffer.cols(timeBufferSize-pBodies[0]->pHydro->numPointsIRF, timeBufferSize-1);
+        timeBufferNew.cols(0, pBodies[0]->pHydro->GetNumPointsIrf()-1) = timeBuffer.cols(timeBufferSize-pBodies[0]->pHydro->GetNumPointsIrf(), timeBufferSize-1);
         timeBuffer = timeBufferNew;
-        timeBufferCount = pBodies[0]->pHydro->numPointsIRF-1;
+        timeBufferCount = pBodies[0]->pHydro->GetNumPointsIrf()-1;
     }
 
     // Update bodies velocity
@@ -1277,11 +1275,11 @@ void Simulation::UpdateSystem()
 	}
 
     // Update hydrodynamic properties
-    if (timeBufferCount > 0)
-    {
-        for(int ii=0; ii<numBodies; ii++)
-        {
-            pBodies[ii]->pHydro->Refresh();
-        }
-    }
+    // if (timeBufferCount > 0)
+    // {
+    //     for(int ii=0; ii<numBodies; ii++)
+    //     {
+    //         pBodies[ii]->pHydro->Refresh();
+    //     }
+    // }
 }

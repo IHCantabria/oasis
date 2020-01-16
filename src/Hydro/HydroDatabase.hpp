@@ -56,6 +56,7 @@ public:
 
 	// Class Constructors
 	HydroDatabase(int incId, Body** incBodies, Simulation* pIncSim);
+	~HydroDatabase(){};
 
 	// Class Methods
 	arma::mat ComputeHydrostaticForces(void);
@@ -64,18 +65,16 @@ public:
 	arma::mat GetCog(void); // Interface method, it returns center of gravity
 	int GetNumBodies(void); // Returns the number of bodies in the database
 	int GetNumPointsIrf(void); // Interface mehtods, it returns the number of points of the IRF
-	void LoadHydrodynamicData(std::string file_path); // Loads the corresponding hydrodynamic data
-	void ReadHydroMechanicsHDF5(std::string filePath); // Leer inputs
+	arma::mat InterpolateWaveExcitation(void); // Interpolate First Order Wave Excitation forces using first order polynomial
 	void Refresh(void); // This method refresh the state of the object properties
 	int GetId(void);
+	// arma::mat GetInertiaMatrixInv(void);
 	void Print(void);
 
 	// Declare inherited virutal methods
-	arma::mat CalculateHydrodynamicForces(double time) {};
-	
-	
-	double CalculateHydrodynamicForces(double time) {};
-    void Load(void) {};	
+	arma::mat CalculateHydrodynamicForces(double time);
+	void LoadHydrodynamicData(std::string file_path); // Loads the corresponding hydrodynamic data
+
 };
 
 

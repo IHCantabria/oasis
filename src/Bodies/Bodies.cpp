@@ -322,16 +322,16 @@ void Body::UpdateBcps(void)
 }
 
 
-void Body::UpdateHydrostaticForces()
-{
-	hydrostaticForces = this->pHydro->ComputeHydrostaticForces();
-}
+// void Body::UpdateHydrostaticForces()
+// {
+// 	hydrostaticForces = this->pHydro->ComputeHydrostaticForces();
+// }
 
 
-void Body::UpdateRadiationForces()
-{
-	radiationForces = this->pHydro->ComputeRadiationForces();
-}
+// void Body::UpdateRadiationForces()
+// {
+// 	radiationForces = this->pHydro->ComputeRadiationForces();
+// }
 
 
 void Body::OpenOutputFilesASCII (std::string path)

@@ -6,7 +6,7 @@
 #include <string>
 #include <cstdio>
 #include "../BCPs/BCPs.hpp"
-#include "../Hydro/HydroForce.hpp"
+#include "../Hydro/HydroDatabase.hpp"
 
 class solver_data;
 class Simulation;
@@ -20,7 +20,7 @@ public:
 	BCP** pBodyBcps; // Array de pointers a los puntos de condicion de contorno
 	int* pDofs; // Array to store the number of degrees of freedom considered in the body
 	int* pIndexBcps; // Array to store the index of the boundary condition points
-	HydroForce* pHydro; // Hydrodynamnics body associated to the body
+	HydroDatabase* pHydro; // Hydrodynamnics body associated to the body
 	int hydroDatabaseIndex; // Index of the body in the associated hydrodynamic database, if any
 	std::string hydroDatabaseName; // Stores the hydrodynamic database name
 	Simulation* pSim; // Pointer to simulation instance
@@ -63,8 +63,8 @@ public:
 	void CloseOutputFilesASCII (void);
 	void StoreVelocities(void); // Store last step velocity into the velocity buffer matrix
 	void UpdateBcps(void); // Actualiza valores del BCP
-	void UpdateHydrostaticForces(void); // Update the value of the wave radiation forces the current step
-	void UpdateRadiationForces(void); // Update the value of the wave radiation forces the current step
+	// void UpdateHydrostaticForces(void); // Update the value of the wave radiation forces the current step
+	// void UpdateRadiationForces(void); // Update the value of the wave radiation forces the current step
 	void WriteOut(double t); // Escribir datos a fichero
 };
 
