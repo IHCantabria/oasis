@@ -1,6 +1,7 @@
 obj/
 bin/
 cases/
+tests/
 *.asv
 *.h5
 *.o
