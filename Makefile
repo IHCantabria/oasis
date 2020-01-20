@@ -6,13 +6,13 @@ INC_ARMADILLO_DIR = "D:/scientific_libraries/cpp/armadillo940/include"
 INC_HDF5_DIR = "C:/Program Files/HDF_Group/HDF5/1.10.5/include"
 IDIRS = -I$(INC_ARMADILLO_DIR) -I$(INC_HDF5_DIR)
 		
-LIB_LAPACK_DIR = "C:/ScientificLibraries/fortran90/lapack380"
-LIB_BLAS_DIR = "C:/ScientificLibraries/fortran90/blas380"
-LIB_ARMADILLO_DIR = "C:/ScientificLibraries/cpp/armadillo940/lib"
-LIB_HDF5_DIR = "C:/Program Files/HDF5-1.10.5-win64/lib"
+LIB_LAPACK_DIR = "D:/scientific_libraries/fortran90/lapack380"
+LIB_BLAS_DIR = "D:/scientific_libraries/fortran90/blas380"
+LIB_ARMADILLO_DIR = "D:/scientific_libraries/cpp/armadillo940/lib"
+LIB_HDF5_DIR = "D:/Program Files/HDF_Group/HDF5/1.10.5/lib"
 LDIRS = -L$(LIB_ARMADILLO_DIR) -L$(LIB_HDF5_DIR)
 		
-SCI_LIBS = -larmadillo -lgfortran -lquadmath "C:/Program Files/HDF5-1.10.5-win64/lib/hdf5.lib"
+SCI_LIBS = -larmadillo -lgfortran -lquadmath "C:/Program Files/HDF_Group/HDF5/1.10.5/lib/hdf5.lib"
 		
 else ifeq ($(USERNAME),rodriguezlua)
 LIB_LAPACK_DIR = "C:/ScientificLibraries/fortran90/lapack380"

@@ -148,8 +148,8 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 	//WriteASCII("output/accB.dat", accB, true);
 	for(int ii=0; ii<numBodies; ii++)
     {
-		// accB(arma::span(6*ii,6*(ii+1)-1), 0) = pBodies[ii]->pHydro->GetInertiaMatrixInv() * Fb(arma::span(6*ii,6*(ii+1)-1), 0);
-		accB(arma::span(6*ii,6*(ii+1)-1), 0) = *pBodies[ii]->pHydro->pTotalMass_inv * Fb(arma::span(6*ii,6*(ii+1)-1), 0);
+		accB(arma::span(6*ii,6*(ii+1)-1), 0) = pBodies[ii]->pHydro->GetInertiaMatrixInv() * Fb(arma::span(6*ii,6*(ii+1)-1), 0);
+		// accB(arma::span(6*ii,6*(ii+1)-1), 0) = *pBodies[ii]->pHydro->pTotalMass_inv * Fb(arma::span(6*ii,6*(ii+1)-1), 0);
 		pBodies[ii]->acc = accB(arma::span(6*ii,6*(ii+1)-1), 0);
 	}
 

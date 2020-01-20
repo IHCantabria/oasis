@@ -222,16 +222,34 @@ arma::mat HydroDatabase::ComputeRadiationForces()
 }
 
 
+arma::mat HydroDatabase::GetCog()
+{
+	return this->cog;
+}
+
+
 int HydroDatabase::GetId(void)
 {
 	return id;
 }
 
 
-// arma::mat HydroDatabase::GetInertiaMatrixInv(void)
-// {
-// 	return *(this->pTotalMass_inv);
-// }
+arma::mat HydroDatabase::GetInertiaMatrixInv(void)
+{
+	return *(this->pTotalMass_inv);
+}
+
+
+int HydroDatabase::GetNumBodies(void)
+{
+	this->numBodies;
+}
+
+
+int HydroDatabase::GetNumPointsIrf(void)
+{
+	this->numPointsIRF;
+}
 
 
 HydroDatabase::HydroDatabase(int incId, Body** incBody, Simulation* pIncSim): HydroForce()

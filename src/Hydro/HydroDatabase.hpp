@@ -68,7 +68,7 @@ public:
 	arma::mat InterpolateWaveExcitation(void); // Interpolate First Order Wave Excitation forces using first order polynomial
 	void Refresh(void); // This method refresh the state of the object properties
 	int GetId(void);
-	// arma::mat GetInertiaMatrixInv(void);
+	arma::mat GetInertiaMatrixInv(void);
 	void Print(void);
 
 	// Declare inherited virutal methods
