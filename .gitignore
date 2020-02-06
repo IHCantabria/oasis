@@ -4,7 +4,6 @@ bin/
 *.h5
 *.o
 *.exe
-*.txt
 *.mat
 *.bak
 *.log
