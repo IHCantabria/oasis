@@ -1,6 +1,8 @@
-obj/
 bin/
+build/
 cases/
+obj/
+output/
 tests/
 *.asv
 *.h5
@@ -10,7 +12,5 @@ tests/
 *.mat
 *.bak
 *.log
-output/
 compilar.sh
-.vscode/
 .out
