@@ -1,0 +1,5 @@
+
+{
+    "cmake.cmakePath":"${env:EASYBUILD_SOFTWARE_PREFIX}/CMake/3.9.1-GCCcore-6.3.0/bin/cmake",
+    "C_Cpp.default.configurationProvider": "vector-of-bool.cmake-tools"
+}
