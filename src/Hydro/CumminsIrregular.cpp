@@ -1,9 +1,11 @@
 
 #include <armadillo>
-#include "CumminsRegular.hpp"
+#include "CumminsIrregular.hpp"
+#include "../Simulations/Simulation.hpp"
+#include "../ODE_solvers/ODE_solvers.hpp"
 
 
-arma::mat CumminsRegular::ComputeFirstWaveExcForce()
+arma::mat CumminsIrregular::ComputeFirstWaveExcForce()
 {
 	// Create local variables
 	double time = pSim->pTimeSolver->t;
@@ -28,16 +30,7 @@ arma::mat CumminsRegular::ComputeFirstWaveExcForce()
 	return wave_force;
 }
 
-
-CumminsRegular::CumminsRegular(int incId, Body** incBodies, Simulation* pIncSim, double incWaveHeight, double incWavePeriod, double incWaveHeading): HydroDatabase(incId, incBodies, pIncSim)
-{
-    waveHeight = incWaveHeight;
-    wavePeriod = incWavePeriod;
-    waveHeading = incWavePeriod;
-}
-
-
-arma::mat CumminsRegular::CalculateHydrodynamicForces(double time)
+arma::mat CumminsIrregular::CalculateHydrodynamicForces(double time)
 {
     // Get hydrostatic forces
     arma::mat hydrostatic_force = this->ComputeHydrostaticForces();
@@ -47,4 +40,12 @@ arma::mat CumminsRegular::CalculateHydrodynamicForces(double time)
 
     // Calculate Wave exciting forces
 
+}
+
+
+CumminsIrregular::CumminsIrregular(int incId, Body** incBodies, Simulation* pIncSim, double incWaveHeight, double incWavePeriod, double incWaveHeading): HydroDatabase(incId, incBodies, pIncSim)
+{
+	waveHeight = incWaveHeight;
+    wavePeriod = incWavePeriod;
+    waveHeading = incWavePeriod;
 }

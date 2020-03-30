@@ -3,7 +3,7 @@
 #include "RegularWave.hpp"
 
 
-RegularWave::RegularWave()
+RegularWave::RegularWave(void)
 {
-    
+    double a = 0.0;
 }
