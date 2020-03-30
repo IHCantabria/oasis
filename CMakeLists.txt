@@ -1,0 +1,78 @@
+
+PROJECT(OASIS CXX)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.9)
+
+# Appends the cmake/modules path to MAKE_MODULE_PATH variable.
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules ${CMAKE_MODULE_PATH})
+
+# Get Git Version
+include(GetGitRevisionDescription)
+git_describe(VERSION --tags --dirty=-d)
+
+#parse the version information into pieces.
+string(REGEX REPLACE "^v([0-9]+)\\..*" "\\1" VERSION_MAJOR "${VERSION}")
+string(REGEX REPLACE "^v[0-9]+\\.([0-9]+).*" "\\1" VERSION_MINOR "${VERSION}")
+string(REGEX REPLACE "^v[0-9]+\\.[0-9]+\\.([0-9]+).*" "\\1" VERSION_PATCH "${VERSION}")
+string(REGEX REPLACE "^v[0-9]+\\.[0-9]+\\.[0-9]+(.*)" "\\1" VERSION_SHA1 "${VERSION}")
+set(VERSION_SHORT "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/version.cpp.in
+                ${CMAKE_CURRENT_BINARY_DIR}/version.cpp)
+set(version_file "${CMAKE_CURRENT_BINARY_DIR}/version.cpp")
+
+# Add source files
+set(OASIS_SOURCE_FILES 
+    "src/CommonTools.cpp" 
+    "src/main.cpp"
+    "src/MathTools.cpp"
+    "src/os_tools.cpp"
+    "src/BCPs/BCPs.cpp"
+    "src/BCPs/Winchies.cpp"
+    "src/BCPs/WinchiesController.cpp"
+    "src/Bodies/Bodies.cpp"
+    "src/Exceptions/Exception.cpp"
+    "src/Hydro/CumminsIrregular.cpp"
+    "src/Hydro/CumminsRegular.cpp"
+    "src/Hydro/HydroDatabase.cpp"
+    "src/Lines/Lines_Dyn.cpp"
+    "src/Lines/Lines_QS.cpp"
+    "src/ODE_solvers/ODE_solvers.cpp"
+    "src/SEM_math/quadrule.cpp"
+    "src/Simulations/Simulation.cpp"
+    "src/Spring/Spring.cpp"
+    "src/Waves/RegularWave.cpp"
+    )
+
+# Add include files
+set(OASIS_HEADER_FILES 
+    "src/CommonTools.hpp" 
+    "src/main.cpp"
+    "src/MathTools.hpp"
+    "src/os_tools.hpp"
+    "src/version.hpp"
+    "src/BCPs/BCPs.hpp"
+    "src/BCPs/Winchies.hpp"
+    "src/BCPs/WinchiesController.hpp"
+    "src/Bodies/Bodies.hpp"
+    "src/Exceptions/Exception.hpp"
+    "src/Hydro/CumminsIrregular.hpp"
+    "src/Hydro/CumminsRegular.hpp"
+    "src/Hydro/HydroDatabase.hpp"
+    "src/Lines/Lines.hpp"
+    "src/ODE_solvers/ODE_solvers.hpp"
+    "src/SEM_math/quadrule.hpp"
+    "src/Simulations/Simulation.hpp"
+    "src/Spring/Spring.hpp"
+    "src/Waves/RegularWave.hpp"
+    )
+
+# Join source and header files
+set(OASIS_FILES ${OASIS_SOURCE_FILES} ${OASIS_HEADER_FILES})
+
+#Add the version_file to the project build or it won't compile.
+# SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}")
+SET(CMAKE_EXE_LINKER_FLAGS  -static)
+ADD_DEFINITIONS(-DARMA_DONT_USE_WRAPPER)
+ADD_EXECUTABLE(${PROJECT_NAME} ${OASIS_FILES} ${version_file})
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC "$<BUILD_INTERFACE:$ENV{EASYBUILD_SOFTWARE_PREFIX}/Armadillo/9.800.4/include>" "$<BUILD_INTERFACE:$ENV{EASYBUILD_SOFTWARE_PREFIX}/OpenBLAS/0.2.19-GCC-6.3.0-2.27-LAPACK-3.7.0/include>")
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} "$ENV{EASYBUILD_SOFTWARE_PREFIX}/OpenBLAS/0.2.19-GCC-6.3.0-2.27-LAPACK-3.7.0/lib/libopenblas.a" -lgfortran -lquadmath -lpthread -lstdc++fs)
