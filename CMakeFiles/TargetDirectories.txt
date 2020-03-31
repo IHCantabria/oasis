@@ -1,3 +1,0 @@
-/home/projects/energia/developments/oasis/CMakeFiles/rebuild_cache.dir
-/home/projects/energia/developments/oasis/CMakeFiles/edit_cache.dir
-/home/projects/energia/developments/oasis/CMakeFiles/OASIS.dir
