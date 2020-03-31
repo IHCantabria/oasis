@@ -4,6 +4,8 @@ cases/
 obj/
 output/
 tests/
+CMakeFiles/
+CMakeCache.txt
 *.asv
 *.h5
 *.o
