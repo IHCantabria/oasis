@@ -18,10 +18,10 @@ public:
     CumminsIrregular(int incId, Body** incBodies, Simulation* pIncSim, double incWaveHeight, double incWavePeriod, double incWaveHeading);
 
     // Declare class methods
-    arma::mat ComputeFirstWaveExcForce(void);
-    arma::mat ComputeHydrostaticForces(void);
+    arma::mat ComputeFirstWaveExcForce();
+    inline arma::mat ComputeWaveExcForce();
     arma::mat CalculateHydrodynamicForces(double time);
-	arma::mat ComputeRadiationForces(void);
+    void InterpolateValues(void);
 
 };
 

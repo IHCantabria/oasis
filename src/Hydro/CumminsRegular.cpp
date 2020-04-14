@@ -1,6 +1,8 @@
 
 #include <armadillo>
 #include "CumminsRegular.hpp"
+#include "../Simulations/Simulation.hpp"
+#include "../ODE_solvers/ODE_solvers.hpp"
 
 
 arma::mat CumminsRegular::ComputeFirstWaveExcForce()
