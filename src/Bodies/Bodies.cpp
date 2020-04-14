@@ -112,7 +112,7 @@ void Body::LoadHydrodynamicDatabase(Body** hydroDatabaseBodies)
 	if (this->takeCOGHydroDatabase == 1)
 	{
 		// Load inital position
-		this->pos_init = this->pHydro->GetCog();
+		this->pos_init.rows(0, 2) = this->pHydro->GetCog().t();
 
 		// Add initial position to the global position
 		this->pos = this->pos + this->pos_init;
@@ -265,6 +265,8 @@ void Body::StoreVelocities()
 {
 	if (pSim->timeBufferCount < pSim->timeBufferSize)
 	{
+		std::cout << vel << "\n";
+		std::cout << velBuffer.submat(0, pSim->timeBufferCount, 5, pSim->timeBufferCount)
 		velBuffer.submat(0, pSim->timeBufferCount, 5, pSim->timeBufferCount) = vel;
 	}
 	else
