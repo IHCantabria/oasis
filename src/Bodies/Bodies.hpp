@@ -29,6 +29,8 @@ public:
 	int numDofs=0; // // Number of Degrees of freedom considered for the body
 	
 	// kinematic and Dynamic properties attributes
+	int velBufferSize=1e2; // Velocity Buffer size;
+	int velBufferCount=0; // Stores the positon of the last columun of the velocity buffer matrix filled.
 	arma::mat acc = arma::zeros(6,1); // Body acceleration w.r.t the global reference system
 	arma::mat bcpForces = arma::zeros(6,1); // Fuerzas que los BCPs ejercen sobre el cuerpo, en la referencia del CDG
 	arma::mat hydrostaticForces = arma::zeros(6, 1); // Storage for the hydrostatic forces
@@ -40,8 +42,6 @@ public:
 	arma::mat rotMat = arma::zeros(3,3); // Matriz de rotación
 	arma::mat vel = arma::zeros(6,1); // Body velocity w.r.t the global reference system
 	arma::mat velBuffer = arma::zeros(6, velBufferSize); // Velocity Buffer (global coords) in order to store the body velocities and calculate Duhamel's integral term
-	int velBufferSize=1e2; // Velocity Buffer size;
-	int velBufferCount=0; // Stores the positon of the last columun of the velocity buffer matrix filled.
 
 	FILE* pfile_DOF_1;
 	FILE* pfile_DOF_2;

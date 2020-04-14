@@ -265,8 +265,6 @@ void Body::StoreVelocities()
 {
 	if (pSim->timeBufferCount < pSim->timeBufferSize)
 	{
-		std::cout << vel << "\n";
-		std::cout << velBuffer.submat(0, pSim->timeBufferCount, 5, pSim->timeBufferCount)
 		velBuffer.submat(0, pSim->timeBufferCount, 5, pSim->timeBufferCount) = vel;
 	}
 	else
