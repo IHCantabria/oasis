@@ -16,7 +16,6 @@
 arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 {
     numCallsSysFun++;
-
     //std::cout << "Main::fun - At first" << std::endl; 
 	arma::mat yprime = arma::zeros(size(y));
 	int i0;
@@ -671,6 +670,11 @@ void Simulation::ReadBodiesASCII()
             time_buffer_size = 10*this->pBodies[ii]->pHydro->GetNumPointsIrf();
         }
     }
+    for (int ii=0; ii<this->numBodies; ii++)
+    {
+        this->pBodies[ii]->velBufferSize = time_buffer_size;
+        this->pBodies[ii]->velBuffer = arma::zeros(6, time_buffer_size);
+    }
     this->timeBufferSize = time_buffer_size;
     this->timeBuffer = arma::zeros(1, time_buffer_size);
 
@@ -1001,8 +1005,8 @@ void Simulation::Run()
 	        // std::cout<< "In Simulation::Run --> Call to UpdateSystem() was succesfull "<< std::endl;
 	    }
         // Print out time if any
-        /**
         std::cout<< "    t = " << pTimeSolver->t << " s"  << std::endl;
+        /**
         for(int ii=0; ii<numLines; ii=ii+1) pLines[ii]->WriteOut(pTimeSolver->t);
         for(int ii=0; ii<numBodies; ii=ii+1) pBodies[ii]->WriteOut(pTimeSolver->t);
         **/
@@ -1253,6 +1257,7 @@ Simulation::Simulation(std::string incProjectPath, std::string incDataFormat)
 void Simulation::UpdateSystem()
 {
     // Update time vector if any
+    bool restoreMatrix = false;
     timeBufferCount++;
     if (timeBufferCount < timeBufferSize)
     {
@@ -1264,13 +1269,14 @@ void Simulation::UpdateSystem()
         timeBufferNew.cols(0, pBodies[0]->pHydro->GetNumPointsIrf()-1) = timeBuffer.cols(timeBufferSize-pBodies[0]->pHydro->GetNumPointsIrf(), timeBufferSize-1);
         timeBuffer = timeBufferNew;
         timeBufferCount = pBodies[0]->pHydro->GetNumPointsIrf()-1;
+        restoreMatrix = true;
     }
 
     // Update bodies velocity
     int ini = 0;
     for(int ii=0; ii<numBodies; ii++)
 	{
-		pBodies[ii]->StoreVelocities();
+		pBodies[ii]->StoreVelocities(restoreMatrix);
 		ini = ini + 6;
 	}
 

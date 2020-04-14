@@ -261,9 +261,9 @@ void Body::ReadPropertiesASCII(FILE* pFile)
 }
 
 
-void Body::StoreVelocities()
+void Body::StoreVelocities(bool restoreMatrix)
 {
-	if (pSim->timeBufferCount < pSim->timeBufferSize)
+	if (!restoreMatrix)
 	{
 		velBuffer.submat(0, pSim->timeBufferCount, 5, pSim->timeBufferCount) = vel;
 	}

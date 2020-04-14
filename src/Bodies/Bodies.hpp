@@ -29,7 +29,7 @@ public:
 	int numDofs=0; // // Number of Degrees of freedom considered for the body
 	
 	// kinematic and Dynamic properties attributes
-	int velBufferSize=1e2; // Velocity Buffer size;
+	int velBufferSize=0; // Velocity Buffer size;
 	int velBufferCount=0; // Stores the positon of the last columun of the velocity buffer matrix filled.
 	arma::mat acc = arma::zeros(6,1); // Body acceleration w.r.t the global reference system
 	arma::mat bcpForces = arma::zeros(6,1); // Fuerzas que los BCPs ejercen sobre el cuerpo, en la referencia del CDG
@@ -41,7 +41,7 @@ public:
 	arma::mat radiationForces = arma::zeros(6, 1); // Storage for the wave radiation forces
 	arma::mat rotMat = arma::zeros(3,3); // Matriz de rotación
 	arma::mat vel = arma::zeros(6,1); // Body velocity w.r.t the global reference system
-	arma::mat velBuffer = arma::zeros(6, velBufferSize); // Velocity Buffer (global coords) in order to store the body velocities and calculate Duhamel's integral term
+	arma::mat velBuffer; // Velocity Buffer (global coords) in order to store the body velocities and calculate Duhamel's integral term
 
 	FILE* pfile_DOF_1;
 	FILE* pfile_DOF_2;
@@ -61,7 +61,7 @@ public:
 	void ReadPropertiesASCII(FILE* filePointer); // Leer datos de los cuerpos
 	void OpenOutputFilesASCII(std::string path);
 	void CloseOutputFilesASCII (void);
-	void StoreVelocities(void); // Store last step velocity into the velocity buffer matrix
+	void StoreVelocities(bool restoreMatrix); // Store last step velocity into the velocity buffer matrix
 	void UpdateBcps(void); // Actualiza valores del BCP
 	// void UpdateHydrostaticForces(void); // Update the value of the wave radiation forces the current step
 	// void UpdateRadiationForces(void); // Update the value of the wave radiation forces the current step

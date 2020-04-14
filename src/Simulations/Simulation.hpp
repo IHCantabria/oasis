@@ -45,7 +45,7 @@ public:
     // Declare time simulation attributes
     int numCallsSysFun=0;
     BDF* pTimeSolver;
-    int timeBufferSize=1e2;
+    int timeBufferSize=0;
 	arma::mat timeBuffer = arma::zeros(1, timeBufferSize);
     int timeBufferCount=0;
 

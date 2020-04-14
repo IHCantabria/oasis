@@ -43,10 +43,10 @@ void HydroDatabase::ComputeIRF(void)
 	}
 	
 	// Calculate maximum time allowed
-	double dt=0.01;
+	double dt=0.1;
 	double df = (*pFrequencies)(1)-(*pFrequencies)(0);
 	double tmax = 1/df/2.0;
-	IRFTime = arange(0, tmax, dt);
+	IRFTime = arange(0, 120.0, dt);
 	
 	// Allocate IRF matrix
 	numPointsIRF = IRFTime.n_cols;
@@ -242,13 +242,13 @@ arma::mat HydroDatabase::GetInertiaMatrixInv(void)
 
 int HydroDatabase::GetNumBodies(void)
 {
-	this->numBodies;
+	return this->numBodies;
 }
 
 
 int HydroDatabase::GetNumPointsIrf(void)
 {
-	this->numPointsIRF;
+	return this->numPointsIRF;
 }
 
 
@@ -412,6 +412,9 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 	FILE* p_file_pointer = fopen(pppPath.c_str(), "r");
 	fscanf(p_file_pointer, "%lf %d %d %[^\n]\n", &waveAmplitude, &numPeriodExc, &numHeadingExc, buffer_line);
 	fclose(p_file_pointer);
+
+	// Compute IRF function
+	this->ComputeIRF();
 
 }
 
