@@ -1,9 +1,0 @@
-1 // Number of bodies
-////////////////// 
-////////////////// New body [1]
-////////////////// 
-6 // Numero de grados de libertad considerados
-1 2 3 4 5 6 // Grados de libertad considerados
-4 // Numero de BCPs sobre el cuerpo
-5 6 7 8 // Indices de los BCPs
-0.0 0.0 0.0 0.0 0.0 0.0 // Posición inicial del cuerpo
