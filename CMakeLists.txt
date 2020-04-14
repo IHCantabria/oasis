@@ -5,6 +5,8 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.7)
 # Sets the compiler
 set(CMAKE_C_COMPILER $ENV{EBROOTGCCCORE}/bin/gcc)
 set(CMAKE_CXX_COMPILER $ENV{EBROOTGCCCORE}/bin/g++)
+set(CMAKE_LINKER /usr/bin/ld)
+
 
 # Appends the cmake/modules path to MAKE_MODULE_PATH variable.
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules ${CMAKE_MODULE_PATH})
@@ -25,13 +27,10 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/version.cpp.in
 set(version_file "${CMAKE_CURRENT_BINARY_DIR}/version.cpp")
 
 # Add target link libraries
-set(EXTERNAL_LIBS_INCLUDE_PATH "$<BUILD_INTERFACE:$ENV{EASYBUILD_SOFTWARE_PREFIX}/Armadillo/9.800.4/include>" 
-"$<BUILD_INTERFACE:$ENV{EASYBUILD_SOFTWARE_PREFIX}/OpenBLAS/0.2.19-GCC-6.3.0-2.27-LAPACK-3.7.0/include>"
-"$<BUILD_INTERFACE:$ENV{EBROOTArmadillo}/include>"
+set(EXTERNAL_LIBS_INCLUDE_PATH "$<BUILD_INTERFACE:$ENV{EBROOTArmadillo}/include>"
 "$<BUILD_INTERFACE:$ENV{EBROOTOPENBLAS}/include>")
 
-set(EXTERNAL_LIBS_PATH "$ENV{EASYBUILD_SOFTWARE_PREFIX}/OpenBLAS/0.2.19-GCC-6.3.0-2.27-LAPACK-3.7.0/lib/libopenblas.a"
-    "$ENV{EBROOTOPENBLAS}/libopenblas.a"
+set(EXTERNAL_LIBS_PATH "$ENV{EBROOTOPENBLAS}/lib/libopenblas.a"
     )
 
 # Add source files
@@ -45,6 +44,7 @@ set(OASIS_SOURCE_FILES
     "src/BCPs/WinchiesController.cpp"
     "src/Bodies/Bodies.cpp"
     "src/Exceptions/Exception.cpp"
+    "src/Simulations/Simulation.cpp"
     "src/Hydro/CumminsIrregular.cpp"
     "src/Hydro/CumminsRegular.cpp"
     "src/Hydro/HydroDatabase.cpp"
@@ -52,7 +52,6 @@ set(OASIS_SOURCE_FILES
     "src/Lines/Lines_QS.cpp"
     "src/ODE_solvers/ODE_solvers.cpp"
     "src/SEM_math/quadrule.cpp"
-    "src/Simulations/Simulation.cpp"
     "src/Spring/Spring.cpp"
     "src/Waves/RegularWave.cpp"
     )
@@ -85,8 +84,8 @@ set(OASIS_FILES ${OASIS_SOURCE_FILES} ${OASIS_HEADER_FILES})
 
 #Add the version_file to the project build or it won't compile.
 # SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}")
-SET(CMAKE_EXE_LINKER_FLAGS  -static)
-ADD_DEFINITIONS(-DARMA_DONT_USE_WRAPPER)
+#SET(CMAKE_EXE_LINKER_FLAGS  -static)
+ADD_DEFINITIONS(-DARMA_DONT_USE_WRAPPER -DARMA_USE_HDF5)
 ADD_EXECUTABLE(${PROJECT_NAME} ${OASIS_FILES} ${version_file})
 TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${EXTERNAL_LIBS_INCLUDE_PATH})
-TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${EXTERNAL_LIBS_PATH} -lgfortran -lquadmath -lpthread -lstdc++fs)
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${EXTERNAL_LIBS_PATH} -lgfortran -lquadmath -lpthread -lstdc++fs -lhdf5)
