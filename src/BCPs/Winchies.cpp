@@ -37,7 +37,7 @@ void Winchie::computeWinchie(void){
 		throw std::exception();
 	}
 
-	alpha = (radius*F - tau)/inertia;
+	alpha = (radius*F - tau)/inertia - 0.5*omega; // Damping harcodeado
 
 	LineW->dL = LineW->dL0 * (LineW->L + radius * theta) / LineW->L;
 

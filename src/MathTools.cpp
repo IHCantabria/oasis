@@ -3,7 +3,9 @@
 #include <sstream>
 #include <cstdio>
 #include <armadillo>
+#include <tuple>
 #include "MathTools.hpp"
+#include "Exceptions/Exception.hpp"
 
 
 
@@ -105,4 +107,60 @@ double trapzi(arma::mat t, arma::mat y)
 	}
 	
 	return int_value;
+}
+
+
+std::tuple<arma::mat,arma::mat> upcrossing(arma::mat t, arma::mat u)
+{
+    
+    // Función que, para una serie temporal de altura de ola (t,u), calcula los 
+    // tiempos entre upcrossing y upcrossing (periodos T) y las alturas de ola 
+    // (H) en tales periodos.
+    //
+    //
+    //  Alvaro Rodriguez Luis
+    //  Feb. 2020
+    //  IH Cantabria
+
+    // Inicio los outputs
+    arma::mat T; arma::mat H;
+    // Tolerancia para considerar un valor como cero.
+    double tol = 1e-14;
+    // Reordeno como vectores columna los inputs
+    int nt = t.n_elem; int nu = u.n_elem;
+    if(nt!=nu)
+   	{
+   		std::stringstream ss;
+	    ss << "upcrossing: t and u must be the same length. \n";
+	    throw ValueError(ss.str());
+   	}
+
+    u = arma::reshape(u,nu,1); t = arma::reshape(t,nu,1);
+
+    // Busco los upcrossings y los tiempos en los que se producen
+    arma::mat pos = arma::zeros(size(u)); 
+    pos.elem(arma::find(u > 0.0)) += 1;
+    arma::uvec ind = arma::find(arma::diff(pos)>0);
+    arma::mat times = t.elem(ind) - u.elem(ind)%(t.elem(ind+1)-t.elem(ind))/(u.elem(ind+1)-u.elem(ind));
+    int N = times.n_elem;
+
+    if (N>1)
+    {
+    	T = arma::diff(times);
+    	H = arma::zeros(size(T));
+    	arma::mat range;
+    	for(int ii=0; ii<N-1; ii++)
+		{
+			range = u.rows(ind(ii),ind(ii+1));
+			H(ii) = range.max()-range.min();
+		}
+    }
+    else
+    {
+    	std::stringstream ss;
+	    ss << "upcrossing: could not find enough upcrossings. \n";
+	    throw ValueError(ss.str());
+    }
+
+    return std::make_tuple(T,H);
 }

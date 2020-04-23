@@ -87,8 +87,8 @@ void BCP::ReadPropertiesASCII(FILE* &pFilePointer)
 		std::cout << actuatorFileName.c_str() << std::endl;
 	}
 
-	// Check Winch ID and Fairlead coexistence
-	if ((winchId !=0) && (this->GetType() == 2))
+	// Check Winch ID and joint coexistence
+	if ((winchId !=0) && (this->GetType() == 3))
 	{
 		std::stringstream ss;
 		ss << "Actuator and Winch boundary conditions defined at the same BCP --> BCP num: " << this->GetId()+1;

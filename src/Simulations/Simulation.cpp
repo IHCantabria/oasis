@@ -10,6 +10,7 @@
 #include "../os_tools.hpp"
 #include "../Bodies/Bodies.hpp"
 #include "../BCPs/BCPs.hpp"
+#include "../Waves/Wave.hpp"
 #include "../ODE_solvers/ODE_solvers.hpp"
 
 
@@ -127,7 +128,13 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 	arma::mat Fe = arma::zeros(6, 1);
     for (int ii=0; ii<numBodies; ii++)
     {
-        Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  pBodies[ii]->pHydro->CalculateHydrodynamicForces(time);
+
+
+	//Fh = pBodies[ii]->pHydro->ComputeHydrostaticForces();
+        //Fr = pBodies[ii]->pHydro->ComputeRadiationForces();
+        //Fe = pBodies[ii]->pHydro->ComputeFirstWaveExcForce();
+        //Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  Fe - (Fr + Fh);        
+	Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  pBodies[ii]->pHydro->CalculateHydrodynamicForces(time);
     }
 
 	// Compute forces on BCPs
@@ -361,12 +368,15 @@ void Simulation::LoadCase()
 
     // Read Components Data
     this->ReadBodies();
-    //this->ReadHydrodynamicsHDF5();
+    this->ReadWaves();
     this->ReadLines();
     this->ReadBcps();
     if (useWinches)
     {
         this->ReadWinches();
+        this->WinchesController.set_WinchieController(numWinches, pWinches);
+        this->WinchesController.leer_datosWinchieController();
+        this->WinchesController.controlWinchies();
     }
     this->ReadSprings();
 
@@ -700,38 +710,6 @@ void Simulation::ReadBodiesHDF5()
 }
 
 
-// void Simulation::ReadHydrodynamicsHDF5()
-// {
-//     std::cout << "--> Reading Hydrodynamics Properties (HDF5 format)" << std::endl;
-//     // Read associated hydrodynamics
-//     std::string file_path = JoinPath(inputFolderPath, "cajon1_LC1.ehydb");
-//     for (int ii=0; ii<numBodies; ii++)
-//     {
-//         pBodies[ii]->pHydro = new HydroDatabase(ii, pBodies, this);
-//         pBodies[ii]->pHydro->ReadHydroMechanicsHDF5(file_path);
-//         pBodies[ii]->pHydro->ComputeIRF();
-//         std::cout << "Structural Mass (2,2): " << (*pBodies[ii]->pHydro->pStructuralMass)(2,2) << std::endl;
-//         std::cout << "Added Mass Hf (2,2): " << (*pBodies[ii]->pHydro->pAddedMassHf[ii])(2,2) << std::endl;
-//         std::cout << "Stiffness (2,2): " << (*pBodies[ii]->pHydro->pHydrostaticStiffness)(2,2) << std::endl;
-//         std::cout << "This is the time vector..." << std::endl;
-//     }
-
-//     // Check time buffere w.r.t IRF size
-//     if (this->timeBufferSize < 10*pBodies[0]->pHydro->numPointsIRF)
-//     {
-//         this->timeBufferSize = 10*pBodies[0]->pHydro->numPointsIRF;
-//         this->timeBuffer = arma::zeros(1, this->timeBufferSize);
-
-//         for (int ii=0; ii<numBodies; ii++)
-//         {
-//             pBodies[ii]->velBufferSize = 10*pBodies[ii]->pHydro->numPointsIRF;
-//             pBodies[ii]->velBuffer = arma::zeros(6, pBodies[ii]->velBufferSize);
-//         }
-//     }
-//     std::cout << "----> Hydrodynamic Properties Read" << std::endl;
-// }
-
-
 void Simulation::ReadLines()
 {
     (this->*pReadLines)();
@@ -930,6 +908,126 @@ void Simulation::ReadPropertiesHDF5()
 }
 
 
+void Simulation::ReadWaves()
+{
+    (this->*pReadWaves)();
+}
+
+
+void Simulation::ReadWavesASCII()
+{
+	std::cout << "--> Reading Waves (ASCII format)" << std::endl;
+    std::string file_path = JoinPath(inputFolderPath, "dataWaves.dat");
+    FILE* file_pointer = fopen(file_path.c_str(), "r");
+	
+	if (file_pointer == NULL)
+	{
+        std::stringstream ss;
+        ss << "Not possible to open the file: dataWaves.dat\n    ->Dir: " << inputFolderPath << std::endl;
+        throw IOError(ss.str());
+	}
+	
+    char bufferLine [1000];
+
+    //Ignoro las tres primeras lineas
+	for(int ii=0; ii<3; ii++)
+	{
+		fgets(bufferLine, sizeof(bufferLine), file_pointer);
+	}
+
+    // Get wave type line
+    char wave_type [1000];
+    fgets(wave_type, sizeof(wave_type), file_pointer);
+    double H; double T; double D;
+    fscanf(file_pointer, "%lf %[^\n]\n", &H, bufferLine);
+    fscanf(file_pointer, "%lf %[^\n]\n", &T, bufferLine);
+    fscanf(file_pointer, "%lf %[^\n]\n", &D, bufferLine);
+
+    // Read body
+    if (strncmp(wave_type, "REG", 3) == 0)
+    {
+        pWave = new RegularWave(H,T,D);
+    }
+    else
+    {
+        if (strncmp(wave_type, "IRR", 3) == 0)
+		{
+		    pWave = new IrregularWave(H,T,D);
+		    for(int ii=0; ii<3; ii++)
+			{
+				fgets(bufferLine, sizeof(bufferLine), file_pointer);
+			}
+			fscanf(file_pointer, "%d %[^\n]\n", &pWave->specType_flag, bufferLine);
+			fgets(bufferLine, sizeof(bufferLine), file_pointer);
+			fscanf(file_pointer, "%lf %[^\n]\n", &pWave->gamma, bufferLine);
+			fscanf(file_pointer, "%lf %[^\n]\n", &pWave->s, bufferLine);
+			fscanf(file_pointer, "%lf %[^\n]\n", &pWave->dtheta, bufferLine);
+			fscanf(file_pointer, "%lf %[^\n]\n", &pWave->rel_tol, bufferLine);
+			fscanf(file_pointer, "%lf %[^\n]\n", &pWave->dt, bufferLine);
+			fgets(bufferLine, sizeof(bufferLine), file_pointer);
+			char cWaveDatabaseName [1000];
+			fscanf(file_pointer, "%s %[^\n]\n", cWaveDatabaseName, bufferLine);
+			pWave->waveDatabaseName = cWaveDatabaseName;
+		}
+		else
+		{
+		    std::stringstream ss;
+		    ss << "Error while parsing file: dataWaves.dat; Unexpected wave type. \n";
+		    throw ValueError(ss.str());
+		}
+    }
+
+    // Close file
+    fclose(file_pointer);
+
+    // Show inputs
+    if (true)
+    {
+    	if (strncmp(wave_type, "REG", 3) == 0)
+    	{
+    		std::cout << "Wave type: Regular" << std::endl;
+    		std::cout << "Wave height: " << H << std::endl;
+    		std::cout << "Wave period: " << T << std::endl;
+    		std::cout << "Wave heading: " << D << std::endl;
+    	}
+    	else
+    	{
+    		std::cout << "Wave type: Irregular" << std::endl;
+    		std::cout << "Wave significant height: " << H << std::endl;
+    		std::cout << "Wave peak period: " << T << std::endl;
+    		std::cout << "Wave heading: " << D << std::endl;
+    		if (pWave->specType_flag==1)
+    		{
+    			std::cout << "Wave peak enhacement factor: " << pWave->gamma << std::endl;
+    			std::cout << "Wave directional spreading: " << pWave->s << std::endl;
+    			std::cout << "Wave directional step: " << pWave->dtheta << std::endl;
+    			std::cout << "Relative tolerance for wave check: " << pWave->rel_tol << std::endl;
+    			std::cout << "Time step for wave check: " << pWave->dt << std::endl;
+    		}
+    		else
+    		{
+    			std::cout << "Wave base data file name: " << pWave->waveDatabaseName << std::endl;
+    		}
+    	}
+    }
+
+    std::cout << "----> Waves Read" << std::endl;
+
+    pWave->t_sim = simulationTime;
+    pWave->GetWaveSpectrum();
+}
+
+
+void Simulation::ReadWavesHDF5()
+{
+	std::cout << "--> Reading Waves (HDF5 format)" << std::endl;
+    std::stringstream ss;
+    ss << "Method ReadWavesHDF5 in class Simulation not implemented yet.";
+    throw NotImplementedError(ss.str());
+    std::cout << "----> Simulation Properties Read" << std::endl;
+}
+
+
 void Simulation::ReadWinches()
 {
     (this->*pReadWinches)();
@@ -1005,7 +1103,7 @@ void Simulation::Run()
 	        // std::cout<< "In Simulation::Run --> Call to UpdateSystem() was succesfull "<< std::endl;
 	    }
         // Print out time if any
-        std::cout<< "    t = " << pTimeSolver->t << " s"  << std::endl;
+        //std::cout<< "    t = " << pTimeSolver->t << " s"  << std::endl;
         /**
         for(int ii=0; ii<numLines; ii=ii+1) pLines[ii]->WriteOut(pTimeSolver->t);
         for(int ii=0; ii<numBodies; ii=ii+1) pBodies[ii]->WriteOut(pTimeSolver->t);
@@ -1224,6 +1322,7 @@ Simulation::Simulation(std::string incProjectPath, std::string incDataFormat)
         inputFolderPath = JoinPath(incProjectPath, "input");
         outputFolderPath = JoinPath(incProjectPath, "output");
         pReadProperties = &Simulation::ReadPropertiesASCII;
+        pReadWaves = &Simulation::ReadWavesASCII;
         pReadBcps = &Simulation::ReadBcpsASCII;
         pReadBodies = &Simulation::ReadBodiesASCII;
         pReadLines = &Simulation::ReadLinesASCII;
@@ -1237,6 +1336,7 @@ Simulation::Simulation(std::string incProjectPath, std::string incDataFormat)
         inputFolderPath = incProjectPath;
         outputFolderPath = incProjectPath;
         pReadProperties = &Simulation::ReadPropertiesHDF5;
+        pReadWaves = &Simulation::ReadWavesHDF5;
         pReadBcps = &Simulation::ReadBcpsHDF5;
         pReadBodies = &Simulation::ReadBodiesHDF5;
         pReadLines = &Simulation::ReadLinesHDF5;

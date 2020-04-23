@@ -6,8 +6,10 @@
 #include "../Bodies/Bodies.hpp"
 #include "../BCPs/BCPs.hpp"
 #include "../BCPs/Winchies.hpp"
+#include "../BCPs/WinchiesController.hpp"
 #include "../Lines/Lines.hpp"
 #include "../Spring/Spring.hpp"
+#include "../Waves/Wave.hpp"
 
 class BDF;
 
@@ -59,6 +61,8 @@ public:
     Line** pLines;
     Spring** pSprings;
     Winchie** pWinches;
+    WinchieController WinchesController;
+    Wave* pWave;
     int numAnchorBcps=0;
     int numBcps=0;
     int numBodies=0;
@@ -80,6 +84,7 @@ public:
     void (Simulation::*pReadLines)(void);
     void (Simulation::*pReadSprings)(void);
     void (Simulation::*pReadProperties)(void);
+    void (Simulation::*pReadWaves)(void);
     void (Simulation::*pReadWinches)(void);
     void PrintSetup(void);
     void ReadBcps(void);
@@ -88,7 +93,6 @@ public:
     void ReadBodies(void);
     void ReadBodiesASCII(void);
     void ReadBodiesHDF5(void);
-    void ReadHydrodynamicsHDF5(void);
     void ReadLines(void);
     void ReadLinesASCII(void);
     void ReadLinesHDF5(void);
@@ -101,6 +105,9 @@ public:
     void ReadProperties(void);
     void ReadPropertiesASCII(void);
     void ReadPropertiesHDF5(void);
+    void ReadWaves(void);
+    void ReadWavesASCII(void);
+    void ReadWavesHDF5(void);
 
     // Declare general purpose class methods
     arma::mat CalculateSystemDynamics(double time, arma::mat y);

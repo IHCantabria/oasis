@@ -235,9 +235,12 @@ void Line::SEM_computeF(void)
 	drdsdt = (D * vel) * (2.0/dL0);
 
 	norm_drds = sqrt(pow(drds.col(0),2) + pow(drds.col(1),2) + pow(drds.col(2),2));
+	arma::mat strain = 0.5*((drds.col(0) % drds.col(0) + drds.col(1) % drds.col(1) + drds.col(2) % drds.col(2)) - dL/dL0);
+
 	dedt = drds.col(0) % drdsdt.col(0) + drds.col(1) % drdsdt.col(1) + drds.col(2) % drdsdt.col(2);
 
-	T = EA * (norm_drds - dL/dL0 + beta * dedt);
+	//T = EA * (norm_drds - dL/dL0 + beta * dedt);
+	T = EA * (strain + beta * dedt);
 
 	if (flag_tension == 2){
 		//T = 0.5*(T + arma::abs(T));

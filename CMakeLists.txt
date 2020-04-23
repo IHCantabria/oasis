@@ -44,6 +44,7 @@ set(OASIS_SOURCE_FILES
     "src/BCPs/WinchiesController.cpp"
     "src/Bodies/Bodies.cpp"
     "src/Exceptions/Exception.cpp"
+    "src/Waves/Wave.cpp"
     "src/Simulations/Simulation.cpp"
     "src/Hydro/CumminsIrregular.cpp"
     "src/Hydro/CumminsRegular.cpp"
@@ -53,7 +54,6 @@ set(OASIS_SOURCE_FILES
     "src/ODE_solvers/ODE_solvers.cpp"
     "src/SEM_math/quadrule.cpp"
     "src/Spring/Spring.cpp"
-    "src/Waves/RegularWave.cpp"
     )
 
 # Add include files
@@ -74,9 +74,9 @@ set(OASIS_HEADER_FILES
     "src/Lines/Lines.hpp"
     "src/ODE_solvers/ODE_solvers.hpp"
     "src/SEM_math/quadrule.hpp"
+    "src/Waves/Wave.hpp"
     "src/Simulations/Simulation.hpp"
     "src/Spring/Spring.hpp"
-    "src/Waves/RegularWave.hpp"
     )
 
 # Join source and header files
