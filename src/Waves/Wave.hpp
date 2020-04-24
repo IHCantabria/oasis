@@ -14,23 +14,31 @@ public:
     double period;
     double heading;
     
-    double t_sim;
+    double simulationTime;
     double df;
     double dw;
     double dt;
     double dtheta;
 
-    int nPeriods;
+    int num_comps;
+    int num_points;
     arma::mat periods;
     arma::mat freqs;
     arma::mat ang_freqs;
-    int nHeadings;
+    int num_headings;
     arma::mat headings;
     arma::mat S_w;
     arma::mat g_theta;
 
     arma::mat amplitudes;
     arma::mat phases;
+
+    double gravity;
+    double waterDepth;
+    arma::mat lambdas;
+    arma::mat k;
+    arma::mat kx;
+    arma::mat ky;
 
     // Variables for irregular waves
     int specType_flag;
@@ -43,7 +51,13 @@ public:
     Wave(double H, double T, double D);
 
     // Methods
+
     virtual void GetWaveSpectrum(void) = 0;
+    void CheckBreakingWave(void);
+    void GetWaveLengths(void);
+    double solve_lambda(double T);
+    double f_lambda(double lambda, double T);
+    double df_lambda(double lambda, double T);
 };
 
 class RegularWave: public Wave

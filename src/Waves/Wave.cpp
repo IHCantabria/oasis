@@ -12,16 +12,94 @@ Wave::Wave(double H, double T, double D)
     heading = D;
 }
 
+void Wave::CheckBreakingWave(void)
+{
+    std::cout << "--> Checking wave breaking limits." << std::endl;
+
+    double lambda = solve_lambda(period);
+	double hL = waterDepth/lambda;
+
+    double hmax;
+
+    if (hL>0.108)
+    {
+    	hmax = 0.142*tanh(2.0*pi*hL)*lambda;
+    }
+    else if (hL<=0.108)
+    {
+    	hmax = 0.78*waterDepth;
+    }
+
+    if (height>hmax)
+    {
+    	std::stringstream ss;
+	    ss << "The water is outside of the breaking limits. \n";
+	    throw ValueError(ss.str());
+    }
+    else
+    {
+    	std::cout << "--> Wave within wave breaking limits." << std::endl;
+    }
+}
+
+void Wave::GetWaveLengths(void)
+{
+	lambdas = arma::zeros(size(periods)); double T;
+	for(int ii=0; ii<num_comps; ii++)
+	{
+		T = arma::as_scalar(periods(ii,0));
+		lambdas(ii,0) = solve_lambda(T);
+	}
+	k = 2.0*pi/lambdas;
+	arma::mat cos_theta = arma::cos(pi/180.0*headings.t());
+	arma::mat sin_theta = arma::sin(pi/180.0*headings.t());
+	kx = k*cos_theta; ky = k*sin_theta;
+}
+
+
+double Wave::solve_lambda(double T)
+{
+	double lambda = gravity*T*T/(2.0*pi);
+	double f = f_lambda(lambda,T); double df = 0;
+	int ii = 0; int nIterMax = 100; double atol = 1e-6;
+	while ((abs(f)>atol)&&(ii<nIterMax))
+	{
+		df = df_lambda(lambda,T);
+		lambda = lambda - f/df;
+		f = f_lambda(lambda,T);
+		ii++;
+	}
+
+	if (abs(f)>atol)
+	{
+		std::stringstream ss;
+	    ss << "Convergence failed for computing wave length. \n";
+	    throw ValueError(ss.str());
+	}
+	return lambda;
+}
+
+double Wave::f_lambda(double lambda, double T)
+{
+	return gravity*T*T/(2.0*pi)*tanh(2.0*pi*waterDepth/lambda)-lambda;
+}
+
+double Wave::df_lambda(double lambda, double T)
+{
+	return -gravity*T*T*waterDepth/(lambda*lambda*cosh(2.0*pi*waterDepth/lambda))-1.0;
+}
+
 void RegularWave::GetWaveSpectrum(void)
 {
-	nPeriods = 1;
-	nHeadings = 1;
-	df = 1/t_sim; dw = 2*pi*df;
+	num_comps = 1;
+	num_headings = 1;
+	df = 1.0/simulationTime; dw = 2.0*pi*df;
 	periods = arma::ones(1,1)*period;
 	ang_freqs = arma::ones(1,1)*(pi/period);
 	headings = arma::ones(1,1)*heading;
 	amplitudes = arma::ones(1,1)*height;
 	phases = arma::zeros(1,1);
+	GetWaveLengths();
 }
 
 
@@ -30,35 +108,48 @@ void IrregularWave::GetWaveSpectrum(void)
 	if (specType_flag == 1)
 	{
 		std::cout << "--> Computing Wave Spectrum (JONSWAP)" << std::endl;
-		t_sim = std::max(t_sim,120.0);
-		df = 1.0/t_sim; dw = 2*pi*df;
-		freqs = arma::regspace(0,df,1.0/(2.0*dt));
-		periods = 1.0/freqs; nPeriods = periods.n_elem;
+
+		simulationTime = std::max(simulationTime,3600.0);
+		num_points = round(simulationTime/dt + 1);
+		num_comps = floor(num_points/2.0)+1;
+		freqs = arma::linspace(0,1.0/(2.0*dt),num_comps);
+		periods = 1.0/freqs;
+		df = arma::as_scalar(freqs(1,0)); dw = 2.0*pi*df;
+
 		GetJonswapSpectrum(); S_w(0,0) = 0.0;
 
-		if (s>1)
+		if (s>1.0)
 		{
 			headings = arma::regspace(heading-90,dtheta,heading+90);
-			nHeadings = headings.n_elem;
+			num_headings = headings.n_elem;
 			GetSpreadingFunction();
 		}
 		else
 		{
 			headings = arma::ones(1,1)*heading;
-			nHeadings = 1;
+			num_headings = 1;
 			g_theta = arma::ones(1,1);
+			dtheta = 180.0/pi;
 		}
 
-		amplitudes = sqrt(2.0*S_w*g_theta.t()*df*dtheta*pi/180.0);
+		amplitudes = sqrt(2.0*(S_w*g_theta.t())*df*(dtheta*pi/180.0));
 
 		int flag = 1;
 		int ii = 1;
 		int nIterMax = 20;
 		while ((flag==1)&&(ii<=nIterMax))
 		{
-			phases = amplitudes.randn()*pi;
+			phases = arma::randn(size(amplitudes))*pi;
 			flag = CheckPhases(); ii++;
 		}
+		if (flag==1)
+		{
+			std::stringstream ss;
+		    ss << "It was not possible to find a realistic wave. \n";
+		    throw ValueError(ss.str());
+		}
+
+		GetWaveLengths();
 
 		std::cout << "----> Wave Spectrum Computed" << std::endl;
 	}
@@ -91,7 +182,7 @@ void IrregularWave::GetJonswapSpectrum(void)
     double fp = 1.0/period;
 
     arma::mat sigma = arma::zeros(size(freqs));
-    for(int ii=0; ii<nPeriods; ii++)
+    for(int ii=0; ii<num_comps; ii++)
 	{
 		if (freqs(ii,0)<fp){
 			sigma(ii,0) = 0.07;
@@ -121,11 +212,11 @@ void IrregularWave::GetSpreadingFunction(void)
     //  Feb. 2020
     //  IH Cantabria
 
-    arma::mat theta = arma::regspace(-90,dtheta,+90)*pi/180.0;    
+    arma::mat theta = arma::regspace(-90,dtheta,90)*pi/180.0;    
     arma::mat G = arma::pow(arma::cos(theta),s);
-    double inte = arma::as_scalar(arma::trapz(theta,G,1));
+    double inte = arma::as_scalar(arma::trapz(theta,G,0));
     g_theta = G/inte;
-    inte = arma::as_scalar(arma::trapz(theta,g_theta,1));
+    inte = arma::as_scalar(arma::trapz(theta,g_theta,0));
     if (abs(inte-1)>1e-6)
     {
         g_theta = g_theta/inte;
@@ -136,29 +227,28 @@ int IrregularWave::CheckPhases(void)
 {
 	int flag = 1;
 
-	arma::mat t = arma::regspace(0,dt,t_sim); int M = t.n_elem;
+	arma::mat t = arma::linspace(0.0,simulationTime,num_points);
 
 	arma::mat Cm = arma::sum(amplitudes%arma::cos(phases),1);
 	arma::mat Sm = arma::sum(amplitudes%arma::sin(phases),1);
 	arma::mat Am = arma::sqrt(arma::pow(Cm,2)+arma::pow(Sm,2));
 	arma::mat PHIm = arma::atan2(Sm,Cm);
 	arma::cx_mat iPHIm(arma::zeros(size(PHIm)),PHIm);
-	arma::cx_mat Y1 = (0.5*M*Am) % arma::exp(-iPHIm); Y1(0,0) = 0.0;
+	arma::cx_mat Y1 = (0.5*num_points*Am) % arma::exp(-iPHIm); Y1(0,0) = 0.0;
 	arma::cx_mat Y;
-	if (M % 2 == 0)
+	if (num_points % 2 == 0)
 	{
-		Y = arma::join_vert(Y1,arma::flipud(arma::conj(Y1.rows(1,nPeriods-2))));
+		Y = arma::join_vert(Y1,arma::flipud(arma::conj(Y1.rows(1,num_comps-2))));
 	}
 	else
 	{
-		Y = arma::join_vert(Y1,arma::flipud(arma::conj(Y1.rows(1,nPeriods-1))));
+		Y = arma::join_vert(Y1,arma::flipud(arma::conj(Y1.rows(1,num_comps-1))));
 	}
 
 	arma::cx_mat eta_cx = arma::ifft(Y);
 
 	double imag = arma::as_scalar(arma::sum(arma::abs(arma::imag(eta_cx)),0));
-	std::cout << "imag = " << imag << std::endl;
-	if (imag>1e-13*t.n_elem)
+	if (imag>1e-13*num_points)
 	{
 		std::stringstream ss;
 	    ss << "Something went wrong with the ifft. \n";
@@ -166,17 +256,16 @@ int IrregularWave::CheckPhases(void)
 	}
 	arma::mat eta = arma::real(eta_cx);
 
-	std::cout << "eta = "<< std::endl << eta << std::endl;
-
 	arma::mat T, H;
 	std::tie(T,H) = upcrossing(t,eta);
 
 	double Tmean = arma::as_scalar(arma::mean(T));
 	double Hmax = H.max();
-	arma::mat Haux = arma::sort(H,"descend"); int nH = std::round(H.n_elem/3);
-	double Hsig = arma::as_scalar(arma::mean(H.rows(0,nH)));
+	arma::mat Haux = arma::sort(H,"descend"); 
+	int nH = std::round(H.n_elem/3);
+	double Hsig = arma::as_scalar(arma::mean(Haux.rows(0,nH)));
 
-	double TmeanC = period/(sqrt(2)*pow(gamma,-0.082));
+	double TmeanC = period/(sqrt(2.0)*pow(gamma,-0.082));
 	double HsigC = height;
 	double HmaxC = HsigC*1.8;
 
@@ -187,14 +276,9 @@ int IrregularWave::CheckPhases(void)
 		flag = 0;
 	}
 
-	std::cout << "Tmean = " << Tmean << ";  TmeanC = " << TmeanC << std::endl;
-	std::cout << "Hsig = " << Hsig << ";  HsigC = " << HsigC << std::endl;
-	std::cout << "Hmax = " << Hmax << ";  HmaxC = " << HmaxC << std::endl;
-	std::cout << "flag = " << flag << ";  flag_ini = 1" << std::endl;
-
-	std::stringstream ss;
-	ss << "Done with this \n";
-	throw ValueError(ss.str());
+	std::cout << "Tmean = " << Tmean << ";  Tmean_th = " << TmeanC << std::endl;
+	std::cout << "Hsig = " << Hsig << ";  Hsig_th = " << HsigC << std::endl;
+	std::cout << "Hmax = " << Hmax << ";  Hmax_th = " << HmaxC << std::endl;
 
 	return flag;
 }

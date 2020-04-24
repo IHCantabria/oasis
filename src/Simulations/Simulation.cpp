@@ -1013,7 +1013,10 @@ void Simulation::ReadWavesASCII()
 
     std::cout << "----> Waves Read" << std::endl;
 
-    pWave->t_sim = simulationTime;
+    pWave->simulationTime = simulationTime;
+    pWave->gravity = gravity;
+    pWave->waterDepth = abs(waterDepth);
+    pWave->CheckBreakingWave();
     pWave->GetWaveSpectrum();
 }
 
