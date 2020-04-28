@@ -10,11 +10,17 @@
 #include "../Bodies/Bodies.hpp"
 #include "../MathTools.hpp"
 #include "../os_tools.hpp"
+#include "../Waves/Wave.hpp"
+#include "../Exceptions/Exception.hpp"
 
 
 arma::mat HydroDatabase::CalculateHydrodynamicForces(double time)
 {
-	return arma::zeros(6, 1);
+	arma::mat F = arma::zeros(6,1);
+
+	F = F + ComputeFirstWaveExcForce(time);
+
+	return F;
 }
 
 
@@ -252,11 +258,12 @@ int HydroDatabase::GetNumPointsIrf(void)
 }
 
 
-HydroDatabase::HydroDatabase(int incId, Body** incBody, Simulation* pIncSim): HydroForce()
+HydroDatabase::HydroDatabase(int incId, int incIdBody, Body** incBody, Simulation* pIncSim): HydroForce()
 {
 	id = incId;
 	pBodies = incBody;
 	pSim = pIncSim;
+	idBody = incIdBody;
 }
 
 
@@ -419,9 +426,51 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 }
 
 
-arma::mat HydroDatabase::InterpolateWaveExcitation(void)
+arma::mat HydroDatabase::ComputeFirstWaveExcForce(double t)
 {
-	return arma::zeros(6, 1);
+
+	// Falta por comprobar que compila, que los tipos en interp2 estan bien metidos y que
+	// los signos de las fases están bien, entre otras cosas.
+	// La referencia de como hacer esto la he sacado de: 
+	// Yosimi Goda - Random Seas and Sedign of maritime structures - pagina 305
+	// Lo dejo comentado por ahora porque no creo que compile y faltan cosas imporantes
+
+	arma::mat Fe = arma::zeros(6,1); // Por ahora generico para 6 dofs, esto habría que cambiarlo
+
+
+	Wave* pWave = pSim->pWave;
+
+	arma::mat Cm, Sm, Am, PHIm, H_Mag, H_Pha, H_Real, H_Imag, WE_Mag, WE_Pha, WE_Real, WE_Imag;
+	double x = pBodies[idBody]->pos(0,0);
+	double y = pBodies[idBody]->pos(1,0); 
+	double yaw = pBodies[idBody]->pos(5,0);
+
+
+	for(int ii=0; ii<6; ii++) // Por ahora generico para 6 dofs, esto habría que cambiarlo
+	{
+		WE_Mag = (*pWaveExcitingMag)(arma::span(ii),arma::span::all,arma::span::all);
+		WE_Pha = (*pWaveExcitingPha)(arma::span(ii),arma::span::all,arma::span::all);
+
+		WE_Real = WE_Mag % arma::cos(WE_Pha);
+		WE_Imag = WE_Mag % arma::sin(WE_Pha);
+
+		arma::interp2(*pHeadings + yaw, *pFrequencies, WE_Real, pWave->headings, pWave->freqs, H_Real, "linear", 0);
+		arma::interp2(*pHeadings + yaw, *pFrequencies, WE_Imag, pWave->headings, pWave->freqs, H_Imag, "linear", 0);
+
+		H_Mag = arma::sqrt(arma::pow(H_Real,2)+arma::pow(H_Imag,2));
+		H_Pha = arma::atan2(H_Imag,H_Real);
+
+		arma::mat Cm = arma::sum(H_Mag % pWave->amplitudes % arma::cos(pWave->phases + H_Pha + x*pWave->kx + y*pWave->ky),1);
+		arma::mat Sm = arma::sum(H_Mag % pWave->amplitudes % arma::sin(pWave->phases + H_Pha + x*pWave->kx + y*pWave->ky),1);
+
+		arma::mat Am = arma::sqrt(arma::pow(Cm,2)+arma::pow(Sm,2));
+		arma::mat PHIm = arma::atan2(Sm,Cm);
+
+		Fe(ii,0) = arma::as_scalar(arma::sum(Am % arma::cos(t * pWave->ang_freqs - PHIm),0));
+
+	}
+
+	return Fe;
 }
 
 

@@ -45,6 +45,7 @@ public:
 	double gamma;
 	double s;
 	double rel_tol;
+    double factor;
 	std::string waveDatabaseName;
 
     // Declare class constructors
@@ -76,6 +77,7 @@ public:
 	void ReadWaveSpectrumHDF5(void);
 	void GetJonswapSpectrum(void);
 	void GetSpreadingFunction(void);
+    void CutSpectrumZeros(void);
 	int CheckPhases(void);
 };
 

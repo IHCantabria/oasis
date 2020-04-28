@@ -18,6 +18,7 @@ private:
 	
 public:
 	// General Management variables
+	int idBody; // Index of the current body of study
 	Body** pBodies; // Array de pointers a los cuerpos
 	Simulation* pSim; // Pointer to the simulation instance. It gives fast access to the necessary simulation variables
 
@@ -55,7 +56,7 @@ public:
 	arma::cube* pWaveExcitingPha; // Matrix components: [dofs, freqs, headings];
 
 	// Class Constructors
-	HydroDatabase(int incId, Body** incBodies, Simulation* pIncSim);
+	HydroDatabase(int incId, int incIdBody, Body** incBodies, Simulation* pIncSim);
 	~HydroDatabase(){};
 
 	// Class Methods
@@ -65,7 +66,7 @@ public:
 	arma::mat GetCog(void); // Interface method, it returns center of gravity
 	int GetNumBodies(void); // Returns the number of bodies in the database
 	int GetNumPointsIrf(void); // Interface mehtods, it returns the number of points of the IRF
-	arma::mat InterpolateWaveExcitation(void); // Interpolate First Order Wave Excitation forces using first order polynomial
+	arma::mat ComputeFirstWaveExcForce(double t); // Interpolate First Order Wave Excitation forces using first order polynomial
 	void Refresh(void); // This method refresh the state of the object properties
 	int GetId(void);
 	arma::mat GetInertiaMatrixInv(void);

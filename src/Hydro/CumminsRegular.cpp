@@ -31,7 +31,7 @@ arma::mat CumminsRegular::ComputeFirstWaveExcForce()
 }
 
 
-CumminsRegular::CumminsRegular(int incId, Body** incBodies, Simulation* pIncSim, double incWaveHeight, double incWavePeriod, double incWaveHeading): HydroDatabase(incId, incBodies, pIncSim)
+CumminsRegular::CumminsRegular(int incId, int incIdBody, Body** incBodies, Simulation* pIncSim, double incWaveHeight, double incWavePeriod, double incWaveHeading): HydroDatabase(incId, incIdBody, incBodies, pIncSim)
 {
     waveHeight = incWaveHeight;
     wavePeriod = incWavePeriod;

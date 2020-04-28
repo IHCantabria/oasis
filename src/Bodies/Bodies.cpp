@@ -105,7 +105,7 @@ void Body::LoadHydrodynamicDatabase(Body** hydroDatabaseBodies)
 	std::string file_path = JoinPath(this->pSim->inputFolderPath, this->hydroDatabaseName);
 
 	// Load hydrodynamic database
-	this->pHydro = new HydroDatabase(this->hydroDatabaseIndex, hydroDatabaseBodies, this->pSim);
+	this->pHydro = new HydroDatabase(this->hydroDatabaseIndex, this->id, hydroDatabaseBodies, this->pSim);
 	this->pHydro->LoadHydrodynamicData(file_path);
 
 	// Load and check the Hydrodynamic C.O.G position

@@ -9,6 +9,7 @@
 arma::mat arange(double a, double b, double step);
 arma::mat interp1(arma::mat x, arma::mat y, arma::mat xi);
 arma::mat linspace(double a, double b, int numPoints);
+arma::mat mod(arma::mat a, double x);
 double trapz(arma::mat y, double h);
 double trapzi(arma::mat t, arma::mat y);
 std::tuple<arma::mat,arma::mat> upcrossing(arma::mat t, arma::mat u);

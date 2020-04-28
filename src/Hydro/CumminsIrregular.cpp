@@ -43,7 +43,7 @@ arma::mat CumminsIrregular::CalculateHydrodynamicForces(double time)
 }
 
 
-CumminsIrregular::CumminsIrregular(int incId, Body** incBodies, Simulation* pIncSim, double incWaveHeight, double incWavePeriod, double incWaveHeading): HydroDatabase(incId, incBodies, pIncSim)
+CumminsIrregular::CumminsIrregular(int incId, int incIdBody, Body** incBodies, Simulation* pIncSim, double incWaveHeight, double incWavePeriod, double incWaveHeading): HydroDatabase(incId, incIdBody, incBodies, pIncSim)
 {
 	waveHeight = incWaveHeight;
     wavePeriod = incWavePeriod;

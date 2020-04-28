@@ -164,3 +164,9 @@ std::tuple<arma::mat,arma::mat> upcrossing(arma::mat t, arma::mat u)
 
     return std::make_tuple(T,H);
 }
+
+
+arma::mat mod(arma::mat a, double x)
+{
+	return a - arma::floor(a/x)*x;
+}

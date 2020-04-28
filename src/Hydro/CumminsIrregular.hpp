@@ -15,7 +15,7 @@ public:
     double waveHeading = 0.0;
      
     // Declare class constructors
-    CumminsIrregular(int incId, Body** incBodies, Simulation* pIncSim, double incWaveHeight, double incWavePeriod, double incWaveHeading);
+    CumminsIrregular(int incId, int incIdBody, Body** incBodies, Simulation* pIncSim, double incWaveHeight, double incWavePeriod, double incWaveHeading);
 
     // Declare class methods
     arma::mat ComputeFirstWaveExcForce();

@@ -95,8 +95,8 @@ void RegularWave::GetWaveSpectrum(void)
 	num_headings = 1;
 	df = 1.0/simulationTime; dw = 2.0*pi*df;
 	periods = arma::ones(1,1)*period;
-	ang_freqs = arma::ones(1,1)*(pi/period);
-	headings = arma::ones(1,1)*heading;
+	ang_freqs = arma::ones(1,1)*(2.0*pi/period);
+	headings = arma::ones(1,1)*heading; headings = mod(headings,2.0*pi);
 	amplitudes = arma::ones(1,1)*height;
 	phases = arma::zeros(1,1);
 	GetWaveLengths();
@@ -109,10 +109,11 @@ void IrregularWave::GetWaveSpectrum(void)
 	{
 		std::cout << "--> Computing Wave Spectrum (JONSWAP)" << std::endl;
 
-		simulationTime = std::max(simulationTime,3600.0);
+		simulationTime = std::max(simulationTime,400.0);
 		num_points = round(simulationTime/dt + 1);
 		num_comps = floor(num_points/2.0)+1;
 		freqs = arma::linspace(0,1.0/(2.0*dt),num_comps);
+		ang_freqs = 2.0*pi*freqs;
 		periods = 1.0/freqs;
 		df = arma::as_scalar(freqs(1,0)); dw = 2.0*pi*df;
 
@@ -131,6 +132,7 @@ void IrregularWave::GetWaveSpectrum(void)
 			g_theta = arma::ones(1,1);
 			dtheta = 180.0/pi;
 		}
+		headings = mod(headings,2.0*pi);
 
 		amplitudes = sqrt(2.0*(S_w*g_theta.t())*df*(dtheta*pi/180.0));
 
@@ -150,6 +152,7 @@ void IrregularWave::GetWaveSpectrum(void)
 		}
 
 		GetWaveLengths();
+		CutSpectrumZeros();
 
 		std::cout << "----> Wave Spectrum Computed" << std::endl;
 	}
@@ -283,11 +286,36 @@ int IrregularWave::CheckPhases(void)
 	return flag;
 }
 
+void IrregularWave::CutSpectrumZeros(void)
+{
+	// Quitar las componentes frequenciales y direccionales muy proximas a cero, por implementar
+	arma::uvec ind_rows = arma::find(S_w    >=factor*arma::as_scalar(arma::mean(S_w    )));
+	arma::uvec ind_cols = arma::find(g_theta>=factor*arma::as_scalar(arma::mean(g_theta)));
+	arma::uvec ind_0 = arma::zeros<arma::uvec>(1);
+
+	num_comps = ind_rows.n_elem;
+	num_headings = ind_cols.n_elem;
+
+	periods = periods.submat(ind_rows,ind_0);
+	freqs = freqs.submat(ind_rows,ind_0);
+	ang_freqs = ang_freqs.submat(ind_rows,ind_0);
+	headings = headings.submat(ind_cols,ind_0);
+	amplitudes = amplitudes.submat(ind_rows,ind_cols);
+	phases = phases.submat(ind_rows,ind_cols);
+	lambdas = lambdas.submat(ind_rows,ind_0);
+	S_w = S_w.submat(ind_rows,ind_0);
+	g_theta = g_theta.submat(ind_cols,ind_0);
+	k = k.submat(ind_rows,ind_0);
+	kx = kx.submat(ind_rows,ind_cols);
+	ky = ky.submat(ind_rows,ind_cols);
+
+}
+
 void IrregularWave::ReadWaveSpectrumHDF5(void)
 {
 	std::cout << "--> Reading Wave Spectrum (HDF5 format)" << std::endl;
     std::stringstream ss;
-    ss << "Method ReadWaveSpectrumHDF5 in class IrregularWave not implemented yet.";
+    ss << "Method ReadWaveSpectrumHDF5 in class IrregularWave not implemented yet. \n";
     throw NotImplementedError(ss.str());
     std::cout << "----> Wave Spectrum Read" << std::endl;
 }

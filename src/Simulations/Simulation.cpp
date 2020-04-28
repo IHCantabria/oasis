@@ -123,18 +123,9 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 	// Compute hydrostatic and hidrodynamic forces
     //std::cout << "Main::fun - Compute hydrodynamic and hydrostatic forces" << std::endl;
     arma::mat Fb = arma::zeros(6*numBodies, 1);
-	arma::mat Fh = arma::zeros(6, 1);
-	arma::mat Fr = arma::zeros(6, 1);
-	arma::mat Fe = arma::zeros(6, 1);
     for (int ii=0; ii<numBodies; ii++)
-    {
-
-
-	//Fh = pBodies[ii]->pHydro->ComputeHydrostaticForces();
-        //Fr = pBodies[ii]->pHydro->ComputeRadiationForces();
-        //Fe = pBodies[ii]->pHydro->ComputeFirstWaveExcForce();
-        //Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  Fe - (Fr + Fh);        
-	Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  pBodies[ii]->pHydro->CalculateHydrodynamicForces(time);
+    {    
+		Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  pBodies[ii]->pHydro->CalculateHydrodynamicForces(time);
     }
 
 	// Compute forces on BCPs
@@ -964,6 +955,7 @@ void Simulation::ReadWavesASCII()
 			fscanf(file_pointer, "%lf %[^\n]\n", &pWave->dtheta, bufferLine);
 			fscanf(file_pointer, "%lf %[^\n]\n", &pWave->rel_tol, bufferLine);
 			fscanf(file_pointer, "%lf %[^\n]\n", &pWave->dt, bufferLine);
+			fscanf(file_pointer, "%lf %[^\n]\n", &pWave->factor, bufferLine);
 			fgets(bufferLine, sizeof(bufferLine), file_pointer);
 			char cWaveDatabaseName [1000];
 			fscanf(file_pointer, "%s %[^\n]\n", cWaveDatabaseName, bufferLine);
