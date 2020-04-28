@@ -55,6 +55,13 @@ public:
 	arma::cube* pWaveExcitingMag; // Matrix components: [dofs, freqs, headings];
 	arma::cube* pWaveExcitingPha; // Matrix components: [dofs, freqs, headings];
 
+	arma::cube*** QtfDiff_w; // Matrix componets after SetUp: [parts, dofs, freq1_w, freq2_w, headings] | The first two are pointers to cube variables and last three are arma::cube
+	arma::cube*** QtfSum_w; // Matrix componets after SetUp: [parts, dofs, freq1_w, freq2_w, headings] | The first two are pointers to cube variables and last three are arma::cube
+	arma::cube WE_Real_w; // Matrix components after SetUp: [headings, freqs_w, dofs];
+	arma::cube WE_Imag_w; // Matrix components after SetUp: [headings, freqs_w, dofs];
+
+	arma::mat ampP, wD, phD, kxD, kyD, wS, phS, kxS, kyS; // Postproces matrices for QTF computation
+
 	// Class Constructors
 	HydroDatabase(int incId, int incIdBody, Body** incBodies, Simulation* pIncSim);
 	~HydroDatabase(){};
@@ -67,10 +74,12 @@ public:
 	int GetNumBodies(void); // Returns the number of bodies in the database
 	int GetNumPointsIrf(void); // Interface mehtods, it returns the number of points of the IRF
 	arma::mat ComputeFirstWaveExcForce(double t); // Interpolate First Order Wave Excitation forces using first order polynomial
+	arma::mat ComputeSecondWaveExcForce(double t);
 	void Refresh(void); // This method refresh the state of the object properties
 	int GetId(void);
 	arma::mat GetInertiaMatrixInv(void);
 	void Print(void);
+	void SetUp(void);
 
 	// Declare inherited virutal methods
 	arma::mat CalculateHydrodynamicForces(double time);

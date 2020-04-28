@@ -1301,6 +1301,13 @@ void Simulation::SetupCase()
 		pSprings[ii]->SpringBCP[0] = pBcps[pSprings[ii]->BCP_1];
 		pSprings[ii]->SpringBCP[1] = pBcps[pSprings[ii]->BCP_2];
 	}
+
+	// Setup hidro data bases
+	for (int ii=0; ii<numBodies; ii++)
+    {
+    	pBodies[ii]->pHydro->SetUp();
+    }
+
     std::cout << "----> Case configuration done" << std::endl;
 }
 

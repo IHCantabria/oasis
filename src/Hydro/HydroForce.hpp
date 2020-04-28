@@ -14,6 +14,7 @@ public:
     virtual int GetNumBodies(void)=0;
 	virtual int GetNumPointsIrf(void)=0;
     virtual void LoadHydrodynamicData(std::string file_path)=0;
+    virtual void SetUp(void)=0;
 };
 
 #endif // hydroforcedef_hpp__

@@ -54,6 +54,8 @@ void Wave::GetWaveLengths(void)
 	arma::mat cos_theta = arma::cos(pi/180.0*headings.t());
 	arma::mat sin_theta = arma::sin(pi/180.0*headings.t());
 	kx = k*cos_theta; ky = k*sin_theta;
+    kx_1D = k*cos(heading);
+    ky_1D = k*sin(heading);
 }
 
 
@@ -134,7 +136,11 @@ void IrregularWave::GetWaveSpectrum(void)
 		}
 		headings = mod(headings,2.0*pi);
 
-		amplitudes = sqrt(2.0*(S_w*g_theta.t())*df*(dtheta*pi/180.0));
+		amplitudes = arma::sqrt(2.0*(S_w*g_theta.t())*df*(dtheta*pi/180.0));
+
+		// Repeat the computetion without directional spreading for the QTFs
+		headings_1D = arma::ones(1,1)*heading;
+	    amplitudes_1D = arma::sqrt(2.0*S_w*df);
 
 		int flag = 1;
 		int ii = 1;
@@ -277,11 +283,13 @@ int IrregularWave::CheckPhases(void)
 		(Hmax <= HmaxC*(1+rel_tol))&&(Hmax >= HmaxC*(1-rel_tol)))
 	{
 		flag = 0;
+		arma::cx_mat spc =  arma::fft(eta);
+		phases_1D = arma::atan2(arma::imag(spc),arma::real(spc));
 	}
 
-	std::cout << "Tmean = " << Tmean << ";  Tmean_th = " << TmeanC << std::endl;
-	std::cout << "Hsig = " << Hsig << ";  Hsig_th = " << HsigC << std::endl;
-	std::cout << "Hmax = " << Hmax << ";  Hmax_th = " << HmaxC << std::endl;
+	//std::cout << "Tmean = " << Tmean << ";  Tmean_th = " << TmeanC << std::endl;
+	//std::cout << "Hsig = " << Hsig << ";  Hsig_th = " << HsigC << std::endl;
+	//std::cout << "Hmax = " << Hmax << ";  Hmax_th = " << HmaxC << std::endl;
 
 	return flag;
 }
@@ -308,6 +316,11 @@ void IrregularWave::CutSpectrumZeros(void)
 	k = k.submat(ind_rows,ind_0);
 	kx = kx.submat(ind_rows,ind_cols);
 	ky = ky.submat(ind_rows,ind_cols);
+
+	amplitudes_1D = amplitudes_1D.submat(ind_rows,ind_0);
+    phases_1D = phases_1D.submat(ind_rows,ind_0);
+    kx_1D = kx_1D.submat(ind_rows,ind_0);
+    ky_1D = ky_1D.submat(ind_rows,ind_0);
 
 }
 

@@ -16,9 +16,9 @@
 
 arma::mat HydroDatabase::CalculateHydrodynamicForces(double time)
 {
-	arma::mat F = arma::zeros(6,1);
+	arma::mat F = arma::zeros(activeDofs,1);
 
-	F = F + ComputeFirstWaveExcForce(time);
+	F = F + ComputeFirstWaveExcForce(time) + ComputeSecondWaveExcForce(time);
 
 	return F;
 }
@@ -429,22 +429,40 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 arma::mat HydroDatabase::ComputeFirstWaveExcForce(double t)
 {
 
-	// Falta por comprobar que compila, que los tipos en interp2 estan bien metidos y que
-	// los signos de las fases están bien, entre otras cosas.
-	// La referencia de como hacer esto la he sacado de: 
-	// Yosimi Goda - Random Seas and Sedign of maritime structures - pagina 305
-	// Lo dejo comentado por ahora porque no creo que compile y faltan cosas imporantes
-
-	arma::mat Fe = arma::zeros(6,1); // Por ahora generico para 6 dofs, esto habría que cambiarlo
-
+	arma::mat Fe = arma::zeros(activeDofs,1);
 
 	Wave* pWave = pSim->pWave;
-
-	arma::mat Cm, Sm, Am, PHIm, H_Mag, H_Pha, H_Real, H_Imag, WE_Mag, WE_Pha, WE_Real, WE_Imag;
+	
 	double x = pBodies[idBody]->pos(0,0);
 	double y = pBodies[idBody]->pos(1,0); 
 	double yaw = pBodies[idBody]->pos(5,0);
 
+	//*
+	arma::cube H_Real = interp1((*pHeadings)+yaw,WE_Real_w,pWave->headings);
+	arma::cube H_Imag = interp1((*pHeadings)+yaw,WE_Imag_w,pWave->headings);
+	arma::cube H_Mag = arma::sqrt(arma::pow(H_Real,2)+arma::pow(H_Imag,2));
+	arma::cube H_Pha = arma::atan2(H_Imag,H_Real);
+	H_Mag = permute(H_Mag,213); H_Pha = permute(H_Pha,213);
+
+	arma::mat H_Mag_loc, H_Pha_loc, Cm, Sm, Am, PHIm;
+
+	for(int ii=0; ii<activeDofs; ii++) // Por ahora generico para 6 dofs, esto habría que cambiarlo
+	{
+		H_Mag_loc = H_Mag(arma::span::all,arma::span::all,arma::span(ii));
+		H_Pha_loc = H_Pha(arma::span::all,arma::span::all,arma::span(ii));
+
+		Cm = arma::sum(H_Mag_loc % pWave->amplitudes % arma::cos(pWave->phases + H_Pha_loc + x*pWave->kx + y*pWave->ky),1);
+		Sm = arma::sum(H_Mag_loc % pWave->amplitudes % arma::sin(pWave->phases + H_Pha_loc + x*pWave->kx + y*pWave->ky),1);
+
+		Am = arma::sqrt(arma::pow(Cm,2)+arma::pow(Sm,2));
+		PHIm = arma::atan2(Sm,Cm);
+
+		Fe(ii,0) = arma::as_scalar(arma::sum(Am % arma::cos(t * pWave->ang_freqs - PHIm),0));
+	}
+	/*/
+
+	/*
+	arma::mat Cm, Sm, Am, PHIm, H_Mag, H_Pha, H_Real, H_Imag, WE_Mag, WE_Pha, WE_Real, WE_Imag;
 
 	for(int ii=0; ii<6; ii++) // Por ahora generico para 6 dofs, esto habría que cambiarlo
 	{
@@ -460,17 +478,140 @@ arma::mat HydroDatabase::ComputeFirstWaveExcForce(double t)
 		H_Mag = arma::sqrt(arma::pow(H_Real,2)+arma::pow(H_Imag,2));
 		H_Pha = arma::atan2(H_Imag,H_Real);
 
-		arma::mat Cm = arma::sum(H_Mag % pWave->amplitudes % arma::cos(pWave->phases + H_Pha + x*pWave->kx + y*pWave->ky),1);
-		arma::mat Sm = arma::sum(H_Mag % pWave->amplitudes % arma::sin(pWave->phases + H_Pha + x*pWave->kx + y*pWave->ky),1);
+		Cm = arma::sum(H_Mag % pWave->amplitudes % arma::cos(pWave->phases + H_Pha + x*pWave->kx + y*pWave->ky),1);
+		Sm = arma::sum(H_Mag % pWave->amplitudes % arma::sin(pWave->phases + H_Pha + x*pWave->kx + y*pWave->ky),1);
 
-		arma::mat Am = arma::sqrt(arma::pow(Cm,2)+arma::pow(Sm,2));
-		arma::mat PHIm = arma::atan2(Sm,Cm);
+		Am = arma::sqrt(arma::pow(Cm,2)+arma::pow(Sm,2));
+		PHIm = arma::atan2(Sm,Cm);
 
 		Fe(ii,0) = arma::as_scalar(arma::sum(Am % arma::cos(t * pWave->ang_freqs - PHIm),0));
+	}
+	*/
 
+	return Fe;
+}
+
+
+arma::mat HydroDatabase::ComputeSecondWaveExcForce(double t)
+{
+
+	arma::mat Fe = arma::zeros(activeDofs,1);
+
+	Wave* pWave = pSim->pWave;
+	
+	double x = pBodies[idBody]->pos(0,0);
+	double y = pBodies[idBody]->pos(1,0); 
+	double yaw = pBodies[idBody]->pos(5,0);
+
+	arma::cube temp1;
+	arma::cube*** HDif = new arma::cube** [2];
+	arma::cube*** HSum = new arma::cube** [2];
+	for (int ii=0; ii<2; ii++)
+	{
+		HDif[ii] = new arma::cube* [activeDofs];
+		HSum[ii] = new arma::cube* [activeDofs];
+		for (int jj=0; jj<activeDofs; jj++)
+		{
+			HDif[ii][jj] = new arma::cube;
+			HSum[ii][jj] = new arma::cube;
+
+			temp1 = *QtfDiff_w[ii][jj]; 
+			temp1 = interp1((*pHeadings)+yaw, permute(temp1,312), pWave->headings_1D);
+			*HDif[ii][jj] = permute(temp1,231);
+
+			temp1 = *QtfSum_w[ii][jj];
+			temp1 = interp1((*pHeadings)+yaw, permute(temp1,312), pWave->headings_1D);
+			*HSum[ii][jj] = permute(temp1,231);
+		}
+	}
+
+	arma::mat temp2, temp3;
+	for(int ii=0; ii<activeDofs; ii++)
+	{
+		temp2 = (*HDif[0][ii]).slice(0);
+		temp3 = temp2%ampP*arma::cos(wD*t+phD+kxD*x+kyD*y);
+		Fe(ii,0) = Fe(ii,0) + 0.5*arma::as_scalar(arma::sum(arma::sum(temp3,1),0));
+
+		temp2 = (*HDif[1][ii]).slice(0);
+		temp3 = temp2%ampP*arma::sin(wD*t+phD+kxD*x+kyD*y);
+		Fe(ii,0) = Fe(ii,0) + 0.5*arma::as_scalar(arma::sum(arma::sum(temp3,1),0));
+
+		temp2 = (*HSum[1][ii]).slice(0);
+		temp3 = temp2%ampP*arma::sin(wS*t+phS+kxS*x+kyS*y);
+		Fe(ii,0) = Fe(ii,0) + 0.5*arma::as_scalar(arma::sum(arma::sum(temp3,1),0));
+
+		temp2 = (*HSum[1][ii]).slice(0);
+		temp3 = temp2%ampP*arma::sin(wS*t+phS+kxS*x+kyS*y);
+		Fe(ii,0) = Fe(ii,0) + 0.5*arma::as_scalar(arma::sum(arma::sum(temp3,1),0));
 	}
 
 	return Fe;
+}
+
+
+void HydroDatabase::SetUp(void)
+{
+	// Add the zero and infinite frequencies data to de matrices and cubes
+
+	/*
+		NOT PROPERLY IMPLEMENTED
+	*/
+
+
+	// Interpolate from the hidrodatabase frequencies to the wave frequencies
+	Wave* pWave = pSim->pWave;
+	arma::cube WE_Real = (*pWaveExcitingMag) % arma::cos((*pWaveExcitingPha));
+	arma::cube WE_Imag = (*pWaveExcitingMag) % arma::sin((*pWaveExcitingPha));
+	WE_Real_w = interp1(*pFrequencies,permute(WE_Real,231), pWave->freqs);
+	WE_Imag_w = interp1(*pFrequencies,permute(WE_Imag,231), pWave->freqs);
+	WE_Real_w = permute(WE_Real_w,213); WE_Imag_w = permute(WE_Imag_w,213);
+
+	arma::cube temp;
+	QtfDiff_w = new arma::cube** [2];
+	QtfSum_w = new arma::cube** [2];
+	for (int ii=0; ii<2; ii++)
+	{
+		QtfDiff_w[ii] = new arma::cube* [activeDofs];
+		QtfSum_w[ii] = new arma::cube* [activeDofs];
+		for (int jj=0; jj<activeDofs; jj++)
+		{
+			QtfDiff_w[ii][jj] = new arma::cube;
+			QtfSum_w[ii][jj] = new arma::cube;
+
+			temp = *pQtfDiff[ii][jj]; 
+			*QtfDiff_w[ii][jj] = interp2(*pFrequencies, *pFrequencies, temp, pWave->freqs, pWave->freqs);
+
+			temp = *pQtfSum[ii][jj]; 
+			*QtfSum_w[ii][jj] = interp2(*pFrequencies, *pFrequencies, temp, pWave->freqs, pWave->freqs);
+		}
+	}
+
+	ampP = arma::zeros(pWave->num_comps,pWave->num_comps);
+	wS = arma::zeros(pWave->num_comps,pWave->num_comps);
+	phS = arma::zeros(pWave->num_comps,pWave->num_comps);
+	kxS = arma::zeros(pWave->num_comps,pWave->num_comps);
+	kyS = arma::zeros(pWave->num_comps,pWave->num_comps);
+	wD = arma::zeros(pWave->num_comps,pWave->num_comps);
+	phD = arma::zeros(pWave->num_comps,pWave->num_comps);
+	kxD = arma::zeros(pWave->num_comps,pWave->num_comps);
+	kyD = arma::zeros(pWave->num_comps,pWave->num_comps);
+
+	for (int ii=0; ii<pWave->num_comps; ii++)
+	{
+		for (int jj=0; jj<pWave->num_comps; jj++)
+		{
+			ampP(ii,jj) = pWave->amplitudes_1D(ii,0)*pWave->amplitudes_1D(ii,0);
+			wS(ii,jj) = pWave->ang_freqs(ii,0)+pWave->ang_freqs(ii,0);
+			phS(ii,jj) = pWave->phases_1D(ii,0)+pWave->phases_1D(ii,0);
+			kxS(ii,jj) = pWave->kx_1D(ii,0)+pWave->kx_1D(ii,0);
+			kyS(ii,jj) = pWave->ky_1D(ii,0)+pWave->ky_1D(ii,0);
+			wD(ii,jj) = pWave->ang_freqs(ii,0)-pWave->ang_freqs(ii,0);
+			phD(ii,jj) = pWave->phases_1D(ii,0)-pWave->phases_1D(ii,0);
+			kxD(ii,jj) = pWave->kx_1D(ii,0)-pWave->kx_1D(ii,0);
+			kyD(ii,jj) = pWave->ky_1D(ii,0)-pWave->ky_1D(ii,0);
+		}
+	}
+
 }
 
 

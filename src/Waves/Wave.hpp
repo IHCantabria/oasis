@@ -40,6 +40,12 @@ public:
     arma::mat kx;
     arma::mat ky;
 
+    arma::mat headings_1D;
+    arma::mat amplitudes_1D;
+    arma::mat phases_1D;
+    arma::mat kx_1D;
+    arma::mat ky_1D;
+
     // Variables for irregular waves
     int specType_flag;
 	double gamma;

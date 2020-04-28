@@ -27,6 +27,7 @@ arma::mat arange(double a, double b, double stepSize)
 }
 
 
+/*
 arma::mat interp1(arma::mat x, arma::mat y, arma::mat xi)
 {
 	// Declare and allocate solution vector
@@ -63,6 +64,7 @@ arma::mat interp1(arma::mat x, arma::mat y, arma::mat xi)
 	
 	return y1;
 }
+*/
 
 
 arma::mat linspace(double a, double b, int numPoints)
@@ -169,4 +171,215 @@ std::tuple<arma::mat,arma::mat> upcrossing(arma::mat t, arma::mat u)
 arma::mat mod(arma::mat a, double x)
 {
 	return a - arma::floor(a/x)*x;
+}
+
+arma::mat interp1(arma::mat x, arma::mat y, arma::mat xi)
+{
+	// Check that x and xi are vectors, reshape to columns
+	if((x.n_cols>1)&&(x.n_rows>1))
+	{
+		std::stringstream ss;
+	    ss << "Error in interp1: x must be a column or row vector. \n";
+	    throw ValueError(ss.str());
+	}
+	if((xi.n_cols>1)&&(xi.n_rows>1))
+	{
+		std::stringstream ss;
+	    ss << "Error in interp1: xi must be a column or row vector. \n";
+	    throw ValueError(ss.str());
+	}
+	x = arma::reshape(x,x.n_elem,1);
+	xi = arma::reshape(xi,xi.n_elem,1);
+
+	// Check that the number of columns in y is the same as in x
+	if(y.n_rows!=x.n_rows)
+	{
+		std::stringstream ss;
+	    ss << "Error in interp1: number of rows in y must be equal to x length. \n";
+	    throw ValueError(ss.str());
+	}
+
+	// Initiallize the output matrix
+	arma::mat yi = arma::zeros(xi.n_rows,y.n_cols);
+	
+	arma::mat temp_input, temp_output;
+
+	for(int ii=0; ii<y.n_cols; ii++)
+	{
+		temp_input = y(arma::span::all,arma::span(ii));
+		arma::interp1(x,temp_input,xi,temp_output,"linear",0);
+		yi(arma::span::all,arma::span(ii)) = temp_output;
+	}
+
+	return yi;
+}
+
+arma::cube interp1(arma::mat x, arma::cube y, arma::mat xi)
+{
+	// Check that x and xi are vectors, reshape to columns
+	if((x.n_cols>1)&&(x.n_rows>1))
+	{
+		std::stringstream ss;
+	    ss << "Error in interp1: x must be a column or row vector. \n";
+	    throw ValueError(ss.str());
+	}
+	if((xi.n_cols>1)&&(xi.n_rows>1))
+	{
+		std::stringstream ss;
+	    ss << "Error in interp1: xi must be a column or row vector. \n";
+	    throw ValueError(ss.str());
+	}
+	x = arma::reshape(x,x.n_elem,1);
+	xi = arma::reshape(xi,xi.n_elem,1);
+
+	// Check that the number of columns in y is the same as in x
+	if(y.n_rows!=x.n_rows)
+	{
+		std::stringstream ss;
+	    ss << "Error in interp1: number of rows in y must be equal to x length. \n";
+	    throw ValueError(ss.str());
+	}
+
+	// Initiallize the output matrix
+	arma::cube yi = arma::zeros(xi.n_rows,y.n_cols,y.n_slices);
+
+	arma::mat temp_input, temp_output;
+
+	for(int ii=0; ii<y.n_cols; ii++)
+	{
+		for(int jj=0; jj<y.n_slices; jj++)
+		{
+			temp_input = y(arma::span::all,arma::span(ii),arma::span(jj));
+			arma::interp1(x,temp_input,xi,temp_output,"linear",0);
+			yi(arma::span::all,arma::span(ii),arma::span(jj)) = temp_output;
+		}
+	}
+
+	return yi;
+}
+
+
+arma::cube interp2(arma::mat x, arma::mat y, arma::cube z, arma::mat xi, arma::mat yi)
+{
+	// Check that x, y, xi and yi are vectors, reshape to columns
+	if((x.n_cols>1)&&(x.n_rows>1))
+	{
+		std::stringstream ss;
+	    ss << "Error in interp1: x must be a column or row vector. \n";
+	    throw ValueError(ss.str());
+	}
+	if((xi.n_cols>1)&&(xi.n_rows>1))
+	{
+		std::stringstream ss;
+	    ss << "Error in interp1: xi must be a column or row vector. \n";
+	    throw ValueError(ss.str());
+	}
+	if((y.n_cols>1)&&(y.n_rows>1))
+	{
+		std::stringstream ss;
+	    ss << "Error in interp1: y must be a column or row vector. \n";
+	    throw ValueError(ss.str());
+	}
+	if((yi.n_cols>1)&&(yi.n_rows>1))
+	{
+		std::stringstream ss;
+	    ss << "Error in interp1: yi must be a column or row vector. \n";
+	    throw ValueError(ss.str());
+	}
+	x = arma::reshape(x,x.n_elem,1);
+	xi = arma::reshape(xi,xi.n_elem,1);
+	y = arma::reshape(x,x.n_elem,1);
+	yi = arma::reshape(xi,xi.n_elem,1);
+
+
+	// Check that the number of rows in z is the same as in x,
+	// and that the number of columns in z is the same as in y.
+	if((z.n_rows!=x.n_rows)||(z.n_cols!=y.n_rows))
+	{
+		std::stringstream ss;
+	    ss << "Error in interp2: number of rows in z must be equal to x length, and the number of columns in z must be equal to y length. \n";
+	    throw ValueError(ss.str());
+	}
+
+	// Initiallize the output matrix
+	arma::cube zi = arma::zeros(xi.n_rows,yi.n_rows,z.n_slices);
+
+	arma::mat temp_input, temp_output;
+
+	for(int ii=0; ii<z.n_slices; ii++)
+	{
+		temp_input = z(arma::span::all,arma::span::all,arma::span(ii));
+		arma::interp2(x,y,temp_input,xi,yi,temp_output,"linear",0);
+		zi(arma::span::all,arma::span::all,arma::span(ii)) = temp_output;
+	}
+
+	return zi;
+}
+
+arma::cube permute(arma::cube x, int ind)
+{
+	arma::cube y;
+	int n1 = x.n_rows, n2 = x.n_cols, n3 = x.n_slices;
+	switch (ind)
+	{
+		case 123:
+		{
+			y = x;
+		}
+        break;
+		case 132:
+		{
+			y = arma::zeros(n1,n3,n2);
+			for (int i1 = 0; i1 < n1; i1++)
+                for (int i2 = 0; i2 < n2; i2++)
+                    for (int i3 = 0; i3 < n3; i3++)
+                        y(i1,i3,i2) = x(i1,i2,i3);
+		}
+        break;
+		case 231:
+		{
+			y = arma::zeros(n2,n3,n1);
+			for (int i1 = 0; i1 < n1; i1++)
+                for (int i2 = 0; i2 < n2; i2++)
+                    for (int i3 = 0; i3 < n3; i3++)
+                        y(i2,i3,i1) = x(i1,i2,i3);
+		}
+        break;
+		case 213:
+		{
+			y = arma::zeros(n2,n1,n3);
+			for (int i1 = 0; i1 < n1; i1++)
+                for (int i2 = 0; i2 < n2; i2++)
+                    for (int i3 = 0; i3 < n3; i3++)
+                        y(i2,i1,i3) = x(i1,i2,i3);
+		}
+        break;
+		case 312:
+		{
+			y = arma::zeros(n3,n1,n2);
+			for (int i1 = 0; i1 < n1; i1++)
+                for (int i2 = 0; i2 < n2; i2++)
+                    for (int i3 = 0; i3 < n3; i3++)
+                        y(i3,i1,i2) = x(i1,i2,i3);
+		}
+        break;
+        break;
+		case 321:
+		{
+			y = arma::zeros(n3,n2,n1);
+			for (int i1 = 0; i1 < n1; i1++)
+                for (int i2 = 0; i2 < n2; i2++)
+                    for (int i3 = 0; i3 < n3; i3++)
+                        y(i3,i2,i1) = x(i1,i2,i3);
+		}
+        break;
+        default:
+        {
+        	std::stringstream ss;
+		    ss << "Error in permute: ind must be a integer permutation of 123. \n";
+		    throw ValueError(ss.str());
+        }
+        break;
+	}
+	return y;
 }
