@@ -18,7 +18,18 @@ arma::mat HydroDatabase::CalculateHydrodynamicForces(double time)
 {
 	arma::mat F = arma::zeros(activeDofs,1);
 
-	F = F + ComputeFirstWaveExcForce(time) + ComputeSecondWaveExcForce(time);
+	double yaw = pBodies[idBody]->pos(5,0); 
+
+	//F = F + ComputeFirstWaveExcForce(time);
+	//F = F + ComputeSecondWaveExcForce(time);
+	if (pMor->flag_wind)
+	{
+		F = F + pMor->ComputeWindForce(idBody, yaw, time);
+	}
+	if (pMor->flag_curr)
+	{
+		F = F + pMor->ComputeCurrForce(idBody, yaw, time);
+	}
 
 	return F;
 }
@@ -422,6 +433,9 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 
 	// Compute IRF function
 	this->ComputeIRF();
+
+	// Load Morison forces data
+	pMor = new Morison(numBodies, pSim); pMor->ReadMorisonData();
 
 }
 

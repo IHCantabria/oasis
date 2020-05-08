@@ -4,6 +4,7 @@
 #include <armadillo>
 #include <string>
 #include "HydroForce.hpp"
+#include "Morison.hpp"
 
 // Attribute class objects forward declaration
 class Body;
@@ -21,6 +22,7 @@ public:
 	int idBody; // Index of the current body of study
 	Body** pBodies; // Array de pointers a los cuerpos
 	Simulation* pSim; // Pointer to the simulation instance. It gives fast access to the necessary simulation variables
+	Morison* pMor; // Pointer to the Morison forces class
 
 	// Declare Auxiliar variables
 	arma::cube* pTimeStartPos;

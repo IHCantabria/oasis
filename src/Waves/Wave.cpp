@@ -101,6 +101,9 @@ void RegularWave::GetWaveSpectrum(void)
 	headings = arma::ones(1,1)*heading; headings = mod(headings,2.0*pi);
 	amplitudes = arma::ones(1,1)*height;
 	phases = arma::zeros(1,1);
+	headings_1D = headings;
+	amplitudes_1D = amplitudes;
+	phases_1D = phases;
 	GetWaveLengths();
 }
 
