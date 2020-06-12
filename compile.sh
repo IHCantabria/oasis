@@ -4,5 +4,6 @@ ml CMake/3.7.2-foss-2017a
 rm ./bin/oasis
 #rm -rf build
 cmake -B./build/ -H./
+#cmake -DCMAKE_BUILD_TYPE=Release -B./build/ -H./
 cmake --build ./build
 cp ./build/OASIS ./bin/oasis

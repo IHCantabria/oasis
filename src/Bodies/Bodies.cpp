@@ -152,7 +152,7 @@ void Body::ReadPropertiesASCII(FILE* pFile)
 	double dtemp;
 	int itemp;
 
-	// Read Initial position from Hydrodynamic database
+	// Read flag to take COG from Hydrodynamic database
 	if (fscanf(pFile, "%d %[^\n]\n", &takeCOGHydroDatabase, buffer_line) != 2)
 	{
 		std::stringstream ss;
@@ -254,6 +254,70 @@ void Body::ReadPropertiesASCII(FILE* pFile)
 		throw ValueError(ss.str());
 	}
 	this->hydroDatabaseIndex--;
+
+
+
+
+
+	// Read flag for first order excitation force
+	if (fscanf(pFile, "%d %[^\n]\n", &firstOrderExcitationFlag, buffer_line) != 2)
+	{
+		std::stringstream ss;
+		ss << "Body: " << this->GetId() <<" - Not possible to read flag for the first order excitation." << ".\n";
+		throw ValueError(ss.str());
+	}
+
+	// Read flag for second order excitation force
+	if (fscanf(pFile, "%d %[^\n]\n", &secondOrderExcitationFlag, buffer_line) != 2)
+	{
+		std::stringstream ss;
+		ss << "Body: " << this->GetId() <<" - Not possible to read flag for the second order excitation." << ".\n";
+		throw ValueError(ss.str());
+	}
+
+
+	// Read viscous added mass coefficients
+	for (int ii=0; ii<6; ii++)
+	{
+		if (fscanf(pFile, "%lf", &dtemp) != 1)
+		{
+			std::stringstream ss;
+			ss << "An error ocurred when trying to read the viscous added mass of body: " << this->GetId() << "\n";
+			throw ValueError(ss.str());
+		}
+		A_visc(ii, 0) +=  dtemp;
+	}
+	fscanf(pFile, "%[^\n]\n", buffer_line);
+
+	// Read viscous damping coefficients
+	for (int ii=0; ii<6; ii++)
+	{
+		if (fscanf(pFile, "%lf", &dtemp) != 1)
+		{
+			std::stringstream ss;
+			ss << "An error ocurred when trying to read the viscous damping of body: " << this->GetId() << "\n";
+			throw ValueError(ss.str());
+		}
+		B_visc(ii, 0) +=  dtemp;
+	}
+	fscanf(pFile, "%[^\n]\n", buffer_line);
+
+	// Read viscous damping coefficients
+	for (int ii=0; ii<6; ii++)
+	{
+		if (fscanf(pFile, "%lf", &dtemp) != 1)
+		{
+			std::stringstream ss;
+			ss << "An error ocurred when trying to read the viscous damping 2 of body: " << this->GetId() << "\n";
+			throw ValueError(ss.str());
+		}
+		B_visc2(ii, 0) +=  dtemp;
+	}
+	fscanf(pFile, "%[^\n]\n", buffer_line);
+
+
+
+
 
 	// Generate array of pointers in order to storage the BCPs pointers
 	this->pBodyBcps = new BCP* [this->numBcps];

@@ -33,6 +33,7 @@ public:
     double gravity;
     int maxIterStep;
     double maxTimeStep;
+    double hydroTimeStep;
     int numSystem;
     int numSystem2;
     double simulationTime;

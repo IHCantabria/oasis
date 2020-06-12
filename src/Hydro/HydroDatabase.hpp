@@ -69,7 +69,7 @@ public:
 	~HydroDatabase(){};
 
 	// Class Methods
-	arma::mat ComputeHydrostaticForces(void);
+	arma::mat CalculateHydrostaticForces(void);
 	arma::mat ComputeRadiationForces(void);
 	void ComputeIRF(void); // Calcula la impulse response function
 	arma::mat GetCog(void); // Interface method, it returns center of gravity

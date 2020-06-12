@@ -125,7 +125,8 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     arma::mat Fb = arma::zeros(6*numBodies, 1);
     for (int ii=0; ii<numBodies; ii++)
     {    
-		Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  pBodies[ii]->pHydro->CalculateHydrodynamicForces(time);
+		//Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  pBodies[ii]->pHydro->CalculateHydrodynamicForces(time);
+		Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  pBodies[ii]->Fb + pBodies[ii]->pHydro->CalculateHydrostaticForces();
     }
 
 	// Compute forces on BCPs
@@ -671,6 +672,7 @@ void Simulation::ReadBodiesASCII()
             time_buffer_size = 10*this->pBodies[ii]->pHydro->GetNumPointsIrf();
         }
     }
+
     for (int ii=0; ii<this->numBodies; ii++)
     {
         this->pBodies[ii]->velBufferSize = time_buffer_size;
@@ -854,7 +856,8 @@ void Simulation::ReadPropertiesASCII()
     fscanf(file_pointer, "%lf %[^\n]\n", &gravity, bufferLine);
 	fscanf(file_pointer, "%lf %[^\n]\n", &waterDensity, bufferLine);
 	fscanf(file_pointer, "%lf %[^\n]\n", &waterDepth, bufferLine);
-	fscanf(file_pointer, "%lf %[^\n]\n", &maxTimeStep, bufferLine);
+	fscanf(file_pointer, "%lf %[^\n]\n", &maxTimeStep, bufferLine); 
+	fscanf(file_pointer, "%lf %[^\n]\n", &hydroTimeStep, bufferLine);
 	fscanf(file_pointer, "%lf %[^\n]\n", &simulationTime, bufferLine);
 	fscanf(file_pointer, "%d %[^\n]\n", &timeIntMethod, bufferLine);
 	fscanf(file_pointer, "%lf %[^\n]\n", &timeIntAbsTol, bufferLine);
@@ -1093,10 +1096,6 @@ void Simulation::Run()
     {
         pTimeSolver->step();
         // std::cout<< "In Simulation::Run --> Call to step() was succesfull "<< std::endl;
-        if (numBodies>0){   
-	        UpdateSystem();
-	        // std::cout<< "In Simulation::Run --> Call to UpdateSystem() was succesfull "<< std::endl;
-	    }
         // Print out time if any
         //std::cout<< "    t = " << pTimeSolver->t << " s"  << std::endl;
         /**
@@ -1111,6 +1110,17 @@ void Simulation::Run()
             for(int ii=0; ii<numLines; ii=ii+1) pLines[ii]->WriteOut(wallTime);
             for(int ii=0; ii<numBodies; ii=ii+1) pBodies[ii]->WriteOut(wallTime);
         }
+
+    	if (pTimeSolver->t >= wallTime + hydroTimeStep)
+    	{
+    		if (numBodies>0){   
+		        UpdateSystem();
+		    }
+            for(int ii=0; ii<numBodies; ii=ii+1) 
+            {
+            		pBodies[ii]->Fb = pBodies[ii]->pHydro->CalculateHydrodynamicForces(wallTime);
+            }
+    	}
         
     } while (pTimeSolver->t <= simulationTime);
     
@@ -1303,6 +1313,7 @@ void Simulation::SetupCase()
 	}
 
 	// Setup hidro data bases
+	std::cout << "ieeepa" << std::endl;
 	for (int ii=0; ii<numBodies; ii++)
     {
     	pBodies[ii]->pHydro->SetUp();

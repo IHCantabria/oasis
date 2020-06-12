@@ -33,7 +33,7 @@ arma::mat CumminsIrregular::ComputeFirstWaveExcForce()
 arma::mat CumminsIrregular::CalculateHydrodynamicForces(double time)
 {
     // Get hydrostatic forces
-    arma::mat hydrostatic_force = this->ComputeHydrostaticForces();
+    //arma::mat hydrostatic_force = this->CalculateHydrostaticForces();
 
     // Calculate Damping effects
     arma::mat radiation_force = this->ComputeRadiationForces();

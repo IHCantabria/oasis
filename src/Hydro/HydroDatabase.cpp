@@ -18,10 +18,40 @@ arma::mat HydroDatabase::CalculateHydrodynamicForces(double time)
 {
 	arma::mat F = arma::zeros(activeDofs,1);
 
-	double yaw = pBodies[idBody]->pos(5,0); 
+	double yaw = pBodies[idBody]->pos(5,0);
 
-	//F = F + ComputeFirstWaveExcForce(time);
-	//F = F + ComputeSecondWaveExcForce(time);
+	//F = F + CalculateHydrostaticForces();
+
+	F = F + ComputeRadiationForces();
+
+	if(pBodies[idBody]->firstOrderExcitationFlag==1)
+	{
+		std::stringstream ss;
+		ss << "Precomputed fisrt order forces not implemented yet. \n";
+		throw NotImplementedError(ss.str());
+	}
+	if(pBodies[idBody]->firstOrderExcitationFlag==2)
+	{
+		F = F + ComputeFirstWaveExcForce(time);
+	}
+
+	if(pBodies[idBody]->secondOrderExcitationFlag==1)
+	{
+		std::stringstream ss;
+		ss << "Precomputed second order forces not implemented yet. \n";
+		throw NotImplementedError(ss.str());
+	}
+	if(pBodies[idBody]->secondOrderExcitationFlag==2)
+	{
+		F = F + ComputeSecondWaveExcForce(time);
+	}
+	
+	// Viscous drag forces
+	arma::mat vv = pBodies[idBody]->vel;
+	F = F - pBodies[idBody]->B_visc % vv
+	      - pBodies[idBody]->B_visc2 % vv % arma::abs(vv);
+
+	// Wind and current forces
 	if (pMor->flag_wind)
 	{
 		F = F + pMor->ComputeWindForce(idBody, yaw, time);
@@ -35,9 +65,9 @@ arma::mat HydroDatabase::CalculateHydrodynamicForces(double time)
 }
 
 
-arma::mat HydroDatabase::ComputeHydrostaticForces()
+arma::mat HydroDatabase::CalculateHydrostaticForces()
 {	
-	arma::mat hydrostatic_force = (*pHydrostaticStiffness)*((*pBodies)[id].pos - (*pBodies)[id].pos_init);
+	arma::mat hydrostatic_force = -(*pHydrostaticStiffness)*((*pBodies)[id].pos - (*pBodies)[id].pos_init);
 	return hydrostatic_force;
 }
 
@@ -160,7 +190,7 @@ arma::mat HydroDatabase::ComputeRadiationForces()
 							//std::cout << "here" << std::endl;
 							(*pTimeStartPos)(ib, i, j) = k-1;
 							//std::cout << "here" << std::endl;
-							break;
+							break;  
 						}
 					}
 					idx_begin = (*pTimeStartPos)(ib, i, j);
@@ -216,7 +246,7 @@ arma::mat HydroDatabase::ComputeRadiationForces()
 					irf_local_interp = interp1(time_local, arma::flipud(irf_local), pSim->timeBuffer.cols(0, idx_end));
 
 					// Calulate Duhamel integral
-					vel_local_filter = irf_local_interp%vel_local;
+					vel_local_filter = irf_local_interp%vel_local.t();
 					radiation_force(i) += trapzi(pSim->timeBuffer.cols(0, idx_end), vel_local_filter);
 
 					/**
@@ -330,7 +360,7 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 		added_mass_fn << "body_" << this->GetId() << "/added_mass/body_" << ii;
 		pAddedMass[ii]->load(arma::hdf5_name(filePath, added_mass_fn.str()));
 	}
-	
+
 	// Read High frequency asymptotic added mass
 	std::stringstream added_mass_hf_fn;
 	pAddedMassHf = new arma::mat* [numBodies];
@@ -341,10 +371,8 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 		added_mass_hf_fn << "body_" << this->GetId() << "/added_mass_hf/body_" << ii;
 		pAddedMassHf[ii]->load(arma::hdf5_name(filePath, added_mass_hf_fn.str()));
 
-		(*pTotalMass) = (*pTotalMass) + *pAddedMassHf[ii];
+		(*pTotalMass)(arma::span(6*ii,6*(ii+1)-1), arma::span(6*ii,6*(ii+1)-1)) = (*pTotalMass)(arma::span(6*ii,6*(ii+1)-1), arma::span(6*ii,6*(ii+1)-1)) + *pAddedMassHf[ii];
 	}
-
-	*pTotalMass_inv = arma::solve(*pTotalMass,eye(size(*pTotalMass)));
 	
 	// Read Low frequency asymptotic added mass
 	std::stringstream added_mass_lf_fn;
@@ -397,7 +425,7 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 	pWaveExcitingPha = new arma::cube;
 	wave_exciting_pha_fn << "body_" << this->GetId() << "/wave_exciting_pha";
 	pWaveExcitingPha->load(arma::hdf5_name(filePath, wave_exciting_pha_fn.str()));
-	
+
 	// Read QTF data
 	std::stringstream qtf_diff_fn;
 	std::stringstream qtf_sum_fn;
@@ -421,22 +449,16 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 			pQtfSum[ii][jj]->load(arma::hdf5_name(filePath, qtf_sum_fn.str()));
 		}
 	}
+
 	
 	// Generate starting pos time matrix
 	pTimeStartPos = new arma::cube(numBodies, 6, 6, arma::fill::zeros);
-
-	std::string pppPath = JoinPath(pSim->inputFolderPath, "periodNum.txt");
-	char buffer_line [1000];
-	FILE* p_file_pointer = fopen(pppPath.c_str(), "r");
-	fscanf(p_file_pointer, "%lf %d %d %[^\n]\n", &waveAmplitude, &numPeriodExc, &numHeadingExc, buffer_line);
-	fclose(p_file_pointer);
 
 	// Compute IRF function
 	this->ComputeIRF();
 
 	// Load Morison forces data
 	pMor = new Morison(numBodies, pSim); pMor->ReadMorisonData();
-
 }
 
 
@@ -576,6 +598,7 @@ void HydroDatabase::SetUp(void)
 	Wave* pWave = pSim->pWave;
 	arma::cube WE_Real = (*pWaveExcitingMag) % arma::cos((*pWaveExcitingPha));
 	arma::cube WE_Imag = (*pWaveExcitingMag) % arma::sin((*pWaveExcitingPha));
+
 	WE_Real_w = interp1(*pFrequencies,permute(WE_Real,231), pWave->freqs);
 	WE_Imag_w = interp1(*pFrequencies,permute(WE_Imag,231), pWave->freqs);
 	WE_Real_w = permute(WE_Real_w,213); WE_Imag_w = permute(WE_Imag_w,213);
@@ -626,6 +649,16 @@ void HydroDatabase::SetUp(void)
 		}
 	}
 
+	// Include viscous added mass
+	for (int ii=0; ii<numBodies; ii++)
+	{
+		(*pTotalMass)(arma::span(6*ii,6*(ii+1)-1), arma::span(6*ii,6*(ii+1)-1)) = 
+		(*pTotalMass)(arma::span(6*ii,6*(ii+1)-1), arma::span(6*ii,6*(ii+1)-1)) 
+		+ (*pAddedMassHf[ii])%(arma::diagmat(pBodies[ii]->A_visc));
+	}
+	*pTotalMass_inv = arma::solve(*pTotalMass,eye(size(*pTotalMass)));
+
+	pBodies[idBody]->Fb = CalculateHydrodynamicForces(0.0);
 }
 
 

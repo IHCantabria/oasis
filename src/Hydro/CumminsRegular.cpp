@@ -42,7 +42,7 @@ CumminsRegular::CumminsRegular(int incId, int incIdBody, Body** incBodies, Simul
 arma::mat CumminsRegular::CalculateHydrodynamicForces(double time)
 {
     // Get hydrostatic forces
-    arma::mat hydrostatic_force = this->ComputeHydrostaticForces();
+    // arma::mat hydrostatic_force = this->CalculateHydrostaticForces();
 
     // Calculate Damping effects
     arma::mat radiation_force = this->ComputeRadiationForces();

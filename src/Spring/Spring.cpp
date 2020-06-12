@@ -163,9 +163,6 @@ void Spring::computeSpringForces(void)
 		SpringStrains_dot(5,1) = -((arma::dot(x1_dot,y2)+arma::dot(x1,y2_dot))*arma::dot(x1,x2) + arma::dot(x1,y2)*(arma::dot(x1_dot,x2)+arma::dot(x1,x2_dot)))/(pow(arma::dot(x1,y2),2)+pow(arma::dot(x1,x2),2));
 	}
 
-
-
-
 	arma::mat tempF_L = arma::zeros(6,1); // Fuerza registrada en el muelle en coordenadas del cuerpo
 	arma::mat tempF_G = arma::zeros(6,1); // Fuerza registrada en el muelle en coordenadas globales
 

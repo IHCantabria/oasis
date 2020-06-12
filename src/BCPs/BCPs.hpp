@@ -51,7 +51,7 @@ public:
 	//Necesario para Body
 	arma::mat posWrtCdgLocal = arma::zeros(3,1); // Brazo cdg-bcp en local
 	arma::mat posWrtCdgGlobal = arma::zeros(3,1); // Brazo cdg-bcp en global
-	arma::mat rotMat = arma::zeros(3,3); // Matriz de rotacion del cuerpo
+	arma::mat rotMat = arma::eye(3,3); // Matriz de rotacion del cuerpo
 	arma::mat posG_BCP = arma::zeros(6,1); // Posicion del punto en global en 6 dofs
 	arma::mat velG_BCP = arma::zeros(6,1); // Velocidad del punto en global en 6 dofs
 	arma::mat accG_BCP = arma::zeros(6,1); // Aceleración del punto en global en 6 dofs

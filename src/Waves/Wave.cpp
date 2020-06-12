@@ -97,6 +97,7 @@ void RegularWave::GetWaveSpectrum(void)
 	num_headings = 1;
 	df = 1.0/simulationTime; dw = 2.0*pi*df;
 	periods = arma::ones(1,1)*period;
+	freqs = 1.0/periods;
 	ang_freqs = arma::ones(1,1)*(2.0*pi/period);
 	headings = arma::ones(1,1)*heading; headings = mod(headings,2.0*pi);
 	amplitudes = arma::ones(1,1)*height;
