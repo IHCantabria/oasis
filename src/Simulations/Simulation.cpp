@@ -1088,6 +1088,7 @@ void Simulation::Run()
 {
     time_t tstart, tend;
 	double wallTime = 0.0;
+	double wallTimeHydro = 0.0;
     tstart = time(0);
     std::cout<< "    t = " << wallTime << " s" << std::endl;
     //pTimeSolver->dt_max = 0.1;
@@ -1111,14 +1112,15 @@ void Simulation::Run()
             for(int ii=0; ii<numBodies; ii=ii+1) pBodies[ii]->WriteOut(wallTime);
         }
 
-    	if (pTimeSolver->t >= wallTime + hydroTimeStep)
+    	if (pTimeSolver->t >= wallTimeHydro + hydroTimeStep)
     	{
+            wallTimeHydro += hydroTimeStep;
     		if (numBodies>0){   
 		        UpdateSystem();
 		    }
             for(int ii=0; ii<numBodies; ii=ii+1) 
             {
-            		pBodies[ii]->Fb = pBodies[ii]->pHydro->CalculateHydrodynamicForces(wallTime);
+            	pBodies[ii]->Fb = pBodies[ii]->pHydro->CalculateHydrodynamicForces(wallTime);
             }
     	}
         
