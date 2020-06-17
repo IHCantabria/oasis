@@ -140,7 +140,7 @@ void HydroDatabase::ComputeIRF(void)
 		}
 	}
 
-	(*pIRF[0]).save(arma::hdf5_name("IRF.h5", "irf"));
+	//(*pIRF[0]).save(arma::hdf5_name("IRF.h5", "irf"));
 
 	std::cout << "Maximum retardation time: " << tmax << std::endl;
 	std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
@@ -172,7 +172,8 @@ arma::mat HydroDatabase::ComputeRadiationForces()
 		{
 			for(int j=0; j<6; j++)
 			{
-				if (pSim->timeBuffer(0, pSim->timeBufferCount) > IRFTime(0, (*pIRFPoints[ib])(i, j)))
+				// if (pSim->timeBuffer(0, pSim->timeBufferCount) > IRFTime(0, (*pIRFPoints[ib])(i, j)))
+				if (pSim->timeBuffer(0, pSim->timeBufferCount) > 120.0)
 				{
 					//std::cout << "HydroDatabase::ComputeRadiationForces - TimeBuffer exceed" << std::endl;
 					//std::cout << "HydroDatabase::ComputeRadiationForces - timeBuffer size: " << arma::size(pSim->timeBuffer) << std::endl;
@@ -206,10 +207,10 @@ arma::mat HydroDatabase::ComputeRadiationForces()
 					//IRFTime.cols(0, (*pIRFPoints[ib])(i, j)).print();
 					time_local = pSim->timeBuffer.cols(idx_begin, idx_end)-pSim->timeBuffer(0, idx_begin);
 					time_irf = IRFTime.cols(0, (*pIRFPoints[ib])(i, j));
-					vel_local_interp = interp1(time_local, vel_local, time_irf);
+					vel_local_interp = interp1(time_local, vel_local.t(), time_irf);
 
 					// Calulate Duhamel integral
-					vel_local_filter = arma::flipud(irf_local)%(vel_local_interp.t());
+					vel_local_filter = arma::flipud(irf_local)%(vel_local_interp);
 					vel_local_filter = vel_local_filter.t();
 					radiation_force(i) += trapz(vel_local_filter, dt);
 					/**
