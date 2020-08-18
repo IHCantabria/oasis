@@ -16,6 +16,8 @@ double trapz(arma::mat y, double h);
 double trapzi(arma::mat t, arma::mat y);
 std::tuple<arma::mat,arma::mat> upcrossing(arma::mat t, arma::mat u);
 arma::cube permute(arma::cube x, int ind);
+arma::mat wrapTo180(arma::mat x);
+arma::mat wrapToPi(arma::mat x);
 
 
 

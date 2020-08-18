@@ -63,6 +63,7 @@ public:
 	arma::cube WE_Imag_w; // Matrix components after SetUp: [headings, freqs_w, dofs];
 
 	arma::mat ampP, wD, phD, kxD, kyD, wS, phS, kxS, kyS; // Postproces matrices for QTF computation
+	arma::mat F_meanDrift = arma::zeros(6,1);
 
 	// Class Constructors
 	HydroDatabase(int incId, int incIdBody, Body** incBodies, Simulation* pIncSim);

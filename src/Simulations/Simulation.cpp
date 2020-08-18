@@ -61,6 +61,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 	for(int ii=0; ii<numBodies; ii++)
     {
 		pBodies[ii]->UpdateBcps();
+		pBodies[ii]->ResetBcps();
 	}
 	// Set boundary conditions on pos and vel of Lines if the BCP is not a joint
 	//std::cout << "Main::fun - Set Boundary conditios" << std::endl;
@@ -963,6 +964,7 @@ void Simulation::ReadWavesASCII()
 			char cWaveDatabaseName [1000];
 			fscanf(file_pointer, "%s %[^\n]\n", cWaveDatabaseName, bufferLine);
 			pWave->waveDatabaseName = cWaveDatabaseName;
+			pWave->file_path = JoinPath(inputFolderPath, pWave->waveDatabaseName);
 		}
 		else
 		{
@@ -1013,6 +1015,7 @@ void Simulation::ReadWavesASCII()
     pWave->waterDepth = abs(waterDepth);
     pWave->CheckBreakingWave();
     pWave->GetWaveSpectrum();
+    pWave->WriteOut(outputFolderPath);
 }
 
 
@@ -1146,8 +1149,9 @@ void Simulation::Run()
 
 void Simulation::SetupCase()
 {
-    std::cout << "--> Setting up the case configuration..." << std::endl;
+    std::cout << "----> Setting up the case configuration..." << std::endl;
     // Count the number of BCP in each body and create pointer array
+    std::cout << "        Count the number of BCP in each body and create pointer array" << std::endl;
     for (int ii=0; ii<numBodies; ii++)
     {
         for (int jj=0; jj<pBodies[ii]->numBcps; jj++)
@@ -1177,6 +1181,7 @@ void Simulation::SetupCase()
     }
 
     // Assing to each BCP the corresponding Body pointer
+    std::cout << "        Assign to each BCP the corresponding Body pointer" << std::endl;
     for (int ii=0; ii<numBodies; ii++)
     {
         for(int jj=0; jj<pBodies[ii]->numBcps; jj++)
@@ -1213,6 +1218,7 @@ void Simulation::SetupCase()
 
 
     // Count the number of Lines in each body and create pointer array
+    std::cout << "        Count the number of Lines in each body and create pointer array" << std::endl;
     for (int ii=0; ii<numLines; ii++)
     {
         for (int jj=0; jj<pLines[ii]->numBcps; jj++)
@@ -1241,7 +1247,9 @@ void Simulation::SetupCase()
         }
         
     }
+
     // Assing to each Line the corresponding Body pointer
+    std::cout << "        Assing to each Line the corresponding Body pointer" << std::endl;
     for (int ii=0; ii<numLines; ii++)
     {
         for(int jj=0; jj<pLines[ii]->numBcps; jj++)
@@ -1308,6 +1316,7 @@ void Simulation::SetupCase()
     **/
 
     // Setup Springs
+    std::cout << "        Setup Springs" << std::endl;
 	for(int ii=0; ii<numSprings; ii++)
     {
 		pSprings[ii]->SpringBCP[0] = pBcps[pSprings[ii]->BCP_1];
@@ -1315,7 +1324,7 @@ void Simulation::SetupCase()
 	}
 
 	// Setup hidro data bases
-	std::cout << "ieeepa" << std::endl;
+	std::cout << "        Setup hidro data bases" << std::endl;
 	for (int ii=0; ii<numBodies; ii++)
     {
     	pBodies[ii]->pHydro->SetUp();

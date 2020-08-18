@@ -70,10 +70,10 @@ void Body::ComputeBcpForces(void)
 				// por que tanto el brazo posG, como la fuerza ForceBCP, estan en global.
 				F_M = matrix*vector;
 
-				printf("matrix\n");
-				matrix.print();
-				printf("vector\n");
-				vector.print();
+				//printf("matrix\n");
+				//matrix.print();
+				//printf("vector\n");
+				//vector.print();
 			}
 		}
 
@@ -87,7 +87,6 @@ void Body::ComputeBcpForces(void)
 		std::cout << std::endl << "ERROR: NaN Detected on body with id = " << id << std::endl;
 		throw std::exception();
 	}
-
 }
 
 
@@ -106,8 +105,10 @@ void Body::LoadHydrodynamicDatabase(Body** hydroDatabaseBodies)
 
 	// Load hydrodynamic database
 	this->pHydro = new HydroDatabase(this->hydroDatabaseIndex, this->id, hydroDatabaseBodies, this->pSim);
+	std::cout << "    --> Loading hydrodynamic database" << std::endl;
 	this->pHydro->LoadHydrodynamicData(file_path);
 
+	std::cout << "    --> Loading and checking the Hydrodynamic C.O.G position" << std::endl;
 	// Load and check the Hydrodynamic C.O.G position
 	if (this->takeCOGHydroDatabase == 1)
 	{
@@ -321,7 +322,6 @@ void Body::ReadPropertiesASCII(FILE* pFile)
 
 	// Generate array of pointers in order to storage the BCPs pointers
 	this->pBodyBcps = new BCP* [this->numBcps];
-
 }
 
 
@@ -378,13 +378,21 @@ void Body::UpdateBcps(void)
 		pBodyBcps[ii]->posG_BCP.rows(3,5) = pos.rows(3,5);
 		pBodyBcps[ii]->velG_BCP.rows(3,5) = vel.rows(3,5);
 		pBodyBcps[ii]->accG_BCP.rows(3,5) = acc.rows(3,5);
+	}
+}
+
+
+// Resetea fuerzas BCPs
+void Body::ResetBcps(void)
+{
+	for(int ii=0; ii<numBcps; ii++)
+	{
 		// Reseteo a cero la fuerza sobre el BCP
 		pBodyBcps[ii]->forceBcp = arma::zeros(6,1);
 	}
 	// Reseteo a cero la fuerza total de todos los BCPs
 	bcpForces = arma::zeros(6,1);
 }
-
 
 // void Body::UpdateHydrostaticForces()
 // {
@@ -400,7 +408,7 @@ void Body::UpdateBcps(void)
 
 void Body::OpenOutputFilesASCII (std::string path)
 {
-	char buffer1[50], buffer2[50], buffer3[50], buffer4[50], buffer5[50], buffer6[50], buffer7[50], buffer8[50];
+	char buffer1[50], buffer2[50], buffer3[50], buffer4[50], buffer5[50], buffer6[50], buffer7[50], buffer8[50], buffer9[50], buffer10[50];
 
 	int nn1 = sprintf(buffer1,"DOF_1_Body_%d.txt", GetId());
 	int nn2 = sprintf(buffer2,"DOF_2_Body_%d.txt", GetId());
@@ -410,6 +418,8 @@ void Body::OpenOutputFilesASCII (std::string path)
 	int nn6 = sprintf(buffer6,"DOF_6_Body_%d.txt", GetId());
 	int nn7 = sprintf(buffer7,"HydroStiffnessForce_Body_%d.txt", GetId());
 	int nn8 = sprintf(buffer8,"WaveRadiationForce_Body_%d.txt", GetId());
+	int nn9 = sprintf(buffer9,"BCPForce_Body_%d.txt", GetId());
+	int nn10 = sprintf(buffer10,"WaveExcitationForce_Body_%d.txt", GetId());
 
 	std::string file_path1 = JoinPath(path, buffer1);
 	std::string file_path2 = JoinPath(path, buffer2);
@@ -419,6 +429,8 @@ void Body::OpenOutputFilesASCII (std::string path)
 	std::string file_path6 = JoinPath(path, buffer6);
 	std::string file_path7 = JoinPath(path, buffer7);
 	std::string file_path8 = JoinPath(path, buffer8);
+	std::string file_path9 = JoinPath(path, buffer9);
+	std::string file_path10 = JoinPath(path, buffer10);
 
 	pfile_DOF_1 = fopen (file_path1.c_str(),"w");
 	if (pfile_DOF_1 == NULL)
@@ -476,6 +488,20 @@ void Body::OpenOutputFilesASCII (std::string path)
         ss << "Not possible to open the file: "<< nn8 <<"\n    ->Dir: " << path << std::endl;
         throw IOError(ss.str());
 	}
+	pfile_BCPF = fopen (file_path9.c_str(),"w");
+	if (pfile_BCPF == NULL)
+	{
+        std::stringstream ss;
+        ss << "Not possible to open the file: "<< nn9 <<"\n    ->Dir: " << path << std::endl;
+        throw IOError(ss.str());
+	}
+	pfile_WEF = fopen (file_path10.c_str(),"w");
+	if (pfile_WEF == NULL)
+	{
+        std::stringstream ss;
+        ss << "Not possible to open the file: "<< nn10 <<"\n    ->Dir: " << path << std::endl;
+        throw IOError(ss.str());
+	}
 }
 
 
@@ -489,6 +515,8 @@ void Body::CloseOutputFilesASCII (void)
 	fclose(pfile_DOF_6);
 	fclose(pfile_HSF);
 	fclose(pfile_WRF);
+	fclose(pfile_BCPF);
+	fclose(pfile_WEF);
 }
 
 
@@ -508,4 +536,24 @@ void Body::WriteOut(double t)
 	fprintf(pfile_WRF, "%f    ", t);
 	for(int ii=0;ii<6;ii=ii+1) fprintf(pfile_WRF, "%f    ", radiationForces(ii, 0));
 	fprintf(pfile_WRF, "\n");
+
+	fprintf(pfile_WEF, "%f    ", t);
+	for(int ii=0;ii<6;ii=ii+1) fprintf(pfile_WEF, "%f    ", excitationForces_1(ii, 0));
+	for(int ii=0;ii<6;ii=ii+1) fprintf(pfile_WEF, "%f    ", excitationForces_2(ii, 0));
+	fprintf(pfile_WEF, "\n");
+
+	fprintf(pfile_BCPF, "%f    ", t);
+	for(int ii=0;ii<numBcps;ii=ii+1)
+	{
+		for(int jj=0;jj<6;jj=jj+1)
+		{
+			fprintf(pfile_BCPF, "%f    ", pBodyBcps[ii]->temp(jj, 0));
+			//fprintf(pfile_BCPF, "%f    ", pBodyBcps[ii]->forceBcp(jj, 0));
+		}
+	}
+	for(int jj=0;jj<6;jj=jj+1)
+	{
+		fprintf(pfile_BCPF, "%f    ", bcpForces(jj, 0));
+	}
+	fprintf(pfile_BCPF, "\n");
 }

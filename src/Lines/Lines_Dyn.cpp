@@ -239,12 +239,12 @@ void Line::SEM_computeF(void)
 
 	dedt = drds.col(0) % drdsdt.col(0) + drds.col(1) % drdsdt.col(1) + drds.col(2) % drdsdt.col(2);
 
-	//T = EA * (norm_drds - dL/dL0 + beta * dedt);
-	T = EA * (strain + beta * dedt);
+	T = EA * (norm_drds - dL/dL0 + beta * dedt);
+	//T = EA * (strain + beta * dedt);
 
 	if (flag_tension == 2){
-		//T = 0.5*(T + arma::abs(T));
-		T = 0.5*(arma::erf(3.0*T-1.0) + 1.0) % T;
+		T = 0.5*(T + arma::abs(T));
+		//T = 0.5*(arma::erf(3.0*T-1.0) + 1.0) % T;
 	}
 
 	for(int k=0;k<N;k=k+1){

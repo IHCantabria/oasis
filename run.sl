@@ -1,8 +1,8 @@
 #!/bin/sh
 #SBATCH -J oasis
-#SBATCH -A energia       # Project Account
-#SBATCH --time=1:00:00   # Walltime
-#SBATCH --mem-per-cpu=3G # memory/cpu 
+#SBATCH -A fconcrete     # Project Account
+#SBATCH --time=4:00:00   # Walltime
+#SBATCH --mem-per-cpu=10G # memory/cpu 
 
 ml HDF5/1.8.19-foss-2017a
 ml Armadillo/9.800.4-foss-2017a

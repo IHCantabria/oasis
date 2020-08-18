@@ -20,6 +20,7 @@ public:
 
 	arma::field<arma::mat> SpringVectors; // Vectores unitarios que definen la orientación del muelle en local para cada BCP. orden normal (x), tangente 1 (y), tangente 2 (z)
 	arma::mat SpringMatrix_K = arma::zeros(6,6); // Matriz de rigided del muelle
+	double mu_d, mu_s, v_100; // Coeficiente de fricción dinamico, estatico y velocidad de friccion dinamica
 	arma::mat SpringMatrix_M = arma::zeros(6,6); // Matriz de friccion del muelle
 	arma::mat SpringMatrix_D = arma::zeros(6,1); // Coeficientes de damping del muelle 
 	// Para 6 grados de libertad, el numero de datos, n, en las cuervas stress strain

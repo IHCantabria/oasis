@@ -2,13 +2,16 @@
 #include <armadillo>
 #include <string>
 #include "Spring.hpp"
+#include "../MathTools.hpp"
+#include "../Exceptions/Exception.hpp"
+
 
 // Lee inputs de los muelles
 void Spring::ReadPropertiesASCII(std::string file_path){
 	
 	int ii, jj, kk, ll, temp_N; 
 	std::string Dummy;
-	const int nInored=89; // numero de lineas que se leen para cada nueva linea
+	const int nInored=93; // numero de lineas que se leen para cada nueva linea
 	arma::mat temp_vec = arma::zeros(3,1);
 
 	SpringVectors.set_size(3,2);
@@ -58,6 +61,13 @@ void Spring::ReadPropertiesASCII(std::string file_path){
 		}
 		datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
 	}
+
+	datosSprings >> Dummy; datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
+	datosSprings >> mu_d; datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
+	datosSprings >> mu_s; datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
+	datosSprings >> v_100; datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
+
+
 	datosSprings >> Dummy; datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
 	for(jj=0;jj<6;jj=jj+1){
 		for(kk=0;kk<6;kk=kk+1){
@@ -83,14 +93,17 @@ void Spring::ReadPropertiesASCII(std::string file_path){
 		}
 		datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
 		data_StressStrain(jj,0) = temp_vec2;
-		for(kk=0;kk<6;kk=kk+1){
-			temp_mat = arma::zeros(temp_N,6);
+		temp_mat = arma::zeros(temp_N,6);
+		for(kk=0;kk<6;kk=kk+1){			
 			for(ll=0;ll<temp_N;ll=ll+1){
 				datosSprings >> temp_mat(ll,kk);
 			}
 			datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
 		}
 		data_StressStrain(jj,1) = temp_mat;
+		//std::cout << "temp_vec2  " << temp_vec2 << std::endl;
+		//std::cout << "temp_mat  " << temp_mat << std::endl;
+
 	}
 
 	//Cierro el fichero
@@ -167,9 +180,7 @@ void Spring::computeSpringForces(void)
 	arma::mat tempF_G = arma::zeros(6,1); // Fuerza registrada en el muelle en coordenadas globales
 
 	// Variables temporales necesarias mas adelante
-	double tempS, temp_dS;
-	int tempN, tempI;
-	arma::mat temp_strainData, temp_stressData, temp_slope;
+	arma::mat temp_strainData, temp_stressData, tempS;
 	arma::mat tempF_K = arma::zeros(6,1);
 
 	for(int ii=0;ii<2;ii=ii+1)
@@ -183,8 +194,8 @@ void Spring::computeSpringForces(void)
 			// debido a como se calcula SpringVectorG
 			temp_strainData =  SpringStrains.col(ii);
 			// Fuerza registrada en el muelle en coordenadas del cuerpo, multiplicando matriz y strain
-			tempF_K = SpringMatrix_K*temp_strainData;
-			tempF_L = tempF_K;			
+			tempF_L = SpringMatrix_K*temp_strainData;
+			tempF_K = tempF_L;			
 
 		} else if (stressModelFlag==2) { // Modelo de muelle no lineal, input es curva de deformacion-fuerza.
 
@@ -192,45 +203,40 @@ void Spring::computeSpringForces(void)
 			for(int jj=0;jj<6;jj=jj+1){
 
 				tempS = SpringStrains(jj,ii);
-				tempN = n_StressStrain[jj] - 1;
 				temp_strainData = data_StressStrain(jj,0);
 				temp_stressData = data_StressStrain(jj,1);
 
-				if((tempS<=arma::max(arma::max(temp_strainData)))&&(tempS>=arma::min(arma::min(temp_strainData)))){
+				//std::cout << "tempS  " << tempS << std::endl;
+				//std::cout << "temp_strainData  " << temp_strainData << std::endl;
+				//std::cout << "temp_stressData  " << temp_stressData << std::endl;
 
-					tempI = arma::as_scalar(arma::find(temp_strainData>=tempS,1,"first")) - 1;
-					temp_dS = tempS - temp_strainData(tempI-1,0);
-					temp_slope = (temp_stressData.col(tempI)-temp_stressData.col(tempI-1))/(temp_strainData(tempI,0)-temp_strainData(tempI-1,0));
-					tempF_L = tempF_L + temp_stressData.col(tempI-1) + temp_dS*temp_slope;
-
-
-				} else if (tempS>arma::max(arma::max(temp_strainData))){ 
-
-					temp_dS = tempS-temp_strainData(tempN,0);
-					temp_slope = (temp_stressData.col(tempN)-temp_stressData.col(tempN-1))/(temp_strainData(tempN,0)-temp_strainData(tempN-1,0));
-					tempF_L = tempF_L + temp_stressData.col(tempN) + temp_dS*temp_slope;
-
-				}else if (tempS<arma::min(arma::min(temp_strainData))){
-
-					temp_dS = tempS-temp_strainData(0,0);
-					temp_slope = (temp_stressData.col(1)-temp_stressData.col(0))/(temp_strainData(1,0)-temp_strainData(0,0));
-					tempF_L = tempF_L + temp_stressData.col(0) + temp_dS*temp_slope;
-				}
+				tempF_L = tempF_L + (interp1(temp_strainData,temp_stressData,tempS)).t();
 			}
+
+
+			tempF_K = tempF_L;
 			
 
 		}
 
+		SpringBCP[ii]->temp = tempF_K;
+
 		// Fuerza de damping
 		if(dampingFlag == 1){
 			temp_strainData = SpringStrains_dot.col(ii);
-			tempF_L = tempF_L - (SpringMatrix_D % arma::abs(tempF_K)) % temp_strainData;
+			arma::mat F_D = (SpringMatrix_D % arma::abs(tempF_K)) % temp_strainData;
+			tempF_L = tempF_L + F_D;
 		}
 
 		// Fuerza de friccion
 		if(frictionFlag == 1){
 			temp_strainData = SpringStrains_dot.col(ii);
-			tempF_L = tempF_L - (SpringMatrix_M * arma::abs(tempF_K)) % temp_strainData;
+			arma::mat mu_vec = (mu_d + mu_s*arma::exp(-arma::abs(temp_strainData)*log(100.0)/v_100))%arma::sign(temp_strainData);
+			for(int jj=0;jj<6;jj=jj+1){
+				if (abs(temp_strainData(jj,0))<v_100/100.0) mu_vec(jj,0) = 0.0;
+			}
+			arma::mat F_F = (SpringMatrix_M * arma::abs(tempF_K)) % mu_vec;
+			tempF_L = tempF_L + F_F;
 		}
 
 		// Paso de coordenadas locales a coordenadas globales la fuerza del muelle
@@ -240,24 +246,6 @@ void Spring::computeSpringForces(void)
 
 		SpringBCP[ii]->forceBcp = SpringBCP[ii]->forceBcp + tempF_G; // Acumulo la fuerza obtenida en el BCP
 
-		//std::cout << "Spring " << nSpring+1 << ", force at BCP " << ii+1 << " in global frame is:   "  << std::endl << SpringBCP[ii]->forceBcp << std::endl;
-		//std::cout << "Spring " << nSpring+1 << ", position of BCP " << ii+1 << " in global frame is:   "  << std::endl << SpringBCP[ii]->posG_BCP << std::endl;
-		//std::cout << "Spring " << nSpring+1 << ", strain at BCP " << ii+1 << " is:   "  << std::endl << SpringStrains.col(ii) << std::endl;
-		//std::cout << "Spring " << nSpring+1 << " BCP " << ii+1 << " is BCP "  <<  SpringBCP[ii]->GetId() << std::endl;
-
 	}
-
-	//std::cout << "Spring " << nSpring+1 << ", L12 = " << std::endl << L12 << std::endl;
-	//std::cout << "Spring " << nSpring+1 << ", L21 = " << std::endl << L21 << std::endl;
-
-	
-	//std::cout << "Spring " << nSpring+1 << ", position increment of BCPs 1 -> 2 in global frame is:   "  << std::endl << SpringBCP[1]->posG_BCP-SpringBCP[0]->posG_BCP << std::endl;
-	//std::cout << "Spring " << nSpring+1 << ", strain at BCP 1 is:   "  << std::endl << SpringStrains.col(0) << std::endl;
-	//std::cout << "Spring " << nSpring+1 << ", force at BCP 1 in global frame is:   "  << std::endl << SpringBCP[0]->forceBcp << std::endl << std::endl;
-
-
-	//std::cout << "Spring " << nSpring+1 << ", position increment of BCPs 2 -> 1 in global frame is:   "  << std::endl << SpringBCP[0]->posG_BCP-SpringBCP[1]->posG_BCP << std::endl;
-	//std::cout << "Spring " << nSpring+1 << ", strain at BCP 2 is:   "  << std::endl << SpringStrains.col(1) << std::endl;
-	//std::cout << "Spring " << nSpring+1 << ", force at BCP 2 in global frame is:   "  << std::endl << SpringBCP[1]->forceBcp << std::endl << std::endl;
 
 }

@@ -33,6 +33,8 @@ public:
     arma::mat amplitudes;
     arma::mat phases;
 
+    arma::mat t_FS, eta_FS;
+
     double gravity;
     double waterDepth;
     arma::mat lambdas;
@@ -53,6 +55,10 @@ public:
 	double rel_tol;
     double factor;
 	std::string waveDatabaseName;
+    std::string file_path;
+
+    FILE* pfile_SPEC;
+    FILE* pfile_TIME;
 
     // Declare class constructors
     Wave(double H, double T, double D);
@@ -65,6 +71,8 @@ public:
     double solve_lambda(double T);
     double f_lambda(double lambda, double T);
     double df_lambda(double lambda, double T);
+    void GetFreeSurface(void);
+    void WriteOut(std::string path);
 };
 
 class RegularWave: public Wave
@@ -81,6 +89,7 @@ public:
 	IrregularWave(double H, double T, double D): Wave(H,T,D){};
 	void GetWaveSpectrum(void);
 	void ReadWaveSpectrumHDF5(void);
+    void ReadWaveSpectrumASCII(void);
 	void GetJonswapSpectrum(void);
 	void GetSpreadingFunction(void);
     void CutSpectrumZeros(void);

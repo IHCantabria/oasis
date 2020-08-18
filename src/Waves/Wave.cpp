@@ -4,12 +4,13 @@
 #include "Wave.hpp"
 #include "../Exceptions/Exception.hpp"
 #include "../MathTools.hpp"
+#include "../os_tools.hpp"
 
 Wave::Wave(double H, double T, double D)
 {
     height = H;
     period = T;
-    heading = D;
+    heading = D*pi/180.0;
 }
 
 void Wave::CheckBreakingWave(void)
@@ -56,8 +57,8 @@ void Wave::GetWaveLengths(void)
 	kx = k*cos_theta; ky = k*sin_theta;
     kx_1D = k*cos(heading);
     ky_1D = k*sin(heading);
+    headings = wrapToPi(headings);
 }
-
 
 double Wave::solve_lambda(double T)
 {
@@ -91,6 +92,68 @@ double Wave::df_lambda(double lambda, double T)
 	return -gravity*T*T*waterDepth/(lambda*lambda*cosh(2.0*pi*waterDepth/lambda))-1.0;
 }
 
+void Wave::GetFreeSurface(void)
+{
+	std::cout << "----> Computing Free Surface" << std::endl;
+	t_FS = arma::linspace(0.0,simulationTime,num_points);
+	arma::mat Cm = arma::sum(amplitudes%arma::cos(phases),1);
+	arma::mat Sm = arma::sum(amplitudes%arma::sin(phases),1);
+	arma::mat Am = arma::sqrt(arma::pow(Cm,2)+arma::pow(Sm,2));
+	arma::mat PHIm = arma::atan2(Sm,Cm);
+	arma::cx_mat iPHIm(arma::zeros(size(PHIm)),PHIm);
+	arma::cx_mat Y1 = (0.5*num_points*Am) % arma::exp(-iPHIm); Y1(0,0) = 0.0;
+	arma::cx_mat Y;
+	if (num_points % 2 == 0)
+	{
+		Y = arma::join_vert(arma::conj(Y1),arma::flipud(Y1.rows(1,num_comps-2)));
+	}
+	else
+	{
+		Y = arma::join_vert(arma::conj(Y1),arma::flipud(Y1.rows(1,num_comps-1)));
+	}
+	arma::cx_mat eta_cx = arma::ifft(Y);
+	double imag = arma::as_scalar(arma::sum(arma::abs(arma::imag(eta_cx)),0));
+	if (imag>1e-13*num_points)
+	{
+		std::stringstream ss;
+	    ss << "Something went wrong with the ifft. \n";
+	    throw ValueError(ss.str());
+	}
+	eta_FS = arma::real(eta_cx);
+	std::cout << "----> Free Surface Computed" << std::endl;
+}
+
+void Wave::WriteOut(std::string path)
+{
+	char buffer1[50];
+	int nn1 = sprintf(buffer1,"WaveSpectrum.txt");
+	std::string file_path1 = JoinPath(path, buffer1);
+	pfile_SPEC = fopen (file_path1.c_str(),"w");
+	if (pfile_SPEC == NULL)
+	{
+        std::stringstream ss;
+        ss << "Not possible to open the file: "<< nn1 <<"\n    ->Dir: " << path << std::endl;
+        throw IOError(ss.str());
+	}
+	for(int ii=0;ii<num_comps;ii=ii+1) fprintf(pfile_SPEC, "%f    %f  \n",freqs(ii,0),S_w(ii,0));
+	fclose(pfile_SPEC);
+
+	char buffer2[50];	
+	int nn2 = sprintf(buffer2,"WaveTimeSeries.txt");	
+	std::string file_path2 = JoinPath(path, buffer2);	
+	pfile_TIME = fopen (file_path2.c_str(),"w");
+	if (pfile_TIME == NULL)
+	{
+        std::stringstream ss;
+        ss << "Not possible to open the file: "<< nn2 <<"\n    ->Dir: " << path << std::endl;
+        throw IOError(ss.str());
+	}	
+
+	for(int ii=0;ii<num_points;ii=ii+1) fprintf(pfile_TIME, "%f    %f  \n",t_FS(ii,0),eta_FS(ii,0));
+	
+	fclose(pfile_TIME);
+}
+
 void RegularWave::GetWaveSpectrum(void)
 {
 	num_comps = 1;
@@ -100,7 +163,7 @@ void RegularWave::GetWaveSpectrum(void)
 	freqs = 1.0/periods;
 	ang_freqs = arma::ones(1,1)*(2.0*pi/period);
 	headings = arma::ones(1,1)*heading; headings = mod(headings,2.0*pi);
-	amplitudes = arma::ones(1,1)*height;
+	amplitudes = arma::ones(1,1)*height*0.5;
 	phases = arma::zeros(1,1);
 	headings_1D = headings;
 	amplitudes_1D = amplitudes;
@@ -108,9 +171,9 @@ void RegularWave::GetWaveSpectrum(void)
 	GetWaveLengths();
 }
 
-
 void IrregularWave::GetWaveSpectrum(void)
 {
+	dtheta = dtheta*pi/180;
 	if (specType_flag == 1)
 	{
 		std::cout << "--> Computing Wave Spectrum (JONSWAP)" << std::endl;
@@ -127,7 +190,7 @@ void IrregularWave::GetWaveSpectrum(void)
 
 		if (s>1.0)
 		{
-			headings = arma::regspace(heading-90,dtheta,heading+90);
+			headings = arma::regspace(heading-0.5*pi,dtheta,heading+0.5*pi);
 			num_headings = headings.n_elem;
 			GetSpreadingFunction();
 		}
@@ -136,11 +199,11 @@ void IrregularWave::GetWaveSpectrum(void)
 			headings = arma::ones(1,1)*heading;
 			num_headings = 1;
 			g_theta = arma::ones(1,1);
-			dtheta = 180.0/pi;
+			dtheta = 1.0;
 		}
 		headings = mod(headings,2.0*pi);
 
-		amplitudes = arma::sqrt(2.0*(S_w*g_theta.t())*df*(dtheta*pi/180.0));
+		amplitudes = arma::sqrt(2.0*(S_w*g_theta.t())*df*dtheta);
 
 		// Repeat the computetion without directional spreading for the QTFs
 		headings_1D = arma::ones(1,1)*heading;
@@ -148,7 +211,7 @@ void IrregularWave::GetWaveSpectrum(void)
 
 		int flag = 1;
 		int ii = 1;
-		int nIterMax = 20;
+		int nIterMax = 200;
 		while ((flag==1)&&(ii<=nIterMax))
 		{
 			phases = arma::randn(size(amplitudes))*pi;
@@ -162,6 +225,7 @@ void IrregularWave::GetWaveSpectrum(void)
 		}
 
 		GetWaveLengths();
+		GetFreeSurface();
 		CutSpectrumZeros();
 
 		std::cout << "----> Wave Spectrum Computed" << std::endl;
@@ -169,6 +233,10 @@ void IrregularWave::GetWaveSpectrum(void)
 	else if (specType_flag == 2)
 	{
 		ReadWaveSpectrumHDF5();
+	}
+	else if (specType_flag == 3)
+	{
+		ReadWaveSpectrumASCII();
 	}
 	else
 	{
@@ -212,7 +280,6 @@ void IrregularWave::GetJonswapSpectrum(void)
     S_w = cte * temp1 % temp2 % temp3;
 }
 
-
 void IrregularWave::GetSpreadingFunction(void)
 {
 
@@ -251,11 +318,11 @@ int IrregularWave::CheckPhases(void)
 	arma::cx_mat Y;
 	if (num_points % 2 == 0)
 	{
-		Y = arma::join_vert(Y1,arma::flipud(arma::conj(Y1.rows(1,num_comps-2))));
+		Y = arma::join_vert(arma::conj(Y1),arma::flipud(Y1.rows(1,num_comps-2)));
 	}
 	else
 	{
-		Y = arma::join_vert(Y1,arma::flipud(arma::conj(Y1.rows(1,num_comps-1))));
+		Y = arma::join_vert(arma::conj(Y1),arma::flipud(Y1.rows(1,num_comps-1)));
 	}
 
 	arma::cx_mat eta_cx = arma::ifft(Y);
@@ -325,7 +392,6 @@ void IrregularWave::CutSpectrumZeros(void)
     phases_1D = phases_1D.submat(ind_rows,ind_0);
     kx_1D = kx_1D.submat(ind_rows,ind_0);
     ky_1D = ky_1D.submat(ind_rows,ind_0);
-
 }
 
 void IrregularWave::ReadWaveSpectrumHDF5(void)
@@ -334,5 +400,68 @@ void IrregularWave::ReadWaveSpectrumHDF5(void)
     std::stringstream ss;
     ss << "Method ReadWaveSpectrumHDF5 in class IrregularWave not implemented yet. \n";
     throw NotImplementedError(ss.str());
+    std::cout << "----> Wave Spectrum Read" << std::endl;
+}
+
+void IrregularWave::ReadWaveSpectrumASCII(void)
+{
+	std::cout << "--> Reading Wave Spectrum (ASCII format)" << std::endl;
+
+	int nn;
+	arma::mat time, eta;
+	double dtemp;
+
+    FILE* file_pointer = fopen(file_path.c_str(), "r");
+	
+	if (file_pointer == NULL)
+	{
+        std::stringstream ss;
+        ss << "Not possible to open the file: dataWaves.dat\n    ->Dir: " << file_path << std::endl;
+        throw IOError(ss.str());
+	}
+	
+    char bufferLine [1000];
+
+    fscanf(file_pointer, "%i", &nn, bufferLine);
+    fscanf(file_pointer, "%[^\n]\n", bufferLine);
+    time = arma::zeros(nn,1); eta = arma::zeros(nn,1);
+
+    for (int ii=0; ii<nn; ii++)
+	{
+		fscanf(file_pointer, "%lf", &dtemp); time(ii,0) = dtemp;
+		fscanf(file_pointer, "%lf", &dtemp); eta(ii,0) = dtemp;
+		fscanf(file_pointer, "%[^\n]\n", bufferLine);
+	}
+
+    // Close file
+    fclose(file_pointer);
+
+    simulationTime = time.max()-time(0,0);
+    dt = arma::as_scalar(time(1,0)-time(0,0));
+    num_points = nn;
+    num_comps = floor(num_points/2.0)+1;
+    freqs = arma::linspace(0.0,1.0/(dt*2.0),num_comps);
+    df = arma::as_scalar(freqs(1,0)-freqs(0,0));
+    ang_freqs = 2.0*pi*freqs; dw = 2.0*pi*df;
+	periods = 1.0/freqs; dtheta = 1.0;
+
+    arma::cx_mat yf = arma::fft(eta)/num_points;
+    phases = arma::atan2(arma::imag(yf.rows(0,num_comps-1)), arma::real(yf.rows(0,num_comps-1)));
+    arma::mat psd = arma::pow(arma::abs(yf.rows(0,num_comps-1)),2)/df;
+    psd.rows(1,num_comps-1) = 2.0*psd.rows(1,num_comps-1); psd(0,0) = 0.0;
+    amplitudes = arma::sqrt(2.0*psd*df);
+
+    num_headings = 1;
+	g_theta = arma::ones(1,1);
+	dtheta = 1.0;
+	headings = arma::ones(1,1)*heading;
+	headings_1D = headings;
+	amplitudes_1D = amplitudes;
+	phases_1D = phases;
+	S_w = psd;
+	GetWaveLengths();
+	GetFreeSurface();
+	CutSpectrumZeros();
+
     std::cout << "----> Wave Spectrum Read" << std::endl;
 }

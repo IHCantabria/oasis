@@ -57,6 +57,8 @@ public:
 	arma::mat accG_BCP = arma::zeros(6,1); // Aceleración del punto en global en 6 dofs
 	arma::mat forceBcp = arma::zeros(6,1); // Fuerzas y momentos que actuan sobre el BCP en 6 dofs
 
+	arma::mat temp = arma::zeros(6,1); // Para pintado de variables y debugeo
+
 	// Methods	
 	BCP(int incId);
 	int GetId(void);

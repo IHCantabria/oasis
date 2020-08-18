@@ -6,7 +6,47 @@
 #include <tuple>
 #include "MathTools.hpp"
 #include "Exceptions/Exception.hpp"
+#include <math.h>       /* fmod */
 
+arma::mat wrapTo180(arma::mat x)
+{
+	double a;
+	arma::mat y = arma::zeros(x.n_rows,x.n_cols);
+	for(int ii=0; ii<x.n_rows; ii++)
+	{
+		for(int jj=0; jj<x.n_cols; jj++)
+		{
+			a = arma::as_scalar(x(ii,jj));
+			a = fmod(a, 360.0);
+			if(a>180.0)
+			{
+				a = a - 360.0;
+			}
+			y(ii,jj) = a;
+		}
+	}
+	return y;
+}
+
+arma::mat wrapToPi(arma::mat x)
+{
+	double a;
+	arma::mat y = arma::zeros(x.n_rows,x.n_cols);
+	for(int ii=0; ii<x.n_rows; ii++)
+	{
+		for(int jj=0; jj<x.n_cols; jj++)
+		{
+			a = arma::as_scalar(x(ii,jj));
+			a = fmod(a, 2*arma::datum::pi);
+			if(a>arma::datum::pi)
+			{
+				a = a - 2*arma::datum::pi;
+			}
+			y(ii,jj) = a;
+		}
+	}
+	return y;
+}
 
 
 arma::mat arange(double a, double b, double stepSize)
@@ -88,7 +128,12 @@ arma::mat linspace(double a, double b, int numPoints)
 double trapz(arma::mat y, double h)
 {
 	double int_value = 0.0;
-	for (int i=0; i<y.n_cols-1; i++)
+	int num_points = y.n_rows;
+	if (y.n_cols > num_points)
+	{
+		num_points = y.n_cols;
+	}
+	for (int i=0; i<num_points-1; i++)
 	{
 		int_value += (y[i+1]+y[i])/2.0;
 	}
@@ -288,10 +333,10 @@ arma::cube interp2(arma::mat x, arma::mat y, arma::cube z, arma::mat xi, arma::m
 	}
 	x = arma::reshape(x,x.n_elem,1);
 	xi = arma::reshape(xi,xi.n_elem,1);
-	y = arma::reshape(x,x.n_elem,1);
-	yi = arma::reshape(xi,xi.n_elem,1);
+	y = arma::reshape(y,y.n_elem,1);
+	yi = arma::reshape(yi,yi.n_elem,1);
 
-
+	
 	// Check that the number of rows in z is the same as in x,
 	// and that the number of columns in z is the same as in y.
 	if((z.n_rows!=x.n_rows)||(z.n_cols!=y.n_rows))
@@ -309,8 +354,8 @@ arma::cube interp2(arma::mat x, arma::mat y, arma::cube z, arma::mat xi, arma::m
 	for(int ii=0; ii<z.n_slices; ii++)
 	{
 		temp_input = z(arma::span::all,arma::span::all,arma::span(ii));
-		arma::interp2(x,y,temp_input,xi,yi,temp_output,"linear",0);
-		zi(arma::span::all,arma::span::all,arma::span(ii)) = temp_output;
+		arma::interp2(x,y,temp_input.t(),xi,yi,temp_output,"linear",0);
+		zi(arma::span::all,arma::span::all,arma::span(ii)) = temp_output.t();
 	}
 
 	return zi;

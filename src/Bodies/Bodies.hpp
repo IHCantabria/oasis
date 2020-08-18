@@ -49,11 +49,11 @@ public:
 	arma::mat pos = arma::zeros(6,1); // Body position w.r.t the global reference system
 	arma::mat pos_init = arma::zeros(6,1); // Body initial position w.r.t global reference system. This is used as a reference for hydrostatic force calculation
 	arma::mat radiationForces = arma::zeros(6, 1); // Storage for the wave radiation forces
+	arma::mat excitationForces_1 = arma::zeros(6, 1); // Storage for the wave excitation forces - 1st order
+	arma::mat excitationForces_2 = arma::zeros(6, 1); // Storage for the wave excitation forces - 2nd order
 	arma::mat rotMat = arma::zeros(3,3); // Matriz de rotación
 	arma::mat vel = arma::zeros(6,1); // Body velocity w.r.t the global reference system
 	arma::mat velBuffer; // Velocity Buffer (global coords) in order to store the body velocities and calculate Duhamel's integral term
-
-
 
 
 	FILE* pfile_DOF_1;
@@ -64,6 +64,8 @@ public:
 	FILE* pfile_DOF_6;
 	FILE* pfile_HSF;
 	FILE* pfile_WRF;
+	FILE* pfile_BCPF;
+	FILE* pfile_WEF;
 
 	// Methods definition
 	Body(void){};
@@ -76,6 +78,7 @@ public:
 	void CloseOutputFilesASCII (void);
 	void StoreVelocities(bool restoreMatrix); // Store last step velocity into the velocity buffer matrix
 	void UpdateBcps(void); // Actualiza valores del BCP
+	void ResetBcps(void); // Resetea fuerzas BCPs
 	// void UpdateHydrostaticForces(void); // Update the value of the wave radiation forces the current step
 	// void UpdateRadiationForces(void); // Update the value of the wave radiation forces the current step
 	void WriteOut(double t); // Escribir datos a fichero
