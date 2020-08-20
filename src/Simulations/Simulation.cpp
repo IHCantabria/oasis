@@ -501,11 +501,13 @@ void Simulation::ReadBodiesASCII()
 {
     std::cout << "--> Reading Bodies Properties (ASCII format)" << std::endl;
     // Declare local variables
+    int body_count = 0;
     char buffer_line [1000];
     int diff_count = 0;
     int hydro_database_count=0;
     std::string hydro_databases_name [300];
     int max_num_bodies_database=100;
+    int pos_body = 0;
     int pos_database=0;
 
     // Parse file in order to guess the number of bodies
@@ -576,6 +578,34 @@ void Simulation::ReadBodiesASCII()
     {
         std::cout << hydro_databases_name[ii].c_str() << std::endl;
     }
+
+    // Arrange all the bodies by database
+    Body* pBodiesSort = new Body [numBodies];
+    int body_found [numBodies];
+    for (int ii=0; ii<numBodies; ii++)
+    {
+        body_found[ii] = 0;
+    }
+
+    for (int ii=0; ii<hydro_database_count; ii++)
+    {
+        for (int jj=0; jj<numBodies; jj++)
+        {
+            if ((hydro_databases_name[jj].compare(pBodies[jj]->hydroDatabaseName) == 0) && (body_found[jj] == 0))
+            {
+                body_found[jj] = 1;
+                pBodiesSort[body_count] = pBodies[jj];
+                body_count++;
+            }
+        }
+    }
+
+    for (int ii=0; ii<numBodies; ii++)
+    {
+        pBodies[ii] = pBodiesSort[ii];
+    }
+
+    delete [] pBodiesSort;
 
     // Create an array in order to store the indexes of the bodies in each database
     int **check_hydro_bodies_id = new int* [hydro_database_count];
@@ -662,6 +692,36 @@ void Simulation::ReadBodiesASCII()
         // Set database to the target Body object
         hydro_file_path = JoinPath(this->inputFolderPath, hydro_databases_name[pos_database]);
         this->pBodies[ii]->LoadHydrodynamicDatabase(check_hydro_bodies[pos_database]);
+    }
+
+    // Fill System Matrix
+    double db_shift;
+    double body_shift;
+    this->pSystemMatrix = new arma::mat((6*this->totalBodies, 6*this->totalBodies), arma::fill::zeros);
+    for (int ii=0; ii<this->numBodies; ii++)
+    {
+        // Look for position of the database
+        pos_database = 0;
+        while (true)
+        {
+            if (this->pBodies[ii]->hydroDatabaseName.compare(hydro_databases_name[pos_database])==0)
+            {
+                break;
+            }
+            pos_database++;
+        }
+
+        db_shift = 0;
+        for (int jj=0; jj<pos_database; jj++)
+        {
+            db_shift += 6*check_hydro_bodies_id[pos_database][0];
+        }
+
+        // Look for position of the body
+        body_shift = 6*(pBodies[ii]->hydroDatabaseIndex-1);
+
+        // Fill system matrix
+        (*pSystemMatrix)(arma::span(pos_database,6*(ii+1)-1), arma::span(6*ii,6*(ii+1)-1))
     }
 
     // Check the simulation time

@@ -300,10 +300,6 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 	pStructuralMass = new arma::mat;
 	structural_mass_fn << "body_" << this->GetId() << "/mass";
 	pStructuralMass->load(arma::hdf5_name(filePath, structural_mass_fn.str(), arma::hdf5_opts::trans));
-
-	pTotalMass = new arma::mat(arma::size(*pStructuralMass), arma::fill::zeros);
-	pTotalMass_inv = new arma::mat(arma::size(*pStructuralMass), arma::fill::zeros);
-	*pTotalMass = *pStructuralMass;
 	
 	// Read Added Mass
 	std::cout << "Reading Added Mass...\n";
@@ -328,7 +324,7 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 		added_mass_hf_fn << "body_" << this->GetId() << "/added_mass_hf/body_" << ii;
 		pAddedMassHf[ii]->load(arma::hdf5_name(filePath, added_mass_hf_fn.str()));
 		std::cout << "Applying matrix...\n";
-		(*pTotalMass)(arma::span(6*ii,6*(ii+1)-1), arma::span(6*ii,6*(ii+1)-1)) = (*pTotalMass)(arma::span(6*ii,6*(ii+1)-1), arma::span(6*ii,6*(ii+1)-1)) + *pAddedMassHf[ii];
+		// (*pTotalMass)(arma::span(6*ii,6*(ii+1)-1), arma::span(6*ii,6*(ii+1)-1)) = (*pTotalMass)(arma::span(6*ii,6*(ii+1)-1), arma::span(6*ii,6*(ii+1)-1)) + *pAddedMassHf[ii];
 	}
 	
 	// Read Low frequency asymptotic added mass
