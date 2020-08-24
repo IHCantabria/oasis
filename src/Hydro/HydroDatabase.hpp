@@ -46,6 +46,7 @@ public:
 	arma::mat** pIRFPoints; // Matrix components: [body, dof, dof]
 	arma::mat IRFTime; // Matrix size containing the IRF time. Matrix dims: (1, numPointsIRF)
 	arma::mat* pStructuralMass; // Matrix components: [dof, dof]
+	arma::mat* pTotalMass; // Contains the StructuralMass + AddedMassHf: [dof, numDbBodies*dof]
 	arma::cube* pMeanDrift; // Matrix components: [dofs, freqs, headings];
 	int numBodies;
 	int numFrequencies;
@@ -74,6 +75,7 @@ public:
 	arma::mat GetCog(void); // Interface method, it returns center of gravity
 	int GetNumBodies(void); // Returns the number of bodies in the database
 	int GetNumPointsIrf(void); // Interface mehtods, it returns the number of points of the IRF
+	arma::mat GetTotalMass(void); // Interface method, it returns the total mass matrix: StruturalMass+AddedMass+ViscousAddedMass
 	arma::mat ComputeFirstWaveExcForce(double t); // Interpolate First Order Wave Excitation forces using first order polynomial
 	arma::mat ComputeSecondWaveExcForce(double t);
 	void Refresh(void); // This method refresh the state of the object properties

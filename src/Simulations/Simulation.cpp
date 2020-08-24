@@ -16,11 +16,12 @@
 
 arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 {
+    std::cout << "Time: " << time << " s\n";
     numCallsSysFun++;
     //std::cout << "Main::fun - At first" << std::endl; 
 	arma::mat yprime = arma::zeros(size(y));
 	int i0;
-	//std::cout << "Main::fun - Before copy y to objects" << std::endl;
+	std::cout << "Main::fun - Before copy y to objects" << std::endl;
 	// Copy info from y to the objects.
 	int ini = 0;
 	for(int ii=0; ii<numBodies; ii++)
@@ -57,7 +58,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 	}
 	
 	// Update BodyBCP positions and velocities
-	//std::cout << "Main::fun - Update BCP positions and velocities" << std::endl;
+	std::cout << "Main::fun - Update BCP positions and velocities" << std::endl;
 	for(int ii=0; ii<numBodies; ii++)
     {
 		pBodies[ii]->UpdateBcps();
@@ -108,21 +109,21 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 	}
 
 	// Compute forces vector for the different Lines
-	//std::cout << "Main::fun - Compute forces vector for different lines" << std::endl;
+	std::cout << "Main::fun - Compute forces vector for different lines" << std::endl;
 	for(int ii=0; ii<numLines; ii++)
     {
 		pLines[ii]->SEM_computeF();
 	}
 
 	// Compute forces of Springs
-	//std::cout << "Main::fun - Compute spring" << std::endl;
+	std::cout << "Main::fun - Compute spring" << std::endl;
 	for(int ii=0; ii<numSprings; ii++)
     {
 		pSprings[ii]->computeSpringForces();
 	}
 
 	// Compute hydrostatic and hidrodynamic forces
-    //std::cout << "Main::fun - Compute hydrodynamic and hydrostatic forces" << std::endl;
+    std::cout << "Main::fun - Compute hydrodynamic and hydrostatic forces" << std::endl;
     arma::mat Fb = arma::zeros(6*numBodies, 1);
     for (int ii=0; ii<numBodies; ii++)
     {    
@@ -131,7 +132,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     }
 
 	// Compute forces on BCPs
-	//std::cout << "Main::fun - Compute forces on BCPs" << std::endl;
+	std::cout << "Main::fun - Compute forces on BCPs" << std::endl;
 	for(int ii=0; ii<numBodies; ii++)
     {
 		pBodies[ii]->ComputeBcpForces();
@@ -141,19 +142,25 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 	//WriteASCII("output/bcpForces.dat", pBodies[0]->bcpForces, true);
 
 	// Compute body acceleration
-	// std::cout << "Main::fun - Compute accelerations" << std::endl;
+	std::cout << "Main::fun - Compute accelerations" << std::endl;
 	arma::mat accB = arma::zeros(6*numBodies, 1);
 	arma::mat total_mass;
 	//WriteASCII("output/accB.dat", accB, true);
-	for(int ii=0; ii<numBodies; ii++)
+	// for(int ii=0; ii<numBodies; ii++)
+    // {
+	// 	accB(arma::span(6*ii,6*(ii+1)-1), 0) = pBodies[ii]->pHydro->GetInertiaMatrixInv() * Fb(arma::span(6*ii,6*(ii+1)-1), 0);
+	// 	// accB(arma::span(6*ii,6*(ii+1)-1), 0) = *pBodies[ii]->pHydro->pTotalMass_inv * Fb(arma::span(6*ii,6*(ii+1)-1), 0);
+	// 	pBodies[ii]->acc = accB(arma::span(6*ii,6*(ii+1)-1), 0);
+	// }
+
+    accB = (*pSystemMatrixInv) * Fb;
+    for (int ii=0; ii<numBodies; ii++)
     {
-		accB(arma::span(6*ii,6*(ii+1)-1), 0) = pBodies[ii]->pHydro->GetInertiaMatrixInv() * Fb(arma::span(6*ii,6*(ii+1)-1), 0);
-		// accB(arma::span(6*ii,6*(ii+1)-1), 0) = *pBodies[ii]->pHydro->pTotalMass_inv * Fb(arma::span(6*ii,6*(ii+1)-1), 0);
-		pBodies[ii]->acc = accB(arma::span(6*ii,6*(ii+1)-1), 0);
-	}
+        pBodies[ii]->acc = accB(arma::span(6*ii,6*(ii+1)-1), 0);
+    }
 
 	// Update BodyBCP accelerations
-	//std::cout << "Main::fun - Compute BCP accelerations" << std::endl;
+	std::cout << "Main::fun - Compute BCP accelerations" << std::endl;
 	for(int ii=0; ii<numBodies; ii++)
     {
 		pBodies[ii]->UpdateBcps();
@@ -190,7 +197,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 		}
 	}
 	// Obtain Lines accelerations, imposing boundary conditions if the BCP is a joint
-	//std::cout << "Main::fun - Lines accelerations if the Line is a Joint" << std::endl;
+	std::cout << "Main::fun - Lines accelerations if the Line is a Joint" << std::endl;
 	for(int ii=0;ii<numLines;ii=ii+1){
 		if(pLines[ii]->pLineBcps[0]->GetType() == 3){
 			pLines[ii]->pLineBcps[0]->accLines.row(pLines[ii]->pLineBcps[0]->iLJ) = pLines[ii]->acc.row(0);
@@ -580,7 +587,7 @@ void Simulation::ReadBodiesASCII()
     }
 
     // Arrange all the bodies by database
-    Body* pBodiesSort = new Body [numBodies];
+    Body** pBodiesSort = new Body* [numBodies];
     int body_found [numBodies];
     for (int ii=0; ii<numBodies; ii++)
     {
@@ -591,7 +598,7 @@ void Simulation::ReadBodiesASCII()
     {
         for (int jj=0; jj<numBodies; jj++)
         {
-            if ((hydro_databases_name[jj].compare(pBodies[jj]->hydroDatabaseName) == 0) && (body_found[jj] == 0))
+            if ((hydro_databases_name[ii].compare(pBodies[jj]->hydroDatabaseName) == 0) && (body_found[jj] == 0))
             {
                 body_found[jj] = 1;
                 pBodiesSort[body_count] = pBodies[jj];
@@ -636,9 +643,8 @@ void Simulation::ReadBodiesASCII()
             {
                 break;
             }
-
             pos_database++;
-            if (pos_database > hydro_database_count)
+            if (pos_database >= hydro_database_count)
             {
                 std::stringstream ss;
                 ss << "It is not possible to find the name of the hydro database: " << pBodies[ii]->hydroDatabaseName;
@@ -695,9 +701,13 @@ void Simulation::ReadBodiesASCII()
     }
 
     // Fill System Matrix
+    std::cout << "Fill system matrix...\n";
+    arma::span a1;
+    arma::span a2;
     double db_shift;
     double body_shift;
-    this->pSystemMatrix = new arma::mat((6*this->totalBodies, 6*this->totalBodies), arma::fill::zeros);
+    this->pSystemMatrix = new arma::mat(6*this->numBodies, 6*this->numBodies, arma::fill::zeros);
+    this->pSystemMatrixInv = new arma::mat(6*this->numBodies, 6*this->numBodies, arma::fill::zeros);
     for (int ii=0; ii<this->numBodies; ii++)
     {
         // Look for position of the database
@@ -718,12 +728,18 @@ void Simulation::ReadBodiesASCII()
         }
 
         // Look for position of the body
-        body_shift = 6*(pBodies[ii]->hydroDatabaseIndex-1);
+        body_shift = 6*pBodies[ii]->hydroDatabaseIndex;
 
         // Fill system matrix
-        (*pSystemMatrix)(arma::span(pos_database,6*(ii+1)-1), arma::span(6*ii,6*(ii+1)-1))
+        a1 = arma::span(db_shift+body_shift,db_shift+body_shift+5);
+        std::cout << "a1: " << db_shift+body_shift << " - " << db_shift+body_shift+5 << "\n";
+        a2 = arma::span(db_shift,db_shift+6*check_hydro_bodies_id[pos_database][0]-1);
+        std::cout << "a2: " << db_shift <<  " - " << db_shift+6*check_hydro_bodies_id[pos_database][0]-1 << "\n";
+        (*pSystemMatrix)(a1, a2) += pBodies[ii]->pHydro->GetTotalMass();
     }
-
+    std::cout << "Inverting system matrix...\n";
+    *pSystemMatrixInv = arma::solve(*pSystemMatrix,eye(size(*pSystemMatrix)));
+    std::cout << "System matrix inverted...\n";
     // Check the simulation time
     int time_buffer_size = this->timeBufferSize;
     for (int ii=0; ii<this->numBodies; ii++)
@@ -1075,7 +1091,10 @@ void Simulation::ReadWavesASCII()
     pWave->waterDepth = abs(waterDepth);
     pWave->CheckBreakingWave();
     pWave->GetWaveSpectrum();
-    pWave->WriteOut(outputFolderPath);
+    if (strncmp(wave_type, "IRR", 3) == 0)
+    {
+        pWave->WriteOut(outputFolderPath);
+    }
 }
 
 
@@ -1387,6 +1406,7 @@ void Simulation::SetupCase()
 	std::cout << "        Setup hidro data bases" << std::endl;
 	for (int ii=0; ii<numBodies; ii++)
     {
+        std::cout << "Body: " << ii << "\n";
     	pBodies[ii]->pHydro->SetUp();
     }
 

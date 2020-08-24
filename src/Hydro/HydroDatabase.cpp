@@ -23,7 +23,9 @@ arma::mat HydroDatabase::CalculateHydrodynamicForces(double time)
 
 	double yaw = pBodies[idBody]->pos(5,0);
 
+	std::cout << "Computing Radiation forces...\n";
 	F = F + ComputeRadiationForces();
+	std::cout << "Done!\n";
 
 	if(pBodies[idBody]->firstOrderExcitationFlag==1)
 	{
@@ -232,12 +234,6 @@ int HydroDatabase::GetId(void)
 }
 
 
-arma::mat HydroDatabase::GetInertiaMatrixInv(void)
-{
-	return *(this->pTotalMass_inv);
-}
-
-
 int HydroDatabase::GetNumBodies(void)
 {
 	return this->numBodies;
@@ -247,6 +243,12 @@ int HydroDatabase::GetNumBodies(void)
 int HydroDatabase::GetNumPointsIrf(void)
 {
 	return this->numPointsIRF;
+}
+
+
+arma::mat HydroDatabase::GetTotalMass(void)
+{
+	return (*pTotalMass);
 }
 
 
@@ -300,6 +302,11 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 	pStructuralMass = new arma::mat;
 	structural_mass_fn << "body_" << this->GetId() << "/mass";
 	pStructuralMass->load(arma::hdf5_name(filePath, structural_mass_fn.str(), arma::hdf5_opts::trans));
+
+	// Create total mass matrix and fill with structural data
+	std::cout << "Creating total mass matrix...\n";
+	pTotalMass = new arma::mat(6, 6*numBodies, arma::fill::zeros);
+	(*pTotalMass)(arma::span(0, 5), arma::span(6*(pBodies[idBody]->hydroDatabaseIndex), 6*(pBodies[idBody]->hydroDatabaseIndex+1)-1)) = (*pStructuralMass);
 	
 	// Read Added Mass
 	std::cout << "Reading Added Mass...\n";
@@ -324,9 +331,11 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 		added_mass_hf_fn << "body_" << this->GetId() << "/added_mass_hf/body_" << ii;
 		pAddedMassHf[ii]->load(arma::hdf5_name(filePath, added_mass_hf_fn.str()));
 		std::cout << "Applying matrix...\n";
-		// (*pTotalMass)(arma::span(6*ii,6*(ii+1)-1), arma::span(6*ii,6*(ii+1)-1)) = (*pTotalMass)(arma::span(6*ii,6*(ii+1)-1), arma::span(6*ii,6*(ii+1)-1)) + *pAddedMassHf[ii];
+		std::cout << 6*ii << " - " << 6*(ii+1)-1 << "\n";
+		(*pTotalMass)(arma::span(0, 5), arma::span(6*ii, 6*(ii+1)-1)) += (*pAddedMassHf[ii]);
 	}
-	
+	(*pTotalMass)(arma::span(0, 5), arma::span(6*(pBodies[idBody]->hydroDatabaseIndex), 6*(pBodies[idBody]->hydroDatabaseIndex+1)-1)) += (*pAddedMassHf[pBodies[idBody]->hydroDatabaseIndex])%(arma::diagmat(pBodies[idBody]->A_visc));
+
 	// Read Low frequency asymptotic added mass
 	std::cout << "Reading low frequency added mass...\n";
 	std::stringstream added_mass_lf_fn;
@@ -364,13 +373,13 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 	}
 	
 	// Read mean drift coefficients
-	std::cout << "Reading mean drift coefficients...\n";
-	std::stringstream mean_drift_fn;
-	pMeanDrift = new arma::cube;
-	mean_drift_fn << "body_" << this->GetId() << "/mean_drift";
-	std::chrono::steady_clock::time_point begin_load = std::chrono::steady_clock::now();
-	pMeanDrift->load(arma::hdf5_name(filePath, mean_drift_fn.str()));
-	std::chrono::steady_clock::time_point end_load = std::chrono::steady_clock::now();
+	// std::cout << "Reading mean drift coefficients...\n";
+	// std::stringstream mean_drift_fn;
+	// pMeanDrift = new arma::cube;
+	// mean_drift_fn << "body_" << this->GetId() << "/mean_drift";
+	// std::chrono::steady_clock::time_point begin_load = std::chrono::steady_clock::now();
+	// pMeanDrift->load(arma::hdf5_name(filePath, mean_drift_fn.str()));
+	// std::chrono::steady_clock::time_point end_load = std::chrono::steady_clock::now();
 	
 	// Read Wave exciting data
 	std::cout << "Reading wave exciting data...\n";
@@ -409,6 +418,18 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 		}
 	}
 
+	pMeanDrift = new arma::cube(activeDofs, numFrequencies, numHeadings, arma::fill::zeros);
+	for (int ii=0; ii<activeDofs; ii++)
+	{
+		for (int jj=0; jj<numFrequencies; jj++)
+		{
+			for (int kk=0; kk<numHeadings; kk++)
+			{
+				std::cout << "kk: " << kk << "\n";
+				(*pMeanDrift)[ii, jj, kk] = (*pQtfDiff[0][ii])[jj, jj, kk];
+			}
+		}
+	}
 	
 	// Generate starting pos time matrix
 	pTimeStartPos = new arma::cube(numBodies, 6, 6, arma::fill::zeros);
@@ -614,13 +635,13 @@ void HydroDatabase::SetUp(void)
 	}
 
 	// Include viscous added mass
-	for (int ii=0; ii<numBodies; ii++)
-	{
-		(*pTotalMass)(arma::span(6*ii,6*(ii+1)-1), arma::span(6*ii,6*(ii+1)-1)) = 
-		(*pTotalMass)(arma::span(6*ii,6*(ii+1)-1), arma::span(6*ii,6*(ii+1)-1)) 
-		+ (*pAddedMassHf[ii])%(arma::diagmat(pBodies[ii]->A_visc));
-	}
-	*pTotalMass_inv = arma::solve(*pTotalMass,eye(size(*pTotalMass)));
+	// for (int ii=0; ii<numBodies; ii++)
+	// {
+	// 	(*pTotalMass)(arma::span(6*ii,6*(ii+1)-1), arma::span(6*ii,6*(ii+1)-1)) = 
+	// 	(*pTotalMass)(arma::span(6*ii,6*(ii+1)-1), arma::span(6*ii,6*(ii+1)-1)) 
+	// 	+ (*pAddedMassHf[pBodies[ii]->hydroDatabaseIndex])%(arma::diagmat(pBodies[ii]->A_visc));
+	// }
+	// *pTotalMass_inv = arma::solve(*pTotalMass,eye(size(*pTotalMass)));
 
 	// Compute mean drift force
 	arma::cube temp_mD = interp2(*pFrequencies, *pHeadings, permute(*pMeanDrift,231), pWave->freqs, pWave->headings);
@@ -634,7 +655,7 @@ void HydroDatabase::SetUp(void)
 	{
 		pBodies[idBody]->excitationForces_2 = F_meanDrift;
 	}	
-
+	std::cout << "Calculate hyrodynamic forces at time 0.0...\n";
 	pBodies[idBody]->Fb = CalculateHydrodynamicForces(0.0);
 
 	if(pBodies[idBody]->firstOrderExcitationFlag==1)

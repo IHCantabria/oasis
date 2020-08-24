@@ -53,7 +53,8 @@ public:
     int timeBufferCount=0;
 
     // Declare system properties
-    arma::mat* pSystemMatrix
+    arma::mat* pSystemMatrix;
+    arma::mat* pSystemMatrixInv;
 
     // Declare Components Setup Attributes
     AnchorBCP** pAnchorBcps;
