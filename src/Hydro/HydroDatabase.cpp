@@ -72,7 +72,7 @@ arma::mat HydroDatabase::CalculateHydrodynamicForces(double time)
 
 arma::mat HydroDatabase::CalculateHydrostaticForces()
 {	
-	arma::mat hydrostatic_force = -(*pHydrostaticStiffness)*((*pBodies)[id].pos - (*pBodies)[id].pos_init);
+	arma::mat hydrostatic_force = -(*pHydrostaticStiffness)*(pBodies[id]->pos - pBodies[id]->pos_init);
 	pBodies[idBody]->hydrostaticForces = hydrostatic_force;
 	return hydrostatic_force;
 }
@@ -425,7 +425,6 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 		{
 			for (int kk=0; kk<numHeadings; kk++)
 			{
-				std::cout << "kk: " << kk << "\n";
 				(*pMeanDrift)[ii, jj, kk] = (*pQtfDiff[0][ii])[jj, jj, kk];
 			}
 		}

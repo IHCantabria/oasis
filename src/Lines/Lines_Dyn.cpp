@@ -287,6 +287,7 @@ void Line::SEM_computeF(void)
 
 	pLineBcps[0]->forceBcp.rows(0,2) = pLineBcps[0]->forceBcp.rows(0,2) + F.row(0).t();
 	pLineBcps[1]->forceBcp.rows(0,2) = pLineBcps[1]->forceBcp.rows(0,2) + F.row(N-1).t();
+	pLineBcps[0]->temp = pLineBcps[0]->forceBcp; pLineBcps[1]->temp = pLineBcps[1]->forceBcp;
 }
 
 

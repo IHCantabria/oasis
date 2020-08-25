@@ -129,7 +129,7 @@ void Body::LoadHydrodynamicDatabase(Body** hydroDatabaseBodies)
 		xcond = fabs(this->pos_init(0, 0) - cog(0, 0)) > cog_tol;
 		ycond = fabs(this->pos_init(1, 0) - cog(0, 1)) > cog_tol;
 		zcond = fabs(this->pos_init(2, 0) - cog(0, 2)) > cog_tol;
-
+		
 		if (xcond || ycond || zcond)
 		{
 			std::stringstream ss;
@@ -138,7 +138,11 @@ void Body::LoadHydrodynamicDatabase(Body** hydroDatabaseBodies)
 			throw ValueError(ss.str());
 		}
 	}
-
+	else if (this->takeCOGHydroDatabase == 0)
+	{
+		this->pos = this->pos + this->pos_init;
+	}
+	
 	std::cout << "----> Hydrodynamic Properties Read" << std::endl;
 }
 
@@ -216,7 +220,7 @@ void Body::ReadPropertiesASCII(FILE* pFile)
 			ss << "An error ocurred when trying to read the initial position of the body: " << this->GetId() << "\n";
 			throw ValueError(ss.str());
 		}
-
+		
 		if (this->takeCOGHydroDatabase == 0)
 		{
 			this->pos_init(ii, 0) = dtemp;
