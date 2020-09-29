@@ -42,7 +42,16 @@ public:
 
 	double Kw; // Ganancia de los winchies
 
+	int inversor_flag;
+	arma::mat T;
 	double T_max, T_min;
+
+	// Straigt lines inversor atributes
+	int num_sol;
+	bool status_flag;
+	arma::mat Aeq, beq, posAnchG, posFairL;
+
+	// Coefficients inversor atributes
 	arma::uvec ind_x_pos, ind_x_neg, ind_y_pos, ind_y_neg, ind_g_pos, ind_g_neg;
 	arma::mat coef_x_pos, coef_x_neg, coef_y_pos, coef_y_neg, coef_g_pos, coef_g_neg;
 
@@ -52,6 +61,8 @@ public:
 	void ReadPropertiesASCII(FILE* file_pointer); // Leer inputs
 
 	void controlWinchies(void); // Apply control
+	void inversorBlock(void); // inversor block
+	arma::mat find_tension(arma::mat x0); // aux function for straigt lines inversor
 	
 };
 
