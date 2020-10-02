@@ -78,6 +78,7 @@ public:
 	arma::mat GetTotalMass(void); // Interface method, it returns the total mass matrix: StruturalMass+AddedMass+ViscousAddedMass
 	arma::mat ComputeFirstWaveExcForce(double t); // Interpolate First Order Wave Excitation forces using first order polynomial
 	arma::mat ComputeSecondWaveExcForce(double t);
+	arma::mat ComputeMeanDrift(void);
 	void Refresh(void); // This method refresh the state of the object properties
 	int GetId(void);
 	arma::mat GetInertiaMatrixInv(void);

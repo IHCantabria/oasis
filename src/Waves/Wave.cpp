@@ -52,8 +52,8 @@ void Wave::GetWaveLengths(void)
 		lambdas(ii,0) = solve_lambda(T);
 	}
 	k = 2.0*pi/lambdas;
-	arma::mat cos_theta = arma::cos(pi/180.0*headings.t());
-	arma::mat sin_theta = arma::sin(pi/180.0*headings.t());
+	arma::mat cos_theta = arma::cos(headings.t());
+	arma::mat sin_theta = arma::sin(headings.t());
 	kx = k*cos_theta; ky = k*sin_theta;
     kx_1D = k*cos(heading);
     ky_1D = k*sin(heading);

@@ -41,29 +41,37 @@ public:
 	arma::mat yr = arma::zeros(3,1); // Output de la referencia
 
 	double Kw; // Ganancia de los winchies
+	double time_ini;
 
 	int inversor_flag;
 	arma::mat T;
 	double T_max, T_min;
 
 	// Straigt lines inversor atributes
-	int num_sol;
-	bool status_flag;
-	arma::mat Aeq, beq, posAnchG, posFairL;
+	int nIterMax;
+	double atol;
+	arma::mat posAnchG, posFairL;
 
 	// Coefficients inversor atributes
 	arma::uvec ind_x_pos, ind_x_neg, ind_y_pos, ind_y_neg, ind_g_pos, ind_g_neg;
 	arma::mat coef_x_pos, coef_x_neg, coef_y_pos, coef_y_neg, coef_g_pos, coef_g_neg;
 
+	// Output files
+	FILE* pfile_TW;
+	FILE* pfile_FC;
+
 	WinchieController(void);
 	WinchieController(int n, Winchie** Ws, Simulation* pIncSim); // Inicializar el objeto de la clase winchie controler
 
 	void ReadPropertiesASCII(FILE* file_pointer); // Leer inputs
+	void SetUpWinchiesController(void);
 
-	void controlWinchies(void); // Apply control
+	void controlWinchies(double time); // Apply control
 	void inversorBlock(void); // inversor block
-	arma::mat find_tension(arma::mat x0); // aux function for straigt lines inversor
-	
+
+	void OpenOutputFilesASCII(std::string path);
+	void CloseOutputFilesASCII(void);
+	void WriteOut(double t);
 };
 
 

@@ -428,3 +428,41 @@ arma::cube permute(arma::cube x, int ind)
 	}
 	return y;
 }
+
+arma::uvec comp_ind(int n,arma::uvec ind)
+{
+	arma::mat a = arma::ones(n,1);
+	a.rows(ind) = 0*a.rows(ind);
+	arma::uvec ind_out = arma::find(a);
+	return ind_out;
+}
+
+arma::umat comb_n_k(int n,int k)
+{
+	int nCombRep, nr, nn, i1, i2;
+	nCombRep = pow(n,k);
+	arma::umat ind(nCombRep,k); ind.fill(0);
+	for(int ik=1; ik<=k; ik=ik+1){
+		nr = pow(n,k-ik);
+		nn = pow(n,ik-1);
+		arma::umat temp(nn,1); temp.fill(1);
+		for(int j=1; j<=nr; j=j+1){
+			for(int in=1; in<=n; in=in+1){
+				i1 = (j-1)*n*nn + (in-1)*nn;
+				i2 = (j-1)*n*nn + in*nn - 1;
+				ind(arma::span(i1,i2),k-ik) = in*temp - 1;
+			}
+		}
+		delete &temp;
+	}
+	arma::uvec ind_order;
+	for(int ik=1; ik<=k-1; ik=ik+1){
+		ind_order = arma::find(ind.col(k-ik)>ind.col(k-ik-1));
+		ind = ind.rows(ind_order);
+		//arma::umat ind_temp = ind.rows(ind_order);
+		//delete &ind;
+		//arma::umat ind = ind_temp;
+		//delete &ind_temp;
+	}
+	return ind;
+}

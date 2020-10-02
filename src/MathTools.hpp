@@ -18,7 +18,8 @@ std::tuple<arma::mat,arma::mat> upcrossing(arma::mat t, arma::mat u);
 arma::cube permute(arma::cube x, int ind);
 arma::mat wrapTo180(arma::mat x);
 arma::mat wrapToPi(arma::mat x);
-
+arma::uvec comp_ind(int n,arma::uvec ind);
+arma::umat comb_n_k(int n,int k);
 
 
 #endif // mathtoolsdef_hpp__

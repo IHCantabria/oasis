@@ -17,6 +17,7 @@ public:
 
 	double inertia; // momento de inercia del winchie
 	double radius; // radio del winchie
+	double drag;
 
 	double theta = 0.0; // Angulo de rotacion dle winchie
 	double omega = 0.0; // Velocidad de rotacion del winchie

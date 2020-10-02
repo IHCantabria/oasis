@@ -13,7 +13,6 @@
 
 class BDF;
 
-
 class Simulation
 {
 private:

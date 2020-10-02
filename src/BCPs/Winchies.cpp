@@ -20,6 +20,7 @@ void Winchie::ReadPropertiesASCII(FILE* pFile)
 	fscanf(pFile, "%d %[^\n]\n", &LineBCP, buffer_line);
 	fscanf(pFile, "%lf %[^\n]\n", &inertia, buffer_line);
 	fscanf(pFile, "%lf %[^\n]\n", &radius, buffer_line);
+	fscanf(pFile, "%lf %[^\n]\n", &drag, buffer_line);
 
 }
 
@@ -37,7 +38,7 @@ void Winchie::computeWinchie(void){
 		throw std::exception();
 	}
 
-	alpha = (radius*F - tau)/inertia - 0.5*omega; // Damping harcodeado
+	alpha = (radius*F - tau)/inertia - drag*omega; // Damping harcodeado
 
 	LineW->dL = LineW->dL0 * (LineW->L + radius * theta) / LineW->L;
 

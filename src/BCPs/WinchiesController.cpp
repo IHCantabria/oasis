@@ -143,8 +143,7 @@ void WinchieController::ReadPropertiesASCII(FILE* pFile){
 	fscanf(pFile, "%[^\n]\n", buffer_line);
 
 	fscanf(pFile, "%lf %[^\n]\n", &Kw, buffer_line);
-
-
+	fscanf(pFile, "%lf %[^\n]\n", &time_ini, buffer_line);
 
 	//Ignoro las tres primeras lineas, donde pone "Inversor block inputs"
 	for(int ii=0; ii<3; ii++)
@@ -152,14 +151,15 @@ void WinchieController::ReadPropertiesASCII(FILE* pFile){
 		fgets(buffer_line, sizeof(buffer_line), pFile);
 	}
 
-	fscanf(pFile, "%d %[^\n]\n", &inversor_flag);
-	fscanf(pFile, "%lf %[^\n]\n", &T_max, buffer_line);
-	fscanf(pFile, "%lf %[^\n]\n", &T_min, buffer_line);
+	fscanf(pFile, "%d %[^\n]\n", &inversor_flag, buffer_line);
+	fscanf(pFile, "%lf %[^\n]\n", &T_max, buffer_line, buffer_line);
+	fscanf(pFile, "%lf %[^\n]\n", &T_min, buffer_line, buffer_line);
 
 	//Ignoro la linea donde pone "Straigt lines inversor inputs"
 	fgets(buffer_line, sizeof(buffer_line), pFile);
 
-	fscanf(pFile, "%d %[^\n]\n", &num_sol);
+	fscanf(pFile, "%d %[^\n]\n", &nIterMax, buffer_line);
+	fscanf(pFile, "%lf %[^\n]\n", &atol, buffer_line);
 
 	//Ignoro la linea donde pone "Coefficients inversor inputs"
 	fgets(buffer_line, sizeof(buffer_line), pFile);
@@ -167,7 +167,6 @@ void WinchieController::ReadPropertiesASCII(FILE* pFile){
 	fscanf(pFile, "%d %[^\n]\n", &itemp, buffer_line);
 	ind_x_pos = arma::zeros<arma::uvec>(itemp,1);
 	coef_x_pos = arma::zeros(itemp,1);
-	std::cout << "itemp = " << itemp << std::endl;
 	for(int ii=0; ii<itemp; ii++)
 	{
 		if (fscanf(pFile, "%d", &itemp2) != 1)
@@ -321,6 +320,10 @@ void WinchieController::ReadPropertiesASCII(FILE* pFile){
 		coef_g_neg(ii) = dtemp;
 	}
 	fscanf(pFile, "%[^\n]\n", buffer_line);
+}
+
+
+void WinchieController::SetUpWinchiesController(void){
 
 	int ne = ceil(pSim->simulationTime/pSim->maxTimeStep);
 	error = arma::zeros(ne,3);
@@ -355,25 +358,29 @@ void WinchieController::ReadPropertiesASCII(FILE* pFile){
 
 }
 
-void WinchieController::controlWinchies(void){
+void WinchieController::controlWinchies(double time){
 
-	arma::mat e1, pos; 
+	arma::mat pos;
 
-	xr = Ar*xr + Br*ur; yr = Cr*xr + Dr*ur;
+	if (time>=time_ini){
+		arma::mat e1;
+		xr = Ar*xr + Br*ur; yr = Cr*xr + Dr*ur;
+		pos = pSim->pBodies[indBody]->pos; 
+		yb(0,0) = pos(0,0);  yb(1,0) = pos(1,0); yb(2,0) = pos(5,0);
+		xf = Af*xf + Bf*yb; yf = Cf*xf;
+		error.row(k) = (yr-yf).t();
+		e1 = Ki%arma::trapz(error.rows(0,k)).t() - yb;
+		xc = Ac*xc + Bc*e1; yc = Kc%(Cc*xc + Dc*e1);
+		k = k + 1;
+		inversorBlock();
+	} else {
+		pos = pSim->pBodies[indBody]->pos; 
+		xr(0,0) = pos(0,0);  xr(1,0) = pos(1,0); xr(2,0) = pos(5,0);
+	}
 
-	pos = pSim->pBodies[indBody]->pos; 
-	yb(0,0) = pos(0,0);  yb(1,0) = pos(1,0); yb(2,0) = pos(5,0);
-
-	xf = Af*xf + Bf*yb; yf = Cf*xf;
-
-	error.row(k) = (yr-yf).t();
-	e1 = Ki%arma::trapz(error.rows(0,k)).t() - yb;
-
-	xc = Ac*xc + Bc*e1; yc = Kc%(Cc*xc + Dc*e1);
-
-	k = k + 1;
-
-	inversorBlock();
+	for(int ii=0; ii<nWinchies; ii=ii+1){
+		Winchies[ii]->tau = T(ii,0) * Winchies[ii]->radius;
+	}
 	
 }
 
@@ -383,9 +390,11 @@ void WinchieController::inversorBlock(void){
 	if (inversor_flag == 1) {
 
 		arma::mat rotMat = pSim->pBodies[indBody]->rotMat;
-		arma::mat posBody = pSim->pBodies[indBody]->pos;
+		arma::mat posBody = pSim->pBodies[indBody]->pos.rows(0,2);
 		arma::mat posFairG_temp, rG;
-		double alpha, beta, dx, dy, dz, rx, ry;
+		arma::mat Aeq = arma::zeros(3,nWinchies);
+		double alpha, beta, dx, dy, dz, rx, ry, rz;
+
 		for(int ii=0; ii<nWinchies; ii=ii+1){
 			rG = rotMat*posFairL.col(ii);
 			posFairG_temp = posBody + rG;
@@ -394,28 +403,38 @@ void WinchieController::inversorBlock(void){
 			dz = arma::as_scalar(posAnchG(2,ii)-posFairG_temp(2,0));
 			rx = arma::as_scalar(rG(0,0));
 			ry = arma::as_scalar(rG(1,0));
+			rz = arma::as_scalar(rG(2,0));
 			alpha = atan2(dy,dx); beta = atan2(-dz,sqrt(dx*dx+dy*dy));
 			Aeq(0,ii) = cos(alpha)*cos(beta); Aeq(1,ii) = sin(alpha)*cos(beta);
-			Aeq(2,ii) = (rx*sin(alpha)-ry*cos(alpha))*cos(beta);
+			// Aeq(2,ii) = (rx*sin(alpha)-ry*cos(alpha))*cos(beta);
+			Aeq(2,ii) = (ry*sin(beta)           -rz*sin(alpha)*cos(beta))*rotMat(0,2) + 
+			            (rz*cos(alpha)*cos(beta)-rx*sin(beta)           )*rotMat(1,2) + 
+			            (rx*sin(alpha)*cos(beta)-ry*cos(alpha)*cos(beta))*rotMat(2,2) ;
 		}
-		beq = Kw*yc;
 
-		status_flag = true; int nIterMax = 5; int k = 1;
-		arma::mat x0 = T; arma::mat x;
-		while (status_flag && (k<=nIterMax)) {
-			x = find_tension(x0); x0 = x; k = k + 1;
+		arma::mat beq = Kw*yc;
+
+		arma::mat A = arma::join_vert(arma::eye(nWinchies,nWinchies),arma::ones(1,nWinchies)/nWinchies);
+		arma::mat b = arma::join_vert(T,arma::zeros(1,1));
+		arma::mat C = Aeq; 
+		arma::mat d = beq; 
+		arma::mat AA = A.t()*A;
+		arma::mat invAA = arma::inv(AA);
+
+		arma::mat x = invAA*(A.t()*b-C.t()*arma::inv(C*invAA*C.t())*(C*invAA*A.t()*b-d));
+
+		int kk = 1; arma::mat CC = C.t()*arma::inv(C*C.t());
+		while ((arma::any(arma::any(x>T_max+atol))||arma::any(arma::any(x<T_min-atol))) && (kk<=nIterMax)) {
+			b = arma::clamp(x,T_min,T_max);
+			x = b-CC*(C*b-d);
+			kk = kk+1;
 		}
-		if (status_flag) {
-			k = 1;
-			while (status_flag && (k<=nIterMax)) {
-				x0 = T_min + (T_max-T_min)*arma::randu(arma::size(T));
-				x = find_tension(x0); k = k + 1;
-			}
+
+		if (kk>nIterMax){
+			std::cout << " WARNING: Tensions clamped on winches controller! " << std::endl;
 		}
-		if (status_flag) {
-			x = find_tension(T);
-		}
-		T = x;
+
+		T = arma::clamp(x,T_min,T_max);
 
 	} else if (inversor_flag == 2) {
 
@@ -437,91 +456,50 @@ void WinchieController::inversorBlock(void){
 		throw ValueError(ss.str());
 	}
 
-	for(int ii=0; ii<nWinchies; ii=ii+1){
-		Winchies[ii]->tau = T(ii,0) * Winchies[ii]->radius;
-		//std::cout << "  Tension required on winch " << ii+1 << " is T = " << arma::as_scalar(T(ii,0)/9800) << " tons" << std::endl;
+}
+
+
+void WinchieController::OpenOutputFilesASCII(std::string path){
+
+	char buffer1[50];
+	int nn1 = sprintf(buffer1,"WinchesTensions.txt");
+	std::string file_path1 = JoinPath(path, buffer1);
+	pfile_TW = fopen (file_path1.c_str(),"w");
+	if (pfile_TW == NULL)
+	{
+        std::stringstream ss;
+        ss << "Not possible to open the file: "<< nn1 <<"\n    ->Dir: " << path << std::endl;
+        throw IOError(ss.str());
+	}
+
+	char buffer2[50];
+	int nn2 = sprintf(buffer2,"ControlForce.txt");
+	std::string file_path2 = JoinPath(path, buffer2);
+	pfile_FC = fopen (file_path2.c_str(),"w");
+	if (pfile_FC == NULL)
+	{
+        std::stringstream ss;
+        ss << "Not possible to open the file: "<< nn2 <<"\n    ->Dir: " << path << std::endl;
+        throw IOError(ss.str());
 	}
 
 }
 
-arma::mat WinchieController::find_tension(arma::mat x0){
-	// Initiallize the status flag to success status
-	status_flag = false;
-	// Initiallize output
-	arma::mat x;
-	// Check if the problem has solutions, if it does not, return an error
-	if (nWinchies<3) {
-		std::stringstream ss;
-		ss << "ERROR: No solution is possible. \n";
-		throw ValueError(ss.str());
-    }
-    // If the number of equations is equal to the number of variables, solve
-    // the square system of equations
-    if (nWinchies==3) {
-		bool status = solve(x, Aeq, beq);
-		// If something goes wrong simply use the initial guess and return a failure status flag
-		if (status){
-			x = x0;
-			status_flag = true;
-		}
-		// Clamp the solution if needed and return a failure status flag
-		arma::mat x_old = x;
-		x = arma::clamp(x,T_min,T_max);
-		if (arma::norm(x-x0)>1e-6) status_flag = true;
-    }
-    if (nWinchies>3) {
-    	arma::umat ind = comb_n_k(nWinchies,3); int nC = ind.n_rows;
-    	arma::mat xx = arma::zeros(nWinchies,nC);
-    	arma::mat err = arma::zeros(nC,1);
-    	arma::uvec ind_i, indC_i;
-    	arma::mat A, Ac, temp, x_i;
-    	for(int i=0; i<nC; i=i+1){
-    		ind_i = ind.row(i);
-    		indC_i = comp_ind(nWinchies,ind_i);
-    		A = Aeq.cols(ind_i);
-    		Ac = Aeq.cols(indC_i);
-    		x_i = x0;
-    		bool status = solve(temp, A, beq-Ac*x0.rows(indC_i));
-    		if (!status){
-    			temp = arma::clamp(temp,T_min,T_max);
-    			x_i.rows(ind_i) = temp;
-    		}
-    		xx.col(i) = x_i;
-    		err(i,0) = arma::as_scalar(arma::max(arma::abs(Aeq*x_i-beq)));
-    	}
-    	arma::uvec ind_great = arma::find(err<1e-12);
-    	if (ind_great.is_empty()) {
-    		double err0 = arma::as_scalar(arma::max(arma::abs(Aeq*x0-beq)));
-    		double err_min = err.min();
-    		arma::uword ii = err.index_min();
-    		if (err0<err_min){
-    			x = x0; status_flag = true;
-    		} else {
-				x = xx.col(ii); status_flag = true;
-    		}
-    	} else {
-    		xx = xx.cols(ind_great);
-    		x = arma::mean(xx,1);
-    		int nx = ind_great.n_elem;
-    		if (nx>1) {
-    			arma::mat coefs = 2*arma::randu(nx,num_sol)-1;
-    			coefs = coefs/arma::sum(coefs);	xx = xx*coefs;
-    			arma::uvec ind_max = arma::find(arma::max(xx)>T_max); 
-    			arma::uvec ind_min = arma::find(arma::min(xx)<T_min);
-    			arma::uvec ind_bounds = comp_ind(num_sol,arma::unique(arma::join_vert(ind_max,ind_min)));
-    			xx = xx.cols(ind_bounds); xx = arma::join_horiz(xx,x);
-    			arma::mat max_dif = arma::max(arma::abs(xx-T)); 
-    			double minimax_dif = arma::as_scalar(arma::min(max_dif));
-    			arma::uvec ind_lowTchange = arma::find(max_dif<minimax_dif*1.05);
-    			if (ind_lowTchange.n_elem>1) {
-    				arma::mat temp = arma::sum(xx.cols(ind_lowTchange));
-    				arma::uword ind_best = temp.index_min();
-    				x = xx.col(ind_best);
-    			} else {
-    				x = xx.cols(ind_lowTchange);
-    			}
-    		}
-    	}
-    }
-    return x;
+void WinchieController::CloseOutputFilesASCII(void){
+
+	fclose(pfile_TW);
+	fclose(pfile_FC);
+
+}
+
+void WinchieController::WriteOut(double t){
+
+	fprintf(pfile_TW, "%f    ", t);
+	for(int ii=0;ii<nWinchies;ii=ii+1) fprintf(pfile_TW, "%f    ", T(ii, 0));
+	fprintf(pfile_TW, "\n");
+
+	fprintf(pfile_FC, "%f    ", t);
+	for(int ii=0;ii<3;ii=ii+1) fprintf(pfile_FC, "%f    ", Kw*yc(ii, 0));
+	fprintf(pfile_FC, "\n");
+
 }

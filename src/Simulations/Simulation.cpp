@@ -10,13 +10,15 @@
 #include "../os_tools.hpp"
 #include "../Bodies/Bodies.hpp"
 #include "../BCPs/BCPs.hpp"
+#include "../BCPs/Winchies.hpp"
+#include "../BCPs/WinchiesController.hpp"
 #include "../Waves/Wave.hpp"
 #include "../ODE_solvers/ODE_solvers.hpp"
 
 
 arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 {
-    std::cout << "Time: " << time << " s\n";
+    // std::cout << "Time: " << time << " s\n";
     numCallsSysFun++;
     //std::cout << "Main::fun - At first" << std::endl; 
 	arma::mat yprime = arma::zeros(size(y));
@@ -156,7 +158,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     accB = (*pSystemMatrixInv) * Fb;
     for (int ii=0; ii<numBodies; ii++)
     {
-        pBodies[ii]->acc = accB(arma::span(6*ii,6*(ii+1)-1), 0);
+        pBodies[ii]->acc = accB(arma::span(6*ii,6*(ii+1)-1), 0); //////////////////////////////////////////////////////////////////////////////////////////  HARCODEO
     }
 
 	// Update BodyBCP accelerations
@@ -281,6 +283,10 @@ void Simulation::CloseCase()
     {
     	pBodies[ii]->CloseOutputFilesASCII();
     }
+
+    if (useWinches) {
+    	WinchesController.CloseOutputFilesASCII();
+	}
 }
 
 
@@ -374,9 +380,6 @@ void Simulation::LoadCase()
     if (useWinches)
     {
         this->ReadWinches();
-        this->WinchesController.set_WinchieController(numWinches, pWinches);
-        this->WinchesController.leer_datosWinchieController();
-        this->WinchesController.controlWinchies();
     }
     this->ReadSprings();
 
@@ -739,6 +742,8 @@ void Simulation::ReadBodiesASCII()
     }
     std::cout << "Inverting system matrix...\n";
     *pSystemMatrixInv = arma::solve(*pSystemMatrix,eye(size(*pSystemMatrix)));
+    //std::string filename = JoinPath(outputFolderPath, "SysyemMatrix.txt");  
+    //pSystemMatrix->save(filename,arma::raw_ascii);
     std::cout << "System matrix inverted...\n";
     // Check the simulation time
     int time_buffer_size = this->timeBufferSize;
@@ -1095,6 +1100,18 @@ void Simulation::ReadWavesASCII()
     {
         pWave->WriteOut(outputFolderPath);
     }
+
+    //std::string filename;
+    //filename = JoinPath(outputFolderPath, "freqs.txt");  
+    //pWave->freqs.save(filename,arma::raw_ascii);
+    //filename = JoinPath(outputFolderPath, "headings.txt");  
+    //pWave->headings.save(filename,arma::raw_ascii);
+    //filename = JoinPath(outputFolderPath, "k.txt");  
+    //pWave->k.save(filename,arma::raw_ascii);
+    //filename = JoinPath(outputFolderPath, "kx.txt");  
+    //pWave->kx.save(filename,arma::raw_ascii);
+    //filename = JoinPath(outputFolderPath, "ky.txt");  
+    //pWave->ky.save(filename,arma::raw_ascii);
 }
 
 
@@ -1153,6 +1170,15 @@ void Simulation::ReadWinchesASCII()
     // Close the file
     fclose(file_pointer);
     std::cout << "----> Winches Properties Read" << std::endl;
+
+    std::cout << "--> Reading Winches Controller Properties (ASCII format)" << std::endl;
+    file_path = JoinPath(inputFolderPath, "datosWinchiesController.dat");
+    file_pointer = fopen(file_path.c_str(), "r");
+    WinchesController = WinchieController(numWinches,pWinches,this);
+    WinchesController.ReadPropertiesASCII(file_pointer);
+    fclose(file_pointer);
+    WinchesController.OpenOutputFilesASCII(outputFolderPath);
+    std::cout << "----> Winches Controller Properties Read" << std::endl;
 }
 
 
@@ -1189,7 +1215,10 @@ void Simulation::Run()
         {
             wallTime = wallTime + maxTimeStep;
             std::cout<< "    t = " << wallTime << " s"  << std::endl;
-            //if (nWinchies>0) CW.controlWinchies();
+            if (numWinches>0) {
+            	WinchesController.controlWinchies(wallTime);
+            	WinchesController.WriteOut(wallTime);
+            }
             for(int ii=0; ii<numLines; ii=ii+1) pLines[ii]->WriteOut(wallTime);
             for(int ii=0; ii<numBodies; ii=ii+1) pBodies[ii]->WriteOut(wallTime);
         }
@@ -1409,6 +1438,12 @@ void Simulation::SetupCase()
         std::cout << "Body: " << ii << "\n";
     	pBodies[ii]->pHydro->SetUp();
     }
+
+    // Setup winchies controller
+    if (useWinches) {
+		std::cout << "        Setup winchies controller" << std::endl;
+    	WinchesController.SetUpWinchiesController();
+	}
 
     std::cout << "----> Case configuration done" << std::endl;
 }

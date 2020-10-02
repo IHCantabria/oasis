@@ -1,7 +1,7 @@
 #!/bin/sh
 #SBATCH -J oasis
 #SBATCH -A fconcrete     # Project Account
-#SBATCH --time=4:00:00   # Walltime
+#SBATCH --time=24:00:00   # Walltime
 #SBATCH --mem-per-cpu=10G # memory/cpu 
 
 ml HDF5/1.8.19-foss-2017a
