@@ -43,7 +43,7 @@ public:
 	// kinematic and Dynamic properties attributes
 	int velBufferSize=0; // Velocity Buffer size;
 	int velBufferCount=0; // Stores the positon of the last columun of the velocity buffer matrix filled.
-	double mass = 0; // Body mass
+	double filling_mass = 0; // Body filling mass for sinking
 	arma::mat acc = arma::zeros(6,1); // Body acceleration w.r.t the global reference system
 	arma::mat bcpForces = arma::zeros(6,1); // Fuerzas que los BCPs ejercen sobre el cuerpo, en la referencia del CDG
 	arma::mat hydrostaticForces = arma::zeros(6, 1); // Storage for the hydrostatic forces
@@ -51,7 +51,7 @@ public:
 	arma::mat invRotMat = arma::zeros(3,3); // Matriz de rotación
 	arma::mat pos = arma::zeros(6,1); // Body's COG position w.r.t the global reference system
 	arma::mat pos_eq = arma::zeros(6,1); // This is used as a equilibrium reference for hydrostatic force calculation
-	arma::mat pos_cog = arma::zeros(3,1); // Center of gravity position in local frame (usually zero, only changes if body is sinking or similar)
+	arma::mat pos_filling_cog = arma::zeros(3,1); // Center of gravity position of the body filling for sinking
 	arma::mat radiationForces = arma::zeros(6, 1); // Storage for the wave radiation forces
 	arma::mat excitationForces_1 = arma::zeros(6, 1); // Storage for the wave excitation forces - 1st order
 	arma::mat excitationForces_2 = arma::zeros(6, 1); // Storage for the wave excitation forces - 2nd order

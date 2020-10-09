@@ -206,16 +206,19 @@ void Sinking::UpdateSinkingHydrostatics(double t){
 	if (numHDBs>1) {
 
 		UpdateInterpHydro();
-		pSinkingBody->pos_eq.rows(0, 2) = pHydro[indHydro1]->cog*(1-hydroInterpCoef) +
-		                                  pHydro[indHydro2]->cog*hydroInterpCoef;
+
+		// No es necesario actualizar la posición de equilibrio, se toma la posicion de equilibrio inicial y se
+		// aplica la fuerza de la masa del llenado.
+		//pSinkingBody->pos_eq.rows(0, 2) = pHydro[indHydro1]->cog*(1-hydroInterpCoef) +
+		//                                  pHydro[indHydro2]->cog*hydroInterpCoef;
 
 		arma::mat newHydrostaticStiffness = *(pHydro[indHydro1]->pHydrostaticStiffness)*(1-hydroInterpCoef) +
 		                                    *(pHydro[indHydro2]->pHydrostaticStiffness)*hydroInterpCoef;
 		pSinkingBody->pHydro->UpdateHydroStiffness(newHydrostaticStiffness);
 	}
 
-	pSinkingBody->mass = bodyReferenceMass + totalFillingMass;
-	pSinkingBody->pos_cog = groupsCOG;
+	pSinkingBody->filling_mass = totalFillingMass;
+	pSinkingBody->pos_filling_cog = groupsCOG;
 }
 
 
@@ -260,8 +263,8 @@ void Sinking::UpdateBodyProperties(void){
 
 	arma::mat newStructuralMass = bodyReferenceMassMat + groupsInertia;
 
-	pSinkingBody->mass = bodyReferenceMass + totalFillingMass;
-	pSinkingBody->pos_cog = groupsCOG;
+	pSinkingBody->filling_mass = totalFillingMass;
+	pSinkingBody->pos_filling_cog = groupsCOG;
 	pSinkingBody->inertia = newStructuralMass;
 	pSinkingBody->pHydro->UpdateStructuralMass(newStructuralMass);
 	pSinkingBody->pHydro->UpdateTotalMass();
