@@ -126,7 +126,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 
 	// Update hydrostatic parameters if there is sinking
 	for(int ii=0; ii<numSinking; ii=ii+1) {
-    	pSinking[ii]->UpdateSinkingHydroStatics(time);
+    	pSinking[ii]->UpdateSinkingHydrostatics(time);
     }
 	// Compute hydrostatic and hidrodynamic forces
     // std::cout << "Main::fun - Compute hydrodynamic and hydrostatic forces" << std::endl;
@@ -378,7 +378,6 @@ void Simulation::LoadCase()
 
     // Read Components Data
     this->ReadBodies();
-    this->ReadSinking();
     this->ReadWaves();
     this->ReadLines();
     this->ReadBcps();
@@ -387,6 +386,7 @@ void Simulation::LoadCase()
         this->ReadWinches();
     }
     this->ReadSprings();
+    this->ReadSinking();
 
     // Setup case
     this->SetupCase();
@@ -1316,7 +1316,7 @@ void Simulation::Run()
     	if (numSinking>0) {   
 	        if (pTimeSolver->t >= wallTimeHydro + sinkingTimeStep) {
 	        	for(int ii=0; ii<numSinking; ii=ii+1) {
-	            	pSinking[ii]->UpdateSinkingState(wallTime);
+	            	pSinking[ii]->UpdateSinkingHydrodynamics(wallTime);
 	            }
 	            UpdateSystemMatrix();
 	        }

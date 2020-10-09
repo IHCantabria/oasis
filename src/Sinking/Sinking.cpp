@@ -19,7 +19,7 @@ Sinking::Sinking(int n, Simulation* pSim_inp){
 	indBody = n;
 	pSim = pSim_inp;
 	rhoW = pSim->waterDensity;
-	pSinkingBody = pSim->pBodies[indBody];
+	pSinkingBody = pSim->pBodies[indBody-1];
 }
 
 
@@ -28,7 +28,6 @@ void Sinking::ReadPropertiesASCII(FILE* pFile, std::string inputFolderPath){
 	char buffer_line [1000];
 	char cHydroDatabaseName [1000];
 	double dtemp;
-	int itemp;
 	std::string file_path;
 
 	// Read bodyReferenceMassMat
@@ -37,7 +36,7 @@ void Sinking::ReadPropertiesASCII(FILE* pFile, std::string inputFolderPath){
 		if (fscanf(pFile, "%lf", &dtemp) != 1) 
 		{
 			std::stringstream ss;
-			ss << "An error ocurred when trying to read the reference mass matrix of sinking body: " << indBody <<"\n";
+			ss << "An error ocurred when trying to read the reference mass matrix of sinking body: " << indBody << "\n";
 			throw ValueError(ss.str());
 		}
 		bodyReferenceMassMat(ii,ii) = dtemp;
@@ -47,16 +46,23 @@ void Sinking::ReadPropertiesASCII(FILE* pFile, std::string inputFolderPath){
 	bodyReferenceMass = arma::as_scalar(bodyReferenceMassMat(0,0));
 
 	// Read number of HDBs
-	if (fscanf(pFile, "%d %[^\n]\n", &itemp) != 1) 
+	if (fscanf(pFile, "%d %[^\n]\n", &numHDBs, buffer_line) != 2)
 	{
+		std::cout << "Hey 1" << std::endl;
 		std::stringstream ss;
-		ss << "An error ocurred when trying to read the number of HDBs of sinking body: " << indBody <<"\n";
+		ss << "An error ocurred when trying to read the number of HDBs of sinking body: " << indBody << "\n";
+		throw ValueError(ss.str());
+	}
+
+	if (numHDBs<1){
+		std::stringstream ss;
+		ss << "ERROR: The number of HDBs must be at least 1 " << indBody <<"\n";
 		throw ValueError(ss.str());
 	}
 
 	//Read InterpMasses
-	InterpMasses = arma::zeros(itemp,1);
-	for (int ii=0; ii<itemp; ii++)
+	InterpMasses = arma::zeros(numHDBs,1);
+	for (int ii=0; ii<numHDBs; ii++)
 	{
 		if (fscanf(pFile, "%lf", &dtemp) != 1) 
 		{
@@ -68,12 +74,12 @@ void Sinking::ReadPropertiesASCII(FILE* pFile, std::string inputFolderPath){
 	}
 	fscanf(pFile, "%[^\n]\n", buffer_line);
 
-	pHydro = new HydroDatabase*[itemp];
+	pHydro = new HydroDatabase*[numHDBs];
 
 	// Read and load HDBs filenames
-	for (int ii=0; ii<itemp; ii++)
+	for (int ii=0; ii<numHDBs; ii++)
 	{
-		pHydro[ii] = new HydroDatabase(ii, indBody, pSim->pBodies, pSim);
+		pHydro[ii] = new HydroDatabase(ii, indBody-1 , pSim->pBodies, pSim);
 		if (fscanf(pFile, "%s %[^\n]\n", cHydroDatabaseName, buffer_line) != 2)
 		{
 			std::stringstream ss;
@@ -85,10 +91,16 @@ void Sinking::ReadPropertiesASCII(FILE* pFile, std::string inputFolderPath){
 	}
 
 	// Read number of filling times
-	if (fscanf(pFile, "%d %[^\n]\n", &numTimes) != 1) 
+	if (fscanf(pFile, "%d %[^\n]\n", &numTimes, buffer_line) != 2) 
 	{
 		std::stringstream ss;
 		ss << "An error ocurred when trying to read the number of filling times of sinking body: " << indBody <<"\n";
+		throw ValueError(ss.str());
+	}
+
+	if (numTimes<1){
+		std::stringstream ss;
+		ss << "ERROR: The number of time points must be at least 1 " << indBody <<"\n";
 		throw ValueError(ss.str());
 	}
 
@@ -107,10 +119,16 @@ void Sinking::ReadPropertiesASCII(FILE* pFile, std::string inputFolderPath){
 	fscanf(pFile, "%[^\n]\n", buffer_line);
 
 	// Read number of groups
-	if (fscanf(pFile, "%d %[^\n]\n", &numGroups) != 1) 
+	if (fscanf(pFile, "%d %[^\n]\n", &numGroups, buffer_line) != 2) 
 	{
 		std::stringstream ss;
 		ss << "An error ocurred when trying to read the number of filling times of sinking body: " << indBody <<"\n";
+		throw ValueError(ss.str());
+	}
+
+	if (numGroups<1){
+		std::stringstream ss;
+		ss << "ERROR: The number of groups must be at least 1 " << indBody <<"\n";
 		throw ValueError(ss.str());
 	}
 
@@ -122,7 +140,7 @@ void Sinking::ReadPropertiesASCII(FILE* pFile, std::string inputFolderPath){
 	{
 		fgets(buffer_line, sizeof(buffer_line), pFile); // Ignore one line
 
-		if (fscanf(pFile, "%lf %[^\n]\n", &dtemp) != 1) 
+		if (fscanf(pFile, "%lf %[^\n]\n", &dtemp, buffer_line) != 2) 
 		{
 			std::stringstream ss;
 			ss << "An error ocurred when trying to read the group size of sinking body: " << indBody <<"\n";
@@ -130,7 +148,7 @@ void Sinking::ReadPropertiesASCII(FILE* pFile, std::string inputFolderPath){
 		}
 		groupsSizes(ii,0) = dtemp;
 
-		if (fscanf(pFile, "%lf %[^\n]\n", &dtemp) != 1) 
+		if (fscanf(pFile, "%lf %[^\n]\n", &dtemp, buffer_line) != 2) 
 		{
 			std::stringstream ss;
 			ss << "An error ocurred when trying to read the group size of sinking body: " << indBody <<"\n";
@@ -168,36 +186,43 @@ void Sinking::ReadPropertiesASCII(FILE* pFile, std::string inputFolderPath){
 }
 
 
-void Sinking::UpdateSinkingState(double t){
+void Sinking::UpdateSinkingHydrodynamics(double t){
 
 	UpdateGroupsFillingState(t);
-	UpdateInterpHydro();
-	pSinkingBody->pHydro->InterpolateHydro(pHydro[indHydro1], pHydro[indHydro2], hydroInterpCoef);
+
+	if (numHDBs>1) {
+		UpdateInterpHydro();
+		pSinkingBody->pHydro->InterpolateHydro(pHydro[indHydro1], pHydro[indHydro2], hydroInterpCoef);
+	}
+
 	UpdateBodyProperties();
 }
 
 
-void Sinking::UpdateSinkingHydroStatics(double t){
+void Sinking::UpdateSinkingHydrostatics(double t){
 
 	UpdateGroupsFillingState(t);
-	UpdateInterpHydro();
+
+	if (numHDBs>1) {
+
+		UpdateInterpHydro();
+		pSinkingBody->pos_eq.rows(0, 2) = pHydro[indHydro1]->cog*(1-hydroInterpCoef) +
+		                                  pHydro[indHydro2]->cog*hydroInterpCoef;
+
+		arma::mat newHydrostaticStiffness = *(pHydro[indHydro1]->pHydrostaticStiffness)*(1-hydroInterpCoef) +
+		                                    *(pHydro[indHydro2]->pHydrostaticStiffness)*hydroInterpCoef;
+		pSinkingBody->pHydro->UpdateHydroStiffness(newHydrostaticStiffness);
+	}
 
 	pSinkingBody->mass = bodyReferenceMass + totalFillingMass;
 	pSinkingBody->pos_cog = groupsCOG;
-
-	pSinkingBody->pos_eq.rows(0, 2) = pHydro[indHydro1]->cog*(1-hydroInterpCoef) +
-	                                  pHydro[indHydro2]->cog*hydroInterpCoef;
-
-	arma::mat newHydrostaticStiffness = *(pHydro[indHydro1]->pHydrostaticStiffness)*(1-hydroInterpCoef) +
-	                                    *(pHydro[indHydro2]->pHydrostaticStiffness)*hydroInterpCoef;
-	pSinkingBody->pHydro->UpdateHydroStiffness(newHydrostaticStiffness);
 }
 
 
 void Sinking::UpdateGroupsFillingState(double t){
 
 	arma::mat time = arma::ones(1,1)*t;
-	arma::mat groupsMasses = interp1(groupsFillingTimes,groupsFillingStates,time);
+	arma::mat groupsMasses = interp1(groupsFillingTimes,groupsFillingStates,time); groupsMasses = groupsMasses.t();
 	totalFillingMass = arma::accu(groupsMasses);
 
 	arma::mat masses_3 = arma::join_horiz(groupsMasses,groupsMasses,groupsMasses);
@@ -235,6 +260,7 @@ void Sinking::UpdateBodyProperties(void){
 
 	arma::mat newStructuralMass = bodyReferenceMassMat + groupsInertia;
 
+	pSinkingBody->mass = bodyReferenceMass + totalFillingMass;
 	pSinkingBody->pos_cog = groupsCOG;
 	pSinkingBody->inertia = newStructuralMass;
 	pSinkingBody->pHydro->UpdateStructuralMass(newStructuralMass);

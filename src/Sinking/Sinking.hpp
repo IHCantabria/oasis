@@ -26,6 +26,7 @@ public:
 	arma::mat groupsFillingTimes; // [numTimes, 1]
 	arma::mat groupsFillingStates; // [numTimes, numGroups]
 
+	int numHDBs;
 	arma::mat InterpMasses; // Vector of filling masses for which the hydroforce objects are provided
 	HydroDatabase** pHydro; // Vector of hydroforce objects for the different filling masses
 	int indHydro1, indHydro2;
@@ -45,8 +46,8 @@ public:
 	void UpdateGroupsFillingState(double t);
 	void UpdateInterpHydro(void);
 	void UpdateBodyProperties(void);
-	void UpdateSinkingState(double t);
-	void UpdateSinkingHydroStatics(double t);
+	void UpdateSinkingHydrodynamics(double t);
+	void UpdateSinkingHydrostatics(double t);
 
 
 };
