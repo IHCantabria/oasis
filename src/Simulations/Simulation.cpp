@@ -124,6 +124,10 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 		pSprings[ii]->computeSpringForces();
 	}
 
+	// Update hydrostatic parameters if there is sinking
+	for(int ii=0; ii<numSinking; ii=ii+1) {
+    	pSinking[ii]->UpdateSinkingHydroStatics(time);
+    }
 	// Compute hydrostatic and hidrodynamic forces
     // std::cout << "Main::fun - Compute hydrodynamic and hydrostatic forces" << std::endl;
     arma::mat Fb = arma::zeros(6*numBodies, 1);
@@ -374,6 +378,7 @@ void Simulation::LoadCase()
 
     // Read Components Data
     this->ReadBodies();
+    this->ReadSinking();
     this->ReadWaves();
     this->ReadLines();
     this->ReadBcps();
@@ -735,10 +740,12 @@ void Simulation::ReadBodiesASCII()
 
         // Fill system matrix
         a1 = arma::span(db_shift+body_shift,db_shift+body_shift+5);
-        std::cout << "a1: " << db_shift+body_shift << " - " << db_shift+body_shift+5 << "\n";
+        //std::cout << "a1: " << db_shift+body_shift << " - " << db_shift+body_shift+5 << "\n";
         a2 = arma::span(db_shift,db_shift+6*check_hydro_bodies_id[pos_database][0]-1);
-        std::cout << "a2: " << db_shift <<  " - " << db_shift+6*check_hydro_bodies_id[pos_database][0]-1 << "\n";
+        //std::cout << "a2: " << db_shift <<  " - " << db_shift+6*check_hydro_bodies_id[pos_database][0]-1 << "\n";
         (*pSystemMatrix)(a1, a2) += pBodies[ii]->pHydro->GetTotalMass();
+        pBodies[ii]->sysMatSpan1 = a1;
+        pBodies[ii]->sysMatSpan2 = a2;
     }
     std::cout << "Inverting system matrix...\n";
     *pSystemMatrixInv = arma::solve(*pSystemMatrix,eye(size(*pSystemMatrix)));
@@ -860,6 +867,75 @@ void Simulation::ReadLinesHDF5()
 }
 
 
+void Simulation::ReadSinking()
+{
+    (this->*pReadSinking)();
+}
+
+
+void Simulation::ReadSinkingASCII()
+{
+    std::cout << "--> Reading Sinking Properties (ASCII format)" << std::endl;
+
+    // Declare local variables
+    char bufferLine [1000];
+    int sinkingBodyIndex;
+
+    // Open file
+    std::string file_path = JoinPath(inputFolderPath, "dataSinking.dat");
+    FILE* pFile = fopen(file_path.c_str(), "r");
+	
+	if (pFile == NULL)
+	{
+        std::stringstream ss;
+        ss << "Not possible to open the file: dataSinking.dat\n    ->Dir: " << inputFolderPath << std::endl;
+        throw IOError(ss.str());
+	}
+
+	// Read total number of sinking bodies to read 
+    fscanf(pFile, "%d %[^\n]\n", &numSinking, bufferLine);
+
+    if (numSinking>0) {
+
+	    //Read all sinking bodies
+	    pSinking = new Sinking* [numSinking];
+	    for(int ii=0; ii<numBodies; ii++)
+	    {
+	    	// Discard header lines
+	        for(int ii=0; ii<3; ii++)
+	        {
+	            fgets(bufferLine, sizeof(bufferLine), pFile);
+	        }
+
+	        // Get sinking body id
+	        fscanf(pFile, "%d %[^\n]\n", &sinkingBodyIndex, bufferLine);
+
+	        // Initiallice Sinking object
+	    	pSinking[ii] = new Sinking(sinkingBodyIndex, this);
+
+	    	// Read sinking body properties
+	    	pSinking[ii]->ReadPropertiesASCII(pFile,inputFolderPath);
+	    }
+
+	}
+
+    // Close file
+    fclose(pFile);
+
+    std::cout << "----> Sinking Properties Read" << std::endl;
+}
+
+
+void Simulation::ReadSinkingHDF5()
+{
+    std::cout << "--> Reading Sinking Properties (HDF5 format)" << std::endl;
+    std::stringstream ss;
+    ss << "Method ReadSinkingHDF5 in class Simulation not implemented yet.";
+    throw NotImplementedError(ss.str());
+    std::cout << "----> Sinking Properties Read" << std::endl;
+}
+
+
 void Simulation::ReadSprings()
 {
     (this->*pReadSprings)();
@@ -940,6 +1016,7 @@ void Simulation::ReadPropertiesASCII()
 	fscanf(file_pointer, "%lf %[^\n]\n", &waterDepth, bufferLine);
 	fscanf(file_pointer, "%lf %[^\n]\n", &maxTimeStep, bufferLine); 
 	fscanf(file_pointer, "%lf %[^\n]\n", &hydroTimeStep, bufferLine);
+	fscanf(file_pointer, "%lf %[^\n]\n", &sinkingTimeStep, bufferLine);
 	fscanf(file_pointer, "%lf %[^\n]\n", &simulationTime, bufferLine);
 	fscanf(file_pointer, "%d %[^\n]\n", &timeIntMethod, bufferLine);
 	fscanf(file_pointer, "%lf %[^\n]\n", &timeIntAbsTol, bufferLine);
@@ -1234,6 +1311,17 @@ void Simulation::Run()
             	pBodies[ii]->Fb = pBodies[ii]->pHydro->CalculateHydrodynamicForces(wallTime);
             }
     	}
+
+    	
+    	if (numSinking>0) {   
+	        if (pTimeSolver->t >= wallTimeHydro + sinkingTimeStep) {
+	        	for(int ii=0; ii<numSinking; ii=ii+1) {
+	            	pSinking[ii]->UpdateSinkingState(wallTime);
+	            }
+	            UpdateSystemMatrix();
+	        }
+	    }
+	    
         
     } while (pTimeSolver->t <= simulationTime);
     
@@ -1464,6 +1552,7 @@ Simulation::Simulation(std::string incProjectPath, std::string incDataFormat)
         pReadWaves = &Simulation::ReadWavesASCII;
         pReadBcps = &Simulation::ReadBcpsASCII;
         pReadBodies = &Simulation::ReadBodiesASCII;
+        pReadSinking = &Simulation::ReadSinkingASCII;
         pReadLines = &Simulation::ReadLinesASCII;
         pReadSprings = &Simulation::ReadSpringsASCII;
         pReadWinches = &Simulation::ReadWinchesASCII;
@@ -1478,6 +1567,7 @@ Simulation::Simulation(std::string incProjectPath, std::string incDataFormat)
         pReadWaves = &Simulation::ReadWavesHDF5;
         pReadBcps = &Simulation::ReadBcpsHDF5;
         pReadBodies = &Simulation::ReadBodiesHDF5;
+        pReadSinking = &Simulation::ReadSinkingHDF5;
         pReadLines = &Simulation::ReadLinesHDF5;
         pReadSprings = &Simulation::ReadSpringsHDF5;
         pReadWinches = &Simulation::ReadWinchesHDF5;
@@ -1527,4 +1617,13 @@ void Simulation::UpdateSystem()
     //         pBodies[ii]->pHydro->Refresh();
     //     }
     // }
+}
+
+void Simulation::UpdateSystemMatrix()
+{
+    for (int ii=0; ii<this->numBodies; ii++)
+    {
+        (*pSystemMatrix)(pBodies[ii]->sysMatSpan1, pBodies[ii]->sysMatSpan2) += pBodies[ii]->pHydro->GetTotalMass();
+    }
+    *pSystemMatrixInv = arma::solve(*pSystemMatrix,eye(size(*pSystemMatrix)));
 }

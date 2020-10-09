@@ -10,6 +10,7 @@
 #include "../Lines/Lines.hpp"
 #include "../Spring/Spring.hpp"
 #include "../Waves/Wave.hpp"
+#include "../Sinking/Sinking.hpp"
 
 class BDF;
 
@@ -33,6 +34,7 @@ public:
     int maxIterStep;
     double maxTimeStep;
     double hydroTimeStep;
+    double sinkingTimeStep;
     int numSystem;
     int numSystem2;
     double simulationTime;
@@ -67,6 +69,7 @@ public:
     Winchie** pWinches;
     WinchieController WinchesController;
     Wave* pWave;
+    Sinking** pSinking;
     int numAnchorBcps=0;
     int numBcps=0;
     int numBodies=0;
@@ -77,6 +80,7 @@ public:
     int numLines=0;
     int numSprings=0;
     int numWinches=0;
+    int numSinking=0;
 
     // Declare constructors
     Simulation(std::string projectPath, std::string incDataFormat);
@@ -90,6 +94,7 @@ public:
     void (Simulation::*pReadProperties)(void);
     void (Simulation::*pReadWaves)(void);
     void (Simulation::*pReadWinches)(void);
+    void (Simulation::*pReadSinking)(void);
     void PrintSetup(void);
     void ReadBcps(void);
     void ReadBcpsASCII(void);
@@ -100,6 +105,9 @@ public:
     void ReadLines(void);
     void ReadLinesASCII(void);
     void ReadLinesHDF5(void);
+    void ReadSinking(void);
+    void ReadSinkingASCII(void);
+    void ReadSinkingHDF5(void);
     void ReadSprings(void);
     void ReadSpringsASCII(void);
     void ReadSpringsHDF5(void);
@@ -120,6 +128,7 @@ public:
     void SetupCase(void);
     void CloseCase(void);
     void UpdateSystem(void);
+    void UpdateSystemMatrix(void);
 
 };
 

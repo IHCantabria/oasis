@@ -70,7 +70,9 @@ arma::mat HydroDatabase::CalculateHydrodynamicForces(double time)
 
 arma::mat HydroDatabase::CalculateHydrostaticForces()
 {	
-	arma::mat hydrostatic_force = -(*pHydrostaticStiffness)*(pBodies[id]->pos - pBodies[id]->pos_init);
+	arma::mat hydrostatic_force = -(*pHydrostaticStiffness)*(pBodies[idBody]->pos - pBodies[idBody]->pos_eq);
+	arma::mat Fg = arma::zeros(3,1); Fg(2,0) = - pSim->gravity * pBodies[idBody]->mass;
+	hydrostatic_force.rows(3,5) = hydrostatic_force.rows(3,5) + arma::cross(pBodies[idBody]->pos_cog,pBodies[idBody]->rotMat.t()*Fg);
 	pBodies[idBody]->hydrostaticForces = hydrostatic_force;
 	return hydrostatic_force;
 }
@@ -129,14 +131,14 @@ void HydroDatabase::ComputeIRF(void)
 				// Start new Dof data
 				
 				dampingFreq = (*pDampingRadiation[ib]).subcube(i,j,0,i,j,numFrequencies-1);
-				dummy_mat = dampingFreq%cos(2*M_PI*(*pFrequencies)*IRFTime(0, 0));
+				dummy_mat = dampingFreq%cos(2*arma::datum::pi*(*pFrequencies)*IRFTime(0, 0));
 				(*pIRFPoints[ib])(i, j) = IRFTime.n_cols - 1;
-				(*pIRF[ib])(0, i, j) = 2*trapz(dummy_mat, 2*M_PI*df)/M_PI;
+				(*pIRF[ib])(0, i, j) = 2*trapz(dummy_mat, 2*arma::datum::pi*df)/arma::datum::pi;
 				for (int k=1; k<IRFTime.n_cols; k++)
 				{
 					// Calculate new value of IRF
-					dummy_mat = dampingFreq%cos(2*M_PI*(*pFrequencies)*IRFTime(0, k));
-					(*pIRF[ib])(k, i, j) = 2*trapz(dummy_mat, 2*M_PI*df)/M_PI;
+					dummy_mat = dampingFreq%cos(2*arma::datum::pi*(*pFrequencies)*IRFTime(0, k));
+					(*pIRF[ib])(k, i, j) = 2*trapz(dummy_mat, 2*arma::datum::pi*df)/arma::datum::pi;
 					
 				}
 			}
@@ -150,7 +152,6 @@ void HydroDatabase::ComputeIRF(void)
 
 	std::string filename = JoinPath(pSim->outputFolderPath, "IRF.dat");  
     pIRF[0]->save(filename,arma::arma_ascii);
-
 }
 
 
@@ -249,6 +250,23 @@ int HydroDatabase::GetNumPointsIrf(void)
 arma::mat HydroDatabase::GetTotalMass(void)
 {
 	return (*pTotalMass);
+}
+
+
+void HydroDatabase::UpdateStructuralMass(arma::mat newStructuralMass)
+{
+	*pStructuralMass = newStructuralMass;
+}
+
+
+void HydroDatabase::UpdateTotalMass(void)
+{
+	(*pTotalMass)(arma::span(0, 5), arma::span(6*(pBodies[idBody]->hydroDatabaseIndex), 6*(pBodies[idBody]->hydroDatabaseIndex+1)-1)) = (*pStructuralMass);
+	for (int ii=0; ii<numBodies; ii++)
+	{
+		(*pTotalMass)(arma::span(0, 5), arma::span(6*ii, 6*(ii+1)-1)) += (*pAddedMassHf[ii]);
+	}
+	(*pTotalMass)(arma::span(0, 5), arma::span(6*(pBodies[idBody]->hydroDatabaseIndex), 6*(pBodies[idBody]->hydroDatabaseIndex+1)-1)) += (*pAddedMassHf[pBodies[idBody]->hydroDatabaseIndex])%(arma::diagmat(pBodies[idBody]->A_visc));
 }
 
 
@@ -654,9 +672,6 @@ void HydroDatabase::SetUp(void)
 	if(pBodies[idBody]->secondOrderExcitationFlag==3)
 	{
 		pBodies[idBody]->excitationForces_2 = F_meanDrift;
-		//std::cout << "Wave frequencies: \n" << pWave->freqs << "\n";
-		//std::cout << "Wave headings: \n" << pWave->headings << "\n";
-		//std::cout << "HDB headings: \n" << *pHeadings << "\n";
 		std::cout << "Computed mean drift: \n" << F_meanDrift << "\n";
 	}
 
@@ -666,14 +681,15 @@ void HydroDatabase::SetUp(void)
 	if(pBodies[idBody]->firstOrderExcitationFlag==1)
 	{
 		std::cout << "WARNING: Precomputed first order forces not implemented yet. \n" 
-		             "         Using limited instanto position version instead. \n"<< std::endl;
+		             "         Using limited instant position version instead. \n"<< std::endl;
 	}
 	if(pBodies[idBody]->secondOrderExcitationFlag==1)
 	{
 		std::cout << "WARNING: Precomputed second order forces not implemented yet. \n" 
-		             "         Using limited instanto position version instead. \n"<< std::endl;
+		             "         Using limited instant position version instead. \n"<< std::endl;
 	}
 }
+
 
 arma::mat HydroDatabase::ComputeMeanDrift(void)
 {
@@ -693,7 +709,6 @@ arma::mat HydroDatabase::ComputeMeanDrift(void)
 	pBodies[idBody]->excitationForces_2 = F;
 
 	return F;
-
 }
 
 
@@ -705,40 +720,55 @@ void HydroDatabase::Print()
 }
 
 
-/**
-// Calcula la impulse response function
-void Hydro::computeIRF(void){
-	IRF = arma::zeros(6*nBodies,6*nBodies,nt_IRF);
+void HydroDatabase::InterpolateHydro(HydroDatabase* pHydro1, HydroDatabase* pHydro2, double interpCoef)
+{
+	if (pHydro1->numBodies != pHydro1->numBodies) {
+		std::stringstream ss;
+		ss << "ERROR: The number of bodies is not the same in interpolated databases \n";
+		throw ValueError(ss.str());
+	}
+
+	if (pHydro1->numFrequencies != pHydro1->numFrequencies) {
+		std::stringstream ss;
+		ss << "ERROR: The number of frequencies is not the same in interpolated databases \n";
+		throw ValueError(ss.str());
+	}
+
+	if (pHydro1->numHeadings != pHydro1->numHeadings) {
+		std::stringstream ss;
+		ss << "ERROR: The number of headings is not the same in interpolated databases \n";
+		throw ValueError(ss.str());
+	}
+
+	(*pHydrostaticStiffness) = *(pHydro1->pHydrostaticStiffness) * (1-interpCoef) + *(pHydro2->pHydrostaticStiffness) * interpCoef;
+	(*pStructuralMass) = *(pHydro1->pStructuralMass) * (1-interpCoef) + *(pHydro2->pStructuralMass) * interpCoef;
+	(*pTotalMass) = *(pHydro1->pTotalMass) * (1-interpCoef) + *(pHydro2->pTotalMass) * interpCoef;
+	(*pWaveExcitingMag) = *(pHydro1->pWaveExcitingMag) * (1-interpCoef) + *(pHydro2->pWaveExcitingMag) * interpCoef;
+	(*pWaveExcitingPha) = *(pHydro1->pWaveExcitingPha) * (1-interpCoef) + *(pHydro2->pWaveExcitingPha) * interpCoef;
+
+	for (int ii=0; ii<numBodies; ii++)
+	{
+		*pAddedMass[ii] = *(pHydro1->pAddedMass[ii]) * (1-interpCoef) + *(pHydro2->pAddedMass[ii]) * interpCoef;
+		*pAddedMassHf[ii] = *(pHydro1->pAddedMassHf[ii]) * (1-interpCoef) + *(pHydro2->pAddedMassHf[ii]) * interpCoef;
+		*pAddedMassLf[ii] = *(pHydro1->pAddedMassLf[ii]) * (1-interpCoef) + *(pHydro2->pAddedMassLf[ii]) * interpCoef;
+		*pDampingRadiation[ii] = *(pHydro1->pDampingRadiation[ii]) * (1-interpCoef) + *(pHydro2->pDampingRadiation[ii]) * interpCoef;
+		*pDampingRadiationLf[ii] = *(pHydro1->pDampingRadiationLf[ii]) * (1-interpCoef) + *(pHydro2->pDampingRadiationLf[ii]) * interpCoef;
+		*pIRF[ii] = *(pHydro1->pIRF[ii]) * (1-interpCoef) + *(pHydro2->pIRF[ii]) * interpCoef;
+	}
+
+	for (int ii=0; ii<2; ii++)
+	{
+		for (int jj=0; jj<activeDofs; jj++)
+		{
+			*pQtfDiff[ii][jj] = *(pHydro1->pQtfDiff[ii][jj]) * (1-interpCoef) + *(pHydro2->pQtfDiff[ii][jj]) * interpCoef;
+			*pQtfSum[ii][jj] = *(pHydro1->pQtfSum[ii][jj]) * (1-interpCoef) + *(pHydro2->pQtfSum[ii][jj]) * interpCoef;
+		}
+	}
+
+	SetUp(); // A esta quizas habria que llamarla desde sinking e interpolar con las variables postprocesadas de setup
+
 }
 
-// Calcula el espectro
-void Hydro::computeWaveSpectrum(void){
-
-	nComp = 10;
-	wave_periods = arma::zeros(nComp,1); 
-	wave_frequencies = arma::zeros(nComp,1); 
-	wave_heights = arma::zeros(nComp,1); 
-	wave_phases = arma::zeros(nComp,1); 
+void HydroDatabase::UpdateHydroStiffness(arma::mat newHydrostaticStiffness){
+	*pHydrostaticStiffness = newHydrostaticStiffness;
 }
-
-// Calcula la serie temporal de fuerzas de excitación
-void Hydro::computeFe(void){
-
-	Fe = arma::zeros(6*nBodies,nt_Fe);
-
-}
-
-// Obten las fuerzas hidroestaticas e hidrodinamicas en el tiempo deseado
-void Hydro::computeHydroForces(double t){
-	HydroForces = arma::zeros(6*nBodies,1);
-	
-	arma::mat positions = arma::zeros(6*nBodies,1);
-	for(int ii=0;ii<nBodies;ii=ii+1){
-		positions(arma::span(6*ii,6*(ii+1)-1),arma::span(0)) = Bodies[ii]->pos;
-	}	
-
-	HydroForces = HydroForces - hydro*positions;
-	
-
-}
-**/

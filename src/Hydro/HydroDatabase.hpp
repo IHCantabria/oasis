@@ -76,6 +76,8 @@ public:
 	int GetNumBodies(void); // Returns the number of bodies in the database
 	int GetNumPointsIrf(void); // Interface mehtods, it returns the number of points of the IRF
 	arma::mat GetTotalMass(void); // Interface method, it returns the total mass matrix: StruturalMass+AddedMass+ViscousAddedMass
+	void UpdateStructuralMass(arma::mat newStructuralMass);
+	void UpdateTotalMass(void);
 	arma::mat ComputeFirstWaveExcForce(double t); // Interpolate First Order Wave Excitation forces using first order polynomial
 	arma::mat ComputeSecondWaveExcForce(double t);
 	arma::mat ComputeMeanDrift(void);
@@ -88,6 +90,8 @@ public:
 	// Declare inherited virutal methods
 	arma::mat CalculateHydrodynamicForces(double time);
 	void LoadHydrodynamicData(std::string file_path); // Loads the corresponding hydrodynamic data
+	void InterpolateHydro(HydroDatabase* pHydro1, HydroDatabase* pHydro2, double interpCoef);
+	void UpdateHydroStiffness(arma::mat newHydrostaticStiffness);
 
 };
 

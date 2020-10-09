@@ -47,14 +47,13 @@ set(OASIS_SOURCE_FILES
     "src/Waves/Wave.cpp"
     "src/Simulations/Simulation.cpp"
     "src/Hydro/Morison.cpp"
-    "src/Hydro/CumminsIrregular.cpp"
-    "src/Hydro/CumminsRegular.cpp"
     "src/Hydro/HydroDatabase.cpp"
     "src/Lines/Lines_Dyn.cpp"
     "src/Lines/Lines_QS.cpp"
     "src/ODE_solvers/ODE_solvers.cpp"
     "src/SEM_math/quadrule.cpp"
     "src/Spring/Spring.cpp"
+    "src/Sinking/Sinking.cpp"
     )
 
 # Add include files
@@ -70,8 +69,6 @@ set(OASIS_HEADER_FILES
     "src/Bodies/Bodies.hpp"
     "src/Exceptions/Exception.hpp"
     "src/Hydro/Morison.hpp"
-    "src/Hydro/CumminsIrregular.hpp"
-    "src/Hydro/CumminsRegular.hpp"
     "src/Hydro/HydroDatabase.hpp"
     "src/Lines/Lines.hpp"
     "src/ODE_solvers/ODE_solvers.hpp"
@@ -79,6 +76,7 @@ set(OASIS_HEADER_FILES
     "src/Waves/Wave.hpp"
     "src/Simulations/Simulation.hpp"
     "src/Spring/Spring.hpp"
+    "src/Sinking/Sinking.hpp"
     )
 
 # Join source and header files

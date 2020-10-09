@@ -37,17 +37,21 @@ public:
 	int takeCOGHydroDatabase; // Stores if read the initial COG position from the hydrodynamic database
 	int numBcps=0; // Number of Boundary Condition Points considered
 	int numDofs=0; // // Number of Degrees of freedom considered for the body
+
+	arma::span sysMatSpan1, sysMatSpan2;
 	
 	// kinematic and Dynamic properties attributes
 	int velBufferSize=0; // Velocity Buffer size;
 	int velBufferCount=0; // Stores the positon of the last columun of the velocity buffer matrix filled.
+	double mass = 0; // Body mass
 	arma::mat acc = arma::zeros(6,1); // Body acceleration w.r.t the global reference system
 	arma::mat bcpForces = arma::zeros(6,1); // Fuerzas que los BCPs ejercen sobre el cuerpo, en la referencia del CDG
 	arma::mat hydrostaticForces = arma::zeros(6, 1); // Storage for the hydrostatic forces
 	arma::mat inertia = arma::zeros(6,6); // matriz de inercia del cuerpo
 	arma::mat invRotMat = arma::zeros(3,3); // Matriz de rotación
-	arma::mat pos = arma::zeros(6,1); // Body position w.r.t the global reference system
-	arma::mat pos_init = arma::zeros(6,1); // Body initial position w.r.t global reference system. This is used as a reference for hydrostatic force calculation
+	arma::mat pos = arma::zeros(6,1); // Body's COG position w.r.t the global reference system
+	arma::mat pos_eq = arma::zeros(6,1); // This is used as a equilibrium reference for hydrostatic force calculation
+	arma::mat pos_cog = arma::zeros(3,1); // Center of gravity position in local frame (usually zero, only changes if body is sinking or similar)
 	arma::mat radiationForces = arma::zeros(6, 1); // Storage for the wave radiation forces
 	arma::mat excitationForces_1 = arma::zeros(6, 1); // Storage for the wave excitation forces - 1st order
 	arma::mat excitationForces_2 = arma::zeros(6, 1); // Storage for the wave excitation forces - 2nd order

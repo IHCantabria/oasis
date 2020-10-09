@@ -113,10 +113,10 @@ void Body::LoadHydrodynamicDatabase(Body** hydroDatabaseBodies)
 	if (this->takeCOGHydroDatabase == 1)
 	{
 		// Load inital position
-		this->pos_init.rows(0, 2) = this->pHydro->GetCog().t();
+		this->pos_eq.rows(0, 2) = this->pHydro->GetCog().t();
 
 		// Add initial position to the global position
-		this->pos = this->pos + this->pos_init;
+		this->pos = this->pos + this->pos_eq;
 	}
 	else if ((this->takeCOGHydroDatabase == 0) && (this->pHydro->GetNumBodies() > 1))
 	{
@@ -126,9 +126,9 @@ void Body::LoadHydrodynamicDatabase(Body** hydroDatabaseBodies)
 		// Check if the input C.O.G is in accordance with the hydrodynamic database
 		double cog_tol = 1e-6;
 		arma::mat cog = this->pHydro->GetCog();
-		xcond = fabs(this->pos_init(0, 0) - cog(0, 0)) > cog_tol;
-		ycond = fabs(this->pos_init(1, 0) - cog(0, 1)) > cog_tol;
-		zcond = fabs(this->pos_init(2, 0) - cog(0, 2)) > cog_tol;
+		xcond = fabs(this->pos_eq(0, 0) - cog(0, 0)) > cog_tol;
+		ycond = fabs(this->pos_eq(1, 0) - cog(0, 1)) > cog_tol;
+		zcond = fabs(this->pos_eq(2, 0) - cog(0, 2)) > cog_tol;
 		
 		if (xcond || ycond || zcond)
 		{
@@ -140,7 +140,7 @@ void Body::LoadHydrodynamicDatabase(Body** hydroDatabaseBodies)
 	}
 	else if (this->takeCOGHydroDatabase == 0)
 	{
-		this->pos = this->pos + this->pos_init;
+		this->pos = this->pos + this->pos_eq;
 	}
 	
 	std::cout << "----> Hydrodynamic Properties Read" << std::endl;
@@ -223,7 +223,7 @@ void Body::ReadPropertiesASCII(FILE* pFile)
 		
 		if (this->takeCOGHydroDatabase == 0)
 		{
-			this->pos_init(ii, 0) = dtemp;
+			this->pos_eq(ii, 0) = dtemp;
 			this->pos(ii, 0) = dtemp;
 		}
 	}
