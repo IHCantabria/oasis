@@ -69,11 +69,6 @@ void Body::ComputeBcpForces(void)
 				// Obtengo la fuerza en el cdg causada por el momento en el bcp, ya en global, 
 				// por que tanto el brazo posG, como la fuerza ForceBCP, estan en global.
 				F_M = matrix*vector;
-
-				//printf("matrix\n");
-				//matrix.print();
-				//printf("vector\n");
-				//vector.print();
 			}
 		}
 
@@ -183,6 +178,7 @@ void Body::ReadPropertiesASCII(FILE* pFile)
 			throw ValueError(ss.str());
 		}
 		this->pDofs[ii] = itemp - 1;
+		isDofActive(itemp - 1,0) = 1.0;
 	}
 	fscanf(pFile, "%[^\n]\n", buffer_line);
 
@@ -261,8 +257,23 @@ void Body::ReadPropertiesASCII(FILE* pFile)
 	this->hydroDatabaseIndex--;
 
 
-
-
+	
+	// Read flag for blocking the body
+	if (fscanf(pFile, "%d %[^\n]\n", &itemp, buffer_line) != 2)
+	{
+		std::stringstream ss;
+		ss << "Body: " << this->GetId() <<" - Not possible to read flag for blocking body." << ".\n";
+		throw ValueError(ss.str());
+	}
+	if (itemp==0){
+		flag_blocked = 1;
+	} else if (itemp==1){
+		flag_blocked = 0;
+	} else {
+		std::stringstream ss;
+		ss << "Body: " << this->GetId() <<" - Flag for blocking body not available, must be 0 or 1." << ".\n";
+		throw ValueError(ss.str());
+	}
 
 	// Read flag for first order excitation force
 	if (fscanf(pFile, "%d %[^\n]\n", &firstOrderExcitationFlag, buffer_line) != 2)
@@ -349,39 +360,73 @@ void Body::StoreVelocities(bool restoreMatrix)
 // Actualiza valores del BCP
 void Body::UpdateBcps(void)
 {
-	rotMat = arma::zeros(3,3); // Inicio la matriz de rotacion
-
-	// Datos necesarios para la matriz de rotacion
-	double cr = cos(pos(3,0)); double sr = sin(pos(3,0));
-	double cp = cos(pos(4,0)); double sp = sin(pos(4,0));
-	double cy = cos(pos(5,0)); double sy = sin(pos(5,0));
+	// Datos necesarios para las matrices de rotacion
+	double roll = arma::as_scalar(pos(3,0));
+	double pitch = arma::as_scalar(pos(4,0));
+	double yaw = arma::as_scalar(pos(5,0));
+	double roll_dot = arma::as_scalar(vel(3,0));
+	double pitch_dot = arma::as_scalar(vel(4,0));
+	double yaw_dot = arma::as_scalar(vel(5,0));
+	double roll_dot2 = arma::as_scalar(acc(3,0));
+	double pitch_dot2 = arma::as_scalar(acc(4,0));
+	double yaw_dot2 = arma::as_scalar(acc(5,0));
+	double cr = cos(roll); double sr = sin(roll);
+	double cp = cos(pitch); double sp = sin(pitch);
+	double cy = cos(yaw); double sy = sin(yaw);
 
 	// Matriz de rotacion calculada como Mz*My*Mx
-	//[ cos(pitch)*cos(yaw), cos(yaw)*sin(pitch)*sin(roll) - cos(roll)*sin(yaw), sin(roll)*sin(yaw) + cos(roll)*cos(yaw)*sin(pitch)]
-	//[ cos(pitch)*sin(yaw), cos(roll)*cos(yaw) + sin(pitch)*sin(roll)*sin(yaw), cos(roll)*sin(pitch)*sin(yaw) - cos(yaw)*sin(roll)]
-	//[         -sin(pitch),                               cos(pitch)*sin(roll),                               cos(pitch)*cos(roll)]
-	rotMat(0,0) = cp*cy; rotMat(0,1) = cy*sp*sr-cr*sy; rotMat(0,2) = sr*sy+cr*cy*sp;
-	rotMat(1,0) = cp*sy; rotMat(1,1) = cr*cy+sp*sr*sy; rotMat(1,2) = cr*sp*sy-cy*sr;
-	rotMat(2,0) =   -sp; rotMat(2,1) =          cp*sr; rotMat(2,2) =          cp*cr;
+	arma::mat R1 = arma::eye(3,3); 
+	R1(1,1) = cr; R1(1,2) = -sr;
+	R1(2,1) = sr; R1(2,2) = cr;
+	arma::mat R2 = arma::eye(3,3);
+	R2(2,2) = cp; R2(2,0) = -sp;
+	R2(0,2) = sp; R2(0,0) = cp; 
+	arma::mat R3 = arma::eye(3,3);
+	R3(0,0) = cy; R3(0,1) = -sy;
+	R3(1,0) = sy; R3(1,1) = cy;
 
-	// Inversa de la matriz de rotacion
-	//invRotMat = arma::solve(rotMat,arma::eye(3,3));
+	rotMat = R3*R2*R1;
+
+	arma::mat R1_dot = arma::zeros(3,3); 
+	R1_dot(1,1) = -sr; R1_dot(1,2) = -cr;
+	R1_dot(2,1) = cr; R1_dot(2,2) = -sr;
+	R1_dot = roll_dot*R1_dot;
+	arma::mat R2_dot = arma::zeros(3,3);
+	R2_dot(2,2) = -sp; R2_dot(2,0) = -cp;
+	R2_dot(0,2) = cp; R2_dot(0,0) = -sp;
+	R2_dot = pitch_dot*R2_dot;
+	arma::mat R3_dot = arma::zeros(3,3);
+	R3_dot(0,0) = -sy; R3_dot(0,1) = -cy;
+	R3_dot(1,0) = cy; R3_dot(1,1) = -sy;
+	R3_dot = yaw_dot*R3_dot;
+
+	rotMat_dot = R3_dot*R2*R1 + R3*R2_dot*R1 + R3*R2*R1_dot;
+
+	arma::mat R1_dot2 = -R1; R1_dot2(0,0) = 0;
+	R1_dot2 = roll_dot2*R1_dot + roll_dot*roll_dot*R1_dot2;
+	arma::mat R2_dot2 = -R2; R2_dot2(1,1) = 0;
+	R2_dot2 = pitch_dot2*R2_dot + pitch_dot*pitch_dot*R2_dot2;
+	arma::mat R3_dot2 = -R3; R3_dot2(2,2) = 0;
+	R3_dot2 = yaw_dot2*R3_dot + yaw_dot*yaw_dot*R3_dot2;
+
+	rotMat_dot2 = R3_dot2*R2*R1 + R3_dot*R2_dot*R1 + R3_dot*R2*R1_dot + 
+	              R3_dot*R2_dot*R1 + R3*R2_dot2*R1 + R3*R2_dot*R1_dot + 
+	              R3_dot*R2*R1_dot + R3*R2_dot*R1_dot + R3*R2*R1_dot2;
 
 	// Variable temporal
-	arma::mat posG_temp;
+	arma::mat posG_temp, posL_temp;
 	for(int ii=0; ii<numBcps; ii++)
 	{
 		// Bucle sobre todos los BCPs
-		posG_temp =  rotMat*(pBodyBcps[ii]->posWrtCdgLocal); // Brazo cdg-bcp en global
+		posL_temp = pBodyBcps[ii]->posWrtCdgLocal;
+		posG_temp = rotMat*posL_temp; // Brazo cdg-bcp en global
 		pBodyBcps[ii]->posWrtCdgGlobal = posG_temp; // Brazo cdg-bcp en global
 		pBodyBcps[ii]->rotMat = rotMat; // Matriz de rotacion
+		pBodyBcps[ii]->rotMat_dot = rotMat_dot; // Matriz de rotacion
 		// Posicion del BCP en global, lo mismo para vel y acc.
 		pBodyBcps[ii]->posG_BCP.rows(0,2) = pos.rows(0,2) + posG_temp; // Posicion del BCP en global
-		pBodyBcps[ii]->velG_BCP.rows(0,2) = vel.rows(0,2) + arma::cross(vel.rows(3,5),posG_temp);
-		pBodyBcps[ii]->accG_BCP.rows(0,2) = acc.rows(0,2) + arma::cross(acc.rows(3,5),posG_temp);
-		pBodyBcps[ii]->posG_BCP.rows(3,5) = pos.rows(3,5);
-		pBodyBcps[ii]->velG_BCP.rows(3,5) = vel.rows(3,5);
-		pBodyBcps[ii]->accG_BCP.rows(3,5) = acc.rows(3,5);
+		pBodyBcps[ii]->velG_BCP.rows(0,2) = vel.rows(0,2) + rotMat_dot*posL_temp;
+		pBodyBcps[ii]->accG_BCP.rows(0,2) = acc.rows(0,2) + rotMat_dot2*posL_temp;
 	}
 }
 
@@ -393,21 +438,11 @@ void Body::ResetBcps(void)
 	{
 		// Reseteo a cero la fuerza sobre el BCP
 		pBodyBcps[ii]->forceBcp = arma::zeros(6,1);
+		pBodyBcps[ii]->temp = arma::zeros(6,1);
 	}
 	// Reseteo a cero la fuerza total de todos los BCPs
 	bcpForces = arma::zeros(6,1);
 }
-
-// void Body::UpdateHydrostaticForces()
-// {
-// 	hydrostaticForces = this->pHydro->ComputeHydrostaticForces();
-// }
-
-
-// void Body::UpdateRadiationForces()
-// {
-// 	radiationForces = this->pHydro->ComputeRadiationForces();
-// }
 
 
 void Body::OpenOutputFilesASCII (std::string path)

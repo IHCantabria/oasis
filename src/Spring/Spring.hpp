@@ -13,9 +13,12 @@ public:
 	int stressModelFlag; // Flag que determina que modelo de stress se da, [1: matriz lineal, 2: curva stress-strain]
 	int dampingFlag; // Flag que determina si se considera damping en los muelles, [0: no se considera, 1: se considera]
 	int frictionFlag; // Flag que determina si se considera friccion en los muelles, [0: no se considera, 1: se considera]
+	int frameFlag; // Flag que indica que frame se utiliza para el calculo de las deformaciones y las fuerzas, [0: frame medio, 1: BCP1, 2: BCP2]
 
 	int BCP_1; // Indices de los BCPs a los que esta conectado el muelle
 	int BCP_2;
+	int BCP_1_type; // Flags que eindican el tipo de BCP
+	int BCP_2_type;
 	BCP* SpringBCP[2]; // Puntos de contorno a los que está unido el muelle
 
 	arma::field<arma::mat> SpringVectors; // Vectores unitarios que definen la orientación del muelle en local para cada BCP. orden normal (x), tangente 1 (y), tangente 2 (z)

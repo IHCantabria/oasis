@@ -24,8 +24,6 @@ Morison::Morison(int numBodies_inp, Simulation* pSim_inp)
 
 void Morison::ReadMorisonData(void)
 {
-
-	std::cout << "--> Reading Morison Forces data (ASCII format)" << std::endl;
     std::string file_path = JoinPath(pSim->inputFolderPath, "dataMorison.dat");
 
     FILE* file_pointer = fopen(file_path.c_str(), "r");
@@ -242,9 +240,6 @@ void Morison::ReadMorisonData(void)
 	{
 		flag_curr = true;
 	}
-
-
-	std::cout << "--> Morison Forces data Read" << std::endl;
 
 }
 

@@ -59,6 +59,7 @@ public:
 	// Output files
 	FILE* pfile_TW;
 	FILE* pfile_FC;
+	FILE* pfile_RP;
 
 	WinchieController(void);
 	WinchieController(int n, Winchie** Ws, Simulation* pIncSim); // Inicializar el objeto de la clase winchie controler

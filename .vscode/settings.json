@@ -48,6 +48,15 @@
         "xstddef": "cpp",
         "xstring": "cpp",
         "xtr1common": "cpp",
-        "xutility": "cpp"
-    }
+        "xutility": "cpp",
+        "xmemory0": "cpp",
+        "algorithm": "cpp",
+        "codecvt": "cpp",
+        "filesystem": "cpp",
+        "list": "cpp",
+        "locale": "cpp",
+        "xlocbuf": "cpp",
+        "xlocmes": "cpp"
+    },
+    "cmake.configureOnOpen": false
 }

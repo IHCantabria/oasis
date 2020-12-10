@@ -44,6 +44,7 @@ public:
 	arma::mat* pHydrostaticStiffness; // Matrix components: [dof, dof]
 	arma::cube** pIRF; // Matrix components: [body, numTime, dof, dof]
 	arma::mat** pIRFPoints; // Matrix components: [body, dof, dof]
+	double IRFTotalTime;
 	arma::mat IRFTime; // Matrix size containing the IRF time. Matrix dims: (1, numPointsIRF)
 	arma::mat* pStructuralMass; // Matrix components: [dof, dof]
 	arma::mat* pTotalMass; // Contains the StructuralMass + AddedMassHf: [dof, numDbBodies*dof]
@@ -71,7 +72,7 @@ public:
 	// Class Methods
 	arma::mat CalculateHydrostaticForces(void);
 	arma::mat ComputeRadiationForces(void);
-	void ComputeIRF(void); // Calcula la impulse response function
+	void ComputeIRF(std::string HDBname); // Calcula la impulse response function
 	arma::mat GetCog(void); // Interface method, it returns center of gravity
 	int GetNumBodies(void); // Returns the number of bodies in the database
 	int GetNumPointsIrf(void); // Interface mehtods, it returns the number of points of the IRF

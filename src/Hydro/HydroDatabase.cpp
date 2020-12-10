@@ -81,7 +81,7 @@ arma::mat HydroDatabase::CalculateHydrostaticForces()
 }
 
 
-void HydroDatabase::ComputeIRF(void)
+void HydroDatabase::ComputeIRF(std::string HDBname)
 {
 	// Declare local variables
 	int count_max;
@@ -101,18 +101,18 @@ void HydroDatabase::ComputeIRF(void)
 	// Calculate maximum time allowed
 	double df = (*pFrequencies)(1)-(*pFrequencies)(0);
 	double tmax = 1/df/2.0;
-	IRFTime = arange(0, 20.0, pSim->hydroTimeStep);
+	IRFTime = arange(0, IRFTotalTime, pSim->hydroTimeStep);
 	
 	// Allocate IRF matrix
 	numPointsIRF = IRFTime.n_cols;
 	pIRF = new arma::cube* [numBodies];
 	pIRFPoints = new arma::mat* [numBodies];
 	
-	std::cout << "IRF Time: " << tmax << std::endl;
-	std::cout << "IRF Time Points: " << numPointsIRF << std::endl;
-	std::cout << "Frequency(0): " << (*pFrequencies)(0) << std::endl;
-	std::cout << "Frequency(1): " << (*pFrequencies)(1) << std::endl;
-	std::cout << "Frequency diff: " << df << std::endl;
+	std::cout << "    IRF Time: " << tmax << std::endl;
+	std::cout << "    IRF Time Points: " << numPointsIRF << std::endl;
+	std::cout << "    Frequency(0): " << (*pFrequencies)(0) << std::endl;
+	std::cout << "    Frequency(1): " << (*pFrequencies)(1) << std::endl;
+	std::cout << "    Frequency diff: " << df << std::endl;
 
 	// Loop to find the IRF value for each body influence and DOF
 	std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
@@ -148,13 +148,19 @@ void HydroDatabase::ComputeIRF(void)
 		}
 	}
 
-	std::cout << "Maximum retardation time: " << tmax << std::endl;
+	std::cout << "    Maximum retardation time: " << tmax << std::endl;
 	std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
 	int elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-	std::cout << "Time elapsed ComputeIRF: " << elapsed << std::endl;
+	std::cout << "    Time elapsed ComputeIRF: " << elapsed << std::endl;
 
-	std::string filename = JoinPath(pSim->outputFolderPath, "IRF.dat");  
-    pIRF[0]->save(filename,arma::arma_ascii);
+	char buffer[50];
+	for (int ib=0; ib<numBodies; ib++) {
+		// sprintf(buffer,"IRF_Body_%d_fromBody_%d.dat", pBodies[idBody]->GetId(), pBodies[ib]->GetId());
+		std::string filename = JoinPath(pSim->outputFolderPath, HDBname);
+		filename = filename + "_IRF_Body_" + std::to_string(pBodies[idBody]->GetId()) + 
+							  "_fromBody_" + std::to_string(pBodies[ib]->GetId()) + ".dat";  
+    	pIRF[ib]->save(filename,arma::arma_ascii);
+	}
 }
 
 
@@ -181,7 +187,7 @@ arma::mat HydroDatabase::ComputeRadiationForces()
 		{
 			for(int j=0; j<6; j++)
 			{
-				if (pSim->timeBuffer(0, pSim->timeBufferCount) > 20.0)
+				if (pSim->timeBuffer(0, pSim->timeBufferCount) > IRFTotalTime)
 				{	
 					// Get IRF function from the storage
 					irf_local = (*pIRF[ib]).subcube(0, i, j, numPointsIRF-1, i, j);
@@ -269,7 +275,8 @@ void HydroDatabase::UpdateTotalMass(void)
 	{
 		(*pTotalMass)(arma::span(0, 5), arma::span(6*ii, 6*(ii+1)-1)) += (*pAddedMassHf[ii]);
 	}
-	(*pTotalMass)(arma::span(0, 5), arma::span(6*(pBodies[idBody]->hydroDatabaseIndex), 6*(pBodies[idBody]->hydroDatabaseIndex+1)-1)) += (*pAddedMassHf[pBodies[idBody]->hydroDatabaseIndex])%(arma::diagmat(pBodies[idBody]->A_visc));
+	(*pTotalMass)(arma::span(0, 5), arma::span(6*(pBodies[idBody]->hydroDatabaseIndex), 6*(pBodies[idBody]->hydroDatabaseIndex+1)-1)) += 
+		(*pAddedMassHf[pBodies[idBody]->hydroDatabaseIndex])%(arma::diagmat(pBodies[idBody]->A_visc));
 }
 
 
@@ -279,23 +286,26 @@ HydroDatabase::HydroDatabase(int incId, int incIdBody, Body** incBody, Simulatio
 	pBodies = incBody;
 	pSim = pIncSim;
 	idBody = incIdBody;
+	IRFTotalTime = pSim->timeIRF;
 }
 
 
 void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 {
 	// Read number of bodies
+	std::cout << "  Reading number of bodies...\n";
 	arma::mat num_bodies_mat;
 	num_bodies_mat.load(arma::hdf5_name(filePath, "num_bodies"));
 	numBodies = num_bodies_mat(0);
 
 	// Read position of the center of gravity
+	std::cout << "  Reading position of the center of gravity...\n";
 	std::stringstream cog_fn;
 	cog_fn << "body_" << this->GetId() << "/cog";
 	cog.load(arma::hdf5_name(filePath, cog_fn.str()));
 	
 	// Read frequencies
-	std::cout << "Reading frequencies...\n";
+	std::cout << "  Reading frequencies...\n";
 	std::stringstream frequencies_fn;
 	pFrequencies = new arma::mat;
 	frequencies_fn << "body_" << this->GetId() << "/frequencies";
@@ -303,7 +313,7 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 	numFrequencies = pFrequencies->n_cols;
 	
 	// Read headings (radians)
-	std::cout << "Reading headings...\n";
+	std::cout << "  Reading headings...\n";
 	std::stringstream headings_fn;
 	pHeadings = new arma::mat;
 	headings_fn << "body_" << this->GetId() << "/headings";
@@ -311,26 +321,26 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 	numHeadings = pHeadings->n_cols;
 	
 	// Read hydrostatic stiffness
-	std::cout << "Reading hydrostatic matrix...\n";
+	std::cout << "  Reading hydrostatic matrix...\n";
 	std::stringstream hydrostatic_stiffness_fn;
 	pHydrostaticStiffness = new arma::mat;
 	hydrostatic_stiffness_fn << "body_" << this->GetId() << "/hydstiffness";
 	pHydrostaticStiffness->load(arma::hdf5_name(filePath, hydrostatic_stiffness_fn.str(), arma::hdf5_opts::trans));
 	
 	// Read structural mass properties
-	std::cout << "Reading structural mass...\n";
+	std::cout << "  Reading structural mass...\n";
 	std::stringstream structural_mass_fn;
 	pStructuralMass = new arma::mat;
 	structural_mass_fn << "body_" << this->GetId() << "/mass";
 	pStructuralMass->load(arma::hdf5_name(filePath, structural_mass_fn.str(), arma::hdf5_opts::trans));
 
 	// Create total mass matrix and fill with structural data
-	std::cout << "Creating total mass matrix...\n";
+	std::cout << "  Creating total mass matrix...\n";
 	pTotalMass = new arma::mat(6, 6*numBodies, arma::fill::zeros);
 	(*pTotalMass)(arma::span(0, 5), arma::span(6*(pBodies[idBody]->hydroDatabaseIndex), 6*(pBodies[idBody]->hydroDatabaseIndex+1)-1)) = (*pStructuralMass);
 	
 	// Read Added Mass
-	std::cout << "Reading Added Mass...\n";
+	std::cout << "  Reading Added Mass...\n";
 	std::stringstream added_mass_fn;
 	pAddedMass = new arma::cube* [numBodies];
 	for (int ii=0; ii<numBodies; ii++)
@@ -342,7 +352,7 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 	}
 
 	// Read High frequency asymptotic added mass
-	std::cout << "Reading high frequency...\n";
+	std::cout << "  Reading high frequency...\n";
 	std::stringstream added_mass_hf_fn;
 	pAddedMassHf = new arma::mat* [numBodies];
 	for (int ii=0; ii<numBodies; ii++)
@@ -351,14 +361,15 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 		added_mass_hf_fn.str("");
 		added_mass_hf_fn << "body_" << this->GetId() << "/added_mass_hf/body_" << ii;
 		pAddedMassHf[ii]->load(arma::hdf5_name(filePath, added_mass_hf_fn.str()));
-		std::cout << "Applying matrix...\n";
-		std::cout << 6*ii << " - " << 6*(ii+1)-1 << "\n";
+		std::cout << "    Applying matrix...\n";
+		std::cout << "    " << 6*ii << " - " << 6*(ii+1)-1 << "\n";
 		(*pTotalMass)(arma::span(0, 5), arma::span(6*ii, 6*(ii+1)-1)) += (*pAddedMassHf[ii]);
 	}
-	(*pTotalMass)(arma::span(0, 5), arma::span(6*(pBodies[idBody]->hydroDatabaseIndex), 6*(pBodies[idBody]->hydroDatabaseIndex+1)-1)) += (*pAddedMassHf[pBodies[idBody]->hydroDatabaseIndex])%(arma::diagmat(pBodies[idBody]->A_visc));
+	(*pTotalMass)(arma::span(0, 5), arma::span(6*(pBodies[idBody]->hydroDatabaseIndex), 6*(pBodies[idBody]->hydroDatabaseIndex+1)-1)) += 
+	    (*pAddedMassHf[pBodies[idBody]->hydroDatabaseIndex])%(arma::diagmat(pBodies[idBody]->A_visc));
 
 	// Read Low frequency asymptotic added mass
-	std::cout << "Reading low frequency added mass...\n";
+	std::cout << "  Reading low frequency added mass...\n";
 	std::stringstream added_mass_lf_fn;
 	pAddedMassLf = new arma::mat* [numBodies];
 	for (int ii=0; ii<numBodies; ii++)
@@ -370,7 +381,7 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 	}
 	
 	// Read wave radiation damping coeffients
-	std::cout << "Reading wave radiation damping...\n";
+	std::cout << "  Reading wave radiation damping...\n";
 	std::stringstream damping_radiation_fn;
 	pDampingRadiation = new arma::cube* [numBodies];
 	for (int ii=0; ii<numBodies; ii++)
@@ -382,7 +393,7 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 	}
 	
 	// Read low frequency asymptotic wave radiation damping
-	std::cout << "Reading load frequency asymptotic wave radiation damping...\n";
+	std::cout << "  Reading load frequency asymptotic wave radiation damping...\n";
 	std::stringstream damping_radiation_lf_fn;
 	pDampingRadiationLf = new arma::mat* [numBodies];
 	for (int ii=0; ii<numBodies; ii++)
@@ -403,7 +414,7 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 	// std::chrono::steady_clock::time_point end_load = std::chrono::steady_clock::now();
 	
 	// Read Wave exciting data
-	std::cout << "Reading wave exciting data...\n";
+	std::cout << "  Reading wave exciting data...\n";
 	std::stringstream wave_exciting_mag_fn;
 	wave_exciting_mag_fn << "body_" << this->GetId() << "/wave_exciting_mag";
 	pWaveExcitingMag = new arma::cube;
@@ -415,7 +426,7 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 	pWaveExcitingPha->load(arma::hdf5_name(filePath, wave_exciting_pha_fn.str()));
 
 	// Read QTF data
-	std::cout << "Reading QTF data...\n";
+	std::cout << "  Reading QTF data...\n";
 	std::stringstream qtf_diff_fn;
 	std::stringstream qtf_sum_fn;
 	pQtfDiff = new arma::cube** [2];
@@ -458,9 +469,13 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 	pTimeStartPos = new arma::cube(numBodies, 6, 6, arma::fill::zeros);
 
 	// Compute IRF function
-	this->ComputeIRF();
+	std::cout << "  Computing IRF ...\n";
+	std::string HDBname = filePath.substr(filePath.find_last_of("/") + 1);
+	HDBname = HDBname.substr(0,HDBname.length()-6);
+	this->ComputeIRF(HDBname);
 
 	// Load Morison forces data
+	std::cout << "  Reading Morison forces sata ...\n";
 	pMor = new Morison(numBodies, pSim); pMor->ReadMorisonData();
 }
 
@@ -655,15 +670,6 @@ void HydroDatabase::SetUp(void)
 		}
 	}
 
-	// Include viscous added mass
-	// for (int ii=0; ii<numBodies; ii++)
-	// {
-	// 	(*pTotalMass)(arma::span(6*ii,6*(ii+1)-1), arma::span(6*ii,6*(ii+1)-1)) = 
-	// 	(*pTotalMass)(arma::span(6*ii,6*(ii+1)-1), arma::span(6*ii,6*(ii+1)-1)) 
-	// 	+ (*pAddedMassHf[pBodies[ii]->hydroDatabaseIndex])%(arma::diagmat(pBodies[ii]->A_visc));
-	// }
-	// *pTotalMass_inv = arma::solve(*pTotalMass,eye(size(*pTotalMass)));
-
 	// Compute mean drift force
 	arma::cube temp_mD = interp2(*pFrequencies, *pHeadings, permute(*pMeanDrift,231), pWave->freqs, pWave->headings);
 	for (int ii=0; ii<activeDofs; ii++)
@@ -675,10 +681,10 @@ void HydroDatabase::SetUp(void)
 	if(pBodies[idBody]->secondOrderExcitationFlag==3)
 	{
 		pBodies[idBody]->excitationForces_2 = F_meanDrift;
-		std::cout << "Computed mean drift: \n" << F_meanDrift << "\n";
+		// std::cout << "Computed mean drift: \n" << F_meanDrift << "\n";
 	}
 
-	std::cout << "Calculate hyrodynamic forces at time 0.0...\n";
+	// std::cout << "Calculate hyrodynamic forces at time 0.0...\n";
 	pBodies[idBody]->Fb = CalculateHydrodynamicForces(0.0);
 
 	if(pBodies[idBody]->firstOrderExcitationFlag==1)
@@ -746,8 +752,16 @@ void HydroDatabase::InterpolateHydro(HydroDatabase* pHydro1, HydroDatabase* pHyd
 	(*pHydrostaticStiffness) = *(pHydro1->pHydrostaticStiffness) * (1-interpCoef) + *(pHydro2->pHydrostaticStiffness) * interpCoef;
 	(*pStructuralMass) = *(pHydro1->pStructuralMass) * (1-interpCoef) + *(pHydro2->pStructuralMass) * interpCoef;
 	(*pTotalMass) = *(pHydro1->pTotalMass) * (1-interpCoef) + *(pHydro2->pTotalMass) * interpCoef;
-	(*pWaveExcitingMag) = *(pHydro1->pWaveExcitingMag) * (1-interpCoef) + *(pHydro2->pWaveExcitingMag) * interpCoef;
-	(*pWaveExcitingPha) = *(pHydro1->pWaveExcitingPha) * (1-interpCoef) + *(pHydro2->pWaveExcitingPha) * interpCoef;
+
+	arma::cube WaveExcitingReal_1 = *(pHydro1->pWaveExcitingMag) % arma::cos(*(pHydro1->pWaveExcitingPha));
+	arma::cube WaveExcitingImag_1 = *(pHydro1->pWaveExcitingMag) % arma::sin(*(pHydro1->pWaveExcitingPha));
+	arma::cube WaveExcitingReal_2 = *(pHydro2->pWaveExcitingMag) % arma::cos(*(pHydro2->pWaveExcitingPha));
+	arma::cube WaveExcitingImag_2 = *(pHydro2->pWaveExcitingMag) % arma::sin(*(pHydro2->pWaveExcitingPha));
+	arma::cx_cube WaveExcitingCx_1 = arma::cx_cube(WaveExcitingReal_1,WaveExcitingImag_1);
+	arma::cx_cube WaveExcitingCx_2 = arma::cx_cube(WaveExcitingReal_2,WaveExcitingImag_2);
+	arma::cx_cube WaveExcitingCx = WaveExcitingCx_1 * (1-interpCoef) + WaveExcitingCx_2 * interpCoef;
+	(*pWaveExcitingMag) = arma::abs(WaveExcitingCx);
+	(*pWaveExcitingPha) = arma::arg(WaveExcitingCx);
 
 	for (int ii=0; ii<numBodies; ii++)
 	{
@@ -771,6 +785,7 @@ void HydroDatabase::InterpolateHydro(HydroDatabase* pHydro1, HydroDatabase* pHyd
 	SetUp(); // A esta quizas habria que llamarla desde sinking e interpolar con las variables postprocesadas de setup
 
 }
+
 
 void HydroDatabase::UpdateHydroStiffness(arma::mat newHydrostaticStiffness){
 	*pHydrostaticStiffness = newHydrostaticStiffness;

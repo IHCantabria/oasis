@@ -34,6 +34,7 @@ public:
     int maxIterStep;
     double maxTimeStep;
     double hydroTimeStep;
+    double timeIRF;
     double sinkingTimeStep;
     int numSystem;
     int numSystem2;

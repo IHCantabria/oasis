@@ -1,12 +1,14 @@
 
 #include <armadillo>
 #include <string>
+#include <math.h>
 #include "WinchiesController.hpp"
 #include "../Simulations/Simulation.hpp"
 #include "../CommonTools.hpp"
 #include "../os_tools.hpp"
 #include "../Exceptions/Exception.hpp"
 #include "../MathTools.hpp"
+
 
 WinchieController::WinchieController(void){
 	nWinchies=0; 
@@ -322,7 +324,6 @@ void WinchieController::ReadPropertiesASCII(FILE* pFile){
 	fscanf(pFile, "%[^\n]\n", buffer_line);
 }
 
-
 void WinchieController::SetUpWinchiesController(void){
 
 	int ne = ceil(pSim->simulationTime/pSim->maxTimeStep);
@@ -373,9 +374,6 @@ void WinchieController::controlWinchies(double time){
 		xc = Ac*xc + Bc*e1; yc = Kc%(Cc*xc + Dc*e1);
 		k = k + 1;
 		inversorBlock();
-	} else {
-		pos = pSim->pBodies[indBody]->pos; 
-		xr(0,0) = pos(0,0);  xr(1,0) = pos(1,0); xr(2,0) = pos(5,0);
 	}
 
 	for(int ii=0; ii<nWinchies; ii=ii+1){
@@ -383,7 +381,6 @@ void WinchieController::controlWinchies(double time){
 	}
 	
 }
-
 
 void WinchieController::inversorBlock(void){
 
@@ -458,7 +455,6 @@ void WinchieController::inversorBlock(void){
 
 }
 
-
 void WinchieController::OpenOutputFilesASCII(std::string path){
 
 	char buffer1[50];
@@ -483,12 +479,24 @@ void WinchieController::OpenOutputFilesASCII(std::string path){
         throw IOError(ss.str());
 	}
 
+	char buffer3[50];
+	int nn3 = sprintf(buffer3,"ReferencePosition.txt");
+	std::string file_path3 = JoinPath(path, buffer3);
+	pfile_RP = fopen (file_path3.c_str(),"w");
+	if (pfile_RP == NULL)
+	{
+        std::stringstream ss;
+        ss << "Not possible to open the file: "<< nn3 <<"\n    ->Dir: " << path << std::endl;
+        throw IOError(ss.str());
+	}
+
 }
 
 void WinchieController::CloseOutputFilesASCII(void){
 
 	fclose(pfile_TW);
 	fclose(pfile_FC);
+	fclose(pfile_RP);
 
 }
 
@@ -502,4 +510,7 @@ void WinchieController::WriteOut(double t){
 	for(int ii=0;ii<3;ii=ii+1) fprintf(pfile_FC, "%f    ", Kw*yc(ii, 0));
 	fprintf(pfile_FC, "\n");
 
+	fprintf(pfile_RP, "%f    ", t);
+	for(int ii=0;ii<3;ii=ii+1) fprintf(pfile_RP, "%f    ", yr(ii, 0));
+	fprintf(pfile_RP, "\n");
 }

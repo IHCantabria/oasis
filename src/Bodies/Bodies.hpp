@@ -23,6 +23,7 @@ public:
 	HydroForce* pHydro; // Hydrodynamnics body associated to the body
 	int hydroDatabaseIndex; // Index of the body in the associated hydrodynamic database, if any
 	std::string hydroDatabaseName; // Stores the hydrodynamic database name
+	int flag_blocked;
 	int firstOrderExcitationFlag; // flag for first order excitation force
 	int secondOrderExcitationFlag; // flag for second order excitation force
 	arma::mat A_visc = arma::zeros(6,1); // viscous added mass coefficients
@@ -37,6 +38,7 @@ public:
 	int takeCOGHydroDatabase; // Stores if read the initial COG position from the hydrodynamic database
 	int numBcps=0; // Number of Boundary Condition Points considered
 	int numDofs=0; // // Number of Degrees of freedom considered for the body
+	arma::mat isDofActive = arma::zeros(6,1); // 1 if dof is active, 0 otherwise
 
 	arma::span sysMatSpan1, sysMatSpan2;
 	
@@ -56,6 +58,8 @@ public:
 	arma::mat excitationForces_1 = arma::zeros(6, 1); // Storage for the wave excitation forces - 1st order
 	arma::mat excitationForces_2 = arma::zeros(6, 1); // Storage for the wave excitation forces - 2nd order
 	arma::mat rotMat = arma::zeros(3,3); // Matriz de rotación
+	arma::mat rotMat_dot = arma::eye(3,3); // Derivada temporal de la matriz de rotacion del cuerpo
+	arma::mat rotMat_dot2 = arma::eye(3,3); // Segunda erivada temporal de la matriz de rotacion del cuerpo
 	arma::mat vel = arma::zeros(6,1); // Body velocity w.r.t the global reference system
 	arma::mat velBuffer; // Velocity Buffer (global coords) in order to store the body velocities and calculate Duhamel's integral term
 

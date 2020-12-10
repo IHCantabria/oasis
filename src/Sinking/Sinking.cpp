@@ -28,6 +28,8 @@ void Sinking::ReadPropertiesASCII(FILE* pFile, std::string inputFolderPath){
 	char buffer_line [1000];
 	char cHydroDatabaseName [1000];
 	double dtemp;
+	int itemp;
+	arma::mat mtemp;
 	std::string file_path;
 
 	// Read bodyReferenceMassMat
@@ -79,7 +81,7 @@ void Sinking::ReadPropertiesASCII(FILE* pFile, std::string inputFolderPath){
 	// Read and load HDBs filenames
 	for (int ii=0; ii<numHDBs; ii++)
 	{
-		pHydro[ii] = new HydroDatabase(ii, indBody-1 , pSim->pBodies, pSim);
+		pHydro[ii] = new HydroDatabase(pSinkingBody->hydroDatabaseIndex, indBody-1 , pSim->pBodies, pSim);
 		if (fscanf(pFile, "%s %[^\n]\n", cHydroDatabaseName, buffer_line) != 2)
 		{
 			std::stringstream ss;
@@ -87,42 +89,16 @@ void Sinking::ReadPropertiesASCII(FILE* pFile, std::string inputFolderPath){
 			throw ValueError(ss.str());
 		}
 		file_path = JoinPath(inputFolderPath, cHydroDatabaseName);
+		std::cout << "--> Loading Sinking HDB " << ii+1 << "..." << std::endl;
 		pHydro[ii]->LoadHydrodynamicData(file_path);
+		std::cout << "--> Done loading Sinking HDB " << ii+1 << std::endl;
 	}
-
-	// Read number of filling times
-	if (fscanf(pFile, "%d %[^\n]\n", &numTimes, buffer_line) != 2) 
-	{
-		std::stringstream ss;
-		ss << "An error ocurred when trying to read the number of filling times of sinking body: " << indBody <<"\n";
-		throw ValueError(ss.str());
-	}
-
-	if (numTimes<1){
-		std::stringstream ss;
-		ss << "ERROR: The number of time points must be at least 1 " << indBody <<"\n";
-		throw ValueError(ss.str());
-	}
-
-	// Read groupsFillingTimes
-	groupsFillingTimes = arma::zeros(numTimes,1);
-	for (int ii=0; ii<numTimes; ii++)
-	{
-		if (fscanf(pFile, "%lf", &dtemp) != 1) 
-		{
-			std::stringstream ss;
-			ss << "An error ocurred when trying to read the filling times of sinking body: " << indBody <<"\n";
-			throw ValueError(ss.str());
-		}
-		groupsFillingTimes(ii,0) = dtemp;
-	}
-	fscanf(pFile, "%[^\n]\n", buffer_line);
 
 	// Read number of groups
 	if (fscanf(pFile, "%d %[^\n]\n", &numGroups, buffer_line) != 2) 
 	{
 		std::stringstream ss;
-		ss << "An error ocurred when trying to read the number of filling times of sinking body: " << indBody <<"\n";
+		ss << "An error ocurred when trying to read the number of groups times of sinking body: " << indBody <<"\n";
 		throw ValueError(ss.str());
 	}
 
@@ -132,57 +108,128 @@ void Sinking::ReadPropertiesASCII(FILE* pFile, std::string inputFolderPath){
 		throw ValueError(ss.str());
 	}
 
-	groupsSizes = arma::zeros(numGroups,2);
-	groupsAreas = arma::zeros(numGroups,1);
+	groupsPoints.set_size(numGroups,1);
 	groupsCenters = arma::zeros(numGroups,3);
-	groupsFillingStates = arma::zeros(numGroups,numTimes);
+	groupsAreas = arma::zeros(numGroups,1);
+	groupsIx = arma::zeros(numGroups,1);
+	groupsIy = arma::zeros(numGroups,1);
+	groupsFillingTimes.set_size(numGroups,1);
+	groupsFillingStates.set_size(numGroups,1);
+	
 	for (int ii=0; ii<numGroups; ii++)
 	{
 		fgets(buffer_line, sizeof(buffer_line), pFile); // Ignore one line
 
+		if (fscanf(pFile, "%d %[^\n]\n", &itemp, buffer_line) != 2) 
+		{
+			std::stringstream ss;
+			ss << "An error ocurred when trying to read the number of group polygon points: " << indBody <<"\n";
+			throw ValueError(ss.str());
+		}
+		if (itemp<1){
+			std::stringstream ss;
+			ss << "ERROR: The number of group polygon points must be at least 1 " << indBody <<"\n";
+			throw ValueError(ss.str());
+		}
+
+		mtemp = arma::zeros(itemp+1,2);
+		for (int jj=0; jj<itemp; jj++)
+		{
+			if (fscanf(pFile, "%lf", &dtemp) != 1)
+			{
+				std::stringstream ss;
+				ss << "An error ocurred when trying to read the group polygon X coordinates: " << indBody <<"\n";
+				throw ValueError(ss.str());
+			}
+			mtemp(jj,0) = dtemp;
+		}
+		fscanf(pFile, "%[^\n]\n", buffer_line);
+		mtemp(itemp,0) = mtemp(0,0);
+		for (int jj=0; jj<itemp; jj++)
+		{
+			if (fscanf(pFile, "%lf", &dtemp) != 1)
+			{
+				std::stringstream ss;
+				ss << "An error ocurred when trying to read the group polygon Y coordinates: " << indBody <<"\n";
+				throw ValueError(ss.str());
+			}
+			mtemp(jj,1) = dtemp;
+		}
+		fscanf(pFile, "%[^\n]\n", buffer_line);
+		mtemp(itemp,1) = mtemp(0,1);
+		groupsPoints(ii,0) = mtemp;
+
+		for (int jj=0; jj<itemp; jj++){
+			dtemp = (mtemp(jj,0)*mtemp(jj+1,1) - mtemp(jj+1,0)*mtemp(jj,1));
+			groupsAreas(ii,0) = groupsAreas(ii,0) + dtemp;
+			groupsIx(ii,0) = groupsIx(ii,0) + dtemp*(mtemp(jj,1)*mtemp(jj,1) + mtemp(jj,1)*mtemp(jj+1,1) + mtemp(jj+1,1)*mtemp(jj+1,1));
+			groupsIy(ii,0) = groupsIy(ii,0) + dtemp*(mtemp(jj,0)*mtemp(jj,0) + mtemp(jj,0)*mtemp(jj+1,0) + mtemp(jj+1,0)*mtemp(jj+1,0));
+			groupsCenters(ii,0) = groupsCenters(ii,0) + dtemp*(mtemp(jj,0) + mtemp(jj+1,0));
+			groupsCenters(ii,1) = groupsCenters(ii,1) + dtemp*(mtemp(jj,1) + mtemp(jj+1,1));
+		}
+		groupsAreas(ii,0) = groupsAreas(ii,0)/2.0;
+		groupsIx(ii,0) = groupsIx(ii,0)/12.0;
+		groupsIy(ii,0) = groupsIy(ii,0)/12.0;
+		groupsCenters(ii,0) = groupsCenters(ii,0)/(6.0*groupsAreas(ii,0));
+		groupsCenters(ii,1) = groupsCenters(ii,1)/(6.0*groupsAreas(ii,0));
+
 		if (fscanf(pFile, "%lf %[^\n]\n", &dtemp, buffer_line) != 2) 
 		{
 			std::stringstream ss;
-			ss << "An error ocurred when trying to read the group size of sinking body: " << indBody <<"\n";
+			ss << "An error ocurred when trying to read the group floor Z coordinate: " << indBody <<"\n";
 			throw ValueError(ss.str());
 		}
-		groupsSizes(ii,0) = dtemp;
+		groupsCenters(ii,2) = dtemp;
 
-		if (fscanf(pFile, "%lf %[^\n]\n", &dtemp, buffer_line) != 2) 
+		std::cout << "        For group " << ii << ", the area is: " << groupsAreas(ii,0) << std::endl;
+		std::cout << "                     the center is at: " << groupsCenters.row(ii);
+		std::cout << "                     and the points read are: " << std::endl << mtemp.t() << std::endl;
+				
+
+
+		if (fscanf(pFile, "%d %[^\n]\n", &itemp, buffer_line) != 2) 
 		{
 			std::stringstream ss;
-			ss << "An error ocurred when trying to read the group size of sinking body: " << indBody <<"\n";
+			ss << "An error ocurred when trying to read the number of filling times: " << indBody <<"\n";
 			throw ValueError(ss.str());
 		}
-		groupsSizes(ii,1) = dtemp;
+		if (itemp<1){
+			std::stringstream ss;
+			ss << "ERROR: The number of filling times must be at least 1 " << indBody <<"\n";
+			throw ValueError(ss.str());
+		}
 
-		for (int jj=0; jj<3; jj++)
+		mtemp = arma::zeros(itemp,1);
+		for (int jj=0; jj<itemp; jj++)
 		{
-			if (fscanf(pFile, "%lf", &dtemp) != 1) 
+			if (fscanf(pFile, "%lf", &dtemp) != 1)
 			{
 				std::stringstream ss;
-				ss << "An error ocurred when trying to read the group centers of sinking body: " << indBody <<"\n";
+				ss << "An error ocurred when trying to read the group filling times: " << indBody <<"\n";
 				throw ValueError(ss.str());
 			}
-			groupsCenters(ii,jj) = dtemp;
+			mtemp(jj,0) = dtemp;
 		}
 		fscanf(pFile, "%[^\n]\n", buffer_line);
+		groupsFillingTimes(ii,0) = mtemp;
 
-		for (int jj=0; jj<numTimes; jj++)
+		mtemp = arma::zeros(itemp,1);
+		for (int jj=0; jj<itemp; jj++)
 		{
-			if (fscanf(pFile, "%lf", &dtemp) != 1) 
+			if (fscanf(pFile, "%lf", &dtemp) != 1)
 			{
 				std::stringstream ss;
-				ss << "An error ocurred when trying to read the filling states sinking body: " << indBody <<"\n";
+				ss << "An error ocurred when trying to read the group filling states: " << indBody <<"\n";
 				throw ValueError(ss.str());
 			}
-			groupsFillingStates(ii,jj) = dtemp;
+			mtemp(jj,0) = dtemp;
 		}
 		fscanf(pFile, "%[^\n]\n", buffer_line);
+		groupsFillingStates(ii,0) = mtemp;	
 
 	}
 
-	groupsAreas = prod(groupsSizes,1);
+
 }
 
 
@@ -207,11 +254,6 @@ void Sinking::UpdateSinkingHydrostatics(double t){
 
 		UpdateInterpHydro();
 
-		// No es necesario actualizar la posición de equilibrio, se toma la posicion de equilibrio inicial y se
-		// aplica la fuerza de la masa del llenado.
-		//pSinkingBody->pos_eq.rows(0, 2) = pHydro[indHydro1]->cog*(1-hydroInterpCoef) +
-		//                                  pHydro[indHydro2]->cog*hydroInterpCoef;
-
 		arma::mat newHydrostaticStiffness = *(pHydro[indHydro1]->pHydrostaticStiffness)*(1-hydroInterpCoef) +
 		                                    *(pHydro[indHydro2]->pHydrostaticStiffness)*hydroInterpCoef;
 		pSinkingBody->pHydro->UpdateHydroStiffness(newHydrostaticStiffness);
@@ -224,30 +266,45 @@ void Sinking::UpdateSinkingHydrostatics(double t){
 
 void Sinking::UpdateGroupsFillingState(double t){
 
+	// std::cout << "Sinking::UpdateGroupsFillingState - Start" << std::endl;
+	
+	// std::cout << "Sinking::UpdateGroupsFillingState - Interpolate Filling State" << std::endl;
 	arma::mat time = arma::ones(1,1)*t;
-	arma::mat groupsMasses = interp1(groupsFillingTimes,groupsFillingStates,time); groupsMasses = groupsMasses.t();
+	groupsMasses = arma::zeros(numGroups,1);
+	for (int ii=0; ii<numGroups; ii++)
+	{
+		groupsMasses(ii,0) = arma::as_scalar(interp1(groupsFillingTimes(ii,0),groupsFillingStates(ii,0),time)); 
+	}
 	totalFillingMass = arma::accu(groupsMasses);
 
+	// std::cout << "Sinking::UpdateGroupsFillingState - Compute Heights and COGs" << std::endl;
 	arma::mat masses_3 = arma::join_horiz(groupsMasses,groupsMasses,groupsMasses);
 	arma::mat groupsHeights = (groupsMasses/rhoW)/groupsAreas;
 	arma::mat centers = groupsCenters;
-	centers.col(2) = centers.col(2) + groupsHeights;
+	centers.col(2) = centers.col(2) + groupsHeights*0.5;
 	groupsCOG = arma::trans(arma::sum(centers%masses_3)/totalFillingMass);
 
-	arma::mat Ix = groupsMasses%(arma::pow(groupsSizes.col(1),2) + arma::pow(groupsHeights,2))/12 + 
-	               groupsMasses%(arma::pow(centers.col(1),2)+arma::pow(centers.col(2),2));
-	arma::mat Iy = groupsMasses%(arma::pow(groupsSizes.col(0),2) + arma::pow(groupsHeights,2))/12 + 
-	               groupsMasses%(arma::pow(centers.col(0),2)+arma::pow(centers.col(2),2));
-	arma::mat Iz = groupsMasses%(arma::pow(groupsSizes.col(0),2) + arma::pow(groupsSizes.col(1),2))/12 + 
-	               groupsMasses%(arma::pow(centers.col(0),2)+arma::pow(centers.col(1),2));
+	// std::cout << "Sinking::UpdateGroupsFillingState - Compute Inertias" << std::endl;
+	arma::mat temp = groupsMasses % (groupsHeights%groupsHeights/3.0 + groupsHeights%centers.col(2) + centers.col(2)%centers.col(2));
+	arma::mat Ix = rhoW * groupsHeights %  groupsIx + temp;
+	arma::mat Iy = rhoW * groupsHeights %  groupsIy + temp;
+	arma::mat Iz = rhoW * groupsHeights % (groupsIx + groupsIy);
 	groupsInertia = arma::eye(6,6)*totalFillingMass;
 	groupsInertia(3,3) = arma::accu(Ix); groupsInertia(4,4) = arma::accu(Iy); groupsInertia(5,5) = arma::accu(Iz);
+
+	// std::cout << "Sinking::UpdateGroupsFillingState - End" << std::endl;
 }
 
 
 void Sinking::UpdateInterpHydro(void){
 
-	arma::uvec ind = find(InterpMasses >= totalFillingMass, 1);
+	arma::uvec ind = find(InterpMasses > totalFillingMass, 1);
+
+	if (ind.is_empty()) {
+		
+		indHydro2 = numHDBs - 1; indHydro1 = indHydro2 - 1; hydroInterpCoef = 1.0;
+
+	} else {
 
 	indHydro2 = arma::as_scalar(ind(0));
 	indHydro1 = indHydro2 - 1;
@@ -256,6 +313,8 @@ void Sinking::UpdateInterpHydro(void){
 	double mass2 = arma::as_scalar(InterpMasses(indHydro2,0));
 
 	hydroInterpCoef = (totalFillingMass-mass1)/(mass2-mass1);
+
+	}
 }
 
 
@@ -268,4 +327,36 @@ void Sinking::UpdateBodyProperties(void){
 	pSinkingBody->inertia = newStructuralMass;
 	pSinkingBody->pHydro->UpdateStructuralMass(newStructuralMass);
 	pSinkingBody->pHydro->UpdateTotalMass();
+}
+
+
+void Sinking::OpenOutputFilesASCII(std::string path)
+{
+	char buffer1[50];
+
+	int nn1 = sprintf(buffer1,"SinkingFillingCOG_Body_%d.txt", indBody-1);
+
+	std::string file_path1 = JoinPath(path, buffer1);
+
+	pfile_FillingCOG = fopen (file_path1.c_str(),"w");
+	if (pfile_FillingCOG == NULL)
+	{
+        std::stringstream ss;
+        ss << "Not possible to open the file: "<< nn1 <<"\n    ->Dir: " << path << std::endl;
+        throw IOError(ss.str());
+	}
+
+}
+
+
+void Sinking::CloseOutputFilesASCII(void)
+{
+	fclose(pfile_FillingCOG);
+}
+
+
+// Escibir datos a fichero
+void Sinking::WriteOut(double t)
+{
+	fprintf(pfile_FillingCOG, "%f    %f    %f    %f    %f \n",t,groupsCOG(0,0),groupsCOG(1,0),groupsCOG(2,0),totalFillingMass);
 }
