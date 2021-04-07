@@ -18,6 +18,7 @@ arma::mat wrapTo180(arma::mat x);
 arma::mat wrapToPi(arma::mat x);
 arma::uvec comp_ind(int n,arma::uvec ind);
 arma::umat comb_n_k(int n,int k);
+double step(double x, double x0, double h0, double x1, double h1);
 
 
 #endif // mathtoolsdef_hpp__

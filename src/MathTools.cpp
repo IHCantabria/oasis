@@ -466,3 +466,14 @@ arma::umat comb_n_k(int n,int k)
 	}
 	return ind;
 }
+
+double step(double x, double x0, double h0, double x1, double h1)
+{
+	if (x<x0){
+		return h0;
+	} else if (x>=x0 && x<=x1){
+		return h0 + (h1-h0)*pow((x-x0)/(x1-x0),2)*(3-2*(x-x0)/(x1-x0));
+	} else {
+		return h1;
+	}
+}

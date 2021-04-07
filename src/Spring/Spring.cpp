@@ -1,6 +1,7 @@
 
 #include <armadillo>
 #include <string>
+#include <cstdio>
 #include "Spring.hpp"
 #include "../MathTools.hpp"
 #include "../Exceptions/Exception.hpp"
@@ -11,7 +12,7 @@ void Spring::ReadPropertiesASCII(std::string file_path){
 	
 	int ii, jj, kk, ll, temp_N; 
 	std::string Dummy;
-	const int nInored=96; // numero de lineas que se leen para cada nueva linea
+	const int nInored=97; // numero de lineas que se leen para cada nueva linea
 	arma::mat temp_vec;
 
 	SpringVectors.set_size(3,2);
@@ -115,7 +116,24 @@ void Spring::ReadPropertiesASCII(std::string file_path){
 	datosSprings >> Dummy; datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
 	datosSprings >> mu_d; datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
 	datosSprings >> mu_s; datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
-	datosSprings >> v_100; datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
+	datosSprings >> vt; datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
+	datosSprings >> Dt; datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
+
+	arma::mat tmpA, tmpB = arma::zeros(4,1);
+
+	tmpA = {{  pow(vt/2,3), pow(vt/2,2), vt/2, 1},
+	        {3*pow(vt/2,2),    2*(vt/2),    1, 0},
+			{    pow(vt,3),   pow(vt,2),   vt, 1},
+			{  3*pow(vt,2),        2*vt,    1, 0}};
+	tmpB(0,0) = mu_s/2; tmpB(1,0) = mu_s/vt; tmpB(2,0) = mu_s; tmpB(3,0) = 0;
+	a_1 = arma::solve(tmpA,tmpB);
+
+	tmpA = {{    pow(vt,3),   pow(vt,2),   vt, 1},
+			{  3*pow(vt,2),        2*vt,    1, 0},
+			{  pow(vt*2,3), pow(vt*2,2), vt*2, 1},
+	        {3*pow(vt*2,2),    2*(vt*2),    1, 0}};
+	tmpB(0,0) = mu_s; tmpB(1,0) = 0; tmpB(2,0) = mu_d; tmpB(3,0) = 0;
+	a_2 = arma::solve(tmpA,tmpB);
 
 
 	datosSprings >> Dummy; datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
@@ -178,7 +196,7 @@ void Spring::computeSpringForces(void)
 
 	// Actualizo las posiciones del BCP que no sea un punto fijo, si se da el caso.
 	arma::mat temp_p, temp_p0, temp_v;
-	if (BCP_1_type>0) {
+	if (BCP_1_type>0 && flagStickSlip==0) {
 		temp_p0 = SpringBCP[0]->posG_BCP; // Point of BCP1 previous position
 		temp_p = SpringBCP[1]->posG_BCP; // BCP2 position to project over BCP1
 		if (BCP_1_type==1) {
@@ -191,7 +209,7 @@ void Spring::computeSpringForces(void)
 		SpringBCP[0]->posWrtCdgGlobal = SpringBCP[0]->posWrtCdgGlobal + SpringBCP[0]->posG_BCP - temp_p0;
 		SpringBCP[0]->posWrtCdgLocal = SpringBCP[0]->rotMat.t()*SpringBCP[0]->posWrtCdgGlobal;
 	}
-	if (BCP_2_type>0) {
+	if (BCP_2_type>0 && flagStickSlip==0) {
 		temp_p0 = SpringBCP[1]->posG_BCP; // Point of BCP2 previous position
 		temp_p = SpringBCP[0]->posG_BCP; // BCP1 position to project over BCP1
 		if (BCP_2_type==1) {
@@ -242,7 +260,7 @@ void Spring::computeSpringForces(void)
 	SpringStrains(5,0) = 0.5*(atan2(arma::dot(x2,y1), arma::dot(x2,x1)) - atan2(arma::dot(x1,y2), arma::dot(x2,x1)));
 
 	// Lo mismo para la derivada temporal
-	if(dampingFlag == 1 || frictionFlag == 1)
+	if(dampingFlag > 0 || frictionFlag > 0)
 	{
 		SpringStrains_dot.rows(0,2) = mat_global2spring_dot*L12 + mat_global2spring*L12_dot;
 		SpringStrains_dot(3,0) = 0.5*( ((arma::dot(y2_dot,z1)+arma::dot(y2,z1_dot))*arma::dot(z2,z1) + arma::dot(y2,z1)*(arma::dot(z2_dot,z1)+arma::dot(z2,z1_dot)))/(pow(arma::dot(z2,z1),2)+pow(arma::dot(y2,z1),2))
@@ -289,38 +307,68 @@ void Spring::computeSpringForces(void)
 	// Fuerza de friccion
 	arma::mat tempF_F = arma::zeros(6,1);
 	if(frictionFlag == 1){
+
 		arma::mat SpringStrains_dot_abs = arma::abs(SpringStrains_dot);
-		arma::mat mu_vec = (mu_d + mu_s*arma::exp(-SpringStrains_dot_abs*log(100.0)/v_100))%arma::sign(SpringStrains_dot);
+
+		arma::mat mu_vec = arma::zeros(6,1);
 		for(int jj=0;jj<6;jj=jj+1){
-			// if (arma::norm(tempF_L)>0 && nSpring<12){
-			// 	std::cout << "jj = " << jj << std::endl;
-			// 	std::cout << "SpringStrains_dot_abs(jj,0) = " << SpringStrains_dot_abs(jj,0) << std::endl;
-			// 	std::cout << "v_100/100.0 = " << v_100/100.0 << std::endl;
-			// }
-			if (SpringStrains_dot_abs(jj,0) < v_100/100.0) {
-				// if (arma::norm(tempF_L)>0 && nSpring<12){
-				// 	std::cout << "  INSIDE!" << std::endl;
-				// }
-				mu_vec(jj,0) = 0.0;
+			double vv = arma::as_scalar(SpringStrains_dot_abs(jj,0));
+			if (vv < vt/2) {
+				mu_vec(jj,0) = mu_s/vt*vv;
+			} else if (vv >= vt/2 && vv < vt) {
+				mu_vec(jj,0) = arma::as_scalar(a_1(0,0)*pow(vv,3)+a_1(1,0)*pow(vv,2)+a_1(2,0)*vv+a_1(3,0));
+			} else if (vv >= vt && vv < vt*2) {
+				mu_vec(jj,0) = arma::as_scalar(a_2(0,0)*pow(vv,3)+a_2(1,0)*pow(vv,2)+a_2(2,0)*vv+a_2(3,0));
+			} else {
+				mu_vec(jj,0) = mu_d;
 			}
 		}
-		tempF_F = (SpringMatrix_M * arma::abs(tempF_L)) % mu_vec;
+		mu_vec = mu_vec%arma::sign(SpringStrains_dot);
 
-		// if (arma::norm(tempF_L)>0 && nSpring<12){
-		// 	std::cout << "tempF_F = " << std::endl << tempF_F;
-		// 	std::cout << "tempF_L = " << std::endl << tempF_L;
-		// 	std::cout << "mu_vec = " << std::endl << mu_vec;
-		// 	std::cout << "mu_d = " << mu_d << std::endl;
-		// 	std::cout << "mu_s = " << mu_s << std::endl;
-		// 	std::cout << "v_100 = " << v_100 << std::endl;
-		// 	std::cout << "SpringStrains_dot = " << std::endl << SpringStrains_dot;
+		tempF_F = (SpringMatrix_M * arma::abs(tempF_K)) % mu_vec;
+
+	}else if(frictionFlag == 2){
+
+		arma::mat fn = SpringMatrix_M * arma::abs(tempF_K);
+		double fn_norm = fn.max();
+		arma::mat VelSlip = arma::abs(arma::sign(fn)) % SpringStrains_dot;
+		double v_norm = arma::norm(VelSlip);		
+		if (flagStickSlip == 0 && fn_norm>1e-1 && v_norm<vt){
+			flagStickSlip = 1;
+			SpringStrains_Stick = SpringStrains;
+		}
+		if (fn_norm<=1e-1 || v_norm>=vt){
+			flagStickSlip = 0;
+		}
+
+		double bv = step(v_norm,-vt,-1.0,vt,1.0);
+
+		if (v_norm>1e-5){			
+			tempF_F = tempF_F + (VelSlip % fn) * bv * mu_d / v_norm;
+		}
+
+		if (flagStickSlip == 1) {
+			arma::mat DeltaStick = arma::abs(arma::sign(fn))%(SpringStrains - SpringStrains_Stick);
+			double D = arma::norm(DeltaStick); 
+			double bD = step(D,-Dt,-1.0,Dt,1.0);
+			if (D>1e-5){
+				tempF_F = tempF_F + (DeltaStick % fn) * (1-bv) * bD * mu_s / D;
+			}
+		}
+
+		// if (fn_norm>1e-1){
 		// 	std::cout << "arma::sign(SpringStrains_dot) = " << std::endl << arma::sign(SpringStrains_dot);
-		// 	std::cout << "SpringMatrix_M = " << std::endl << SpringMatrix_M;
-		// }
-
-
-		tempF_L = tempF_L - tempF_F;
+		// 	std::cout << "fn = " << std::endl << fn;
+		// 	std::cout << "v_norm = "  << v_norm << std::endl;
+		// 	std::cout << "bv = "  << bv << std::endl;
+		// 	std::cout << "step(0.1,-0.2,-1.0,0.2,1.0) = "  << step(0.1,-0.2,-1.0,0.2,1.0) << std::endl;		
+		// 	std::cout << "mu_d = " << mu_d << std::endl;
+		// 	std::cout << "flagStickSlip = " << flagStickSlip << std::endl;
+		// 	std::cout << "tempF_F = " << std::endl << tempF_F << std::endl;
+		// }		
 	}
+
+	tempF_L = tempF_L + tempF_F;
 
 	// Paso de coordenadas locales a coordenadas globales la fuerza del muelle
 	tempF_G = arma::zeros(6,1);
@@ -330,17 +378,23 @@ void Spring::computeSpringForces(void)
 	SpringBCP[0]->forceBcp = SpringBCP[0]->forceBcp + tempF_G; // Acumulo la fuerza obtenida en el BCP
 	SpringBCP[1]->forceBcp = SpringBCP[1]->forceBcp - tempF_G;
 
-	SpringBCP[0]->temp = SpringBCP[0]->temp + tempF_K;
-	SpringBCP[1]->temp = SpringBCP[1]->temp - tempF_K;
+	SpringBCP[0]->temp = SpringBCP[0]->temp + tempF_L;
+	SpringBCP[1]->temp = SpringBCP[1]->temp - tempF_L;
 
-	// std::cout << "L12 = " << std::endl << L12;
-	// std::cout << "SpringStrains = " << std::endl << SpringStrains;
-	// std::cout << "L12_dot = " << std::endl << L12_dot;
-	// std::cout << "SpringStrains_dot = " << std::endl << SpringStrains_dot;
-	// std::cout << "tempF_K = " << std::endl << tempF_K;
-	// std::cout << "tempF_D = " << std::endl << tempF_D;
-	// std::cout << "tempF_F = " << std::endl << tempF_F;
-	// std::cout << "tempF_L = " << std::endl << tempF_L;
-	// std::cout << "tempF_G = " << std::endl << tempF_G << std::endl;
+	/* 	
+	std::cout << "L12 = " << std::endl << L12;
+	std::cout << "SpringStrains = " << std::endl << SpringStrains;
+	std::cout << "L12_dot = " << std::endl << L12_dot;
+	std::cout << "SpringStrains_dot = " << std::endl << SpringStrains_dot;
+	std::cout << "tempF_K = " << std::endl << tempF_K;
+	std::cout << "tempF_D = " << std::endl << tempF_D;
+	std::cout << "tempF_F = " << std::endl << tempF_F;
+	std::cout << "tempF_L = " << std::endl << tempF_L;
+	std::cout << "tempF_G = " << std::endl << tempF_G << std::endl;	
+	std::stringstream ss;
+	ss << "STOP" << ".\n";
+	throw ValueError(ss.str());
+ 
+	*/
 
 }

@@ -689,13 +689,17 @@ void HydroDatabase::SetUp(void)
 
 	if(pBodies[idBody]->firstOrderExcitationFlag==1)
 	{
-		std::cout << "WARNING: Precomputed first order forces not implemented yet. \n" 
-		             "         Using limited instant position version instead. \n"<< std::endl;
+		if (pSim->simulationTime<=0){
+			std::cout << "WARNING: Precomputed first order forces not implemented yet. \n" 
+			             "         Using limited instant position version instead. \n"<< std::endl;
+		}
 	}
 	if(pBodies[idBody]->secondOrderExcitationFlag==1)
 	{
-		std::cout << "WARNING: Precomputed second order forces not implemented yet. \n" 
-		             "         Using limited instant position version instead. \n"<< std::endl;
+		if (pSim->simulationTime<=0){
+			std::cout << "WARNING: Precomputed second order forces not implemented yet. \n" 
+		 	            "         Using limited instant position version instead. \n"<< std::endl;
+		}
 	}
 }
 
