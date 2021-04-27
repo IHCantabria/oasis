@@ -6,6 +6,11 @@ output/
 tests/
 CMakeFiles/
 CMakeCache.txt
+.vscode/
+*.vcxproj
+*.filters
+*.cmake
+*.sln
 *.asv
 *.h5
 *.o
