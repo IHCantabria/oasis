@@ -1,4 +1,7 @@
 
+#ifndef _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
+#define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
+#endif
 
 #ifndef os_tools_hpp___
 #define os_tools_hpp___

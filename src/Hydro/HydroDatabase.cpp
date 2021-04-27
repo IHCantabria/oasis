@@ -44,7 +44,7 @@ arma::mat HydroDatabase::CalculateHydrodynamicForces(double time)
 	{
 		F = F + ComputeSecondWaveExcForce(time)*rampa;
 	}
-	if(pBodies[idBody]->secondOrderExcitationFlag==3)
+	if(pBodies[idBody]->secondOrderExcitationFlag==3 || pBodies[idBody]->secondOrderExcitationFlag==4)
 	{
 		F = F + ComputeMeanDrift()*rampa;
 	}
@@ -404,15 +404,6 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 		pDampingRadiationLf[ii]->load(arma::hdf5_name(filePath, damping_radiation_lf_fn.str()));
 	}
 	
-	// Read mean drift coefficients
-	// std::cout << "Reading mean drift coefficients...\n";
-	// std::stringstream mean_drift_fn;
-	// pMeanDrift = new arma::cube;
-	// mean_drift_fn << "body_" << this->GetId() << "/mean_drift";
-	// std::chrono::steady_clock::time_point begin_load = std::chrono::steady_clock::now();
-	// pMeanDrift->load(arma::hdf5_name(filePath, mean_drift_fn.str()));
-	// std::chrono::steady_clock::time_point end_load = std::chrono::steady_clock::now();
-	
 	// Read Wave exciting data
 	std::cout << "  Reading wave exciting data...\n";
 	std::stringstream wave_exciting_mag_fn;
@@ -425,44 +416,60 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 	wave_exciting_pha_fn << "body_" << this->GetId() << "/wave_exciting_pha";
 	pWaveExcitingPha->load(arma::hdf5_name(filePath, wave_exciting_pha_fn.str()));
 
-	// Read QTF data
-	std::cout << "  Reading QTF data...\n";
-	std::stringstream qtf_diff_fn;
-	std::stringstream qtf_sum_fn;
-	pQtfDiff = new arma::cube** [2];
-	pQtfSum = new arma::cube** [2];
-	for (int ii=0; ii<2; ii++)
+
+	if(pBodies[idBody]->secondOrderExcitationFlag>0 && pBodies[idBody]->secondOrderExcitationFlag<4)
 	{
-		pQtfDiff[ii] = new arma::cube* [activeDofs];
-		pQtfSum[ii] = new arma::cube* [activeDofs];
-		for (int jj=0; jj<activeDofs; jj++)
+		// Read QTF data
+		std::cout << "  Reading QTF data...\n";
+		std::stringstream qtf_diff_fn;
+		std::stringstream qtf_sum_fn;
+		pQtfDiff = new arma::cube** [2];
+		pQtfSum = new arma::cube** [2];
+		for (int ii=0; ii<2; ii++)
 		{
-			pQtfDiff[ii][jj] = new arma::cube;
-			pQtfSum[ii][jj] = new arma::cube;
-			
-			qtf_diff_fn.str("");
-			qtf_diff_fn << "body_" << this->GetId() << "/qtf_diff" << "/part_" << ii << "/dof_" << jj;
-			pQtfDiff[ii][jj]->load(arma::hdf5_name(filePath, qtf_diff_fn.str()));
-			
-			qtf_sum_fn.str("");
-			qtf_sum_fn << "body_" << this->GetId() << "/qtf_sum" << "/part_" << ii << "/dof_" << jj;
-			pQtfSum[ii][jj]->load(arma::hdf5_name(filePath, qtf_sum_fn.str()));
+			pQtfDiff[ii] = new arma::cube* [activeDofs];
+			pQtfSum[ii] = new arma::cube* [activeDofs];
+			for (int jj=0; jj<activeDofs; jj++)
+			{
+				pQtfDiff[ii][jj] = new arma::cube;
+				pQtfSum[ii][jj] = new arma::cube;
+				
+				qtf_diff_fn.str("");
+				qtf_diff_fn << "body_" << this->GetId() << "/qtf_diff" << "/part_" << ii << "/dof_" << jj;
+				pQtfDiff[ii][jj]->load(arma::hdf5_name(filePath, qtf_diff_fn.str()));
+				
+				qtf_sum_fn.str("");
+				qtf_sum_fn << "body_" << this->GetId() << "/qtf_sum" << "/part_" << ii << "/dof_" << jj;
+				pQtfSum[ii][jj]->load(arma::hdf5_name(filePath, qtf_sum_fn.str()));
+			}
+		}
+
+		pMeanDrift = new arma::cube(activeDofs, numFrequencies, numHeadings, arma::fill::zeros);
+		int my_count = 0;
+		double temp_value = 0.0;
+
+		for (int ii=0; ii<activeDofs; ii++)
+		{
+			for (int jj=0; jj<numFrequencies; jj++)
+			{
+				for (int kk=0; kk<numHeadings; kk++)
+				{
+					(*pMeanDrift)(ii, jj, kk) = (*pQtfDiff[0][ii])(jj, jj, kk);
+				}
+			}
 		}
 	}
 
-	pMeanDrift = new arma::cube(activeDofs, numFrequencies, numHeadings, arma::fill::zeros);
-	int my_count = 0;
-	double temp_value = 0.0;
-
-	for (int ii=0; ii<activeDofs; ii++)
-	{
-		for (int jj=0; jj<numFrequencies; jj++)
-		{
-			for (int kk=0; kk<numHeadings; kk++)
-			{
-				(*pMeanDrift)(ii, jj, kk) = (*pQtfDiff[0][ii])(jj, jj, kk);
-			}
-		}
+	if(pBodies[idBody]->secondOrderExcitationFlag==4)
+	{	
+		// Read mean drift coefficients
+		std::cout << "Reading mean drift coefficients...\n";
+		std::stringstream mean_drift_fn;
+		pMeanDrift = new arma::cube;
+		mean_drift_fn << "body_" << this->GetId() << "/mean_drift";
+		std::chrono::steady_clock::time_point begin_load = std::chrono::steady_clock::now();
+		pMeanDrift->load(arma::hdf5_name(filePath, mean_drift_fn.str()));
+		std::chrono::steady_clock::time_point end_load = std::chrono::steady_clock::now();
 	}
 
 	// Generate starting pos time matrix
@@ -491,7 +498,7 @@ arma::mat HydroDatabase::ComputeFirstWaveExcForce(double t)
 	double y = pBodies[idBody]->pos(1,0); 
 	double yaw = pBodies[idBody]->pos(5,0);
 
-	if(pBodies[idBody]->secondOrderExcitationFlag==1)
+	if(pBodies[idBody]->firstOrderExcitationFlag==1)
 	{
 		x = 0; y = 0; yaw = 0;
 	}
@@ -624,23 +631,26 @@ void HydroDatabase::SetUp(void)
 	WE_Imag_w = interp1(*pFrequencies,permute(WE_Imag,231), pWave->freqs);
 	WE_Real_w = permute(WE_Real_w,213); WE_Imag_w = permute(WE_Imag_w,213);
 
-	arma::cube temp;
-	QtfDiff_w = new arma::cube** [2];
-	QtfSum_w = new arma::cube** [2];
-	for (int ii=0; ii<2; ii++)
+	if(pBodies[idBody]->secondOrderExcitationFlag>0 && pBodies[idBody]->secondOrderExcitationFlag<4)
 	{
-		QtfDiff_w[ii] = new arma::cube* [activeDofs];
-		QtfSum_w[ii] = new arma::cube* [activeDofs];
-		for (int jj=0; jj<activeDofs; jj++)
+		arma::cube temp;
+		QtfDiff_w = new arma::cube** [2];
+		QtfSum_w = new arma::cube** [2];
+		for (int ii=0; ii<2; ii++)
 		{
-			QtfDiff_w[ii][jj] = new arma::cube;
-			QtfSum_w[ii][jj] = new arma::cube;
+			QtfDiff_w[ii] = new arma::cube* [activeDofs];
+			QtfSum_w[ii] = new arma::cube* [activeDofs];
+			for (int jj=0; jj<activeDofs; jj++)
+			{
+				QtfDiff_w[ii][jj] = new arma::cube;
+				QtfSum_w[ii][jj] = new arma::cube;
 
-			temp = *pQtfDiff[ii][jj]; 
-			*QtfDiff_w[ii][jj] = interp2(*pFrequencies, *pFrequencies, temp, pWave->freqs, pWave->freqs);
+				temp = *pQtfDiff[ii][jj]; 
+				*QtfDiff_w[ii][jj] = interp2(*pFrequencies, *pFrequencies, temp, pWave->freqs, pWave->freqs);
 
-			temp = *pQtfSum[ii][jj]; 
-			*QtfSum_w[ii][jj] = interp2(*pFrequencies, *pFrequencies, temp, pWave->freqs, pWave->freqs);
+				temp = *pQtfSum[ii][jj]; 
+				*QtfSum_w[ii][jj] = interp2(*pFrequencies, *pFrequencies, temp, pWave->freqs, pWave->freqs);
+			}
 		}
 	}
 
@@ -670,18 +680,21 @@ void HydroDatabase::SetUp(void)
 		}
 	}
 
-	// Compute mean drift force
-	arma::cube temp_mD = interp2(*pFrequencies, *pHeadings, permute(*pMeanDrift,231), pWave->freqs, pWave->headings);
-	for (int ii=0; ii<activeDofs; ii++)
+	if(pBodies[idBody]->secondOrderExcitationFlag>0)
 	{
-		temp_mD.slice(ii) = temp_mD.slice(ii)%pWave->amplitudes%pWave->amplitudes;
-	}
-	temp_mD = permute(temp_mD,312);
-	F_meanDrift = arma::sum(arma::sum(temp_mD,1),2);
-	if(pBodies[idBody]->secondOrderExcitationFlag==3)
-	{
-		pBodies[idBody]->excitationForces_2 = F_meanDrift;
-		// std::cout << "Computed mean drift: \n" << F_meanDrift << "\n";
+		// Compute mean drift force
+		arma::cube temp_mD = interp2(*pFrequencies, *pHeadings, permute(*pMeanDrift,231), pWave->freqs, pWave->headings);
+		for (int ii=0; ii<activeDofs; ii++)
+		{
+			temp_mD.slice(ii) = temp_mD.slice(ii)%pWave->amplitudes%pWave->amplitudes;
+		}
+		temp_mD = permute(temp_mD,312);
+		F_meanDrift = arma::sum(arma::sum(temp_mD,1),2);
+		if(pBodies[idBody]->secondOrderExcitationFlag==3 || pBodies[idBody]->secondOrderExcitationFlag==4)
+		{
+			pBodies[idBody]->excitationForces_2 = F_meanDrift;
+			std::cout << "Computed mean drift: \n" << F_meanDrift << "\n";
+		}
 	}
 
 	// std::cout << "Calculate hyrodynamic forces at time 0.0...\n";
@@ -710,6 +723,11 @@ arma::mat HydroDatabase::ComputeMeanDrift(void)
 	// Compute mean drift force
 	Wave* pWave = pSim->pWave;
 	double yaw = pBodies[idBody]->pos(5,0);
+	// HARCODEO !!!!!!!!!!!! ------------------------------------------------------------ Implementar opcion de mean drift con y sin instant position
+	if(pBodies[idBody]->secondOrderExcitationFlag<5) 
+	{
+		yaw = 0;
+	}
 	arma::cube temp_mD = interp2(*pFrequencies, *pHeadings+yaw, permute(*pMeanDrift,231), pWave->freqs, pWave->headings);
 	for (int ii=0; ii<activeDofs; ii++)
 	{
