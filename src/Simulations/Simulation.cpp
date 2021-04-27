@@ -588,24 +588,25 @@ void Simulation::ReadBodiesASCII()
 
     // Arrange all the bodies by database
     Body** pBodiesSort = new Body* [numBodies];
-    int body_found [numBodies];
+    int* pBody_found = new int [numBodies];
     for (int ii=0; ii<numBodies; ii++)
     {
-        body_found[ii] = 0;
+        pBody_found[ii] = 0;
     }
 
     for (int ii=0; ii<hydro_database_count; ii++)
     {
         for (int jj=0; jj<numBodies; jj++)
         {
-            if ((hydro_databases_name[ii].compare(pBodies[jj]->hydroDatabaseName) == 0) && (body_found[jj] == 0))
+            if ((hydro_databases_name[ii].compare(pBodies[jj]->hydroDatabaseName) == 0) && (pBody_found[jj] == 0))
             {
-                body_found[jj] = 1;
+                pBody_found[jj] = 1;
                 pBodiesSort[body_count] = pBodies[jj];
                 body_count++;
             }
         }
     }
+    delete [] pBody_found;
 
     for (int ii=0; ii<numBodies; ii++)
     {
@@ -1367,18 +1368,23 @@ void Simulation::SetupCase()
             pBcps[pBodies[ii]->pIndexBcps[jj]]->numBodiesBcp++;
         }
     }
-    bool defined_body_bcps [numBcps] = {0}; 
+    bool* pDefined_body_bcps = new bool[numBcps];
+    for (int ii=0; ii<numBcps; ii++)
+    {
+        pDefined_body_bcps[ii] = 0;
+    }
     for (int ii=0; ii<numBodies; ii++)
     {
         for (int jj=0; jj<pBodies[ii]->numBcps; jj++)
         {
-            if (!defined_body_bcps[pBodies[ii]->pIndexBcps[jj]])
+            if (!pDefined_body_bcps[pBodies[ii]->pIndexBcps[jj]])
             {
                 pBcps[pBodies[ii]->pIndexBcps[jj]]->pBodies = new Body* [pBcps[pBodies[ii]->pIndexBcps[jj]]->numBodiesBcp];
-                defined_body_bcps[pBodies[ii]->pIndexBcps[jj]] = true;
+                pDefined_body_bcps[pBodies[ii]->pIndexBcps[jj]] = true;
             }
         }
     }
+    delete [] pDefined_body_bcps;
 
     // Assing to each BCP the corresponding Body pointer
     std::cout << "        Assign to each BCP the corresponding Body pointer" << std::endl;
@@ -1434,19 +1440,24 @@ void Simulation::SetupCase()
             pBcps[pLines[ii]->indexBcps[jj]]->numLinesBcp++;
         }
     }
-    bool defined_lines_bcps [numBcps] = {0}; 
+    bool* pDefined_lines_bcps = new bool[numBcps]; 
+    for (int ii=0; ii<numBcps; ii++)
+    {
+        pDefined_lines_bcps[ii] = 0;
+    }
     for (int ii=0; ii<numLines; ii++)
     {
         for (int jj=0; jj<pLines[ii]->numBcps; jj++)
         {
-            if (!defined_lines_bcps[pLines[ii]->indexBcps[jj]])
+            if (!pDefined_lines_bcps[pLines[ii]->indexBcps[jj]])
             {
                 pBcps[pLines[ii]->indexBcps[jj]]->pLines = new Line* [pBcps[pLines[ii]->indexBcps[jj]]->numLinesBcp];
-                defined_lines_bcps[pLines[ii]->indexBcps[jj]] = true;
+                pDefined_lines_bcps[pLines[ii]->indexBcps[jj]] = true;
             }
         }
         
     }
+    delete [] pDefined_lines_bcps;
 
     // Assing to each Line the corresponding Body pointer
     std::cout << "        Assing to each Line the corresponding Body pointer" << std::endl;

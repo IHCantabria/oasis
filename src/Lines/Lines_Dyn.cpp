@@ -66,7 +66,7 @@ void Line::ReadPropertiesASCII(FILE* pFilePointer)
 	indexBcps[0] = BCP_1;
 
 
-	A = M_PI*d*d*0.25;
+	A = arma::datum::pi*d*d*0.25;
 	dL = L/(nNodos-1);
 	dL0 = dL;
 	N = p*(nNodos-1)+1;
