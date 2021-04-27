@@ -1,9 +1,0 @@
-[
-    {
-        "name": "GCC 6.3.0",
-        "compilers": {
-            "CXX": "${env:EASYBUILD_SOFTWARE_PREFIX}/GCCcore/6.3.0/bin/g++",
-            "CC": "${env:EASYBUILD_SOFTWARE_PREFIX}/GCCcore/6.3.0/bin/gcc"
-        }
-    }
-]
