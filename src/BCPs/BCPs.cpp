@@ -47,8 +47,20 @@ void BCP::Initialize(void)
 void BCP::Print(void)
 {
 	printf("BCP: %d PROPERTIES:\n", this->GetId());
-	printf("--> PosX: %f - PosY: %f - PosZ: %f\n", this->posG_BCP[0], this->posG_BCP[1], this->posG_BCP[2]);
-	printf("--> Winch Id: %d\n\n", this->winchId);
+	printf("--> PosX: %f m - PosY: %f m - PosZ: %f m\n", this->posG_BCP[0], this->posG_BCP[1], this->posG_BCP[2]);
+	printf("--> Winch Id: %d\n", this->winchId);
+	// Print actuator if any
+	if (this->GetType() == 2)
+	{
+		printf("--> Actuator Filename: %s\n", this->actuatorFileName);
+	}
+	// Print joint mass if any
+	if (this->GetType() == 3)
+	{
+		printf("--> Joint Mass: %f kg\n", this->mass_Joint);
+		printf("--> Joint Volume: %f m3\n", this->vol_Joint);
+	}
+	printf(" \n");
 }
 
 
@@ -84,7 +96,16 @@ void BCP::ReadPropertiesASCII(FILE* &pFilePointer)
 	{
 		fscanf(pFilePointer, "%s %[^\n]\n", &cActuatorFileName, buffer_line);
 		actuatorFileName = cActuatorFileName;
-		std::cout << actuatorFileName.c_str() << std::endl;
+		// std::cout << actuatorFileName.c_str() << std::endl;
+	}
+
+	// Read joint mass if any
+	if (this->GetType() == 3)
+	{
+		fscanf(pFilePointer, "%lf %[^\n]\n", &mass_Joint, buffer_line);
+		fscanf(pFilePointer, "%lf %[^\n]\n", &vol_Joint, buffer_line);
+		rad_Joint = sqrt(3.0*vol_Joint/(4.0*arma::datum::pi));
+		sec_Joint = arma::datum::pi*rad_Joint*rad_Joint;
 	}
 
 	// Check Winch ID and joint coexistence
@@ -200,10 +221,10 @@ void FairleadBCP::ReadPropertiesASCII(FILE* &pFilePointer, std::string inputFile
 
 void FairleadBCP::Print(void)
 {
-	printf("BCP: %d PROPERTIES:\n");
-	printf("--> PosX: %f - PosY: %f - PosZ: %f\n", this->posG_BCP[0], this->posG_BCP[1], this->posG_BCP[2]);
-	printf("--> Winch Id: %d\n\n", this->winchId);
-	printf("--> Actuator Filename: %s\n", actuatorFileName.c_str());
+	printf("BCP: %d PROPERTIES:\n",this->GetId());
+	printf("--> PosX: %f m - PosY: %f m - PosZ: %f m\n", this->posG_BCP[0], this->posG_BCP[1], this->posG_BCP[2]);
+	printf("--> Winch Id: %d\n", this->winchId);
+	printf("--> Actuator Filename: %s\n\n", actuatorFileName.c_str());
 
 }
 
@@ -216,6 +237,13 @@ int JointBCP::GetType(void)
 	return this->typeBcp;
 }
 
+void JointBCP::Initialize(double incG, double incRhoW, double incFondo)
+{
+	g = incG;
+	rhoW = incRhoW;
+	fondo = incFondo;
+}
+
 
 void JointBCP::GetValues(double t)
 {
@@ -223,7 +251,11 @@ void JointBCP::GetValues(double t)
 	tBCP = t;
 	pos = arma::mean(posLines).t();
 	vel = arma::mean(velLines).t();
-	acc = arma::mean(accLines).t();
+
+	double zz = arma::as_scalar(pos(2,0));
+	double vol = std::min(std::max(0.0,vol_Joint*(rad_Joint-zz)/(2.0*rad_Joint)),vol_Joint);
+	JointForce(0,3) += g*(rhoW*vol - mass_Joint);
+	JointForce = JointForce - vel.t()*arma::norm(vel)*0.5*0.47*rhoW*sec_Joint;
 }
 
 

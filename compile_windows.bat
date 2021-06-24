@@ -1,6 +1,6 @@
 
 rem DELETE PREVIOUS BUILD ---------------------------------
-rmdir /Q /S build
+rem rmdir /Q /S build
 rem BUILD COMPILATION RUN ---------------------------------
 cmake -B./build/ -H./
 rem CHOOSE COMPILATION OPTION -----------------------------

@@ -47,6 +47,14 @@ public:
 	arma::mat posLines;
 	arma::mat velLines;
 	arma::mat accLines;
+	arma::mat forLines;
+	arma::mat masLines;
+	arma::mat JointForce = arma::zeros(1,3);
+	double mass_Lines,vol_Lines,mass_Joint,vol_Joint,rad_Joint,sec_Joint;
+	double g,rhoW,fondo;
+	int flag_assigned = 0;
+	int flag_counted = 0;
+	arma::uword couplingMatIndex;
 
 	//Necesario para Body
 	arma::mat posWrtCdgLocal = arma::zeros(3,1); // Brazo cdg-bcp en local
@@ -112,6 +120,7 @@ public:
 	JointBCP(int incId): BCP(incId) {};
 	int GetType(void);
 	void GetValues(double t);
+	void Initialize(double incG, double incRhoW, double incFondo);
 };
 
 #endif // bcp_hpp__

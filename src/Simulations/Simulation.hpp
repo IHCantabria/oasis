@@ -58,6 +58,11 @@ public:
     arma::mat* pSystemMatrix;
     arma::mat* pSystemMatrixInv;
 
+    int numAllLinesNodes = 0;
+    arma::sp_mat* pLinesCouplingMatrix_sp;
+    arma::mat* pLinesCouplingMatrix;
+    arma::mat* pLinesCouplingMatrixInv;
+
     // Declare Components Setup Attributes
     AnchorBCP** pAnchorBcps;
     BCP** pBcps;
@@ -130,6 +135,7 @@ public:
     void CloseCase(void);
     void UpdateSystem(void);
     void UpdateSystemMatrix(void);
+    void ComputeLinesCouplingMatrix(void);
 
 };
 

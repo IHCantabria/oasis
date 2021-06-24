@@ -28,7 +28,7 @@ def m1(t):
 
 def m2(t):
     
-    r = 4.0
+    r = 0.0
     T = 16.0
     w = 2.0*np.pi/T
     if t>4 and t<20:
@@ -43,7 +43,7 @@ def m2(t):
     y = 0.0
     vy = 0.0
     ay = 0.0
-    x = -25.0
+    x = 0.0
     vx = 0.0
     ax = 0.0
     return [t, x, y, z, vx ,vy, vz, ax, ay, az]
@@ -56,6 +56,6 @@ M=np.zeros((n,10))
 
 for i in range(n):
     t=dt*i
-    M[i,]=m2(t)
+    M[i,0]=t
     
 np.savetxt('datosPosicionFairlead.dat',M,fmt='%.10e',header=str(n),comments='')

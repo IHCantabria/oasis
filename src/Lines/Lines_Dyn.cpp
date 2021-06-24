@@ -12,6 +12,7 @@
 #include "../SEM_math/quadrule.hpp"
 #include "../MathTools.hpp"
 #include "../os_tools.hpp"
+#include "../Exceptions/Exception.hpp"
 
 
 int Line::GetId()
@@ -32,6 +33,7 @@ void Line::ReadPropertiesASCII(FILE* pFilePointer)
 {	
 	// Declare variables
 	char buffer_line [1000];
+	double dtemp;
 
 	//Ignoro las tres primeras lineas, donde pone "New line"
 	for(int ii=0; ii<3; ii++)
@@ -47,7 +49,35 @@ void Line::ReadPropertiesASCII(FILE* pFilePointer)
 	fscanf(pFilePointer, "%lf %[^\n]\n", &L, buffer_line);
 	fscanf(pFilePointer, "%lf %[^\n]\n", &rho0, buffer_line);
 	fscanf(pFilePointer, "%lf %[^\n]\n", &d, buffer_line);
-	fscanf(pFilePointer, "%lf %[^\n]\n", &EA, buffer_line);
+	fscanf(pFilePointer, "%d %[^\n]\n", &flag_stiffness, buffer_line);
+	if(flag_stiffness>1){
+		strain_data = arma::zeros(flag_stiffness,1);
+		stress_data = arma::zeros(flag_stiffness,1);
+		for (int ii=0; ii<this->flag_stiffness; ii++)
+		{
+			if (fscanf(pFilePointer, "%lf", &dtemp) != 1) 
+			{
+				std::stringstream ss;
+				ss << "An error ocurred when trying to read the strain data for line: " << this->GetId() <<"\n";
+				throw ValueError(ss.str());
+			}
+			strain_data(ii,0) = dtemp;
+		}
+		fscanf(pFilePointer, "%[^\n]\n", buffer_line);
+		for (int ii=0; ii<this->flag_stiffness; ii++)
+		{
+			if (fscanf(pFilePointer, "%lf", &dtemp) != 1) 
+			{
+				std::stringstream ss;
+				ss << "An error ocurred when trying to read the stress data for line: " << this->GetId() <<"\n";
+				throw ValueError(ss.str());
+			}
+			stress_data(ii,0) = dtemp;
+		}
+		fscanf(pFilePointer, "%[^\n]\n", buffer_line);
+	} else {
+		fscanf(pFilePointer, "%lf %[^\n]\n", &EA, buffer_line);
+	}
 	fscanf(pFilePointer, "%lf %[^\n]\n", &beta, buffer_line);
 	fscanf(pFilePointer, "%lf %[^\n]\n", &CB, buffer_line);
 	fscanf(pFilePointer, "%lf %[^\n]\n", &Cmn, buffer_line);
@@ -65,6 +95,9 @@ void Line::ReadPropertiesASCII(FILE* pFilePointer)
 	BCP_1 -= 1;
 	indexBcps[0] = BCP_1;
 
+	if (lineType==1){
+		floor_flag = 1;
+	}
 
 	A = arma::datum::pi*d*d*0.25;
 	dL = L/(nNodos-1);
@@ -169,6 +202,8 @@ void Line::SEM_getBaseFunctions(void)
 	MM(N-1,N-1) = 1.0;
 	inv_MM_N = arma::solve(MM,arma::eye(N,N));
 
+	MM = 0.5 * (rho0 + Kn) * MassMatrix;
+
 	D_sp = arma::sp_mat(D);
 	MassMatrix_sp = arma::sp_mat(MassMatrix);
 	StiffMatrix_sp = arma::sp_mat(StiffMatrix);
@@ -239,19 +274,30 @@ void Line::SEM_computeF(void)
 
 	dedt = drds.col(0) % drdsdt.col(0) + drds.col(1) % drdsdt.col(1) + drds.col(2) % drdsdt.col(2);
 
-	T = EA * (norm_drds - dL/dL0 + beta * dedt);
-	//T = EA * (strain + beta * dedt);
+	if(flag_stiffness>1){
+		arma::mat temp_strain = norm_drds - dL/dL0;
+		T = interp1(strain_data,stress_data,temp_strain);
+		arma::mat temp_EA = T/temp_strain;
+		T = T + temp_EA % (beta * dedt);
+	} else {
+		T = EA * (norm_drds - dL/dL0 + beta * dedt);
+		//T = EA * (strain + beta * dedt);
+	}
 
-	if (flag_tension == 2){
+	if ((flag_tension == 2) && (flag_stiffness<=1)){
 		T = 0.5*(T + arma::abs(T));
-		//T = 0.5*(arma::erf(3.0*T-1.0) + 1.0) % T;
+		double T0 = 0.1; // size of the smoothing region in newtons
+		double a2 = 2.0/T0, a3 = -1.0/(T0*T0);
+		arma::mat temp_T = a3*arma::pow(T,3)+a2*arma::pow(T,3);
+		arma::umat ind = arma::find(((T>0.0)&&(T<T0)));
+		T.elem(ind) = temp_T.elem(ind);
 	}
 
 	for(int k=0;k<N;k=k+1){
 		t.row(k) = drds.row(k) / norm_drds(k);
 		FF.row(k) = T(k) * t.row(k);
 
-		fg = -(rho0 - rhoW * A) * g / norm_drds(k);
+		fg = (rhoW * A - rho0) * g / norm_drds(k);
 		ff.row(k) = fg * e_z;
 
 		v = vel.row(k);
@@ -262,14 +308,22 @@ void Line::SEM_computeF(void)
 
 		if (floor_flag == 1){
 			fs = abs(fg) * exp(- GK * d * (pos(k,2) - fondo)/abs(fg));
-			GC = 10.0 * 2.0 * sqrt(rho0 * GK * d ) / (abs(fg) * d);
-			fd = fs * GC * d * pow(std::min(v(2),0.0) ,2);
+			GC = 2.0 * sqrt(rho0 * GK * d ) / (abs(fg) * d);
+			if ((k==0)&&(pLineBcps[0]->GetType()==3)){
+				GC = 2.0 * sqrt(GK*(rho0*d+pLineBcps[0]->mass_Joint)) / (abs(fg) * d);
+			}
+			if ((k==N-1)&&(pLineBcps[1]->GetType()==3)){
+				GC = 2.0 * sqrt(GK*(rho0*d+pLineBcps[1]->mass_Joint)) / (abs(fg) * d);
+			}
+			fd = fs * GC * d * pow(std::min(v(2),0.0),2);
 			ff(k,2) = ff(k,2) + fs + fd;
 		}
 	}
 
 	//F = 0.5 * dL * (MassMatrix_sp * ff) - (MSMatrix_sp * FF);
 	F = 0.5 * dL * (MassMatrix * ff) - (MSMatrix * FF);
+	// F.row(0) = F.row(0) + FF.row(0);
+	// F.row(N-1) = F.row(N-1) - FF.row(N-1);
 
 	if (F.has_nan()){
 		std::cout << std::endl << "ERROR: NaN Detected on line with id = " << id << std::endl;
@@ -284,17 +338,23 @@ void Line::SEM_computeF(void)
 
 	ten_1 = FF.row(0).t();
 	ten_N = FF.row(N-1).t();
+	F_1 = F.row(0).t();
+	F_N = F.row(N-1).t();
+	// F_1 = d*ff.row(0).t() + ten_1;
+	// F_N = d*ff.row(N-1).t() - ten_N;
 
-	pLineBcps[0]->forceBcp.rows(0,2) = pLineBcps[0]->forceBcp.rows(0,2) + F.row(0).t();
-	pLineBcps[1]->forceBcp.rows(0,2) = pLineBcps[1]->forceBcp.rows(0,2) + F.row(N-1).t();
-	pLineBcps[0]->temp = pLineBcps[0]->forceBcp; pLineBcps[1]->temp = pLineBcps[1]->forceBcp;
+
+	pLineBcps[0]->forceBcp.rows(0,2) = pLineBcps[0]->forceBcp.rows(0,2) + F_1;
+	pLineBcps[1]->forceBcp.rows(0,2) = pLineBcps[1]->forceBcp.rows(0,2) + F_N;
+	pLineBcps[0]->temp = pLineBcps[0]->forceBcp; 
+	pLineBcps[1]->temp = pLineBcps[1]->forceBcp;
 }
 
 
 void Line::print_out (void)
 {
 
-		std::cout << "Para la linea " << this->nLine << " , se ha leido:" << std::endl << std::endl;
+		std::cout << "Para la linea " << this->id << " , se ha leido:" << std::endl << std::endl;
 		std::cout << "nNodos   " << this->nNodos << std::endl;
 		std::cout << "p        " << this->p << std::endl;
 		std::cout << "L        " << this->L << std::endl;
@@ -314,7 +374,6 @@ void Line::print_out (void)
 		std::cout << "pos_N  " << this->pos_N(0,0) << " " << this->pos_N(1,0) << " " << this->pos_N(2,0) << std::endl;
 		std::cout << "pos_1  " << this->pos_1(0,0) << " " << this->pos_1(1,0) << " " << this->pos_1(2,0) << std::endl << std::endl;
 }
-
 
 void Line::initLine (void) 
 {
@@ -388,16 +447,16 @@ void Line::initLine (void)
 			double nvecN = norm(vecN);
 			ten_N = (EA*(nvecN - 1.0)/(0.5*(roots(1)+1)*dL*nvecN)) * vecN;
 			if ( Li==L && pos_1(2,0)==fondo && pos_N(2,0)==fondo ) {
-				std::cout << "     WARNING: Mooring line " << nLine << " is laying on the floor " << std::endl;
+				std::cout << "     WARNING: Mooring line " << id << " is laying on the floor " << std::endl;
 			}else if (xF<1e-5){
-				std::cout << "     WARNING: Mooring line " << nLine << " is vertical. " << std::endl;
+				std::cout << "     WARNING: Mooring line " << id << " is vertical. " << std::endl;
 			}else{
-				std::cout << "     WARNING: Mooring line " << nLine << " tension is high. " << std::endl;
+				std::cout << "     WARNING: Mooring line " << id << " tension is high. " << std::endl;
 			}
 		}
 		floor_flag = 1;
-		std::cout << "    Tension at anchor for line: " << nLine << " ; is: (" << ten_1(0) << " , " << ten_1(1) << " , " << ten_1(2) << " ) N" << std::endl;
-		std::cout << "    Tension at fairlead for line: " << nLine << " ; is: (" << ten_N(0) << " , " << ten_N(1) << " , " << ten_N(2) << " ) N" << std::endl << std::endl;
+		std::cout << "    Tension at anchor for line: " << id << " ; is: (" << ten_1(0) << " , " << ten_1(1) << " , " << ten_1(2) << " ) N" << std::endl;
+		std::cout << "    Tension at fairlead for line: " << id << " ; is: (" << ten_N(0) << " , " << ten_N(1) << " , " << ten_N(2) << " ) N" << std::endl << std::endl;
 	} else if (lineType == 2){
 		floor_flag = -1;
 		int flagTense = 0;
@@ -445,10 +504,10 @@ void Line::initLine (void)
 			arma::mat vecN(pos.rows(3*N-6,3*N-4) - pos.rows(3*N-3,3*N-1));
 			double nvecN = norm(vecN);
 			ten_N = (EA*(nvecN - 1.0)/(0.5*(roots(1)+1)*dL*nvecN)) * vecN;
-			std::cout << "    WARNING: Towing line " << nLine << " tension is high. " << std::endl;
+			std::cout << "    WARNING: Towing line " << id << " tension is high. " << std::endl;
 		}
-		std::cout << "    Tension at anchor for line: " << nLine << " ; is: (" << ten_1(0) << " , " << ten_1(1) << " , " << ten_1(2) << " ) N" << std::endl;
-		std::cout << "    Tension at fairlead for line: " << nLine << " ; is: (" << ten_N(0) << " , " << ten_N(1) << " , " << ten_N(2) << " ) N" << std::endl << std::endl;
+		std::cout << "    Tension at anchor for line: " << id << " ; is: (" << ten_1(0) << " , " << ten_1(1) << " , " << ten_1(2) << " ) N" << std::endl;
+		std::cout << "    Tension at fairlead for line: " << id << " ; is: (" << ten_N(0) << " , " << ten_N(1) << " , " << ten_N(2) << " ) N" << std::endl << std::endl;
 	} else if (lineType == 3){
 		xF=sqrt(pow((pos_N(0,0)-pos_1(0,0)),2)+pow((pos_N(1,0)-pos_1(1,0)),2));
 		zF=(pos_N(2,0)-pos_1(2,0));
@@ -475,8 +534,8 @@ void Line::initLine (void)
 		arma::mat vecN(pos.rows(3*N-6,3*N-4) - pos.rows(3*N-3,3*N-1));
 		double nvecN = norm(vecN);
 		ten_N = (EA*(nvecN - 1.0)/(0.5*(this->roots(1)+1)*dL*nvecN)) * vecN;
-		std::cout << "     Tension at anchor for line: " << nLine << " ; is: (" << ten_1(0) << " , " << ten_1(1) << " , " << ten_1(2) << " ) N" << std::endl;
-		std::cout << "     Tension at fairlead for line: " << nLine << " ; is: (" << ten_N(0) << " , " << ten_N(1) << " , " << ten_N(2) << " ) N" << std::endl << std::endl;
+		std::cout << "     Tension at anchor for line: " << id << " ; is: (" << ten_1(0) << " , " << ten_1(1) << " , " << ten_1(2) << " ) N" << std::endl;
+		std::cout << "     Tension at fairlead for line: " << id << " ; is: (" << ten_N(0) << " , " << ten_N(1) << " , " << ten_N(2) << " ) N" << std::endl << std::endl;
 		floor_flag = -1;
 	} else {
 		throw std::invalid_argument( "Type of line not available." );
@@ -485,22 +544,25 @@ void Line::initLine (void)
 
 void Line::OpenOutputFilesASCII (std::string path)
 {
-	char buffer1[50], buffer2[50], buffer3[50], buffer4[50];
+	char buffer1[50], buffer2[50], buffer3[50], buffer4[50], buffer5[50];
 
 	int nn1 = sprintf(buffer1,"NodePosX_%d.txt", GetId());
 	int nn2 = sprintf(buffer2,"NodePosY_%d.txt", GetId());
 	int nn3 = sprintf(buffer3,"NodePosZ_%d.txt", GetId());
-	int nn4 = sprintf(buffer4,"CatTen_%d.txt", GetId());
+	int nn4 = sprintf(buffer4,"EndsTen_%d.txt", GetId());
+	int nn5 = sprintf(buffer5,"LineTen_%d.txt", GetId());
 
 	std::string file_path1 = JoinPath(path, buffer1);
 	std::string file_path2 = JoinPath(path, buffer2);
 	std::string file_path3 = JoinPath(path, buffer3);
 	std::string file_path4 = JoinPath(path, buffer4);
+	std::string file_path5 = JoinPath(path, buffer5);
 
 	pfile_xpos = fopen (file_path1.c_str(),"w");
 	pfile_ypos = fopen (file_path2.c_str(),"w");
 	pfile_zpos = fopen (file_path3.c_str(),"w");
 	pfile_ten =  fopen (file_path4.c_str(),"w");
+	pfile_ten_line =  fopen (file_path5.c_str(),"w");
 }
 
 void Line::CloseOutputFilesASCII (void)
@@ -509,6 +571,7 @@ void Line::CloseOutputFilesASCII (void)
 	fclose(pfile_ypos);
 	fclose(pfile_zpos);
 	fclose(pfile_ten);
+	fclose(pfile_ten_line);
 }
 
 void Line::WriteOut (double t) 
@@ -528,4 +591,13 @@ void Line::WriteOut (double t)
 	fprintf(pfile_zpos, "\n");
 
 	fprintf(pfile_ten, "%f    %f    %f    %f    %f    %f    %f \n",t,ten_1(0,0),ten_1(1,0),ten_1(2,0),ten_N(0,0),ten_N(1,0),ten_N(2,0));
+	
+	if (t==0.0){
+		fprintf(pfile_ten_line, "%f    ", t);
+		for(ii=0;ii<this->N;ii=ii+1) fprintf(pfile_ten_line, "%f    ", this->s(ii,0));
+		fprintf(pfile_ten_line, "\n");
+	}
+	fprintf(pfile_ten_line, "%f    ", t);
+	for(ii=0;ii<this->N;ii=ii+1) fprintf(pfile_ten_line, "%f    ", this->T(ii,0));
+	fprintf(pfile_ten_line, "\n");
 }

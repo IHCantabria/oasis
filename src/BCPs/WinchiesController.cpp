@@ -365,12 +365,17 @@ void WinchieController::controlWinchies(double time){
 
 	if (time>=time_ini){
 		arma::mat e1;
-		xr = Ar*xr + Br*ur; yr = Cr*xr + Dr*ur;
-		pos = pSim->pBodies[indBody]->pos; 
-		yb(0,0) = pos(0,0);  yb(1,0) = pos(1,0); yb(2,0) = pos(5,0);
+		// Reference signal
+		xr = Ar*xr + Br*ur; yr = Cr*xr + Dr*ur; 
+		// Extract position from body
+		// Aqui habria que meter ruido gausiano para el ruido de los sensores
+		pos = pSim->pBodies[indBody]->pos; yb(0,0) = pos(0,0);  yb(1,0) = pos(1,0); yb(2,0) = pos(5,0);
+		// First order filter
 		xf = Af*xf + Bf*yb; yf = Cf*xf;
+		// Compute error
 		error.row(k) = (yr-yf).t();
-		e1 = Ki%arma::trapz(error.rows(0,k)).t() - yb;
+		// Integrate error
+		e1 = Ki%arma::trapz(error.rows(0,k)).t() - yf;
 		xc = Ac*xc + Bc*e1; yc = Kc%(Cc*xc + Dc*e1);
 		k = k + 1;
 		inversorBlock();
@@ -403,7 +408,6 @@ void WinchieController::inversorBlock(void){
 			rz = arma::as_scalar(rG(2,0));
 			alpha = atan2(dy,dx); beta = atan2(-dz,sqrt(dx*dx+dy*dy));
 			Aeq(0,ii) = cos(alpha)*cos(beta); Aeq(1,ii) = sin(alpha)*cos(beta);
-			// Aeq(2,ii) = (rx*sin(alpha)-ry*cos(alpha))*cos(beta);
 			Aeq(2,ii) = (ry*sin(beta)           -rz*sin(alpha)*cos(beta))*rotMat(0,2) + 
 			            (rz*cos(alpha)*cos(beta)-rx*sin(beta)           )*rotMat(1,2) + 
 			            (rx*sin(alpha)*cos(beta)-ry*cos(alpha)*cos(beta))*rotMat(2,2) ;

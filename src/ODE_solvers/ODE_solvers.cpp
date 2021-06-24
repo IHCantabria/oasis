@@ -65,14 +65,16 @@ void BDF::Initialize()
 {
 	F(0) = 2*atol;
 	do{
+		std::cout << "    Computing jac... " << std::endl;
 		jac(t + h_0, y);
+		std::cout << "    ... done! " << std::endl;
 		M = I - h_0 * J;
 		F = y - y_0 - h_0 * yprime;
-		std::cout << "size dy: " << arma::size(dy) << std::endl;
-		std::cout << "size M: " << arma::size(M) << std::endl;
-		std::cout << "size F: " << arma::size(F) << std::endl;
+		std::cout << "    size dy: " << arma::size(dy) << std::endl;
+		std::cout << "    size M: " << arma::size(M) << std::endl;
+		std::cout << "    size F: " << arma::size(F) << std::endl;
 		status = arma::solve(dy,M,F,arma::solve_opts::fast);
-		std::cout << "After solver..." << std::endl;
+		std::cout << "    After solver..." << std::endl;
 		if (!status){
 			dy = arma::solve(M,F);
 		}

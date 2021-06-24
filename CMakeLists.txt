@@ -1,12 +1,12 @@
 
+# Define project and minimum cmake version required
 PROJECT(OASIS CXX)
 CMAKE_MINIMUM_REQUIRED(VERSION 3.7)
 
-# Sets the compiler
-set(CMAKE_C_COMPILER $ENV{EBROOTGCCCORE}/bin/gcc)
-set(CMAKE_CXX_COMPILER $ENV{EBROOTGCCCORE}/bin/g++)
-set(CMAKE_LINKER /usr/bin/ld)
-
+# Set the compiler
+set(CMAKE_C_COMPILER icc)
+set(CMAKE_CXX_COMPILER icpc)
+set(CMAKE_Fortran_COMPILER ifort)
 
 # Appends the cmake/modules path to MAKE_MODULE_PATH variable.
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules ${CMAKE_MODULE_PATH})
@@ -15,23 +15,22 @@ set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules ${CMAKE_MODULE_P
 include(GetGitRevisionDescription)
 git_describe(VERSION --tags --dirty=-d)
 
-#parse the version information into pieces.
+# Parse the version information into pieces
 string(REGEX REPLACE "^v([0-9]+)\\..*" "\\1" VERSION_MAJOR "${VERSION}")
 string(REGEX REPLACE "^v[0-9]+\\.([0-9]+).*" "\\1" VERSION_MINOR "${VERSION}")
 string(REGEX REPLACE "^v[0-9]+\\.[0-9]+\\.([0-9]+).*" "\\1" VERSION_PATCH "${VERSION}")
 string(REGEX REPLACE "^v[0-9]+\\.[0-9]+\\.[0-9]+(.*)" "\\1" VERSION_SHA1 "${VERSION}")
 set(VERSION_SHORT "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 
+# Configure version file
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/version.cpp.in
-                ${CMAKE_CURRENT_BINARY_DIR}/version.cpp)
+               ${CMAKE_CURRENT_BINARY_DIR}/version.cpp)
 set(version_file "${CMAKE_CURRENT_BINARY_DIR}/version.cpp")
 
 # Add target link libraries
-set(EXTERNAL_LIBS_INCLUDE_PATH "$<BUILD_INTERFACE:$ENV{EBROOTArmadillo}/include>"
-"$<BUILD_INTERFACE:$ENV{EBROOTOPENBLAS}/include>")
-
-set(EXTERNAL_LIBS_PATH "$ENV{EBROOTOPENBLAS}/lib/libopenblas.a"
-    )
+set(EXTERNAL_LIBS_INCLUDE_PATH
+"C:/Program Files (x86)/IntelSWTools/compilers_and_libraries_2019.4.245/windows/mkl/include"
+"C:/ScientificLibraries/vcpkg/installed/x64-windows/include")
 
 # Add source files
 set(OASIS_SOURCE_FILES 
@@ -81,11 +80,11 @@ set(OASIS_HEADER_FILES
 
 # Join source and header files
 set(OASIS_FILES ${OASIS_SOURCE_FILES} ${OASIS_HEADER_FILES})
-
-#Add the version_file to the project build or it won't compile.
-# SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}")
-#SET(CMAKE_EXE_LINKER_FLAGS  -static)
-ADD_DEFINITIONS(-DARMA_DONT_USE_WRAPPER -DARMA_USE_HDF5)
+# Add the compilation flags: HDF5 is a dynamic library!
+ADD_DEFINITIONS(-DH5_BUILT_AS_DYNAMIC_LIB -DARMA_DONT_USE_WRAPPER -DARMA_USE_HDF5 -DARMA_USE_SUPERLU)
+# Add the version_file to the project build or it won't compile.
 ADD_EXECUTABLE(${PROJECT_NAME} ${OASIS_FILES} ${version_file})
+# Target to the include directories
 TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${EXTERNAL_LIBS_INCLUDE_PATH})
-TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${EXTERNAL_LIBS_PATH} -lgfortran -lquadmath -lpthread -lstdc++fs -lhdf5)
+# Target to the link libraries
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} "C:/ScientificLibraries/vcpkg/installed/x64-windows/lib/hdf5.lib")
