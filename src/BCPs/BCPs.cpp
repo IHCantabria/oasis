@@ -254,7 +254,8 @@ void JointBCP::GetValues(double t)
 
 	double zz = arma::as_scalar(pos(2,0));
 	double vol = std::min(std::max(0.0,vol_Joint*(rad_Joint-zz)/(2.0*rad_Joint)),vol_Joint);
-	JointForce(0,3) += g*(rhoW*vol - mass_Joint);
+	JointForce = arma::zeros(1,3);
+	JointForce(0,2) = g*(rhoW*vol - mass_Joint);
 	JointForce = JointForce - vel.t()*arma::norm(vel)*0.5*0.47*rhoW*sec_Joint;
 }
 

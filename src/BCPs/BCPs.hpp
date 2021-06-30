@@ -46,11 +46,8 @@ public:
 	int iLJ = 0;
 	arma::mat posLines;
 	arma::mat velLines;
-	arma::mat accLines;
-	arma::mat forLines;
-	arma::mat masLines;
 	arma::mat JointForce = arma::zeros(1,3);
-	double mass_Lines,vol_Lines,mass_Joint,vol_Joint,rad_Joint,sec_Joint;
+	double mass_Joint,vol_Joint,rad_Joint,sec_Joint;
 	double g,rhoW,fondo;
 	int flag_assigned = 0;
 	int flag_counted = 0;
