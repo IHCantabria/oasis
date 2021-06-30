@@ -81,7 +81,7 @@ set(OASIS_HEADER_FILES
 # Join source and header files
 set(OASIS_FILES ${OASIS_SOURCE_FILES} ${OASIS_HEADER_FILES})
 # Add the compilation flags: HDF5 is a dynamic library!
-ADD_DEFINITIONS(-DH5_BUILT_AS_DYNAMIC_LIB -DARMA_DONT_USE_WRAPPER -DARMA_USE_HDF5)
+ADD_DEFINITIONS(-DH5_BUILT_AS_DYNAMIC_LIB -DARMA_DONT_USE_WRAPPER -DARMA_USE_HDF5 -DARMA_USE_SUPERLU)
 # Add the version_file to the project build or it won't compile.
 ADD_EXECUTABLE(${PROJECT_NAME} ${OASIS_FILES} ${version_file})
 # Target to the include directories
