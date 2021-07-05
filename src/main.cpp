@@ -34,24 +34,7 @@ int main (int argc, char* argv[])
 	std::cout << "Starting OASIS: Offshore Advanced Simulation Software" << std::endl << std::endl; //////////////////////////////////////////
 
 	// Declare variables
-	int flag_read_eq, flag_write_eq;
-	int numLines;
-	int nSprings;
-	int nWinchies;
-	int nBodies;
-	int nBCPs, nAnchBCPs, nFairBCPs, nJointBCPs, nBodyBCPs;
-	int nNodosTotal, nSistema, nSistema2;
-	int solver_flag, nIterMax;
-	double atol, rtol;
-	solver_data SD;
-	double t;
-	double t_max;
-	double dt;
 	std::string project_path;
-	std::string inputs_path;
-	std::string outputs_path;
-	std::string file_path;
-
 	// Read input arguments
 	if (argc < 2)
 	{
