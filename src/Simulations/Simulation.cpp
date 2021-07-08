@@ -4,8 +4,8 @@
 #include <string>
 #include <sstream>
 #include <ctime>
-#include "../CommonTools.hpp"
 #include "Simulation.hpp"
+#include "../CommonTools.hpp"
 #include "../Exceptions/Exception.hpp"
 #include "../os_tools.hpp"
 #include "../Bodies/Bodies.hpp"
@@ -14,6 +14,7 @@
 #include "../BCPs/WinchiesController.hpp"
 #include "../Waves/Wave.hpp"
 #include "../ODE_solvers/ODE_solvers.hpp"
+#include "../WindTurbine/WindTurbine.hpp"
 
 
 arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
@@ -1288,6 +1289,61 @@ void Simulation::ReadWinchesHDF5()
 }
 
 
+void Simulation::ReadWindTurbines(void)
+{
+     (this->*pReadWinches)();
+}
+
+
+void Simulation::ReadWindTurbinesASCII(void)
+{
+    std::cout << "--> Reading Wind Turbines Properties (ASCII format)" << std::endl;
+    // Declare local variables
+    char bufferLine [1000];
+
+    // Open file
+	std::string file_path = JoinPath(inputFolderPath, "datosWindTurbines.dat");
+    FILE* file_pointer = fopen(file_path.c_str(), "r");
+	
+	if (file_pointer == NULL)
+	{
+        std::stringstream ss;
+        ss << "Not possible to open the file: datosWindTurbines.dat\n    ->Dir: " << inputFolderPath << std::endl;
+        throw IOError(ss.str());
+	}
+
+    // Read number of Wind Turbines defined in the file
+	fscanf(file_pointer, "%d %[^\n]\n", &numWindTurbines, bufferLine);
+
+    if (numWindTurbines>0){}
+        // Allocate a vector of pointers to Winch class objects
+        pWindTurbines = new WindTurbine*[numWindTurbines];
+
+        // Read Winches
+        for(int ii=0; ii<numWindTurbines; ii++)
+        {
+            pWindTurbines[ii] = new WindTurbine(ii,this);
+            pWindTurbines[ii]->ReadPropertiesASCII(file_pointer);
+        }
+    }
+
+    // Close the file
+    fclose(file_pointer);
+    std::cout << "----> Wind Turbines Properties Read" << std::endl;
+
+}
+
+
+void Simulation::ReadWindTurbinesHDF5(void)
+{
+    std::cout << "--> Reading Wind Turbines (HDF5 format)" << std::endl;
+    std::stringstream ss;
+    ss << "Method ReadWindTurbinesHDF5 in class Simulation not implemented yet.";
+    throw NotImplementedError(ss.str());
+    std::cout << "----> Wind Turbines Properties Read" << std::endl;
+}
+
+
 void Simulation::Run()
 {
     time_t tstart, tend;
@@ -1676,6 +1732,7 @@ Simulation::Simulation(std::string incProjectPath, std::string incDataFormat)
         pReadLines = &Simulation::ReadLinesASCII;
         pReadSprings = &Simulation::ReadSpringsASCII;
         pReadWinches = &Simulation::ReadWinchesASCII;
+        pReadWindTurbines = &Simulation::ReadWindTurbinesASCII;
     }
     else if (!incDataFormat.compare("HDF5"))
     {
