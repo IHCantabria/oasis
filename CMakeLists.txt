@@ -4,9 +4,9 @@ PROJECT(OASIS CXX)
 CMAKE_MINIMUM_REQUIRED(VERSION 3.7)
 
 # Set the compiler
-set(CMAKE_C_COMPILER icc)
-set(CMAKE_CXX_COMPILER icpc)
-set(CMAKE_Fortran_COMPILER ifort)
+set(CMAKE_C_COMPILER $ENV{EBROOTGCCCORE}/bin/gcc)
+set(CMAKE_CXX_COMPILER $ENV{EBROOTGCCCORE}/bin/g++)
+set(CMAKE_LINKER /usr/bin/ld)
 
 # Appends the cmake/modules path to MAKE_MODULE_PATH variable.
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules ${CMAKE_MODULE_PATH})
@@ -28,9 +28,8 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/version.cpp.in
 set(version_file "${CMAKE_CURRENT_BINARY_DIR}/version.cpp")
 
 # Add target link libraries
-set(EXTERNAL_LIBS_INCLUDE_PATH
-"C:/Program Files (x86)/IntelSWTools/compilers_and_libraries_2019.4.245/windows/mkl/include"
-"C:/ScientificLibraries/vcpkg/installed/x64-windows/include")
+set(EXTERNAL_LIBS_INCLUDE_PATH "$<BUILD_INTERFACE:$ENV{EBROOTArmadillo}/include>"
+"$<BUILD_INTERFACE:$ENV{EBROOTOPENBLAS}/include>" "$<BUILD_INTERFACE:$ENV{EBROOTOpenFAST}/install/include>")
 
 # Add source files
 set(OASIS_SOURCE_FILES 
@@ -81,12 +80,11 @@ set(OASIS_HEADER_FILES
 # Join source and header files
 set(OASIS_FILES ${OASIS_SOURCE_FILES} ${OASIS_HEADER_FILES})
 # Add the compilation flags: HDF5 is a dynamic library!
-ADD_DEFINITIONS(-DH5_BUILT_AS_DYNAMIC_LIB -DARMA_DONT_USE_WRAPPER -DARMA_USE_HDF5 -DARMA_USE_SUPERLU)
+ADD_DEFINITIONS(-DARMA_DONT_USE_WRAPPER -DARMA_USE_HDF5 -DARMA_USE_SUPERLU)
 # Add the version_file to the project build or it won't compile.
 ADD_EXECUTABLE(${PROJECT_NAME} ${OASIS_FILES} ${version_file})
 # Target to the include directories
 TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${EXTERNAL_LIBS_INCLUDE_PATH})
 # Target to the link libraries
-TARGET_LINK_LIBRARIES(${PROJECT_NAME} "C:/ScientificLibraries/vcpkg/installed/x64-windows/lib/hdf5.lib")
-
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} -lgfortran -lquadmath -lpthread -lstdc++fs -lhdf5 -lsuperlu -lopenblas -lopenfastcpplib)
 

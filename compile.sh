@@ -1,10 +1,10 @@
-ml HDF5/1.8.19-foss-2017a
-ml Armadillo/9.800.4-foss-2017a
-ml CMake/3.7.2-foss-2017a
-ml SuperLU/5.2.1-foss-2017b
+
+ml Armadillo/10.5.3-foss-2020b
+ml OpenFAST/3.0.0-foss-2020b
+
 rm ./bin/oasis
-#rm -rf build
-cmake -B./build/ -H./
-#cmake -DCMAKE_BUILD_TYPE=Release -B./build/ -H./
+rm -rf build
+# cmake -B./build/ -H./
+cmake -DCMAKE_BUILD_TYPE=Release -B./build/ -H./
 cmake --build ./build
 cp ./build/OASIS ./bin/oasis

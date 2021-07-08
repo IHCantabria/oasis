@@ -29,8 +29,7 @@ set(version_file "${CMAKE_CURRENT_BINARY_DIR}/version.cpp")
 
 # Add target link libraries
 set(EXTERNAL_LIBS_INCLUDE_PATH "$<BUILD_INTERFACE:$ENV{EBROOTArmadillo}/include>"
-"$<BUILD_INTERFACE:$ENV{EBROOTOPENBLAS}/include>")
-set(EXTERNAL_LIBS_PATH "$ENV{EBROOTOPENBLAS}/lib/libopenblas.a")
+"$<BUILD_INTERFACE:$ENV{EBROOTOPENBLAS}/include>" "$<BUILD_INTERFACE:$ENV{EBROOTOpenFAST}/install/include>")
 
 # Add source files
 set(OASIS_SOURCE_FILES 
@@ -87,6 +86,5 @@ ADD_EXECUTABLE(${PROJECT_NAME} ${OASIS_FILES} ${version_file})
 # Target to the include directories
 TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${EXTERNAL_LIBS_INCLUDE_PATH})
 # Target to the link libraries
-TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${EXTERNAL_LIBS_PATH} -lgfortran -lquadmath -lpthread -lstdc++fs -lhdf5 -lsuperlu)
-
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} -lgfortran -lquadmath -lpthread -lstdc++fs -lhdf5 -lsuperlu -lopenblas -lopenfastcpplib)
 

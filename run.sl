@@ -1,11 +1,9 @@
 #!/bin/sh
 #SBATCH -J oasis
-#SBATCH -A fconcrete     # Project Account
-#SBATCH --time=24:00:00   # Walltime
-#SBATCH --mem-per-cpu=10G # memory/cpu 
+#SBATCH -A corewind     # Project Account
+#SBATCH --time=2:00:00   # Walltime
+#SBATCH --mem-per-cpu=4G # memory/cpu 
 
-ml HDF5/1.8.19-foss-2017a
-ml Armadillo/9.800.4-foss-2017a
-ml CMake/3.7.2-foss-2017a
-chmod 777 ./bin/oasis
+ml Armadillo/10.5.3-foss-2020b
+ml OpenFAST/3.0.0-foss-2020b
 ./bin/oasis "$1"
