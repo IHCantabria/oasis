@@ -1411,6 +1411,7 @@ void Simulation::SetupCase()
         pBodies[ii]->UpdateBcps();
     }
 
+    // Count the number of lines in each joint BCP
     for (int ii=0; ii<numBcps; ii++)
     {
         if (pBcps[ii]->GetType()==3)
@@ -1611,6 +1612,7 @@ void Simulation::SetupCase()
 
     std::cout << "----> Case configuration done" << std::endl;
 }
+
 
 void Simulation::ComputeLinesCouplingMatrix(void){
 

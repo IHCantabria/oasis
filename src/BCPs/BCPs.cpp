@@ -185,7 +185,7 @@ void FairleadBCP::Initialize(std::string folder_path)
 	std::ifstream datosPosF (file_path);
 
 	// Leo el numero de pasos temporales a leer
-	datosPosF >> nt;
+	datosPosF >> nt; datosPosF.ignore(std::numeric_limits<int>::max(), '\n');
 
 	// Alocato la matriz que contiene la informacion
 	tF = arma::zeros(nt,1);
