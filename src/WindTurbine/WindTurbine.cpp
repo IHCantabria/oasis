@@ -7,10 +7,12 @@
 #include "WindTurbine.hpp"
 #include "../MathTools.hpp"
 #include "../Exceptions/Exception.hpp"
+#include "../os_tools.hpp"
+#include "../Simulations/Simulation.hpp"
 #include <OpenFAST.H>
 
 
-void WindTurbine::ReadPropertiesASCII(std::string file_path){
+void WindTurbine::ReadPropertiesASCII(FILE*& pFile){
 
     // Declare variables
 	char buffer_line [1000];
@@ -27,12 +29,15 @@ void WindTurbine::ReadPropertiesASCII(std::string file_path){
 	fscanf(pFile, "%d %[^\n]\n", &body_id, buffer_line);
     pBody = pSim->pBodies[body_id-1];
 
-    if (fscanf(pFile, "%s %[^\n]\n", cHydroDatabaseName, buffer_line) != 2)
+    if (fscanf(pFile, "%s %[^\n]\n", cFastFileName, buffer_line) != 2)
 	{
 		std::stringstream ss;
 		ss << "An error ocurred when trying to read the FAST input file name in Turbine: " << nTurbine << "\n";
 		throw ValueError(ss.str());
 	}
+
+    std::string FASTInputFileName = JoinPath(pSim->inputFolderPath, "FAST");
+    FASTInputFileName = JoinPath(FASTInputFileName, cFastFileName);
 
 
     fi.nTurbinesGlob = 1;
@@ -48,7 +53,7 @@ void WindTurbine::ReadPropertiesASCII(std::string file_path){
     fi.globTurbineData.resize(fi.nTurbinesGlob);
 
     fi.globTurbineData[0].TurbID = 1;
-    fi.globTurbineData[0].FASTInputFileName = cHydroDatabaseName;
+    fi.globTurbineData[0].FASTInputFileName = FASTInputFileName;
     fi.globTurbineData[0].FASTRestartFileName = "banana";
     fi.globTurbineData[0].TurbineBasePos = {0.0, 0.0, 0.0};
     fi.globTurbineData[0].TurbineHubPos = {0.0, 0.0, 0.0};
@@ -75,5 +80,17 @@ void WindTurbine::SetUp(void){
 void WindTurbine::Finalize(void){
 
     FAST.end();
+
+}
+
+void WindTurbine::ComputeForceOnBase(void){
+
+    forceOnBase = arma::zeros(6,1);
+    // FAST.calc_nacelle_force(u,v,w,dc,area,rho,fx,fy,fz);
+    // FAST.getForce(currentForce, iNode, iTurbGlob, nSize)
+
+}
+
+void WindTurbine::UpdateNodesVelocities(void){
 
 }

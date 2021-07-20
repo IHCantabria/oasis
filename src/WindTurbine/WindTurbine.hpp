@@ -23,7 +23,7 @@ public:
     arma::mat forceOnBase = arma::zeros(6,1);
 
     WindTurbine(int n,Simulation* pSim){nTurbine=n;pSim = pSim;} // Inicializa un objeto de clase turbina dandole el indice
-	void ReadPropertiesASCII(std::string filePath); // Lee inputs de las turbinas
+	void ReadPropertiesASCII(FILE*& pFile); // Lee inputs de las turbinas
     void SetUp(void); // Configura el objeto turbina
     void Finalize(void); // Configura el objeto turbina
 
