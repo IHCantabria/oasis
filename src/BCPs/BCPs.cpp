@@ -257,6 +257,7 @@ void JointBCP::GetValues(double t)
 	JointForce = arma::zeros(1,3);
 	JointForce(0,2) = g*(rhoW*vol - mass_Joint);
 	JointForce = JointForce - vel.t()*arma::norm(vel)*0.5*0.47*rhoW*sec_Joint;
+	// FALTA INCLUIR FUERZAS SUELO
 }
 
 

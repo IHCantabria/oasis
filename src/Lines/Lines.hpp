@@ -17,12 +17,14 @@ private:
 public:
 	int numBcps=2;
 	int indexBcps [2];
-	int lineType, nLine, nNodos, p, N, floor_flag, BCP_1, BCP_N, flag_tension, flag_stiffness;
-	double L, dL, dL0, EA, beta, rho0, d, A, Cdt, Cdn, Cmn, CB, GK, GC, Gmu, Gvc, Dz, Kn;
+	int lineType, nLine, nNodos, p, N, floor_flag, BCP_1, BCP_N, flag_tension, flag_stiffness, smoothstep, frictionModel;
+	double L, dL, dL0, EA, beta, rho0, d, A, Cdt, Cdn, Cmn, CB, GK, GC, Gmu, Gvc, Dz, Kn, dampCoef, VR, vth, us, ud, deltamax, vstatic, vdynamic, fn;
+	double paramNormal, parammuelle1, parammuelle2, paramVel;
 	arma::mat strain_data, stress_data;
 	arma::mat ten_1 = arma::zeros(3,1), ten_N = arma::zeros(3,1);
 	arma::mat pos_1 = arma::zeros(3,1), pos_N = arma::zeros(3,1);
-	arma::mat pos, vel, acc, F, s, xc, zc, dxcds, dzcds, Te, roots, weights;
+	arma::mat a_1 = arma::zeros(4,1);// Variables para almacenar los coeficientes polinomicos del coeficiente de friccion
+	arma::mat pos, vel, acc, F, s, xc, zc, dxcds, dzcds, Te, roots, weights, isSlip, posFriccion, ffstick, ffslid;
 	arma::mat C, D, MassMatrix, MM, StiffMatrix, MSMatrix, MassMatrix_diag;
 	arma::mat inv_MM, inv_MM_1, inv_MM_N, inv_MM_1N;
 	arma::sp_mat D_sp, MassMatrix_sp, MM_sp, StiffMatrix_sp, MSMatrix_sp;

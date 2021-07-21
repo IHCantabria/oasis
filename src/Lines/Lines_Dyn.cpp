@@ -98,12 +98,24 @@ void Line::ReadPropertiesASCII(FILE* pFilePointer)
 	if (lineType==1){
 		floor_flag = 1;
 	}
+	fscanf(pFilePointer, "%d %[^\n]\n", &smoothstep, buffer_line);
+	fscanf(pFilePointer, "%d %[^\n]\n", &frictionModel, buffer_line);
+	fscanf(pFilePointer, "%lf %[^\n]\n", &vth, buffer_line);
+	fscanf(pFilePointer, "%lf %[^\n]\n", &us, buffer_line);
+	fscanf(pFilePointer, "%lf %[^\n]\n", &ud, buffer_line);
+	fscanf(pFilePointer, "%lf %[^\n]\n", &deltamax, buffer_line);
+	fscanf(pFilePointer, "%lf %[^\n]\n", &vstatic, buffer_line);
+	fscanf(pFilePointer, "%lf %[^\n]\n", &vdynamic, buffer_line);
 
 	A = arma::datum::pi*d*d*0.25;
 	dL = L/(nNodos-1);
 	dL0 = dL;
 	N = p*(nNodos-1)+1;
 	Kn = Cmn * A * rhoW;
+
+	dampCoef = 2.0 * sqrt(rho0 * GK * d ) ;
+	VR= 0.01*(d*d*GK)/(dampCoef);
+
 
 	pos = arma::zeros(3*N);
 	vel = arma::zeros(N,3);
@@ -122,6 +134,31 @@ void Line::ReadPropertiesASCII(FILE* pFilePointer)
 	t = arma::zeros(N,3);
 	e_z = arma::zeros(1,3);
 	e_z(0,2) = 1.0;
+	posFriccion = arma::zeros(N,2);
+	isSlip = arma::zeros(N,1);
+	ffslid=arma::zeros(1,2);
+	ffstick=arma::zeros(1,2);
+
+	if (frictionModel==1){
+		//voy a resolver un solo sistema que dara los coeficientes por si hay friccion de velocidad al principio del problemna.
+		//es el step fuerte
+		//Los coeficientes van a ser siempre esos asi que solo hace falta hacerlo una vez y asi se obtiene el polinomio
+		arma::mat tmpA = arma::zeros(4,4);
+		arma::mat tmpB = arma::zeros(4,1);
+		double x1= 0;
+		double x2= 1e-04;
+		tmpA = {{  pow(x1,3), pow(x1,2), 1*x1, 1},
+	       		{3*pow(x1,2),    2*(x1),    1, 0},
+				{    pow(x2,3),   pow(x2,2),   1*x2, 1},
+				{  3*pow(x2,2),        2*x2,    1, 0}};
+		tmpB(0,0) = 1e-05; tmpB(1,0) = 0.0; tmpB(2,0) = x2; tmpB(3,0) = 1;
+		std::cout << "tmpA="<< std::endl << tmpA<< std::endl;
+		std::cout << "tmpB="<< std::endl << tmpB<< std::endl;
+		a_1 = arma::solve(tmpA,tmpB);
+		std::cout << "a1="<< std::endl << a_1<< std::endl;
+
+	}
+
 
 	double * roots_temp   = new double[p+1];
 	double * weights_temp = new double[p+1];
@@ -262,7 +299,6 @@ arma::mat Line::SEM_get_D_local(void)
 
 void Line::SEM_computeF(void)
 {
-
 	//drds = (D_sp * pos) * (2.0/dL0);
 	//drdsdt = (D_sp * vel) * (2.0/dL0);
 
@@ -292,13 +328,13 @@ void Line::SEM_computeF(void)
 		arma::umat ind = arma::find(((T>0.0)&&(T<T0)));
 		T.elem(ind) = temp_T.elem(ind);
 	}
-
+	posFriccion= pos.cols(0,1);
 	for(int k=0;k<N;k=k+1){
 		t.row(k) = drds.row(k) / norm_drds(k);
 		FF.row(k) = T(k) * t.row(k);
 
-		fg = (rhoW * A - rho0) * g / norm_drds(k);
-		ff.row(k) = fg * e_z;
+		fg = (rho0 - rhoW * A) * g / norm_drds(k);
+		ff.row(k) = -fg * e_z;
 
 		v = vel.row(k);
 		vt = (v * t.row(k).t())* t.row(k);
@@ -307,18 +343,103 @@ void Line::SEM_computeF(void)
 		ff.row(k) = ff.row(k) - 0.5 * Cdn * d * rhoW * arma::norm(vn,2) * vn;
 
 		if (floor_flag == 1){
-			fs = abs(fg) * exp(- GK * d * (pos(k,2) - fondo)/abs(fg));
-			GC = 2.0 * sqrt(rho0 * GK * d ) / (abs(fg) * d);
-			if ((k==0)&&(pLineBcps[0]->GetType()==3)){
-				GC = 2.0 * sqrt(GK*(rho0*d+pLineBcps[0]->mass_Joint)) / (abs(fg) * d);
+	
+			if (smoothstep == 1){
+				paramNormal= step(fondo - pos(k,2), -d/2, 0, 0, 1);
+				paramVel= step(v(2), -VR, 1, 0, 0);
+				parammuelle1= step(fondo - pos(k,2), 0, 0, d/2, 1);
+		    	parammuelle2= GK*d*(fondo-pos(k,2)) ;
+				ff(k,2)= ff(k,2) + fg*paramNormal + parammuelle1*parammuelle2 - GC*paramNormal*dampCoef*paramVel*v(2);
+			} else {
+
+				// comparativa con palm
+				// if ((fondo-pos(k,2))>= 0) {
+				// 	ff(k,2)= ff(k,2) + fg +  GK*d*(fondo-pos(k,2)) - GC*dampCoef*(std::min(v(2),0.0));
+				// }
+
+				//comparativa con el anterior
+				fs = abs(fg) * exp(- GK * d * (pos(k,2) - fondo)/abs(fg));
+			    GC = 2.0 * sqrt(rho0 * GK * d ) / (abs(fg) * d);
+				fd= fs* GC*d *pow(std::min(v(2), 0.0), 2);
+				ff(k,2)=ff(k,2) + fs + fd;
+
 			}
-			if ((k==N-1)&&(pLineBcps[1]->GetType()==3)){
-				GC = 2.0 * sqrt(GK*(rho0*d+pLineBcps[1]->mass_Joint)) / (abs(fg) * d);
+			if (frictionModel==2) {
+				arma::mat vxy= arma::zeros(1,2);
+				vxy(0,0)=v(0);
+				vxy(0,1)=v(1);
+				double normvxy= arma::norm(vxy, 2);
+				fn=fg*step(fondo - pos(k,2), -d/2, 0, 0, 1); //se ha suavizado
+				if (isSlip(k,0)==1){
+					if(normvxy > vth){
+						isSlip(k,0)=0;
+						posFriccion(k,0)=pos(k,0);
+						posFriccion(k,1)=pos(k,1);
+					}
+				}
+				if(isSlip(k,0)==0){
+					if (normvxy <= vth){
+						isSlip(k,0)=1;
+						//no guarda posicion, ya que solo la guarda si pasa de split a slip
+					}
+				}
+				arma:: mat posActual= arma::zeros(1,2);
+				arma:: mat deformacion = arma::zeros(1,2);
+				posActual(0,0)=pos(k,0);
+				posActual(0,1)=pos(k,1);
+				deformacion= posActual - posFriccion.row(k);
+				double delta= arma::norm(deformacion, 2);
+				double betaStick, usstep, udstep;
+
+				// parametros distintos si es stick o slip
+				if(isSlip(k,0) == 0){
+					betaStick=1;
+					usstep=0;
+					udstep=ud;
+
+				}else{
+					betaStick=step(normvxy, -vth, -1.0, vth, 1.0);
+					usstep=step(delta, -deltamax, -us, deltamax, us);
+					udstep=step(normvxy, -vth, -ud, vth, ud);
+				}
+				//hay que calcular las fuerzas
+				ffslid= -vxy* udstep* fn/std::max(normvxy,1e-7);
+				ff.submat(k,0,k,1) = ff.submat(k,0,k,1) + ffslid;
+				if((isSlip(k,0)==1)) {
+					ffstick= -deformacion*(1-betaStick)*usstep*fn/std::max(delta,1e-7);;
+					ff.submat(k,0, k ,1) = ff.submat(k, 0, k, 1) + ffstick;
+				}
 			}
-			fd = fs * GC * d * pow(std::min(v(2),0.0),2);
-			ff(k,2) = ff(k,2) + fs + fd;
+			if (frictionModel==1){
+				arma::mat vxy= arma::zeros(1,2);
+				vxy(0,0)=v(0);
+				vxy(0,1)=v(1);
+				double normvxy= arma::norm(vxy, 2);
+				fn=abs(fg*step(fondo - pos(k,2), -d/2, 0, 0, 1)); //se ha suavizado
+				double coef;
+				double normaSmooth;
+				arma:: mat ffriccionVel = arma::zeros(1,2);
+
+				if (normvxy < vstatic) {
+					coef = step(normvxy, -vstatic, -us, vstatic, us);
+
+				} else if ((vstatic<=normvxy) && (normvxy<vdynamic)) {
+					coef = step(normvxy, vstatic, us, vdynamic, ud);
+
+				} else {
+					coef = ud;
+				}
+				if(normvxy<=1e-04) {
+					normaSmooth = arma::as_scalar(a_1(0,0)*pow(normvxy,3)+a_1(1,0)*pow(normvxy,2)+a_1(2,0)*normvxy+a_1(3,0));
+				} else{
+					normaSmooth = normvxy;
+				}
+				ffriccionVel= -vxy* (coef /normaSmooth)*fn;
+				ff.submat(k,0, k ,1) = ff.submat(k, 0, k, 1) + ffriccionVel;	
+			}
 		}
 	}
+
 
 	//F = 0.5 * dL * (MassMatrix_sp * ff) - (MSMatrix_sp * FF);
 	F = 0.5 * dL * (MassMatrix * ff) - (MSMatrix * FF);
@@ -372,7 +493,15 @@ void Line::print_out (void)
 		std::cout << "Gvc      " << this->Gvc << std::endl;
 		std::cout << "Dz       " << this->Dz << std::endl;
 		std::cout << "pos_N  " << this->pos_N(0,0) << " " << this->pos_N(1,0) << " " << this->pos_N(2,0) << std::endl;
-		std::cout << "pos_1  " << this->pos_1(0,0) << " " << this->pos_1(1,0) << " " << this->pos_1(2,0) << std::endl << std::endl;
+		std::cout << "pos_1  " << this->pos_1(0,0) << " " << this->pos_1(1,0) << " " << this->pos_1(2,0) << std::endl;
+		std::cout << "smoothstep      " << this->smoothstep << std::endl;
+		std::cout << "frictionModel      " << this->frictionModel << std::endl;
+		std::cout << "vth      " << this->vth << std::endl;
+		std::cout << "us      " << this->us << std::endl;
+		std::cout << "ud      " << this->ud << std::endl;
+		std::cout << "deltamax      " << this->deltamax << std::endl;
+		std::cout << "vstatic      " << this->vstatic << std::endl;
+		std::cout << "vdynamic      " << this->vdynamic << std::endl << std::endl;
 }
 
 void Line::initLine (void) 
