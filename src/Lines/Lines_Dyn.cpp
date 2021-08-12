@@ -376,15 +376,9 @@ void Line::SEM_computeF(void)
 		ff.row(k) = ff.row(k) - 0.5 * Cdn * d * rhoW * arma::norm(vn,2) * vn;
 
 		if (floor_flag == 1){
-
-			//parametros de los que va a depender
-			double ultimaCoordVel;
-			double zCoordinate;
-			if (pLineSeaFloor->GetType() == 3){
-				//suponiendo que esta direccion de proyeccion es unitaria
-				ultimaCoordVel = arma::as_scalar(v*arma::strans(projectionDirection.row(k)));
-				zCoordinate = -zCoordinates(k); //porque al ir las normales hacia arriba es el criterio contrario
-			}
+			//suponiendo que esta direccion de proyeccion es unitaria
+			double ultimaCoordVel = arma::as_scalar(v*arma::strans(projectionDirection.row(k)));
+			double zCoordinate = -zCoordinates(k); //porque al ir las normales hacia arriba es el criterio contrario
 	
 			if (smoothstep == 1){
 				paramNormal= step(zCoordinate, -d/2, 0, 0, 1);
