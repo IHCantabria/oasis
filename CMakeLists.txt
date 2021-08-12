@@ -53,6 +53,7 @@ set(OASIS_SOURCE_FILES
     "src/SEM_math/quadrule.cpp"
     "src/Spring/Spring.cpp"
     "src/Sinking/Sinking.cpp"
+    "src/SeaFloor/SeaFloor.cpp"
     )
 
 # Add include files
@@ -76,6 +77,7 @@ set(OASIS_HEADER_FILES
     "src/Simulations/Simulation.hpp"
     "src/Spring/Spring.hpp"
     "src/Sinking/Sinking.hpp"
+    "src/SeaFloor/SeaFloor.hpp"
     )
 
 # Join source and header files

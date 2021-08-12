@@ -11,6 +11,7 @@
 #include "../Spring/Spring.hpp"
 #include "../Waves/Wave.hpp"
 #include "../Sinking/Sinking.hpp"
+#include "../SeaFloor/SeaFloor.hpp"
 
 class BDF;
 
@@ -76,6 +77,10 @@ public:
     WinchieController WinchesController;
     Wave* pWave;
     Sinking** pSinking;
+    SeaFloor** pSeaFloor;
+    Bathymetry** pBathymetry;
+    Inclined** pInclined;
+    Flat** pFlat;
     int numAnchorBcps=0;
     int numBcps=0;
     int numBodies=0;
@@ -87,6 +92,10 @@ public:
     int numSprings=0;
     int numWinches=0;
     int numSinking=0;
+    int numFloor=0;
+    int numBathymetry=0;
+    int numInclined=0;
+    int numFlat=0;
 
     // Declare constructors
     Simulation(std::string projectPath, std::string incDataFormat);
@@ -101,6 +110,7 @@ public:
     void (Simulation::*pReadWaves)(void);
     void (Simulation::*pReadWinches)(void);
     void (Simulation::*pReadSinking)(void);
+    void (Simulation::*pReadSeaFloor)(void);
     void PrintSetup(void);
     void ReadBcps(void);
     void ReadBcpsASCII(void);
@@ -126,6 +136,10 @@ public:
     void ReadWaves(void);
     void ReadWavesASCII(void);
     void ReadWavesHDF5(void);
+    void ReadSeaFloor(void);
+    void ReadSeaFloorASCII(void);
+    void ReadSeaFloorHDF5(void);
+
 
     // Declare general purpose class methods
     arma::mat CalculateSystemDynamics(double time, arma::mat y);

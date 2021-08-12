@@ -477,3 +477,97 @@ double step(double x, double x0, double h0, double x1, double h1)
 		return h1;
 	}
 }
+
+arma::mat triangleChangeFrame(arma::mat V0, arma::mat V1, arma::mat V2){
+	//INPUT vectores 1x3 
+	//V0, las coordenadas del vertice en 3D
+	//V1, las coordenadas V1 en 3D
+	//V20, las coordenadas en 3D
+
+	//OUTPUT es una matriz 11x4 con:
+	//de la fila 0 a la 3, matriz M, para cambiar de 3D a 2D en las triangulaciones
+	//de la fila 4 a la 7, matriz invM, para cambiar de 2D a 3D en las triangulaciones
+	//la fila 8, las coordenadas del vertice V0 en 2D
+	//la fila 9, las coordenadas del vertice V1 en 2D
+	//la fila 10, las coordenadas del vertice V2 en 2D
+
+	//este metodo rota un triangulo de vertices V0 V1 V2 a otro sobre el plano XY, con V0 en el origen y V1 sobre ejeX
+
+	//traslación
+	arma::mat T = arma::eye(4,4);
+	T(1,0)= -V0(0);
+	T(2,0)= -V0(1);
+	T(3,0)= -V0(2);
+	arma::mat V00= arma::ones(4,1);
+	arma::mat V10= arma::ones(4,1);
+	arma::mat V20= arma::ones(4,1);
+	V00(1)=V0(0); V00(2)=V0(1); V00(3)=V0(2);
+	V10(1)=V1(0); V10(2)=V1(1); V10(3)=V1(2);
+	V20(1)=V2(0); V20(2)=V2(1); V20(3)=V2(2);
+	arma::mat V01= arma::ones(4,1);
+	arma::mat V11= arma::ones(4,1);
+	arma::mat V21= arma::ones(4,1);
+	V01= T*V00;
+	V11=T*V10;
+	V21=T*V20;
+
+	//rotacion1_1, ejeY
+	double theta= atan2(V11(3), V11(1));
+	arma::mat R11 = arma::eye(4,4);
+	R11(1,1)=cos(theta);
+	R11(1,3) = sin(theta);
+	R11(3,1) = -sin(theta);
+	R11(3,3)=cos(theta);
+	arma::mat V02= arma::ones(4,1);
+	arma::mat V12= arma::ones(4,1);
+	arma::mat V22= arma::ones(4,1);
+	V02= R11*V01;
+	V12= R11*V11;
+	V22= R11*V21;
+
+	//rotacion1_2, ejeZ
+	double theta2= atan2(V12(2),V12(1));
+	arma::mat R12= arma::eye(4,4);
+	R12(1,1)=cos(theta2);
+	R12(1,2)=+sin(theta2);
+	R12(2,1)=-sin(theta2);
+	R12(2,2)=cos(theta2);
+	arma::mat V03= arma::ones(4,1);
+	arma::mat V13= arma::ones(4,1);
+	arma::mat V23= arma::ones(4,1);
+
+	V03= R12*V02;
+	V13= R12*V12;
+	V23=R12*V22;
+
+	//rotacion2 eje X
+	double theta3= atan2(V23(3),V23(2));
+	arma::mat R2=arma::eye(4,4);
+	R2(2,2)=cos(theta3);
+	R2(2,3)=sin(theta3);
+	R2(3,2)=-sin(theta3);
+	R2(3,3)=cos(theta3);
+	arma::mat V04= arma::ones(4,1);
+	arma::mat V14= arma::ones(4,1);
+	arma::mat V24= arma::ones(4,1);
+	V04= R2*V03;
+	V14= R2*V13;
+	V24=R2*V23;	
+
+	arma::mat M = arma::ones(4,4);
+	M= R2*R12*R11*T;
+
+	//paso para obtener la inversa
+	arma::mat invM = arma::ones(4,4);
+
+	arma::mat Tinv= arma::eye(4,4);
+	Tinv(1,0)=V0(0);
+	Tinv(2,0)= V0(1);
+	Tinv(3,0)= V0(2);
+	invM=Tinv* arma::strans(R11) * arma::strans(R12) * arma::strans(R2);
+
+	arma::mat union1 = arma::join_cols(M, invM);
+	arma::mat union2 =arma:: join_cols(arma::strans(V14), arma::strans(V24));
+	arma::mat union3 =arma:: join_cols(union1, arma::strans(V04));
+	return arma:: join_cols(union3, union2);
+}	

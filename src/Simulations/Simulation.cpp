@@ -393,6 +393,7 @@ void Simulation::LoadCase()
     }
     this->ReadSprings();
     this->ReadSinking();
+    this->ReadSeaFloor();
 
     // Setup case
     this->SetupCase();
@@ -1287,6 +1288,78 @@ void Simulation::ReadWinchesHDF5()
     std::cout << "----> Winches Properties Read" << std::endl;
 }
 
+void Simulation::ReadSeaFloor()
+{
+    (this->*pReadSeaFloor)();
+
+}
+
+void Simulation::ReadSeaFloorASCII()
+{
+
+	std::cout << "--> Reading SeaFloor (ASCII format)" << std::endl;
+    std::string file_path = JoinPath(inputFolderPath, "dataSeaFloor.dat");
+    FILE* file_pointer = fopen(file_path.c_str(), "r");
+	
+	if (file_pointer == NULL)
+	{
+        std::stringstream ss;
+        ss << "Not possible to open the file: dataSeaFloor.dat\n    ->Dir: " << inputFolderPath << std::endl;
+        throw IOError(ss.str());
+	}
+    char bufferLine [1000];
+	// Read data
+    fscanf(file_pointer, "%d %[^\n]\n", &numBathymetry, bufferLine);
+    fscanf(file_pointer, "%d %[^\n]\n", &numInclined, bufferLine);
+    fscanf(file_pointer, "%d %[^\n]\n", &numFlat, bufferLine);
+	numFloor = numBathymetry + numInclined + numFlat;
+
+    printf("Number of bathymetry: %d\n", numBathymetry);
+    printf("Number of slopes: %d\n", numInclined);
+    printf("Number of planes: %d\n", numFlat);
+
+	//ALOCATO UN VECTOR DE POINTERS A OBJETOS, UNO PARA CADA FLOOR
+	pSeaFloor = new SeaFloor* [numFloor];
+	int floor_count = 0;
+
+    // Se leen los distintos cachos de suelo
+	pBathymetry= new Bathymetry* [numBathymetry];
+	for(int ii=0; ii<numBathymetry; ii++)
+    {
+		pBathymetry[ii] = new Bathymetry(floor_count);
+		pBathymetry[ii]->ReadPropertiesASCII(file_pointer, inputFolderPath);
+		pSeaFloor[floor_count] = pBathymetry[ii];
+		floor_count++;
+	}
+	pInclined = new Inclined* [numInclined];
+	for(int ii=0; ii<numInclined; ii++)
+    {
+		pInclined[ii] = new Inclined(floor_count);
+		pInclined[ii]->ReadPropertiesASCII(file_pointer);
+		pSeaFloor[floor_count] = pInclined[ii];
+		floor_count++;
+	}
+	pFlat = new Flat* [numFlat];
+	for(int ii=0; ii<numFlat; ii++)
+    {
+		pFlat[ii] = new Flat(floor_count);
+		pFlat[ii]->ReadPropertiesASCII(file_pointer);
+		pSeaFloor[floor_count] = pFlat[ii];
+		floor_count++;
+	}
+
+    // Close file
+    fclose(file_pointer);
+    std::cout << "----> Floor Properties Read" << std::endl;
+}
+void Simulation::ReadSeaFloorHDF5()
+{
+    std::cout << "--> Reading SeaFloor Properties (HDF5 format)" << std::endl;
+    std::stringstream ss;
+    ss << "Method ReadSeaFloorHDF5 in class Simulation not implemented yet.";
+    throw NotImplementedError(ss.str());
+    std::cout << "----> SeaFloor Properties Read" << std::endl;
+}
 
 void Simulation::Run()
 {
@@ -1397,6 +1470,26 @@ void Simulation::SetupCase()
         }
     }
     delete [] pDefined_body_bcps;
+    
+    //Floor triangulation
+    std::cout << "        Initialize floor type" << std::endl;
+    for (int ii=0; ii<numFloor; ii++)
+    {
+        if (pSeaFloor[ii]->GetType()==3)
+	    {	
+		    dynamic_cast<Bathymetry*>(pSeaFloor[ii])->getVertexNormals();
+            // std::cout << "normals="<< std::endl << dynamic_cast<Bathymetry*>(pSeaFloor[ii])->vertexNormals << std::endl;
+		    dynamic_cast<Bathymetry*>(pSeaFloor[ii])->getProjectionMatrix();  
+        }
+        else if (pSeaFloor[ii]->GetType()==2){
+            std::stringstream ss;
+            ss << "Not implemented. \n";
+            throw ValueError(ss.str());
+        } 
+        else if (pSeaFloor[ii]->GetType()==1){
+            std::cout <<"floor: " << std::endl << pSeaFloor[ii]->fondo <<std::endl;
+        }
+    }
 
     // Assing to each BCP the corresponding Body pointer
     std::cout << "        Assign to each BCP the corresponding Body pointer" << std::endl;
@@ -1521,6 +1614,8 @@ void Simulation::SetupCase()
 			if (e==5) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " initial shape can't be computed with QS method. " << std::endl;
 			if (e==6) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " touches the seafloor althoug none of its ends are there. " << std::endl << std::endl;
 		}
+        
+        pLines[ii]->pLineSeaFloor = pSeaFloor[pLines[ii]->indexSeaFloor];
     }
 
     std::cout << "        Count the number of line nodes without repetition of joint nodes" << std::endl;
@@ -1676,6 +1771,7 @@ Simulation::Simulation(std::string incProjectPath, std::string incDataFormat)
         pReadLines = &Simulation::ReadLinesASCII;
         pReadSprings = &Simulation::ReadSpringsASCII;
         pReadWinches = &Simulation::ReadWinchesASCII;
+        pReadSeaFloor = &Simulation::ReadSeaFloorASCII;
     }
     else if (!incDataFormat.compare("HDF5"))
     {
@@ -1691,6 +1787,8 @@ Simulation::Simulation(std::string incProjectPath, std::string incDataFormat)
         pReadLines = &Simulation::ReadLinesHDF5;
         pReadSprings = &Simulation::ReadSpringsHDF5;
         pReadWinches = &Simulation::ReadWinchesHDF5;
+        pReadSeaFloor = &Simulation::ReadSeaFloorHDF5;
+
     }
     else
     {
