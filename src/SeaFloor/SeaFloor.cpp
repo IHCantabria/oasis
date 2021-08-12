@@ -227,11 +227,8 @@ void Bathymetry::getVertexNormals(void){
                 numTrianguloVertice++;
             }
         }
-        //pense que delaunay usaba todos
-        if (numTrianguloVertice>0) {
-            vertexNormals.row(i)= sumaNormal/numTrianguloVertice;
-            vertexNormals.row(i)= vertexNormals.row(i)/arma::norm(vertexNormals.row(i),2);
-        }
+        vertexNormals.row(i)= sumaNormal/numTrianguloVertice;
+        vertexNormals.row(i)= vertexNormals.row(i)/arma::norm(vertexNormals.row(i),2);
 
     }
  
@@ -333,6 +330,7 @@ arma::field<arma::mat> Bathymetry::projectPoints(arma::mat nodos){
     arma::mat zCoordinates= arma::zeros(numNodos,1);
     //INICIALIZACION DE LAS NORMALES  RETORNAR
     arma::mat normales = arma::zeros(numNodos,3);
+    double tol = 1e-10;
 
 
     for (int k=0; k<numTriangulos; k++) 
@@ -365,7 +363,7 @@ arma::field<arma::mat> Bathymetry::projectPoints(arma::mat nodos){
                 double s=arma::as_scalar(uv*vw-vv*uw)/arma::as_scalar(uv*uv -uu*vv);
                 double t=arma::as_scalar(uv*uw-uu*vw)/arma::as_scalar(uv*uv -uu*vv);
                 //dan valores razonables
-                if((t>=0.0) && (s >=0.0 ) && (s+t <= 1.0) ){
+                if((t>= -tol) && (s >= -tol) && (s+t <= (1.0 + tol)) ){
                     estaProyectado(i)=1;
                     arma::mat puntoProyectar=arma::zeros(1,3);
                     puntoProyectar= changeFrameMatrix(k,2)*s + changeFrameMatrix(k,3)*t;

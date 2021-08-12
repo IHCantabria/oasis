@@ -355,7 +355,10 @@ void Line::SEM_computeF(void)
 		projectedPoints = temp(0,0);
 		projectionDirection= temp(0,2);
 		zCoordinates= temp(0,1);
-		
+		//std::cout << "nodes" << std::endl << pos << std::endl;
+		//std::cout << "projectedPoints" << std::endl << projectedPoints << std::endl;
+		//std::cout << "zCoordinates" << std::endl << zCoordinates << std::endl;
+		//std::cout << "projectionDirection" << std::endl << projectionDirection << std::endl;
 	}
 
 

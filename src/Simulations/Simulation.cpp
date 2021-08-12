@@ -1478,7 +1478,6 @@ void Simulation::SetupCase()
         if (pSeaFloor[ii]->GetType()==3)
 	    {	
 		    dynamic_cast<Bathymetry*>(pSeaFloor[ii])->getVertexNormals();
-            // std::cout << "normals="<< std::endl << dynamic_cast<Bathymetry*>(pSeaFloor[ii])->vertexNormals << std::endl;
 		    dynamic_cast<Bathymetry*>(pSeaFloor[ii])->getProjectionMatrix();  
         }
         else if (pSeaFloor[ii]->GetType()==2){
