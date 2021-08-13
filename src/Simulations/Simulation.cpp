@@ -13,7 +13,6 @@
 #include "../BCPs/Winchies.hpp"
 #include "../BCPs/WinchiesController.hpp"
 #include "../Waves/Wave.hpp"
-#include "../Wind/Wind.hpp"
 #include "../ODE_solvers/ODE_solvers.hpp"
 #include "../WindTurbine/WindTurbine.hpp"
 
@@ -1226,57 +1225,6 @@ void Simulation::ReadWavesHDF5()
     std::cout << "----> Simulation Properties Read" << std::endl;
 }
 
-void Simulation::ReadWind()
-{
-    (this->*pReadWind)();
-}
-
-
-void Simulation::ReadWindASCII()
-{
-	std::cout << "--> Reading Wind (ASCII format)" << std::endl;
-    std::string file_path = JoinPath(inputFolderPath, "dataWind.dat");
-    FILE* file_pointer = fopen(file_path.c_str(), "r");
-	
-	if (file_pointer == NULL)
-	{
-        std::stringstream ss;
-        ss << "Not possible to open the file: dataWind.dat\n    ->Dir: " << inputFolderPath << std::endl;
-        throw IOError(ss.str());
-	}
-	
-    char bufferLine [1000];
-
-    //Ignoro las tres primeras lineas
-	for(int ii=0; ii<3; ii++)
-	{
-		fgets(bufferLine, sizeof(bufferLine), file_pointer);
-	}
-
-    // Get wave type line
-    char wind_type [1000];
-    fgets(wind_type, sizeof(wind_type), file_pointer);
-    double S; double D;
-    fscanf(file_pointer, "%lf %[^\n]\n", &S, bufferLine);
-    fscanf(file_pointer, "%lf %[^\n]\n", &D, bufferLine);
-
-    // Close file
-    fclose(file_pointer);
-
-    std::cout << "----> Waves Read" << std::endl;
-
-}
-
-
-void Simulation::ReadWindHDF5()
-{
-	std::cout << "--> Reading Waves (HDF5 format)" << std::endl;
-    std::stringstream ss;
-    ss << "Method ReadWavesHDF5 in class Simulation not implemented yet.";
-    throw NotImplementedError(ss.str());
-    std::cout << "----> Simulation Properties Read" << std::endl;
-}
-
 
 void Simulation::ReadWinches()
 {
@@ -1786,7 +1734,6 @@ Simulation::Simulation(std::string incProjectPath, std::string incDataFormat)
         pReadLines = &Simulation::ReadLinesASCII;
         pReadSprings = &Simulation::ReadSpringsASCII;
         pReadWinches = &Simulation::ReadWinchesASCII;
-        pReadWind = &Simulation::ReadWindASCII;
         pReadWindTurbines = &Simulation::ReadWindTurbinesASCII;
     }
     else if (!incDataFormat.compare("HDF5"))
@@ -1803,7 +1750,6 @@ Simulation::Simulation(std::string incProjectPath, std::string incDataFormat)
         pReadLines = &Simulation::ReadLinesHDF5;
         pReadSprings = &Simulation::ReadSpringsHDF5;
         pReadWinches = &Simulation::ReadWinchesHDF5;
-        pReadWind = &Simulation::ReadWindHDF5;
         pReadWindTurbines = &Simulation::ReadWindTurbinesHDF5;
     }
     else

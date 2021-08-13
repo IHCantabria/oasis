@@ -10,7 +10,6 @@
 #include "../Lines/Lines.hpp"
 #include "../Spring/Spring.hpp"
 #include "../Waves/Wave.hpp"
-#include "../Wind/Wind.hpp"
 #include "../Sinking/Sinking.hpp"
 #include "../WindTurbine/WindTurbine.hpp"
 
@@ -132,9 +131,6 @@ public:
     void ReadWaves(void);
     void ReadWavesASCII(void);
     void ReadWavesHDF5(void);
-    void ReadWind(void);
-    void ReadWindASCII(void);
-    void ReadWindHDF5(void);
     void ReadWindTurbines(void);
     void ReadWindTurbinesASCII(void);
     void ReadWindTurbinesHDF5(void);

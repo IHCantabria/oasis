@@ -55,7 +55,6 @@ set(OASIS_SOURCE_FILES
     "src/Spring/Spring.cpp"
     "src/Sinking/Sinking.cpp"
     "src/WindTurbine/WindTurbine.cpp"
-    "src/Wind/Wind.cpp"
     )
 
 # Add include files
@@ -80,7 +79,6 @@ set(OASIS_HEADER_FILES
     "src/Spring/Spring.hpp"
     "src/Sinking/Sinking.hpp"
     "src/WindTurbine/WindTurbine.hpp"
-    "src/Wind/Wind.hpp"
     )
 
 # Join source and header files
