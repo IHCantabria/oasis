@@ -290,10 +290,8 @@ void Simulation::CloseCase()
     	WinchesController.CloseOutputFilesASCII();
 	}
 
-    for (int ii=0; ii<numWindTurbines; ii++)
-    {
-    	pWindTurbines[ii]->Finalize();
-    }
+    pWindTurbines->Finalize();
+
 }
 
 
@@ -1372,18 +1370,9 @@ void Simulation::ReadWindTurbinesASCII(void)
 
     // Read number of Wind Turbines defined in the file
 	fscanf(file_pointer, "%d %[^\n]\n", &numWindTurbines, bufferLine);
-
-    if (numWindTurbines>0){
-        // Allocate a vector of pointers to WindTurbine class objects
-        pWindTurbines = new WindTurbine*[numWindTurbines];
-
-        // Initiallize and read wind turbines
-        for(int ii=0; ii<numWindTurbines; ii++)
-        {
-            pWindTurbines[ii] = new WindTurbine(ii,this);
-            pWindTurbines[ii]->ReadPropertiesASCII(file_pointer);
-        }
-    }
+    // Allocate a vector of pointers to WindTurbine class objects
+    pWindTurbines = new WindTurbine(numWindTurbines,this);
+    pWindTurbines->ReadPropertiesASCII(file_pointer);
 
     // Close the file
     fclose(file_pointer);
@@ -1432,6 +1421,9 @@ void Simulation::Run()
             }
             for(int ii=0; ii<numLines; ii=ii+1) pLines[ii]->WriteOut(wallTime);
             for(int ii=0; ii<numBodies; ii=ii+1) pBodies[ii]->WriteOut(wallTime);
+            if (numWindTurbines>0) {
+                pWindTurbines->Step();
+            }
         }
 
     	if (pTimeSolver->t >= wallTimeHydro + hydroTimeStep)
@@ -1726,11 +1718,7 @@ void Simulation::SetupCase()
 
     // Setup wind turbines
     std::cout << "        Setup wind turbines ..." << std::endl;
-    for (int ii=0; ii<numWindTurbines; ii++)
-    {
-        pWindTurbines[ii]->pBody = pBodies[pWindTurbines[ii]->body_id];
-        pWindTurbines[ii]->Initialize();
-    }
+    pWindTurbines->Initialize();
 
     std::cout << "----> Case configuration done" << std::endl;
 }

@@ -13,23 +13,23 @@ class Body;
 class WindTurbine {
 public:
 
-    int nTurbine; // Turbine number
+    int numWindTurbines; // Turbine number
     Simulation* pSim; // Pointer to simulation instance
-    Body* pBody; // Pointer to corresponding body
-    int body_id; // Body id
+    Body** pBodies; // Pointers to corresponding bodies
 
     fast::OpenFAST FAST;
     fast::fastInputs fi;
 
     arma::mat forceOnBase = arma::zeros(6,1);
 
-    WindTurbine(int n,Simulation* pSimInp){nTurbine=n; pSim = pSimInp;} // Inicializa un objeto de clase turbina dandole el indice
+    WindTurbine(int n,Simulation* pSimInp){numWindTurbines=n; pSim = pSimInp;} // Inicializa un objeto de clase turbina dandole el indice
 	void ReadPropertiesASCII(FILE*& pFile); // Lee inputs de las turbinas
     void Initialize(void); // Configura el objeto turbina
+    void Step(void);
     void Finalize(void); // Cierra el caso
 
-    void ComputeForceOnBase(void);
-    void UpdateNodesVelocities(void);
+    void GetBaseForces(void);
+    void SetBaseMovements(void);
 
 };
 

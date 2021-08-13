@@ -78,7 +78,7 @@ public:
     WinchieController WinchesController;
     Wave* pWave;
     Sinking** pSinking;
-    WindTurbine** pWindTurbines;
+    WindTurbine* pWindTurbines;
     int numAnchorBcps=0;
     int numBcps=0;
     int numBodies=0;
