@@ -19,9 +19,9 @@ public:
 
  
  	//para el plano inclinado
- 	arma::mat point1 = arma::zeros(3,1);
-	arma::mat point2 = arma::zeros(3,1);
- 	arma::mat point3= arma::zeros(3,1);
+ 	arma::mat p1=arma::zeros(1,3);
+	arma::mat p2= arma::zeros(1,3);
+ 	arma::mat p3 =arma::zeros(1,3);
 
 
  	//Methods
@@ -71,8 +71,12 @@ private:
 
 
 public:
+	//atributes
+	arma::mat normalPlano = arma::zeros(1,3);
+	double a, b, c, d; //coeficientes que definen la ecuacion de un plano
+	//methods
 	Inclined(int incId): SeaFloor(incId) {};
-	arma::mat getNormal(arma::mat p1, arma::mat p2, arma::mat p3);
+	void getPlaneEquation(void);
 	arma::field<arma::mat> projectPoints(arma::mat nodos);
 	int GetType(void);
 

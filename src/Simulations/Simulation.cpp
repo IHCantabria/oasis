@@ -1481,9 +1481,8 @@ void Simulation::SetupCase()
 		    dynamic_cast<Bathymetry*>(pSeaFloor[ii])->getProjectionMatrix();  
         }
         else if (pSeaFloor[ii]->GetType()==2){
-            std::stringstream ss;
-            ss << "Not implemented. \n";
-            throw ValueError(ss.str());
+            dynamic_cast<Inclined*>(pSeaFloor[ii])->getPlaneEquation();
+            
         } 
         else if (pSeaFloor[ii]->GetType()==1){
             std::cout <<"floor: " << std::endl << pSeaFloor[ii]->fondo <<std::endl;

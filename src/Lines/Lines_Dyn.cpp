@@ -135,7 +135,7 @@ void Line::ReadPropertiesASCII(FILE* pFilePointer)
 	t = arma::zeros(N,3);
 	e_z = arma::zeros(1,3);
 	e_z(0,2) = 1.0;
-	posFriccion = arma::zeros(N,2);
+	posFriccion = arma::zeros(N,3);
 	isSlip = arma::zeros(N,1);
 	ffslid=arma::zeros(1,2);
 	ffstick=arma::zeros(1,2);
@@ -346,7 +346,7 @@ void Line::SEM_computeF(void)
 		arma::umat ind = arma::find(((T>0.0)&&(T<T0)));
 		T.elem(ind) = temp_T.elem(ind);
 	}
-	posFriccion= pos.cols(0,1);
+	posFriccion= pos;
 
 	if (floor_flag==1)
 	{
@@ -355,10 +355,11 @@ void Line::SEM_computeF(void)
 		projectedPoints = temp(0,0);
 		projectionDirection= temp(0,2);
 		zCoordinates= temp(0,1);
-		//std::cout << "nodes" << std::endl << pos << std::endl;
-		//std::cout << "projectedPoints" << std::endl << projectedPoints << std::endl;
-		//std::cout << "zCoordinates" << std::endl << zCoordinates << std::endl;
-		//std::cout << "projectionDirection" << std::endl << projectionDirection << std::endl;
+		//std::cout << "nodos" << std::endl<< pos << std::endl;
+		//std::cout << "projectedPoints" << std::endl<< projectedPoints << std::endl;
+		//std::cout << "projectionDirection" << std::endl<< projectionDirection << std::endl;
+		//std::cout << "zCoord" << std::endl<< zCoordinates << std::endl;
+	
 	}
 
 
@@ -379,7 +380,9 @@ void Line::SEM_computeF(void)
 		ff.row(k) = ff.row(k) - 0.5 * Cdn * d * rhoW * arma::norm(vn,2) * vn;
 
 		if (floor_flag == 1){
-			//suponiendo que esta direccion de proyeccion es unitaria
+			//GROUND FORCES--SMOOTHED PALM'S MODEL
+
+			//TAREA: comprobar si es o no unitaria
 			double ultimaCoordVel = arma::as_scalar(v*arma::strans(projectionDirection.row(k)));
 			double zCoordinate = -zCoordinates(k); //porque al ir las normales hacia arriba es el criterio contrario
 	
@@ -388,7 +391,7 @@ void Line::SEM_computeF(void)
 				paramVel= step(ultimaCoordVel, -VR, 1, 0, 0);
 				parammuelle1= step(zCoordinate, 0, 0, d/2, 1);
 		    	parammuelle2= GK*d*(zCoordinate) ;
-				ff.row(k)= ff.row(k) + (fg*paramNormal + parammuelle1*parammuelle2 - GC*paramNormal*dampCoef*paramVel*ultimaCoordVel)*projectionDirection.row(k);
+				ff.row(k)= ff.row(k) + (fg*paramNormal + parammuelle1*parammuelle2 - GC*paramNormal*dampCoef*paramVel*ultimaCoordVel)*projectionDirection.row(k)/arma::norm(projectionDirection.row(k),2);
 
 			} else{
 				//comparativa con el anterior
@@ -396,32 +399,44 @@ void Line::SEM_computeF(void)
 			    GC = 2.0 * sqrt(rho0 * GK * d ) / (abs(fg) * d);
 				fd= fs* GC*d *pow(std::min(v(2), 0.0), 2);
 				ff(k,2)=ff(k,2) + fs + fd;
-
 			}
+
+			//FRICTION FORCES
+			//STICK-SLIP MODEL
 			if (frictionModel==2) {
-				arma::mat vxy= arma::zeros(1,2);
-				vxy(0,0)=v(0);
-				vxy(0,1)=v(1);
-				double normvxy= arma::norm(vxy, 2);
-				fn=fg*step((fondo - pos(k,2)), -d/2, 0, 0, 1); //se ha suavizado
+				//parametros a utilizar
+				//arma::mat vxy= arma::zeros(1,2);
+				arma::mat vpi = arma::zeros(1,3);
+				vpi=v - arma::as_scalar(v*arma::strans(projectionDirection.row(k))) * projectionDirection.row(k) /arma::norm(projectionDirection.row(k),2);
+				//vxy(0,0)=v(0);
+				//vxy(0,1)=v(1);
+				//double normvxy= arma::norm(vxy, 2);
+				double normVel = arma::norm(vpi,2);
+				//fn=fg*step((fondo - pos(k,2)), -d/2, 0, 0, 1); //se ha suavizado
+				fn=fg*step(zCoordinate, -d/2, 0, 0, 1);
+
+				//isSlip vale 0 si en la iter.anterior es slip
+				//isSlip vale 1 si en la iter.anterior es stick
 				if (isSlip(k,0)==1){
-					if(normvxy > vth){
+					if(normVel > vth){
+						//en este caso cambia a slip
+						//se deben guardar las posiciones cuando ocurre esto
 						isSlip(k,0)=0;
-						posFriccion(k,0)=pos(k,0);
-						posFriccion(k,1)=pos(k,1);
+						posFriccion.row(k)=pos.row(k);
 					}
 				}
 				if(isSlip(k,0)==0){
-					if (normvxy <= vth){
+					if (normVel <= vth){
 						isSlip(k,0)=1;
-						//no guarda posicion, ya que solo la guarda si pasa de split a slip
+						//en este caso cambia a stick
+						//no guarda posicion, ya que solo la guarda si pasa de stick a slip
 					}
 				}
-				arma:: mat posActual= arma::zeros(1,2);
-				arma:: mat deformacion = arma::zeros(1,2);
-				posActual(0,0)=pos(k,0);
-				posActual(0,1)=pos(k,1);
-				deformacion= posActual - posFriccion.row(k);
+				arma:: mat deformacion = arma::zeros(1,3);
+				//arma::mat tpi= arma::zeros(1,3);
+				//tpi= t.row(k) - arma::as_scalar(t.row(k)* arma::stans(projectionDirection.row(k)))*projectionDirection.row(k)/ arma::norm(projectionDirection.row(k));
+				
+				deformacion= projectedPoints.row(k);- posFriccion.row(k);
 				double delta= arma::norm(deformacion, 2);
 				double betaStick, usstep, udstep, normaSmooth2, normaDelta;
 
@@ -432,28 +447,28 @@ void Line::SEM_computeF(void)
 					udstep=ud;
 
 				}else{
-					betaStick=step(normvxy, -vth, -1.0, vth, 1.0);
+					betaStick=step(normVel, -vth, -1.0, vth, 1.0);
 					usstep=step(delta, -deltamax, -us, deltamax, us);
-					udstep=step(normvxy, -vth, -ud, vth, ud);
+					udstep=step(normVel, -vth, -ud, vth, ud);
 				}
 				//hay que calcular las fuerzas
-				ffslid= -vxy* udstep* fn/std::max(normvxy,1e-7);
-				if(normvxy<=1e-04) {
-					normaSmooth2 = arma::as_scalar(a_1(0,0)*pow(normvxy,3)+a_1(1,0)*pow(normvxy,2)+a_1(2,0)*normvxy+a_1(3,0));
-				} else{
-					normaSmooth2 = normvxy;
-				}
+				ffslid= -vpi* udstep* fn/std::max(normVel,1e-7);
+				//if(normvxy<=1e-04) {
+				//	normaSmooth2 = arma::as_scalar(a_1(0,0)*pow(normvxy,3)+a_1(1,0)*pow(normvxy,2)+a_1(2,0)*normvxy+a_1(3,0));
+				//} else{
+				//	normaSmooth2 = normvxy;
+				//}
 				//ffslid= -vxy* udstep* fn/normaSmooth2;
-				ff.submat(k,0,k,1) = ff.submat(k,0,k,1) + ffslid;
+				ff.row(k) = ff.row(k) + ffslid;
 				if((isSlip(k,0)==1)) {
-					if(delta<=1e-04) {
-						normaDelta = arma::as_scalar(a_1(0,0)*pow(delta,3)+a_1(1,0)*pow(delta,2)+a_1(2,0)*delta+a_1(3,0));
-					} else{
-						normaDelta = delta;
-					}
+					//if(delta<=1e-04) {
+					//	normaDelta = arma::as_scalar(a_1(0,0)*pow(delta,3)+a_1(1,0)*pow(delta,2)+a_1(2,0)*delta+a_1(3,0));
+					//} else{
+					//	normaDelta = delta;
+					//}
 					ffstick= -deformacion*(1-betaStick)*usstep*fn/std::max(delta,1e-7);
 					//ffstick= -deformacion*(1-betaStick)*usstep*fn/normaDelta;
-					ff.submat(k,0, k ,1) = ff.submat(k, 0, k, 1) + ffstick;
+					ff.row(k) = ff.row(k) + ffstick;
 				}
 			}
 			if (frictionModel==1){

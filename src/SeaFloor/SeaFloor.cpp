@@ -53,16 +53,13 @@ void SeaFloor::ReadPropertiesASCII(FILE* &pFilePointer)
     if (this->GetType() == 2)
     {
         //guardo las posiciones de los 3 puntos en los que se define el plano
-        fscanf(pFilePointer, "%lf %lf %lf %[^\n]\n", &point1(0, 0), &point1(1, 0), &point1(2, 0), buffer_line);
-        fscanf(pFilePointer, "%lf %lf %lf %[^\n]\n", &point2(0, 0), &point2(1, 0), &point2(2, 0), buffer_line);
-        fscanf(pFilePointer, "%lf %lf %lf %[^\n]\n", &point3(0, 0), &point3(1, 0), &point3(2, 0), buffer_line);
+        fscanf(pFilePointer, "%lf %lf %lf %[^\n]\n", &p1(0,0), &p1(0,1), &p1(0,2), buffer_line);
+        fscanf(pFilePointer, "%lf %lf %lf %[^\n]\n", &p2(0,0), &p2(0,1), &p2(0,2), buffer_line);
+        fscanf(pFilePointer, "%lf %lf %lf %[^\n]\n", &p3(0,0), &p3(0,1), &p3(0,2), buffer_line);
     }
     if(this->GetType() == 1) {
         fscanf(pFilePointer, "%lf %[^\n]\n", &fondo, buffer_line);
     }
-
-
-//hay una probabilidad muy grande de que estos metodos vacios funcionen mal
 }
 
 
@@ -95,22 +92,70 @@ arma::field<arma::mat> Flat::projectPoints(arma::mat nodos){
 
 //INCLINED DEFINITION
 //¿No seria mejor que los puntos estuvieran en el constructor, que este calculara la normal?
-arma::mat Inclined::getNormal(arma::mat p1, arma::mat p2, arma::mat p3)
+void Inclined::getPlaneEquation(void)
 {
-    std::cout << "--> Reading getNormal" << std::endl;
-    std::stringstream ss;
-    ss << "Method getNormal in subclass Inclined not implemented yet.";
-    throw NotImplementedError(ss.str());
+    arma::mat Lado1= p2-p1;
+    arma::mat Lado2= p3-p1;
+    arma::mat prodCross = arma::cross(Lado1,Lado2);
+    normalPlano=prodCross/ arma::norm(prodCross,2);
+    double tol = 1e-10;
+    if (arma::norm(prodCross,2)<tol)
+	{
+        std::stringstream ss;
+		ss << "The input points are aligned\n";
+		throw ValueError(ss.str());
+	}
+    if (normalPlano(2) <-1e-10){
+        normalPlano = -normalPlano;
+    }
+    this->a= arma::as_scalar(normalPlano(0));
+    this->b= arma::as_scalar(normalPlano(1));
+    this->c= arma::as_scalar(normalPlano(2));
+    this->d= a*arma::as_scalar(p1(0))+b*arma::as_scalar(p1(1)) + c*arma::as_scalar(p1(2));
+  
+
 }
+
 int Inclined::GetType(void){
     return this->seaFloorType;
 }
+
 arma::field<arma::mat> Inclined::projectPoints(arma::mat nodos){
-    std::cout << "--> Reading getNormal" << std::endl;
-    std::stringstream ss;
-    ss << "Method projectPoints in subclass Inclined not implemented yet.";
-    throw NotImplementedError(ss.str());
+    arma::field<arma::mat> aRetornar(1,3);
+    //INICIALIZACION DE NODOS
+    int numNodos = nodos.n_rows;
+    arma::mat puntosProyectados = arma::zeros(numNodos,3); //aqui se devolveran los puntos ya proyectados
+    //INICIALIZACION DE Z
+    arma::mat zCoordinates= arma::zeros(numNodos,1);
+    //INICIALIZACION DE LAS NORMALES  RETORNAR
+    arma::mat normales = arma::zeros(numNodos,3);
+    double t; //parametricas de la recta que une el punto con su proyeccion
+    for (int i=0; i<numNodos; i++) {
+        t= (d - a*arma::as_scalar(nodos(i,0)) - b*arma::as_scalar(nodos(i,1)) - c*arma::as_scalar(nodos(i,2)))/(a*a + b*b + c*c);
+        puntosProyectados(i,0)= arma::as_scalar(nodos(i,0)) +this->a*t;
+        puntosProyectados(i,1)= arma::as_scalar(nodos(i,1)) + this->b*t;
+        puntosProyectados(i,2) = arma::as_scalar(nodos(i,2)) + this->c*t;
+        arma::mat vector = nodos.row(i)-puntosProyectados.row(i); //vector del puntoPro. al nodo
+        if (vector(2)> -1e-10){
+            //porque la normal apunta hacia arriba y se proyecta en esa direcciomm
+            zCoordinates(i)= arma::norm(vector,2); //esto si esta por encima
+        } else {
+            zCoordinates(i)= -arma::norm(vector,2);
+        }
+       
+    }
+    normales.col(0)= normalPlano(0)*arma::ones(numNodos,1);
+    normales.col(1)= normalPlano(1)*arma::ones(numNodos,1);
+    normales.col(2)= normalPlano(2)*arma::ones(numNodos,1);
+    aRetornar(0,0)=puntosProyectados;
+    aRetornar(0,2)=normales;
+    aRetornar(0,1)=zCoordinates;
+    return aRetornar;
+
 }
+
+
+
 
 //BATHYMETRY DEFINITION
 void Bathymetry::ReadPropertiesASCII(FILE* &pFilePointer, std::string inputFilePath){
@@ -131,7 +176,6 @@ void Bathymetry::ReadPropertiesASCII(FILE* &pFilePointer, std::string inputFileP
     fscanf(file_pointer, "%d %[^\n]\n", &numPuntosNube, buffer_line);
      std::cout << "numero de puntos="<< std::endl << numPuntosNube<< std::endl;
     pointMatrix = arma::zeros(numPuntosNube,3);
-    //hasta aqui lo lee bien
 
     for(int ii=0; ii<3; ii++)
 	{
@@ -186,8 +230,8 @@ void Bathymetry::ReadPropertiesASCII(FILE* &pFilePointer, std::string inputFileP
     }
     fclose(file_pointer);
     close;
-    std::cout << "pointMatrix="<< std::endl << pointMatrix<< std::endl;
-	std::cout << "triangleMatrix="<< std::endl << triangleMatrix<< std::endl;
+    //std::cout << "pointMatrix="<< std::endl << pointMatrix<< std::endl;
+	//std::cout << "triangleMatrix="<< std::endl << triangleMatrix<< std::endl;
     
 
 
@@ -197,7 +241,6 @@ int Bathymetry::GetType(void){
 }
 
 void Bathymetry::getVertexNormals(void){
-    std::cout << "Se ha entrado en vertex Normals de bathymetry" << std::endl;
     //se usa las matrices leidas pointMatrix y triangleMatrix
     //se itera con cada triangulo y se sacan las coordenadas de sus vertices
     //OJO si triangleMatrix(i)= 1 2 3, las filas donde hay que buscar las coordenadas son 1-1 2-1 3-1 por venir de Matlab
