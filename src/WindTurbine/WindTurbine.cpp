@@ -10,6 +10,7 @@
 #include "../os_tools.hpp"
 #include "../Simulations/Simulation.hpp"
 #include <OpenFAST.H>
+#include <mpi.h>
 
 
 void WindTurbine::ReadPropertiesASCII(FILE*& pFile){
@@ -17,7 +18,6 @@ void WindTurbine::ReadPropertiesASCII(FILE*& pFile){
     // Declare variables
 	char buffer_line [1000];
     char cFastFileName [1000];
-    int body_id;
 
     //Ignoro las tres primeras lineas, donde pone "New Turbine"
 	for(int ii=0; ii<3; ii++)
@@ -26,20 +26,23 @@ void WindTurbine::ReadPropertiesASCII(FILE*& pFile){
 	}
 
     //Leo todo
-	fscanf(pFile, "%d %[^\n]\n", &body_id, buffer_line);
-    pBody = pSim->pBodies[body_id-1];
+    std::cout << "    --> Read the corresponding body ID" << std::endl;
+	fscanf(pFile, "%d %[^\n]\n", &body_id, buffer_line); body_id--;
 
+    std::cout << "    --> Read the FAST input file name" << std::endl;
     if (fscanf(pFile, "%s %[^\n]\n", cFastFileName, buffer_line) != 2)
 	{
 		std::stringstream ss;
 		ss << "An error ocurred when trying to read the FAST input file name in Turbine: " << nTurbine << "\n";
 		throw ValueError(ss.str());
 	}
-
+    std::cout << "    --> Join full FAST input file path (1): " << pSim->inputFolderPath << std::endl;
     std::string FASTInputFileName = JoinPath(pSim->inputFolderPath, "FAST");
-    FASTInputFileName = JoinPath(FASTInputFileName, cFastFileName);
+    std::cout << "    --> Join full FAST input file path (2)" << FASTInputFileName << std::endl;
+    FASTInputFileName = JoinPath(FASTInputFileName, cFastFileName);    
+    std::cout << "    --> Join full FAST input file path (3)" << FASTInputFileName << std::endl;
 
-
+    std::cout << "    --> Set up stuff" << std::endl;
     fi.nTurbinesGlob = 1;
     fi.dryRun = false;
     fi.debug = false;
@@ -63,12 +66,25 @@ void WindTurbine::ReadPropertiesASCII(FILE*& pFile){
     fi.globTurbineData[0].nacelle_area = 10;
     fi.globTurbineData[0].air_density = 1.225;
 
-
 }
 
 
-void WindTurbine::SetUp(void){
+void WindTurbine::Initialize(void){
 
+    int iErr;
+    int nProcs;
+    int rank;
+    std::cout << "        --> MPI_Init" << std::endl;
+    iErr = MPI_Init(NULL, NULL);
+    std::cout << "        --> MPI_Comm_size" << std::endl;
+    iErr = MPI_Comm_size( MPI_COMM_WORLD, &nProcs);
+    std::cout << "        --> MPI_Comm_rank" << std::endl;
+    iErr = MPI_Comm_rank( MPI_COMM_WORLD, &rank);
+
+    std::cout << "        --> fi.comm = MPI_COMM_WORLD;" << std::endl;
+    fi.comm = MPI_COMM_WORLD;
+
+    std::cout << "        --> FAST.setInputs(fi);" << std::endl;
     FAST.setInputs(fi);
     FAST.allocateTurbinesToProcsSimple();
     FAST.init();
@@ -78,9 +94,8 @@ void WindTurbine::SetUp(void){
 
 
 void WindTurbine::Finalize(void){
-
     FAST.end();
-
+    MPI_Finalize();
 }
 
 void WindTurbine::ComputeForceOnBase(void){

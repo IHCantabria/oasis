@@ -289,6 +289,11 @@ void Simulation::CloseCase()
     if (useWinches) {
     	WinchesController.CloseOutputFilesASCII();
 	}
+
+    for (int ii=0; ii<numWindTurbines; ii++)
+    {
+    	pWindTurbines[ii]->Finalize();
+    }
 }
 
 
@@ -395,6 +400,7 @@ void Simulation::LoadCase()
     }
     this->ReadSprings();
     this->ReadSinking();
+    this->ReadWindTurbines();
 
     // Setup case
     this->SetupCase();
@@ -1343,7 +1349,7 @@ void Simulation::ReadWinchesHDF5()
 
 void Simulation::ReadWindTurbines(void)
 {
-     (this->*pReadWinches)();
+     (this->*pReadWindTurbines)();
 }
 
 
@@ -1717,6 +1723,14 @@ void Simulation::SetupCase()
 		std::cout << "        Setup winchies controller" << std::endl;
     	WinchesController.SetUpWinchiesController();
 	}
+
+    // Setup wind turbines
+    std::cout << "        Setup wind turbines ..." << std::endl;
+    for (int ii=0; ii<numWindTurbines; ii++)
+    {
+        pWindTurbines[ii]->pBody = pBodies[pWindTurbines[ii]->body_id];
+        pWindTurbines[ii]->Initialize();
+    }
 
     std::cout << "----> Case configuration done" << std::endl;
 }
