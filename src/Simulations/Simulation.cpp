@@ -1605,7 +1605,7 @@ void Simulation::SetupCase()
             pLines[ii]->SEM_getBaseFunctions();
             std::string filename2 = JoinPath(outputFolderPath,"PosInitLine");
             filename2 = filename2 + "_Line_" + std::to_string(ii+1) + ".dat";  
-            pLines[ii]->pos.save(filename2,arma::arma_ascii);
+            pLines[ii]->pos.save(filename2,arma::raw_ascii);
 
             pLines[ii]->print_out();
             // std::string filename = JoinPath(outputFolderPath,"DerivativeMatrix_");
@@ -1715,13 +1715,6 @@ void Simulation::SetupCase()
         //se comienza
         arma::mat posicionInicial = ComputeLinesInitialPoint();
 
-        for (int i=0; i < numLines; i++) 
-        {
-            std::string filename4 = JoinPath(outputFolderPath,"PosStaticFEMInitial_");
-            filename4 = filename4 + "Line_" + std::to_string(i+1) + ".dat";  
-            pLines[i]->pos.save(filename4,arma::arma_ascii);
-        }
-
         // arma::mat fuerzaEnPosInicial = ComputeLinesForces(posicionInicial);
         //arma::mat jacobiano = ComputeLinesJacobian(posicionInicial, fuerzaEnPosInicial);
         //std::string filename = JoinPath(outputFolderPath,"LinesEqJac2.dat");
@@ -1736,7 +1729,7 @@ void Simulation::SetupCase()
             pLines[i]-> flag_tension =flagTension(i);
             std::string filename3 = JoinPath(outputFolderPath,"PosStaticFEM_");
             filename3 = filename3 + "Line_" + std::to_string(i+1) + ".dat";  
-            pLines[i]->pos.save(filename3,arma::arma_ascii);
+            pLines[i]->pos.save(filename3,arma::raw_ascii);
         }
 
 
@@ -2122,8 +2115,7 @@ void Simulation::ComputeLinesEquilibrium(arma::mat x)
         x = xsol;
         fx = fxsol; //COMPORBAR QUE NO VUELVE A COMPUTAR LAS FUERZAS
    }
-    std::cout << "xsol " << std::endl << xsol << std::endl;
-   std::cout << "fxsol " << std::endl << fxsol << std::endl;
+   std::cout << "Fuerzas en el equilibrio. Han de ser cero. " << std::endl << fxsol << std::endl;
 
 
    if (iter >= maxIter) {
