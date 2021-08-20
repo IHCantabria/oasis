@@ -105,7 +105,7 @@ void Inclined::getPlaneEquation(void)
 		ss << "The input points are aligned\n";
 		throw ValueError(ss.str());
 	}
-    if (normalPlano(2) <-1e-10){
+    if (normalPlano(2) < -1e-10){
         normalPlano = -normalPlano;
     }
     this->a= arma::as_scalar(normalPlano(0));
@@ -142,6 +142,7 @@ arma::field<arma::mat> Inclined::projectPoints(arma::mat nodos){
         } else {
             zCoordinates(i)= -arma::norm(vector,2);
         }
+
        
     }
     normales.col(0)= normalPlano(0)*arma::ones(numNodos,1);
@@ -184,7 +185,7 @@ void Bathymetry::ReadPropertiesASCII(FILE* &pFilePointer, std::string inputFileP
 		if (header_check.substr(0, 3).compare("///"))
 		{
 			std::stringstream ss;
-			ss << "Error while parsing file: datosBCPs.dat - HINT BCP ID: " << this->GetId() << " - Please check that each type of BCP has its correct number of inputs.";
+			ss << "Error while parsing file HINT SEAFLOOR ID: " << this->GetId() << " - Please check that each type of seafloor has its correct number of inputs.";
 			throw IOError(ss.str());
 		}
 	}
@@ -435,6 +436,12 @@ arma::field<arma::mat> Bathymetry::projectPoints(arma::mat nodos){
     aRetornar(0,0) = puntosProyectados;
     aRetornar(0,1)=zCoordinates;
     aRetornar(0,2)=normales;
+    for (int i=0; i< numNodos; i++) {
+        if (puntosProyectados(i,0)==0 && puntosProyectados(i,1)==0 && puntosProyectados(i,2)==0)
+        {
+            std::cout << "     WARNING: Probably, node" << i + 1 << " could not be projected. Check the floor size. " << std::endl;
+        }
+    }
     return aRetornar;
 }
 

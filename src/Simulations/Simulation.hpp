@@ -47,6 +47,7 @@ public:
     double waterDensity;
     double waterDepth;
     bool writeEquilibrium;
+    int flagStatic;
 
     // Declare time simulation attributes
     int numCallsSysFun=0;
@@ -63,6 +64,9 @@ public:
     arma::sp_mat* pLinesCouplingMatrix_sp;
     arma::mat* pLinesCouplingMatrix;
     arma::mat* pLinesCouplingMatrixInv;
+    arma::uvec indexesJoint; //indices a quitar, tienen que ser enteros
+    arma::uvec otherIndexes; //indices a quitar, tienen que ser enteros
+    arma::mat filasQuitadas; //las filas que se quitaron 
 
     // Declare Components Setup Attributes
     AnchorBCP** pAnchorBcps;
@@ -150,6 +154,11 @@ public:
     void UpdateSystem(void);
     void UpdateSystemMatrix(void);
     void ComputeLinesCouplingMatrix(void);
+    arma::mat ComputeLinesInitialPoint(void);
+    arma::mat ComputeLinesForces(arma::mat position);
+    arma::mat ComputeLinesJacobian(arma::mat position, arma::mat fuerzaEnPosInicial);
+    void ComputeLinesEquilibrium(arma::mat x);
+
 
 };
 

@@ -1046,6 +1046,7 @@ void Simulation::ReadPropertiesASCII()
     readEquilibrium = dummyBool;
 	fscanf(file_pointer, "%d %[^\n]\n", &dummyBool, bufferLine);
     writeEquilibrium = dummyBool;
+    fscanf(file_pointer, "%d %[^\n]\n", &flagStatic, bufferLine);
 
     // Close file
     fclose(file_pointer);
@@ -1065,6 +1066,7 @@ void Simulation::ReadPropertiesASCII()
         std::cout << "Max Iterations per Step: " << maxIterStep << std::endl;
         std::cout << "Read Equilibrium: " << readEquilibrium << std::endl;
         std::cout << "Write Equilibrium: " << writeEquilibrium << std::endl;
+        std::cout << "Static Equilibrium Method: " << flagStatic << std::endl;
     }
 
     std::cout << "----> Simulation Properties Read" << std::endl;
@@ -1288,11 +1290,13 @@ void Simulation::ReadWinchesHDF5()
     std::cout << "----> Winches Properties Read" << std::endl;
 }
 
+
 void Simulation::ReadSeaFloor()
 {
     (this->*pReadSeaFloor)();
 
 }
+
 
 void Simulation::ReadSeaFloorASCII()
 {
@@ -1352,6 +1356,8 @@ void Simulation::ReadSeaFloorASCII()
     fclose(file_pointer);
     std::cout << "----> Floor Properties Read" << std::endl;
 }
+
+
 void Simulation::ReadSeaFloorHDF5()
 {
     std::cout << "--> Reading SeaFloor Properties (HDF5 format)" << std::endl;
@@ -1360,6 +1366,7 @@ void Simulation::ReadSeaFloorHDF5()
     throw NotImplementedError(ss.str());
     std::cout << "----> SeaFloor Properties Read" << std::endl;
 }
+
 
 void Simulation::Run()
 {
@@ -1576,7 +1583,7 @@ void Simulation::SetupCase()
         	numDofTotal += (pLines[ii]->N-2);
         	pLines[ii]->first_node = 1;
         	pLines[ii]->last_node = pLines[ii]->N-1;
-        } else if (pLines[ii]->pLineBcps[0]->GetType() == 3 && pLines[ii]->pLineBcps[1]->GetType() == 3){
+        } else if (pLines[ii]->pLineBcps[0]->GetType() == 3 && pLines[ii]->pLineBcps[1] ->GetType() == 3){
         	numDofTotal += pLines[ii]->N;
         	pLines[ii]->first_node = 0;
         	pLines[ii]->last_node = pLines[ii]->N;
@@ -1591,16 +1598,22 @@ void Simulation::SetupCase()
         }
 
         try
-        {
-            if(!readEquilibrium) pLines[ii]->initLine();
-            pLines[ii]->print_out();
+        {           
+            if(!readEquilibrium) {
+                pLines[ii]->initLine();
+            }       
             pLines[ii]->SEM_getBaseFunctions();
-            std::string filename = JoinPath(outputFolderPath,"DerivativeMatrix_");
-            filename = filename + "_Line_" + std::to_string(ii+1) + ".dat";  
-            pLines[ii]->D.save(filename,arma::arma_ascii);
-            std::string filename2 = JoinPath(outputFolderPath,"ArcLengthPoints_");
+            std::string filename2 = JoinPath(outputFolderPath,"PosInitLine");
             filename2 = filename2 + "_Line_" + std::to_string(ii+1) + ".dat";  
-            pLines[ii]->s.save(filename2,arma::arma_ascii);
+            pLines[ii]->pos.save(filename2,arma::arma_ascii);
+
+            pLines[ii]->print_out();
+            // std::string filename = JoinPath(outputFolderPath,"DerivativeMatrix_");
+            // filename = filename + "_Line_" + std::to_string(ii+1) + ".dat";  
+            // pLines[ii]->D.save(filename,arma::arma_ascii);
+            // std::string filename2 = JoinPath(outputFolderPath,"ArcLengthPoints_");
+            // filename2 = filename2 + "_Line_" + std::to_string(ii+1) + ".dat";  
+            // pLines[ii]->s.save(filename2,arma::arma_ascii);
         }
         catch (int e) 
 		{
@@ -1616,6 +1629,8 @@ void Simulation::SetupCase()
         pLines[ii]->pLineSeaFloor = pSeaFloor[pLines[ii]->indexSeaFloor];
     }
 
+
+
     std::cout << "        Count the number of line nodes without repetition of joint nodes" << std::endl;
     // Count the number of line nodes without repetition of joint nodes
     int numUsedJointBCPs = 0;
@@ -1630,7 +1645,7 @@ void Simulation::SetupCase()
     }
     numAllLinesNodes -= numUsedJointBCPs;
 
-    std::cout << "               ----> numAllLinesNodes = " << numAllLinesNodes << std::endl;
+   // std::cout << "               ----> numAllLinesNodes = " << numAllLinesNodes << std::endl;
 
     // Build the lines coupling sparse matrix and store the lines index vectors
     int indFirstNodeAvail = 0;    
@@ -1662,7 +1677,7 @@ void Simulation::SetupCase()
         }
         pLines[jj]->ind4CouplingMat(numLineNodes_tmp-1) = pLines[jj]->pLineBcps[1]->couplingMatIndex;
 
-        std::cout << "        Line " << jj+1 << " indices: " << std::endl << pLines[jj]->ind4CouplingMat << std::endl;
+    // std::cout << "        Line " << jj+1 << " indices: " << std::endl << pLines[jj]->ind4CouplingMat << std::endl;
 
     }
 
@@ -1675,6 +1690,58 @@ void Simulation::SetupCase()
         *pLinesCouplingMatrixInv = arma::solve(*pLinesCouplingMatrix,eye(size(*pLinesCouplingMatrix)));
         std::string filename = JoinPath(outputFolderPath,"LinesCouplingMatrix.dat");
         (*pLinesCouplingMatrix).save(filename,arma::arma_ascii);
+    }
+
+    // Compute equilibrium with FEM for all lines at the same time
+    if(!readEquilibrium && flagStatic==1) {           
+        //ya no se hace el initLine
+        //se almacenan los flag de cada linea
+        arma::umat flagLineas; 
+        arma::umat flagTension;
+        flagLineas.zeros(numLines,1);
+        flagTension.zeros(numLines,1);
+        
+        for (int i=0; i < numLines; i++) 
+        {
+            //se almacena el tipo
+            flagLineas(i)= pLines[i]-> frictionModel;
+            flagTension(i)= pLines[i]-> flag_tension;
+            //se tratan como si fueran cero
+            pLines[i]-> frictionModel =0;
+            pLines[i]-> flag_tension =1;
+        }
+
+
+        //se comienza
+        arma::mat posicionInicial = ComputeLinesInitialPoint();
+
+        for (int i=0; i < numLines; i++) 
+        {
+            std::string filename4 = JoinPath(outputFolderPath,"PosStaticFEMInitial_");
+            filename4 = filename4 + "Line_" + std::to_string(i+1) + ".dat";  
+            pLines[i]->pos.save(filename4,arma::arma_ascii);
+        }
+
+        // arma::mat fuerzaEnPosInicial = ComputeLinesForces(posicionInicial);
+        //arma::mat jacobiano = ComputeLinesJacobian(posicionInicial, fuerzaEnPosInicial);
+        //std::string filename = JoinPath(outputFolderPath,"LinesEqJac2.dat");
+        //jacobiano.save(filename,arma::arma_ascii);
+
+        ComputeLinesEquilibrium(posicionInicial);
+
+        //cuando termina el metodo se vuelve al flag habitual
+        for (int i=0; i < numLines; i++) 
+        {
+            pLines[i]-> frictionModel = flagLineas(i);
+            pLines[i]-> flag_tension =flagTension(i);
+            std::string filename3 = JoinPath(outputFolderPath,"PosStaticFEM_");
+            filename3 = filename3 + "Line_" + std::to_string(i+1) + ".dat";  
+            pLines[i]->pos.save(filename3,arma::arma_ascii);
+        }
+
+
+        
+
     }
 
     // Setup Springs
@@ -1838,4 +1905,232 @@ void Simulation::UpdateSystemMatrix()
         (*pSystemMatrix)(pBodies[ii]->sysMatSpan1, pBodies[ii]->sysMatSpan2) += pBodies[ii]->pHydro->GetTotalMass();
     }
     *pSystemMatrixInv = arma::solve(*pSystemMatrix,eye(size(*pSystemMatrix)));
+}
+
+arma::mat Simulation::ComputeLinesInitialPoint()
+{
+    arma::mat positionLinesCouplingVector = arma::zeros(numAllLinesNodes,3); //aqui van todas las posiciones
+    arma::mat noEsJoint = arma::zeros(numAllLinesNodes,1); //se empieza pensando que todos son joint
+
+    for(int ii=0; ii<numLines; ii++)
+    {
+
+ /*        int flagenterrados=0; //se empieza pensando que ninguna parte de la solucion inicial esta enterrada
+        //primero se va a comprobar si hay nodos hundidos
+        arma::field<arma::mat> temp = pLines[ii]-> pLineSeaFloor->projectPoints(pLines[ii]->pos);
+        
+        arma::mat zCoordinates= temp(0,1);
+        double diam = pLines[ii]->d; 
+        for (int j=0; j < zCoordinates.n_rows; j++ ) 
+        {
+            if ((zCoordinates(j) < -diam) && (flagenterrados==0)) 
+            {
+                flagenterrados=1;
+            }
+        } */
+        //entonces hay que sacar otra solucion inicial
+
+
+        //inicializacions
+        arma::mat posicionesIniciales = arma::zeros(pLines[ii]->N, 3); //aqui van las posiciones de los nodos
+
+        //lo primero es conseguir la posicion del ancla y del fairlead, almacenado en un bcp
+        arma::mat pos1 = arma::strans(pLines[ii]->pLineBcps[0]->pos); //tamaño 3x1 DEL ANCLA asi que se traspone en fila
+        arma::mat posN = arma::strans(pLines[ii]->pLineBcps[1]->pos); //tamaño 3x1 DEL FAIRLEAD
+        
+        //ESTO SE HACE SOLO SI HAY PARTES ENTERRADAS
+        // if (flagenterrados==1) 
+        // {
+        //     int nodoMedio= (int) round((pLines[ii]->N)/2.0);
+        //     //se hace la linea recta
+        //     for (int j=0; j < (pLines[ii]->N); j++)
+        //     {
+        //         double snodo= arma::as_scalar(pLines[ii]->s.row(j));
+        //         posicionesIniciales.row(j)= snodo* posN/ (pLines[ii]->L) + (1-snodo/(pLines[ii]->L)) *pos1;
+        //     }
+        //     //ahora se utilizan las proyecciones hasta nodo medio
+        //     // std::cout << "Posiciones iniciales: " << pLines[ii]->pLineSeaFloor->projectPoints(posicionesIniciales.rows(0, nodoMedio)) << std::endl;
+        //     arma::mat puntosAProyectar= posicionesIniciales.rows(0, nodoMedio);
+        //     arma::field<arma::mat> temp = pLines[ii]->pLineSeaFloor->projectPoints(puntosAProyectar);
+        //     posicionesIniciales.rows(0, nodoMedio)= temp(0,0);
+        //     double sNodoMedio = arma::as_scalar(pLines[ii]->s.row(nodoMedio));
+        //     arma::mat posNodoMedio = posicionesIniciales.row(nodoMedio);
+        //     //las proyecciones de hasta la mitad ya se han arrelgado, ahora hay que hacer otra recta
+        //     for (int j=nodoMedio; j < (pLines[ii]->N); j++)
+        //     {
+        //         double snodo= arma::as_scalar(pLines[ii]->s.row(j));
+        //         posicionesIniciales.row(j)= (snodo-sNodoMedio)* posN/ (pLines[ii]->L-sNodoMedio) + (1-(snodo-sNodoMedio)/(pLines[ii]->L-sNodoMedio)) *posNodoMedio;
+        //     }           
+
+
+        // } else {
+            posicionesIniciales = pLines[ii]->pos;
+            posicionesIniciales.row(0) = pos1;
+            posicionesIniciales.row(pLines[ii]->N-1) = posN;
+        // }
+        
+        //positionLinesCouplingVector selecciona las filas de esta linea
+        //OJO no hay que hacer un sumatorio porque son posiciones, simplemente no hay que repetir
+        //PUEDE QUE SE SOBREESCRIBA PERO DEBERÍA DAR IGUAL
+        positionLinesCouplingVector.rows(pLines[ii]->ind4CouplingMat) = posicionesIniciales;
+        pLines[ii]->pos = posicionesIniciales;
+    
+        //ahora tengo que encontrar los que no son ancla
+        for (int k=0; k<2; k++)
+        {
+            //si no es Joint se descarta porque no interesa iterar con el
+            if (pLines[ii]->pLineBcps[k]->GetType() != 3){
+                noEsJoint(pLines[ii]->pLineBcps[k]->couplingMatIndex)=1;
+            }
+        }
+    }
+    //lo que quier retornar es un vector fila sin ancla y fairlead
+    indexesJoint= arma::find(noEsJoint); //vector columna con los indices a quitar
+    otherIndexes = arma::find(noEsJoint == 0); //vector con los indices que se queda
+    filasQuitadas= positionLinesCouplingVector.rows(indexesJoint);
+    //ahora quiero convertirlo en un vector columna
+    positionLinesCouplingVector.shed_rows(indexesJoint); //asi los quita
+    arma::mat posicionARetornar= arma::reshape(arma::strans(positionLinesCouplingVector),3*positionLinesCouplingVector.n_rows,1);
+    return posicionARetornar;
+}
+
+arma::mat Simulation::ComputeLinesForces(arma::mat posicion)
+{
+    //el input es un vector columna de los necesarios
+    //necesito que de ese vector columna vuelva a una Nx3 con N num nodos
+
+    //PASO 1: CONSEGUIR UNA numAllLinesNodesx3
+    //se inicializa de esa forma
+    arma::mat matrizllena= arma::zeros(numAllLinesNodes, 3);
+    //se anhaden filas quiatdas
+    matrizllena.rows(indexesJoint)= filasQuitadas;
+    //se da la forma para anhadir las otras
+    arma::mat posicionMatriz = arma::strans(arma::reshape(posicion, 3,numAllLinesNodes - filasQuitadas.n_rows));
+   
+    matrizllena.rows(otherIndexes)= posicionMatriz;
+
+    //PASO 2: SEPARAR CADA LINEA Y METER POSICION EN P LINES
+    arma::mat forcesLinesCouplingVector= arma::zeros(numAllLinesNodes,3); 
+    
+    for (int i=0; i<numLines; i++)
+    {
+        arma::mat posicionesIniciales = matrizllena.rows(pLines[i]->ind4CouplingMat);
+        pLines[i]->pos = posicionesIniciales;
+        //pongo velocidad nula (estatico)
+        pLines[i]->vel = arma::zeros(pLines[i]->N,3);
+        //calculo F
+        pLines[i]->SEM_computeF();
+        //le doy forma vectorial
+        //tengo la matriz de indices
+        forcesLinesCouplingVector.rows(pLines[i]->ind4CouplingMat) += pLines[i]->F;
+    }
+
+    forcesLinesCouplingVector.shed_rows(indexesJoint); //quita los que no interesan   
+    arma::mat fuerzaARetornar= arma::reshape(arma::strans(forcesLinesCouplingVector),3*forcesLinesCouplingVector.n_rows,1);
+
+    return fuerzaARetornar;
+}
+
+arma::mat Simulation::ComputeLinesJacobian(arma::mat posicion, arma::mat fuerzaEnPosInicial)
+{
+    //forces viene del metodo anterior QUE HA DE HACERSE ANTES
+    int numVariables = posicion.n_rows;
+
+    //hay que hacer los vectores e(i)
+    //se hace con una matriz diagonal
+    arma::mat baseCanonica= arma::eye(numVariables, numVariables);
+
+
+    //se inicializa el jacobiano
+    arma::mat jacobian = arma::zeros(numVariables, numVariables);
+    double h=1e-12; //parametro de diferencias finitas
+    //double h = 1e-5;
+    arma::mat  diferencia= arma::zeros(numVariables,1);
+    for (int j=0; j< numVariables; j++) {
+        jacobian.col(j)= (ComputeLinesForces(posicion + h* baseCanonica.col(j)) - fuerzaEnPosInicial)/h;
+    }
+    return jacobian;
+}
+
+void Simulation::ComputeLinesEquilibrium(arma::mat x)
+{
+    //NEWTON (Proxima implementacion: mejorar el paso para mejorar la convergencia)
+
+    //PARAMETROS
+    int maxIter=100;
+    double tol = timeIntAbsTol;
+    double tolrelativa = timeIntRelTol;
+
+    double cantidadRel=2*tolrelativa;
+    double cantidadAbs=2*tol;
+
+    //inicializacion
+    arma::mat xsol = arma::zeros(x.n_rows,1);
+    arma::mat fxsol = arma::zeros(x.n_rows,1);
+    //declaracion de las variables a usar en LU, en iteraciones
+    arma::mat L;
+    arma::mat U;
+    arma::mat P;
+    arma::mat jacobiano;
+
+    //hay que guardar fx0 para un criterio de parada
+    arma::mat fx = ComputeLinesForces(x);
+    arma::mat y;
+    arma::mat dk;
+    arma::mat dknoLU;
+    double normafxInicial = arma::norm(fx,2);
+
+    int iter=0;
+    while (iter < maxIter && ((cantidadAbs > tol) || (cantidadRel > tolrelativa))) 
+    {
+
+        //PASO 1: CALCULO DEL JACOBIANO
+        jacobiano = ComputeLinesJacobian(x, fx);
+
+        //PASO 2: RESOLUCION DEL SISTEMA (LU)
+        bool lu = arma::lu(L,U,P,jacobiano);
+        // std::cout << "P.t()*L - triangulado" << arma::norm((P.t()*L - arma::trimatl(P.t()*L)), 2 )<< std::endl;
+        if (lu==false) {
+            std::stringstream ss;
+		    ss << "Problems with LU factorization \n";
+		    throw ValueError(ss.str());
+        }
+        y = arma::solve(arma::trimatl(P.t()*L), P.t()*(-fx));
+        //dk = arma::solve(arma::trimatu(U), y);
+        dknoLU= arma::solve(jacobiano, -fx);
+
+        //PASO A IMPLEMENTAR: CAMBIO EN EL PASO
+        double rho=1; //paso inicial
+        double sigma = 1e-4;
+        double beta =0.5;
+        arma::mat vectorPasoNuevo =  ComputeLinesForces(x + rho*dknoLU);
+        while(arma::norm(vectorPasoNuevo,2) > ((1-sigma*rho) * arma::norm(fx)) && rho>0.01) {
+            rho = beta * rho;
+            vectorPasoNuevo =  ComputeLinesForces(x + rho*dknoLU);
+        }
+
+
+        //PASO 3: CALCULAR EL SIGUIENTE ITERANTE
+        xsol = x + rho*dknoLU;
+        fxsol= ComputeLinesForces(xsol);
+
+        cantidadAbs=arma::norm(dknoLU,2);
+        cantidadRel=cantidadAbs / arma::norm(x,2);
+        
+        iter = iter + 1;
+        //se cambia el punto para la siguiente iteracion
+        x = xsol;
+        fx = fxsol; //COMPORBAR QUE NO VUELVE A COMPUTAR LAS FUERZAS
+   }
+    std::cout << "xsol " << std::endl << xsol << std::endl;
+   std::cout << "fxsol " << std::endl << fxsol << std::endl;
+
+
+   if (iter >= maxIter) {
+        std::stringstream ss;
+		ss << "The maximum number of iterations was exceeded. Convergence was not achieved \n";
+		throw ValueError(ss.str());
+
+   }
+    //termina el metodo porque se computaron adecuadamente las fuerzas para la solucion
 }
