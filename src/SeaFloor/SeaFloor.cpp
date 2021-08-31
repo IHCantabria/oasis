@@ -44,7 +44,6 @@ void SeaFloor::ReadPropertiesASCII(FILE* &pFilePointer)
 
 		}
     }
-    std::cout << "GetType" << std::endl << this->GetType() << std::endl;
     if (this->GetType() == 3)
     {
         fscanf(pFilePointer, "%s %[^\n]\n", &cmeshFileName, buffer_line);
@@ -160,13 +159,14 @@ arma::field<arma::mat> Inclined::projectPoints(arma::mat nodos){
 
 //BATHYMETRY DEFINITION
 void Bathymetry::ReadPropertiesASCII(FILE* &pFilePointer, std::string inputFilePath){
+    
     	// Read properties from file
 	SeaFloor::ReadPropertiesASCII(pFilePointer);
     char buffer_line [1000];
     std::string header_check;
 	// Check if the mesh file exists
 	std::string meshFilePath = JoinPath(inputFilePath, meshFileName);
-    std::cout << "meshFileName="<< std::endl << meshFileName<< std::endl;
+    std::cout << "meshFileName = "<< std::endl << meshFileName<< std::endl;
     FILE* file_pointer = fopen(meshFilePath.c_str(), "r");
     	if (file_pointer == NULL)
 	{
@@ -175,7 +175,7 @@ void Bathymetry::ReadPropertiesASCII(FILE* &pFilePointer, std::string inputFileP
         throw IOError(ss.str());
 	}
     fscanf(file_pointer, "%d %[^\n]\n", &numPuntosNube, buffer_line);
-     std::cout << "numero de puntos="<< std::endl << numPuntosNube<< std::endl;
+     std::cout << "Number of points (mesh) = "<< std::endl << numPuntosNube<< std::endl;
     pointMatrix = arma::zeros(numPuntosNube,3);
 
     for(int ii=0; ii<3; ii++)
@@ -210,7 +210,7 @@ void Bathymetry::ReadPropertiesASCII(FILE* &pFilePointer, std::string inputFileP
 		}
 	}
 	fscanf(file_pointer, "%d %[^\n]\n", &numTriangulos, buffer_line);
-    std::cout << "numero de triangulos="<< std::endl << numTriangulos<< std::endl;
+    std::cout << "Number of triangles = "<< std::endl << numTriangulos<< std::endl;
     //se salta 3 lineas de nuevo
     for(int ii=0; ii<3; ii++)
 	{
@@ -223,16 +223,25 @@ void Bathymetry::ReadPropertiesASCII(FILE* &pFilePointer, std::string inputFileP
 			throw IOError(ss.str());
 		}
 	}
-
-    // triangleMatrix = arma::zeros(numTriangulos,3);
     triangleMatrix.zeros(numTriangulos,3);
     for (int i=0; i<numTriangulos; i++) {
          fscanf(file_pointer, "%d %d %d %\n", &triangleMatrix(i,0), &triangleMatrix(i, 1), &triangleMatrix(i, 2), buffer_line);
     }
+    //se salta 3 lineas de nuevo
+    for(int ii=0; ii<3; ii++)
+	{
+		fgets(buffer_line, sizeof(buffer_line), file_pointer);
+		header_check = buffer_line;
+		if (header_check.substr(0, 3).compare("///"))
+		{
+			std::stringstream ss;
+			ss << "Error. SeaFloor ID:" << this->GetId() << " - Please check that each type of SeaFloor has its correct number of inputs.";
+			throw IOError(ss.str());
+		}
+	}
+    fscanf(file_pointer, "%d %[^\n]\n", &flagBarycenter, buffer_line);
     fclose(file_pointer);
     close;
-    //std::cout << "pointMatrix="<< std::endl << pointMatrix<< std::endl;
-	//std::cout << "triangleMatrix="<< std::endl << triangleMatrix<< std::endl;
     
 
 
@@ -246,7 +255,6 @@ void Bathymetry::getVertexNormals(void){
     //se itera con cada triangulo y se sacan las coordenadas de sus vertices
     //OJO si triangleMatrix(i)= 1 2 3, las filas donde hay que buscar las coordenadas son 1-1 2-1 3-1 por venir de Matlab
     arma::mat normaTriangulo= arma::ones(numTriangulos,3);
-
     for (int i=0; i<numTriangulos; i++) {
         arma::mat V0= arma::ones(1,3);
         arma::mat V1= arma::ones(1,3);
@@ -260,6 +268,7 @@ void Bathymetry::getVertexNormals(void){
         //norma del triangulo
         arma::mat prodCross = arma::cross(Lado1,Lado2);
         normaTriangulo.row(i)=prodCross/ arma::norm(prodCross,2);
+        //baricentro del triangulo
     }
     vertexNormals= arma::zeros(numPuntosNube, 3);
     for (int i=0; i<numPuntosNube; i++) {
@@ -282,6 +291,7 @@ void Bathymetry::getProjectionMatrix(void){
     projectionMatrix= arma::field<arma::mat> (numTriangulos,7);
     changeFrameMatrix= arma::field<arma::mat> (numTriangulos,4);
     normalsTriangle= arma::field<arma::mat> (numTriangulos,3);
+    barycenter= arma::ones(numTriangulos,3);
     for (int k=0; k<numTriangulos; k++) {
         arma::mat V0= arma::ones(1,3);
         arma::mat V1= arma::ones(1,3);
@@ -297,6 +307,8 @@ void Bathymetry::getProjectionMatrix(void){
         arma::mat V0n = bigMatrix.submat(8, 1, 8, 3); //nuevas coordenadas del punto V0
         arma::mat V1n = bigMatrix.submat(9, 1, 9, 3); //nuevas coordenadas del punto V0
         arma::mat V2n = bigMatrix.submat(10, 1, 10, 3); //nuevas coordenadas del punto V0
+        //ahora puedo hallar las coordenadas del baricentro en 2D
+        barycenter.row(k)= (V0n+V1n+V2n)/3.0; //media de las coordenadas de los vertices
         changeFrameMatrix(k,2)=V1n;
         changeFrameMatrix(k,3)=V2n;
         //ahora hay que ver las normales de los vertices en este nuevo sistema
@@ -359,6 +371,28 @@ void Bathymetry::getProjectionMatrix(void){
     }
 
 }
+arma::uvec Bathymetry::closerTriangles(arma::mat point) {
+    if (numTriangulos < 12) {
+            std::stringstream ss;
+            ss << "Searching closer barycenters should only be used if the number of triangles is higher than 12. If it is not the case, use the general method instead \n";
+            throw ValueError(ss.str());
+    }
+    arma::mat distanceMatrix = arma::ones(numTriangulos, 1);
+    for (int k=0; k<numTriangulos; k++) {
+        //el baricentro esta en 2D ES FILA
+        //necesito que el punto tambien lo este
+        arma::mat puntoGirado = arma::strans(changeFrameMatrix(k,0)*point); //ahora es fila
+        //podria evitar volver a proyectarlo guardandolo en un atributo
+        distanceMatrix(k)= arma::norm((barycenter.submat(k,0,k,1)-puntoGirado.cols(1,2)), 2); //distancia del baricentro al punto en XY porque hemos cambiado de sist.ref. Punto tiene tamaño 4x1
+    }
+    arma::uvec indicesOrdenados = arma::sort_index(distanceMatrix);
+    arma::uvec aRetornar= indicesOrdenados.rows(0,11); //los doce baricentros mas cercanos
+   //estaria bien que devolviera no solo la distancia sino el punto en el sist. de ref 2D
+
+    return aRetornar;
+
+
+}
 
 arma::field<arma::mat> Bathymetry::projectPoints(arma::mat nodos){
     //se inicializa lo que se devuelve
@@ -375,64 +409,131 @@ arma::field<arma::mat> Bathymetry::projectPoints(arma::mat nodos){
     //INICIALIZACION DE LAS NORMALES  RETORNAR
     arma::mat normales = arma::zeros(numNodos,3);
     double tol = 1e-10;
-
-
-    for (int k=0; k<numTriangulos; k++) 
-    {
-        for (int i=0; i<numNodos; i++) {
-            if (estaProyectado(i)==0){
-                arma::mat punto = arma::zeros(4,1);
-                punto(0)=1;
-                punto(1)=nodos(i,0);
-                punto(2)=nodos(i,1);
-                punto(3)=nodos(i,2);
-                arma::mat puntoGirado = changeFrameMatrix(k,0)*punto;
-                //la z ya esta en el buen sistema de referencia
-                double z= puntoGirado(3);
-                zCoordinates(i)=z; //almacena la coordenada z
-                arma::mat puntobien= arma::zeros(4,1);
-                puntobien(0)=puntoGirado(1);
-                puntobien(1)=puntoGirado(2);
-                puntobien(2)=z;
-                puntobien(3)=1;
-                arma::mat zvec=arma::ones(2, 1);
-                zvec(0)=z;
-                zvec(1)=1;
-                arma::mat uu=arma::strans(zvec)*projectionMatrix(k,0)*zvec;
-                arma::mat vv =arma::strans(zvec)*projectionMatrix(k,2)*zvec;
-                arma::mat uv= arma::strans(zvec)*projectionMatrix(k,1)*zvec;
-                arma::mat uw =arma::strans(zvec)*projectionMatrix(k,3)*puntobien;
-                arma::mat vw= arma::strans(zvec)*projectionMatrix(k,4)*puntobien;
-                //coordenadas baricentricas
-                double s=arma::as_scalar(uv*vw-vv*uw)/arma::as_scalar(uv*uv -uu*vv);
-                double t=arma::as_scalar(uv*uw-uu*vw)/arma::as_scalar(uv*uv -uu*vv);
-                //dan valores razonables
-                if((t>= -tol) && (s >= -tol) && (s+t <= (1.0 + tol)) ){
-                    estaProyectado(i)=1;
-                    arma::mat puntoProyectar=arma::zeros(1,3);
-                    puntoProyectar= changeFrameMatrix(k,2)*s + changeFrameMatrix(k,3)*t;
-                    arma::mat puntoProyectarBien= arma::zeros(4,1);
-                    puntoProyectarBien(0)=1;
-                    puntoProyectarBien(1)=puntoProyectar(0);
-                    puntoProyectarBien(2)=puntoProyectar(1);
-                    puntoProyectarBien(3)=puntoProyectar(2);
-                    arma::mat puntoSol= changeFrameMatrix(k,1)*puntoProyectarBien;
-                    puntosProyectados(i,0)=puntoSol(1);
-                    puntosProyectados(i,1)=puntoSol(2);
-                    puntosProyectados(i,2)=puntoSol(3);
-                    //calculo de las normales
-                    arma::mat normalNoBien = arma::zeros(1,3);
-                    //normals triangle te las devuelve bien
-                    normalNoBien= normalsTriangle(k,0) + (normalsTriangle(k,1)-normalsTriangle(k,0))*s +  (normalsTriangle(k,2)-normalsTriangle(k,0))*t;
-                    arma::mat normal3D= changeFrameMatrix(k,1)*normalNoBien;
-                    normales(i,0)=normal3D(1);
-                    normales(i,1)=normal3D(2);
-                    normales(i,2)=normal3D(3);
+    if (flagBarycenter==1){
+        int k;
+        for (int i=0; i<numNodos; i++)
+        {
+            arma::mat punto = arma::zeros(4,1);
+            punto(0)=1;
+            punto(1)=nodos(i,0);
+            punto(2)=nodos(i,1);
+            punto(3)=nodos(i,2);
+            for (int j=0; j<12; j++) {
+                if (estaProyectado(i)==0) {
+                    arma::uvec triangulosCerca = closerTriangles(punto);
+                    k=triangulosCerca(j);
+                    arma::mat puntoGirado = changeFrameMatrix(k,0)*punto;
+                    //la z ya esta en el buen sistema de referencia
+                    double z= puntoGirado(3);
+                    zCoordinates(i)=z; //almacena la coordenada z
+                    arma::mat puntobien= arma::zeros(4,1);
+                    puntobien(0)=puntoGirado(1);
+                    puntobien(1)=puntoGirado(2);
+                    puntobien(2)=z;
+                    puntobien(3)=1;
+                    arma::mat zvec=arma::ones(2, 1);
+                    zvec(0)=z;
+                    zvec(1)=1;
+                    arma::mat uu=arma::strans(zvec)*projectionMatrix(k,0)*zvec;
+                    arma::mat vv =arma::strans(zvec)*projectionMatrix(k,2)*zvec;
+                    arma::mat uv= arma::strans(zvec)*projectionMatrix(k,1)*zvec;
+                    arma::mat uw =arma::strans(zvec)*projectionMatrix(k,3)*puntobien;
+                    arma::mat vw= arma::strans(zvec)*projectionMatrix(k,4)*puntobien;
+                    //coordenadas baricentricas
+                    double s=arma::as_scalar(uv*vw-vv*uw)/arma::as_scalar(uv*uv -uu*vv);
+                    double t=arma::as_scalar(uv*uw-uu*vw)/arma::as_scalar(uv*uv -uu*vv);
+                    //dan valores razonables
+                    if((t>= -tol) && (s >= -tol) && (s+t <= (1.0 + tol)) ){
+                        estaProyectado(i)=1;
+                        arma::mat puntoProyectar=arma::zeros(1,3);
+                        puntoProyectar= changeFrameMatrix(k,2)*s + changeFrameMatrix(k,3)*t;
+                        arma::mat puntoProyectarBien= arma::zeros(4,1);
+                        puntoProyectarBien(0)=1;
+                        puntoProyectarBien(1)=puntoProyectar(0);
+                        puntoProyectarBien(2)=puntoProyectar(1);
+                        puntoProyectarBien(3)=puntoProyectar(2);
+                        arma::mat puntoSol= changeFrameMatrix(k,1)*puntoProyectarBien;
+                        puntosProyectados(i,0)=puntoSol(1);
+                        puntosProyectados(i,1)=puntoSol(2);
+                        puntosProyectados(i,2)=puntoSol(3);
+                        //calculo de las normales
+                        arma::mat normalNoBien = arma::zeros(1,3);
+                        //normals triangle te las devuelve bien
+                        normalNoBien= normalsTriangle(k,0) + (normalsTriangle(k,1)-normalsTriangle(k,0))*s +  (normalsTriangle(k,2)-normalsTriangle(k,0))*t;
+                        arma::mat normal3D= changeFrameMatrix(k,1)*normalNoBien;
+                        normales(i,0)=normal3D(1);
+                        normales(i,1)=normal3D(2);
+                        normales(i,2)=normal3D(3);
+                        
+                    }
                 }
-            }
 
-       }
-    }
+            }
+        }
+    }// el de flagBarycenter
+
+
+    if (flagBarycenter==0){
+        for (int k=0; k<numTriangulos; k++) {
+            for (int i=0; i<numNodos; i++){
+                if (estaProyectado(i)==0) {
+                    arma::mat punto = arma::zeros(4,1);
+                    punto(0)=1;
+                    punto(1)=nodos(i,0);
+                    punto(2)=nodos(i,1);
+                    punto(3)=nodos(i,2);
+                    arma::mat puntoGirado = changeFrameMatrix(k,0)*punto;
+                    //la z ya esta en el buen sistema de referencia
+                    double z= puntoGirado(3);
+                    zCoordinates(i)=z; //almacena la coordenada z
+                    arma::mat puntobien= arma::zeros(4,1);
+                    puntobien(0)=puntoGirado(1);
+                    puntobien(1)=puntoGirado(2);
+                    puntobien(2)=z;
+                    puntobien(3)=1;
+                    arma::mat zvec=arma::ones(2, 1);
+                    zvec(0)=z;
+                    zvec(1)=1;
+                    arma::mat uu=arma::strans(zvec)*projectionMatrix(k,0)*zvec;
+                    arma::mat vv =arma::strans(zvec)*projectionMatrix(k,2)*zvec;
+                    arma::mat uv= arma::strans(zvec)*projectionMatrix(k,1)*zvec;
+                    arma::mat uw =arma::strans(zvec)*projectionMatrix(k,3)*puntobien;
+                    arma::mat vw= arma::strans(zvec)*projectionMatrix(k,4)*puntobien;
+                    //coordenadas baricentricas
+                    double s=arma::as_scalar(uv*vw-vv*uw)/arma::as_scalar(uv*uv -uu*vv);
+                    double t=arma::as_scalar(uv*uw-uu*vw)/arma::as_scalar(uv*uv -uu*vv);
+                    //dan valores razonables
+                    if((t>= -tol) && (s >= -tol) && (s+t <= (1.0 + tol)) ){
+                        estaProyectado(i)=1;
+                        arma::mat puntoProyectar=arma::zeros(1,3);
+                        puntoProyectar= changeFrameMatrix(k,2)*s + changeFrameMatrix(k,3)*t;
+                        arma::mat puntoProyectarBien= arma::zeros(4,1);
+                        puntoProyectarBien(0)=1;
+                        puntoProyectarBien(1)=puntoProyectar(0);
+                        puntoProyectarBien(2)=puntoProyectar(1);
+                        puntoProyectarBien(3)=puntoProyectar(2);
+                        arma::mat puntoSol= changeFrameMatrix(k,1)*puntoProyectarBien;
+                        puntosProyectados(i,0)=puntoSol(1);
+                        puntosProyectados(i,1)=puntoSol(2);
+                        puntosProyectados(i,2)=puntoSol(3);
+                        //calculo de las normales
+                        arma::mat normalNoBien = arma::zeros(1,3);
+                        //normals triangle te las devuelve bien
+                        normalNoBien= normalsTriangle(k,0) + (normalsTriangle(k,1)-normalsTriangle(k,0))*s +  (normalsTriangle(k,2)-normalsTriangle(k,0))*t;
+                        arma::mat normal3D= changeFrameMatrix(k,1)*normalNoBien;
+                        normales(i,0)=normal3D(1);
+                        normales(i,1)=normal3D(2);
+                        normales(i,2)=normal3D(3);
+                        //std::cout << "El nodo"  << i << "esta proyectado en el triangulo" << k << std::endl;
+                    }
+                }
+                
+
+            }
+        }
+
+    } //el del if
+    
     aRetornar(0,0) = puntosProyectados;
     aRetornar(0,1)=zCoordinates;
     aRetornar(0,2)=normales;

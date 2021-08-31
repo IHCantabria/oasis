@@ -15,6 +15,7 @@ public:
 	//para batimetria variable
 	int numPuntosNube;
 	int numTriangulos;
+	int flagBarycenter; //proximamente a borrar
 	double fondo;
 
  
@@ -49,18 +50,22 @@ public:
 	//atributos
 	int numPuntosNube;
 	int numTriangulos;
+	int flagBarycenter;
 	arma::mat pointMatrix;
 	arma::umat triangleMatrix;
 	arma::mat vertexNormals;
+	arma::mat barycenter;
 	arma::field<arma::mat> projectionMatrix;
 	arma::field<arma::mat> changeFrameMatrix;
 	arma::field<arma::mat> normalsTriangle;
+
 	//Metodos
 	Bathymetry(int incId): SeaFloor(incId) {};
 	void ReadPropertiesASCII(FILE* &pFilePointer, std::string inputFilePath);
 	void getVertexNormals(void);
 	void getProjectionMatrix(void);
 	arma::field<arma::mat> projectPoints(arma::mat nodos);
+	arma::uvec closerTriangles(arma::mat point);
 	int GetType(void);
 };
 

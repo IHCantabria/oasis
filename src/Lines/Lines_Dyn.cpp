@@ -86,9 +86,6 @@ void Line::ReadPropertiesASCII(FILE* pFilePointer)
 	fscanf(pFilePointer, "%lf %[^\n]\n", &Cdt, buffer_line);
 	fscanf(pFilePointer, "%lf %[^\n]\n", &GK, buffer_line);
 	fscanf(pFilePointer, "%lf %[^\n]\n", &GC, buffer_line);
-	fscanf(pFilePointer, "%lf %[^\n]\n", &Gmu, buffer_line);
-	fscanf(pFilePointer, "%lf %[^\n]\n", &Gvc, buffer_line);
-	fscanf(pFilePointer, "%lf %[^\n]\n", &Dz, buffer_line);
 	fscanf(pFilePointer, "%d %[^\n]\n", &indexSeaFloor, buffer_line); indexSeaFloor--;
 	fscanf(pFilePointer, "%d %[^\n]\n", &BCP_N, buffer_line);
 	BCP_N -= 1;
@@ -137,8 +134,6 @@ void Line::ReadPropertiesASCII(FILE* pFilePointer)
 	e_z(0,2) = 1.0;
 	posFriccion = arma::zeros(N,3);
 	isSlip = arma::zeros(N,1);
-	ffslid=arma::zeros(1,2);
-	ffstick=arma::zeros(1,2);
 
 	if (frictionModel==1){
 		//voy a resolver un solo sistema que dara los coeficientes por si hay friccion de velocidad al principio del problemna.
@@ -153,30 +148,9 @@ void Line::ReadPropertiesASCII(FILE* pFilePointer)
 				{    pow(x2,3),   pow(x2,2),   1*x2, 1},
 				{  3*pow(x2,2),        2*x2,    1, 0}};
 		tmpB(0,0) = 1e-07; tmpB(1,0) = 0.0; tmpB(2,0) = x2; tmpB(3,0) = 1;
-		std::cout << "tmpA="<< std::endl << tmpA<< std::endl;
-		std::cout << "tmpB="<< std::endl << tmpB<< std::endl;
 		a_1 = arma::solve(tmpA,tmpB);
-		std::cout << "a1="<< std::endl << a_1<< std::endl;
 
 	}
-	if (frictionModel==3){
-		//voy a resolver un solo sistema que dara los coeficientes por si hay friccion de velocidad al principio del problemna.
-		//es el step fuerte
-		//Los coeficientes van a ser siempre esos asi que solo hace falta hacerlo una vez y asi se obtiene el polinomio
-		arma::mat tmpA = arma::zeros(4,4);
-		arma::mat tmpB = arma::zeros(4,1);
-		double x1= (1-Gvc);
-		double x2= 1;
-		tmpA = {{  pow(x1,3), pow(x1,2), 1*x1, 1},
-	       		{3*pow(x1,2),    2*(x1),    1, 0},
-				{    pow(x2,3),   pow(x2,2),   1*x2, 1},
-				{  3*pow(x2,2),        2*x2,    1, 0}};
-		tmpB(0,0) = (1-Gvc); tmpB(1,0) = 1; tmpB(2,0) = 1; tmpB(3,0) = 0;
-		a_2 = arma::solve(tmpA,tmpB);
-		std::cout << "a2="<< std::endl << a_2<< std::endl;
-
-	}
-
 	double * roots_temp   = new double[p+1];
 	double * weights_temp = new double[p+1];
 
@@ -314,6 +288,59 @@ arma::mat Line::SEM_get_D_local(void)
 	return D;
 }
 
+arma::mat Line::calculateStickSlip(double us, double ud, double vth, double deltamax, arma::mat velocity, arma::mat deformation, int k)
+{
+	//4 external parameters as an input, as well as the velocity and deformation to evaluate.
+	//velocity and deformation should be a row vector
+	//int k parameter is the iteration and fn the normal force, provided by the user
+	//returns the forces
+
+	//inicializacion del vector de fuerzas a retornar
+	arma::mat forces = arma::zeros(1,3);
+
+	double delta= arma::norm(deformation, 2);
+	double normVel = arma::norm(velocity,2);
+
+	//isSlip vale 0 si en la iter.anterior es slip
+	//isSlip vale 1 si en la iter.anterior es stick
+	if (isSlip(k,0)==1){
+		if(normVel > vth){
+			//en este caso cambia a slip
+			//se deben guardar las posiciones cuando ocurre esto
+			isSlip(k,0)=0;
+			posFriccion.row(k)=pos.row(k);
+		}
+	}
+	if(isSlip(k,0)==0){
+		if (normVel <= vth){
+			isSlip(k,0)=1;
+			//en este caso cambia a stick
+			//no guarda posicion, ya que solo la guarda si pasa de stick a slip
+		}
+	}
+	double betaStick, usstep, udstep;
+	// parametros distintos si es stick o slip
+	if(isSlip(k,0) == 0){
+		betaStick=1;
+		usstep=0;
+		udstep=ud;
+
+	}else{
+		betaStick=step(normVel, -vth, -1.0, vth, 1.0);
+		usstep=step(delta, -deltamax, -us, deltamax, us);
+		udstep=step(normVel, -vth, -ud, vth, ud);
+	}
+	//hay que calcular las fuerzas
+	arma::mat ffslid= -velocity* udstep* fn/std::max(normVel,1e-7);
+	forces = forces + ffslid;
+	if((isSlip(k,0)==1)) {
+		arma::mat ffstick= -deformation*(1-betaStick)*usstep*fn/std::max(delta,1e-7);
+		forces = forces + ffstick;
+	}
+	return forces;
+
+}
+
 
 void Line::SEM_computeF(void)
 {
@@ -355,21 +382,15 @@ void Line::SEM_computeF(void)
 		projectedPoints = temp(0,0);
 		projectionDirection= temp(0,2);
 		zCoordinates= temp(0,1);
-		//std::cout << "nodos" << std::endl<< pos << std::endl;
-		//std::cout << "projectedPoints" << std::endl<< projectedPoints << std::endl;
-		//std::cout << "projectionDirection" << std::endl<< projectionDirection << std::endl;
-		//std::cout << "zCoord" << std::endl<< zCoordinates << std::endl;
 	
 	}
 
 
 	for(int k=0;k<N;k=k+1){
-		//creo que es esto lo que deberia de cambiar, como repetir  con un if
-		//pero eso son muchas lineas de codigo....
 		t.row(k) = drds.row(k) / norm_drds(k);
 		FF.row(k) = T(k) * t.row(k);
 
-		fg = (rho0 - rhoW * A) * g / norm_drds(k);
+		fg = (rho0 - rhoW * A) * g  / norm_drds(k);
 		ff.row(k) = -fg * e_z;
 
 		v = vel.row(k);
@@ -401,23 +422,50 @@ void Line::SEM_computeF(void)
 				ff(k,2)=ff(k,2) + fs + fd;
 			}
 
+
 			//FRICTION FORCES
 			//STICK-SLIP MODEL
-			if (frictionModel==2) {
+			if (frictionModel==2 || frictionModel==3) {
+
 				//parametros a utilizar
-				//arma::mat vxy= arma::zeros(1,2);
-				arma::mat vpi = arma::zeros(1,3);
+				arma::mat vpi = arma::zeros(1,3); //velocidad en el plano del suelo
 				vpi=v - arma::as_scalar(v*arma::strans(projectionDirection.row(k))) * projectionDirection.row(k) /arma::norm(projectionDirection.row(k),2);
-				//vxy(0,0)=v(0);
-				//vxy(0,1)=v(1);
-				//double normvxy= arma::norm(vxy, 2);
-				double normVel = arma::norm(vpi,2);
-				//fn=fg*step((fondo - pos(k,2)), -d/2, 0, 0, 1); //se ha suavizado
+				arma::mat deformationpi= projectedPoints.row(k) - posFriccion.row(k); //deformacion en el plano del suelo
+				
 				fn=fg*step(zCoordinate, -d/2, 0, 0, 1);
+
+				//ISOTROPIC STICK AND SLIP MODEL
+				if (frictionModel==2 ) {
+					ff.row(k)= ff.row(k) + calculateStickSlip(us,ud,vth, deltamax, vpi, deformationpi,k);
+				}
+				
+				//ANISOTROPIC STICK AND SLIP MODEL
+				//Se diferencia entre friccion tangencial y friccion normal
+				if (frictionModel == 3) {
+					if (pLineSeaFloor->GetType() == 1){
+           				std::stringstream ss;
+		    			ss << "Anisotropic friction should not be used with a flat floor \n";
+		    			throw ValueError(ss.str());
+					}
+
+					arma::mat tpi= arma::zeros(1,3);
+					tpi= t.row(k) - arma::as_scalar(t.row(k)* arma::strans(projectionDirection.row(k)))*projectionDirection.row(k)/ arma::norm(projectionDirection.row(k));
+
+					arma::mat deformationTan = arma::as_scalar(tpi * arma::strans(deformationpi)) *tpi /arma::norm(tpi, 2);
+					arma:: mat deformationNor = deformationpi -deformationTan;
+
+					arma::mat velocityTan = vt-  arma::as_scalar(vt* arma::strans(projectionDirection.row(k)))*projectionDirection.row(k)/ arma::norm(projectionDirection.row(k));
+					arma::mat velocityNorm = vn-  arma::as_scalar(vn* arma::strans(projectionDirection.row(k)))*projectionDirection.row(k)/ arma::norm(projectionDirection.row(k));
+
+					ff.row(k)= ff.row(k) + calculateStickSlip(us,ud,vth, deltamax, velocityTan, deformationTan,k); //en la direccion tangencial
+					ff.row(k)= ff.row(k) + calculateStickSlip(us/2,ud/2,vth/2, deltamax, velocityNorm, deformationNor,k); //en la direccion normal del plano de friccion
+				}
+
+
 
 				//isSlip vale 0 si en la iter.anterior es slip
 				//isSlip vale 1 si en la iter.anterior es stick
-				if (isSlip(k,0)==1){
+				/* if (isSlip(k,0)==1){
 					if(normVel > vth){
 						//en este caso cambia a slip
 						//se deben guardar las posiciones cuando ocurre esto
@@ -433,12 +481,11 @@ void Line::SEM_computeF(void)
 					}
 				}
 				arma:: mat deformacion = arma::zeros(1,3);
-				//arma::mat tpi= arma::zeros(1,3);
-				//tpi= t.row(k) - arma::as_scalar(t.row(k)* arma::stans(projectionDirection.row(k)))*projectionDirection.row(k)/ arma::norm(projectionDirection.row(k));
 				
-				deformacion= projectedPoints.row(k);- posFriccion.row(k);
+				
+				deformacion= projectedPoints.row(k) - posFriccion.row(k);
 				double delta= arma::norm(deformacion, 2);
-				double betaStick, usstep, udstep, normaSmooth2, normaDelta;
+				double betaStick, usstep, udstep;
 
 				// parametros distintos si es stick o slip
 				if(isSlip(k,0) == 0){
@@ -453,25 +500,16 @@ void Line::SEM_computeF(void)
 				}
 				//hay que calcular las fuerzas
 				ffslid= -vpi* udstep* fn/std::max(normVel,1e-7);
-				//if(normvxy<=1e-04) {
-				//	normaSmooth2 = arma::as_scalar(a_1(0,0)*pow(normvxy,3)+a_1(1,0)*pow(normvxy,2)+a_1(2,0)*normvxy+a_1(3,0));
-				//} else{
-				//	normaSmooth2 = normvxy;
-				//}
-				//ffslid= -vxy* udstep* fn/normaSmooth2;
 				ff.row(k) = ff.row(k) + ffslid;
 				if((isSlip(k,0)==1)) {
-					//if(delta<=1e-04) {
-					//	normaDelta = arma::as_scalar(a_1(0,0)*pow(delta,3)+a_1(1,0)*pow(delta,2)+a_1(2,0)*delta+a_1(3,0));
-					//} else{
-					//	normaDelta = delta;
-					//}
 					ffstick= -deformacion*(1-betaStick)*usstep*fn/std::max(delta,1e-7);
-					//ffstick= -deformacion*(1-betaStick)*usstep*fn/normaDelta;
 					ff.row(k) = ff.row(k) + ffstick;
 				}
+			*/
 			}
 			if (frictionModel==1){
+				//VELOCITY BASED.
+				//NO USAR PORQUE, NO SIEMPRE CONVERGE
 				arma::mat vxy= arma::zeros(1,2);
 				vxy(0,0)=v(0);
 				vxy(0,1)=v(1);
@@ -500,25 +538,6 @@ void Line::SEM_computeF(void)
 				ff.submat(k,0, k ,1) = ff.submat(k, 0, k, 1) + ffriccionVel;	
 			}
 
-			if (frictionModel == 3) {
-				arma::mat vxy= arma::zeros(1,2);
-				arma::mat fpalm= arma::zeros(1,2);
-				vxy(0,0)=v(0);
-				vxy(0,1)=v(1);
-				double normvxy= arma::norm(vxy, 2);
-				double polinomio, fn;
-				fn=abs(fg)*step((fondo - pos(k,2)), -d/2, 0, 0, 1);
-				if ((normvxy/Gvc) >= (1-Gvc) && ((normvxy/Gvc) < 1.0)) {
-					polinomio= arma::as_scalar(a_2(0,0)*pow((normvxy/Gvc),3)+a_2(1,0)*pow((normvxy/Gvc),2)+a_2(2,0)*(normvxy/Gvc)+a_2(3,0));
-					fpalm(0,0)=polinomio*fn*Gmu;
-				} else if ((normvxy/Gvc) >= 1.0) {
-					fpalm(0,0)= fn*Gmu;
-				} else {
-					fpalm(0,0)=fn* Gmu *(normvxy/ Gvc);
-				}
-				ff.submat(k,0, k ,1) = ff.submat(k, 0, k, 1) - fpalm;
-
-			}
 		}
 	}
 
@@ -571,9 +590,6 @@ void Line::print_out (void)
 		std::cout << "Cdt      " << this->Cdt << std::endl;
 		std::cout << "GK       " << this->GK << std::endl;
 		std::cout << "GC       " << this->GC << std::endl;
-		std::cout << "Gmu      " << this->Gmu << std::endl;
-		std::cout << "Gvc      " << this->Gvc << std::endl;
-		std::cout << "Dz       " << this->Dz << std::endl;
 		std::cout << "pos_N  " << this->pos_N(0,0) << " " << this->pos_N(1,0) << " " << this->pos_N(2,0) << std::endl;
 		std::cout << "pos_1  " << this->pos_1(0,0) << " " << this->pos_1(1,0) << " " << this->pos_1(2,0) << std::endl;
 		std::cout << "smoothstep      " << this->smoothstep << std::endl;

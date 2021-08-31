@@ -64,8 +64,8 @@ public:
     arma::sp_mat* pLinesCouplingMatrix_sp;
     arma::mat* pLinesCouplingMatrix;
     arma::mat* pLinesCouplingMatrixInv;
-    arma::uvec indexesJoint; //indices a quitar, tienen que ser enteros
-    arma::uvec otherIndexes; //indices a quitar, tienen que ser enteros
+    arma::uvec indexesNoFairNoAnchor; //indices a quitar, tienen que ser enteros
+    arma::uvec indexesFairAnchor; //indices a quitar, tienen que ser enteros
     arma::mat filasQuitadas; //las filas que se quitaron 
 
     // Declare Components Setup Attributes
