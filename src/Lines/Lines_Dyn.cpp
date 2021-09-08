@@ -100,11 +100,10 @@ void Line::ReadPropertiesASCII(FILE* pFilePointer)
 	fscanf(pFilePointer, "%d %[^\n]\n", &smoothstep, buffer_line);
 	fscanf(pFilePointer, "%d %[^\n]\n", &frictionModel, buffer_line);
 	fscanf(pFilePointer, "%lf %[^\n]\n", &vth, buffer_line);
-	fscanf(pFilePointer, "%lf %[^\n]\n", &us, buffer_line);
+	fscanf(pFilePointer, "%lf %[^\n]\n", &ust, buffer_line);
+	fscanf(pFilePointer, "%lf %[^\n]\n", &usn, buffer_line);
 	fscanf(pFilePointer, "%lf %[^\n]\n", &ud, buffer_line);
 	fscanf(pFilePointer, "%lf %[^\n]\n", &deltamax, buffer_line);
-	fscanf(pFilePointer, "%lf %[^\n]\n", &vstatic, buffer_line);
-	fscanf(pFilePointer, "%lf %[^\n]\n", &vdynamic, buffer_line);
 	A = arma::datum::pi*d*d*0.25;
 	dL = L/(nNodos-1);
 	dL0 = dL;
@@ -288,59 +287,6 @@ arma::mat Line::SEM_get_D_local(void)
 	return D;
 }
 
-arma::mat Line::calculateStickSlip(double us, double ud, double vth, double deltamax, arma::mat velocity, arma::mat deformation, int k)
-{
-	//4 external parameters as an input, as well as the velocity and deformation to evaluate.
-	//velocity and deformation should be a row vector
-	//int k parameter is the iteration and fn the normal force, provided by the user
-	//returns the forces
-
-	//inicializacion del vector de fuerzas a retornar
-	arma::mat forces = arma::zeros(1,3);
-
-	double delta= arma::norm(deformation, 2);
-	double normVel = arma::norm(velocity,2);
-
-	//isSlip vale 0 si en la iter.anterior es slip
-	//isSlip vale 1 si en la iter.anterior es stick
-	if (isSlip(k,0)==1){
-		if(normVel > vth){
-			//en este caso cambia a slip
-			//se deben guardar las posiciones cuando ocurre esto
-			isSlip(k,0)=0;
-			posFriccion.row(k)=pos.row(k);
-		}
-	}
-	if(isSlip(k,0)==0){
-		if (normVel <= vth){
-			isSlip(k,0)=1;
-			//en este caso cambia a stick
-			//no guarda posicion, ya que solo la guarda si pasa de stick a slip
-		}
-	}
-	double betaStick, usstep, udstep;
-	// parametros distintos si es stick o slip
-	if(isSlip(k,0) == 0){
-		betaStick=1;
-		usstep=0;
-		udstep=ud;
-
-	}else{
-		betaStick=step(normVel, -vth, -1.0, vth, 1.0);
-		usstep=step(delta, -deltamax, -us, deltamax, us);
-		udstep=step(normVel, -vth, -ud, vth, ud);
-	}
-	//hay que calcular las fuerzas
-	arma::mat ffslid= -velocity* udstep* fn/std::max(normVel,1e-7);
-	forces = forces + ffslid;
-	if((isSlip(k,0)==1)) {
-		arma::mat ffstick= -deformation*(1-betaStick)*usstep*fn/std::max(delta,1e-7);
-		forces = forces + ffstick;
-	}
-	return forces;
-
-}
-
 
 void Line::SEM_computeF(void)
 {
@@ -373,7 +319,7 @@ void Line::SEM_computeF(void)
 		arma::umat ind = arma::find(((T>0.0)&&(T<T0)));
 		T.elem(ind) = temp_T.elem(ind);
 	}
-	posFriccion= pos;
+	
 
 	if (floor_flag==1)
 	{
@@ -425,119 +371,149 @@ void Line::SEM_computeF(void)
 
 			//FRICTION FORCES
 			//STICK-SLIP MODEL
-			if (frictionModel==2 || frictionModel==3) {
-
-				//parametros a utilizar
-				arma::mat vpi = arma::zeros(1,3); //velocidad en el plano del suelo
-				vpi=v - arma::as_scalar(v*arma::strans(projectionDirection.row(k))) * projectionDirection.row(k) /arma::norm(projectionDirection.row(k),2);
-				arma::mat deformationpi= projectedPoints.row(k) - posFriccion.row(k); //deformacion en el plano del suelo
+			if (frictionModel==2 || frictionModel==1) {				
 				
 				fn=fg*step(zCoordinate, -d/2, 0, 0, 1);
 
-				//ISOTROPIC STICK AND SLIP MODEL
-				if (frictionModel==2 ) {
-					ff.row(k)= ff.row(k) + calculateStickSlip(us,ud,vth, deltamax, vpi, deformationpi,k);
-				}
-				
-				//ANISOTROPIC STICK AND SLIP MODEL
-				//Se diferencia entre friccion tangencial y friccion normal
-				if (frictionModel == 3) {
-					if (pLineSeaFloor->GetType() == 1){
-           				std::stringstream ss;
-		    			ss << "Anisotropic friction should not be used with a flat floor \n";
-		    			throw ValueError(ss.str());
+				if (fn>0){  //en otro caso se considera que no hay friccion
+
+					//parametros a utilizar
+					arma::mat vpi = arma::zeros(1,3); //velocidad en el plano del suelo
+					vpi=v - arma::as_scalar(v*arma::strans(projectionDirection.row(k))) * projectionDirection.row(k) /arma::norm(projectionDirection.row(k),2);
+					double normVel= arma::norm(vpi,2);
+
+					//isSlip vale 0 si en la iter.anterior es slip
+					//isSlip vale 1 si en la iter.anterior es stick
+					double betaStick, usstep, udstep;
+
+					if (frictionModel==1){
+						if (isSlip(k,0)==1){
+							if(normVel > vth){
+								//en este caso cambia a slip
+								isSlip(k,0)=0;
+								//no guarda posicion, ya que solo la guarda si pasa de slip a stick
+							}
+						}
+						if(isSlip(k,0)==0){
+							if (normVel <= vth){
+								//en este caso cambia a stick
+								isSlip(k,0)=1;
+								//se deben guardar las posiciones cuando ocurre esto					
+								posFriccion.row(k)=projectedPoints.row(k);
+							}
+						}						
+					
+						arma::mat deformationpi= projectedPoints.row(k) - posFriccion.row(k); //deformacion en el plano del suelo
+						double delta= arma::norm(deformationpi, 2);
+
+						// parametros distintos si es stick o slip
+						double usstep;
+						if(isSlip(k,0) == 0){
+							betaStick=1;
+							usstep=0;
+							udstep=ud;
+						}else{
+							//betaStick=step(normVel, -vth, -1.0, vth, 1.0);
+							betaStick=step(normVel, 0.0, 0.0, vth, 1.0);
+							usstep=step(delta, 0.0, 0.0, deltamax, ust);
+							//usstep=step(delta, -deltamax, -ust, deltamax, ust);
+							//udstep=step(normVel, -vth, -ud, vth, ud);
+							udstep=step(normVel, 0.0, 0.0, vth, ud);
+
+						}
+						//hay que calcular las fuerzas
+						double tol_max;
+						tol_max = vth*0.01;
+						double velocidadSuave = std::max(normVel,tol_max);
+						arma::mat ffslid = -vpi * udstep * fn*step(normVel,tol_max, 0, 2*tol_max, 1)/velocidadSuave;
+						ff.row(k) = ff.row(k) + ffslid;
+						//std::cout << "ffslid del nodo " << k << "= " << ffslid << std::endl;
+						if((isSlip(k,0)==1)) {
+							tol_max = deltamax*0.01;
+							double deltaSuave= std::max(delta,tol_max);
+							arma::mat ffstick= -deformationpi*(1-betaStick)*usstep*fn *step(delta, tol_max, 0, 2*tol_max, 1)/deltaSuave;
+							ff.row(k) = ff.row(k) + ffstick;
+							//std::cout << "delta del nodo " << k << "= " << delta << std::endl;
+							//std::cout << "ffstick del nodo " << k << "= " << ffstick << std::endl;
+						}
+						
 					}
-
-					arma::mat tpi= arma::zeros(1,3);
-					tpi= t.row(k) - arma::as_scalar(t.row(k)* arma::strans(projectionDirection.row(k)))*projectionDirection.row(k)/ arma::norm(projectionDirection.row(k));
-
-					arma::mat deformationTan = arma::as_scalar(tpi * arma::strans(deformationpi)) *tpi /arma::norm(tpi, 2);
-					arma:: mat deformationNor = deformationpi -deformationTan;
-
-					arma::mat velocityTan = vt-  arma::as_scalar(vt* arma::strans(projectionDirection.row(k)))*projectionDirection.row(k)/ arma::norm(projectionDirection.row(k));
-					arma::mat velocityNorm = vn-  arma::as_scalar(vn* arma::strans(projectionDirection.row(k)))*projectionDirection.row(k)/ arma::norm(projectionDirection.row(k));
-
-					ff.row(k)= ff.row(k) + calculateStickSlip(us,ud,vth, deltamax, velocityTan, deformationTan,k); //en la direccion tangencial
-					ff.row(k)= ff.row(k) + calculateStickSlip(us/2,ud/2,vth/2, deltamax, velocityNorm, deformationNor,k); //en la direccion normal del plano de friccion
-				}
+					if (frictionModel==2) {
+						arma::mat ffsticktan, ffslidtan, ffslidnorm, ffsticknorm;
+						arma::mat tpi= arma::zeros(1,3);
+						tpi= t.row(k) - arma::as_scalar(t.row(k)* arma::strans(projectionDirection.row(k)))*projectionDirection.row(k)/ arma::norm(projectionDirection.row(k));
+						tpi = tpi / arma::norm(tpi,2);
 
 
+						//arma::mat velocityTan = vt-  arma::as_scalar(vt* arma::strans(projectionDirection.row(k)))*projectionDirection.row(k)/ arma::norm(projectionDirection.row(k));
+						//arma::mat velocityNorm = vn-  arma::as_scalar(vn* arma::strans(projectionDirection.row(k)))*projectionDirection.row(k)/ arma::norm(projectionDirection.row(k));
+						arma::mat velocityTan = arma::as_scalar(vpi * arma::strans(tpi)) *tpi;
+						arma:: mat velocityNorm = vpi -velocityTan;
 
-				//isSlip vale 0 si en la iter.anterior es slip
-				//isSlip vale 1 si en la iter.anterior es stick
-				/* if (isSlip(k,0)==1){
-					if(normVel > vth){
-						//en este caso cambia a slip
-						//se deben guardar las posiciones cuando ocurre esto
-						isSlip(k,0)=0;
-						posFriccion.row(k)=pos.row(k);
+						double normVelTan = arma::norm(velocityTan,2);
+						double normVelNorm = arma::norm(velocityNorm,2);
+
+						if (isSlip(k,0)==1){
+							if((normVelTan > vth) || normVelNorm > vth){
+								//en este caso cambia a slip
+								isSlip(k,0)=0;
+								//no guarda posicion, ya que solo la guarda si pasa de slip a stick
+							}
+						}
+						if(isSlip(k,0)==0){
+							if (normVelTan <= vth && normVelNorm <= vth){
+								//en este caso cambia a stick
+								isSlip(k,0)=1;
+								//se deben guardar las posiciones cuando ocurre esto					
+								posFriccion.row(k)=projectedPoints.row(k);
+							}
+						}
+						
+						arma::mat deformationpi= projectedPoints.row(k) - posFriccion.row(k); //deformacion en el plano del suelo
+						double delta= arma::norm(deformationpi, 2);
+						//arma::mat deformationTan = arma::as_scalar(tpi * arma::strans(deformationpi)) *tpi /arma::norm(tpi, 2);
+						arma::mat deformationTan = arma::as_scalar(tpi * arma::strans(deformationpi)) *tpi;
+						arma:: mat deformationNor = deformationpi -deformationTan;
+						double deltaTan = arma::norm(deformationTan,2);
+						double deltaNorm = arma::norm(deformationNor,2);
+
+						double uststep, usnstep, udstep;
+						// parametros distintos si es stick o slip
+						if(isSlip(k,0) == 0){
+							betaStick=1;
+							betaStick=1;
+							uststep=0;
+							usnstep=0;
+							udstep=ud;
+
+						}else{
+							betaStick=step(normVel, 0.0, 0.0, vth, 1.0);
+							uststep=step(deltaTan, 0.0, 0.0, deltamax, ust);
+							usnstep=step(deltaNorm, 0.0, 0.0, deltamax, usn);
+							udstep=step(normVel, 0.0, 0.0, vth, ud);
+						}
+						double tol_max;
+						tol_max = vth*0.01;
+						double velocidadSuaveTan = std::max(normVelTan,tol_max);
+						double velocidadSuaveNor = std::max(normVelNorm,tol_max);
+						//hay que calcular las fuerzas
+						ffslidtan= -velocityTan* udstep* fn * step(normVelTan,tol_max, 0, 2*tol_max, 1)/velocidadSuaveTan;
+						ffslidnorm= -velocityNorm* udstep* fn* step(normVelNorm,tol_max, 0, 2*tol_max, 1)/velocidadSuaveNor;
+
+						ff.row(k) = ff.row(k) + ffslidtan + ffslidnorm;
+
+						if((isSlip(k,0)==1)) {
+							tol_max = deltamax*0.01;
+							double deltaSuaveTan= std::max(deltaTan,tol_max);
+							double deltaSuaveNor= std::max(deltaNorm,tol_max);
+							ffsticktan= -deformationTan*(1-betaStick)*uststep*fn*step(deltaTan,tol_max, 0, 2*tol_max, 1)/deltaSuaveTan;
+							ffsticknorm= -deformationNor*(1-betaStick)*usnstep*fn* step(deltaNorm,tol_max, 0, 2*tol_max, 1)/deltaSuaveNor;
+							ff.row(k) = ff.row(k) + ffsticktan + ffsticknorm;
+						}
+
 					}
 				}
-				if(isSlip(k,0)==0){
-					if (normVel <= vth){
-						isSlip(k,0)=1;
-						//en este caso cambia a stick
-						//no guarda posicion, ya que solo la guarda si pasa de stick a slip
-					}
-				}
-				arma:: mat deformacion = arma::zeros(1,3);
-				
-				
-				deformacion= projectedPoints.row(k) - posFriccion.row(k);
-				double delta= arma::norm(deformacion, 2);
-				double betaStick, usstep, udstep;
-
-				// parametros distintos si es stick o slip
-				if(isSlip(k,0) == 0){
-					betaStick=1;
-					usstep=0;
-					udstep=ud;
-
-				}else{
-					betaStick=step(normVel, -vth, -1.0, vth, 1.0);
-					usstep=step(delta, -deltamax, -us, deltamax, us);
-					udstep=step(normVel, -vth, -ud, vth, ud);
-				}
-				//hay que calcular las fuerzas
-				ffslid= -vpi* udstep* fn/std::max(normVel,1e-7);
-				ff.row(k) = ff.row(k) + ffslid;
-				if((isSlip(k,0)==1)) {
-					ffstick= -deformacion*(1-betaStick)*usstep*fn/std::max(delta,1e-7);
-					ff.row(k) = ff.row(k) + ffstick;
-				}
-			*/
 			}
-			if (frictionModel==1){
-				//VELOCITY BASED.
-				//NO USAR PORQUE, NO SIEMPRE CONVERGE
-				arma::mat vxy= arma::zeros(1,2);
-				vxy(0,0)=v(0);
-				vxy(0,1)=v(1);
-				double normvxy= arma::norm(vxy, 2);
-				fn=abs(fg)*step((fondo - pos(k,2)), -d/2, 0, 0, 1); //se ha suavizado
-				double coef;
-				double normaSmooth;
-				arma:: mat ffriccionVel = arma::zeros(1,2);
-
-				if (normvxy < vstatic) {
-					coef = step(normvxy, -vstatic, -us, vstatic, us);
-
-				} else if ((vstatic<=normvxy) && (normvxy<vdynamic)) {
-					coef = step(normvxy, vstatic, us, vdynamic, ud);
-
-				} else {
-					coef = ud;
-				}
-				if(normvxy<=1e-04) {
-					normaSmooth = arma::as_scalar(a_1(0,0)*pow(normvxy,3)+a_1(1,0)*pow(normvxy,2)+a_1(2,0)*normvxy+a_1(3,0));
-				} else{
-					normaSmooth = normvxy;
-				}
-				ffriccionVel= -vxy* (coef /normaSmooth)*fn;
-				//ffriccionVel= -vxy * fn* (coef/std::max(normvxy, 1e-7));
-				ff.submat(k,0, k ,1) = ff.submat(k, 0, k, 1) + ffriccionVel;	
-			}
-
 		}
 	}
 
@@ -595,11 +571,10 @@ void Line::print_out (void)
 		std::cout << "smoothstep      " << this->smoothstep << std::endl;
 		std::cout << "frictionModel      " << this->frictionModel << std::endl;
 		std::cout << "vth      " << this->vth << std::endl;
-		std::cout << "us      " << this->us << std::endl;
+		std::cout << "us    tangential  " << this->ust << std::endl;
+		std::cout << "us    normal  " << this->usn << std::endl;			
 		std::cout << "ud      " << this->ud << std::endl;
 		std::cout << "deltamax      " << this->deltamax << std::endl;
-		std::cout << "vstatic      " << this->vstatic << std::endl;
-		std::cout << "vdynamic      " << this->vdynamic << std::endl << std::endl;
 }
 
 void Line::initLine (void) 

@@ -96,32 +96,66 @@ void BDF::step(void){
 	LOOP:
 
 	if (q<2){
-		NN = 5*(q+1);
+		// NN = 5*(q+1);
+		NN = 100;
 	} else {
 		NN = nIterMax;
 	}
 
 	k = 0;
 	y = y_0 + h_0*(y_0 - y_1)/h_1;
-	F = (1.0 + h_0/(h_1+h_0)) * y - ((h_1+h_0)/h_1) * y_0 + ((h_0*h_0/h_1)/(h_1+h_0)) * y_1 - h_0 * fun(t+h_0,y);
+	F = BDF2_fun(t,y);
 
 	do{
 		if (q>=2){
 			jac(t + h_0, y);
 			iJ = iJ + 1;
 			q = q + 1;
-		}	
-		M = (1.0 + h_0/(h_1+h_0)) * I - h_0 * J;
-		status = arma::solve(dy,M,F,arma::solve_opts::fast);
-		if (!status){
-			dy = arma::solve(M,F);
 		}
-		y = y - dy;
-		F = (1.0 + h_0/(h_1+h_0)) * y - ((h_1+h_0)/h_1) * y_0 + ((h_0*h_0/h_1)/(h_1+h_0)) * y_1 - h_0 * fun(t+h_0,y);
+		M = (1.0 + h_0/(h_1+h_0)) * I - h_0 * J;
+		status = arma::solve(dy,M,-F,arma::solve_opts::fast);
+		if (!status){
+			dy = arma::solve(M,-F);
+		}
+
+		// ARMIJO
+        double rho = 1.0; //paso inicial
+	//	double sigma = 1e-4;
+	//	double beta = 0.5;
+
+
+	//	arma::mat vectorPasoNuevo = BDF2_fun(t,y + pow(beta,10)*dy);
+	/*	if (arma::norm(vectorPasoNuevo,2) > arma::norm(F,2))
+		{
+			std::cout << "no es de descenso" << std::endl;
+			jac(t + h_0, y);
+			M = (1.0 + h_0/(h_1+h_0)) * I - h_0 * J;
+			status = arma::solve(dy,M,-F,arma::solve_opts::fast);
+			if (!status){
+				dy = arma::solve(M,-F);
+			}
+		} else {
+			std::cout << "es de descenso" << std::endl;
+		}
+	
+		arma::mat vectorPasoNuevo = BDF2_fun(t,y + rho*dy);
+		while(arma::norm(vectorPasoNuevo,2) > ((1.0-sigma*rho) * arma::norm(F,2)) && rho>=pow(beta,10)) {
+			rho = beta * rho;
+			vectorPasoNuevo = BDF2_fun(t,y + rho*dy);
+			//std::cout << "rho " << rho << std::endl;
+		}
+	*/
+		y = y + rho*dy;
+
+		F = BDF2_fun(t,y);
 		k = k + 1;
+		
 	} while(((arma::norm(dy) > atol + rtol*arma::norm(y)) | (arma::norm(F) > atol)) & (k<NN));
+	//std::cout << "F" << F << std::endl;
 
 	if(k>=NN){
+		//std::cout << std::endl << "ERROR: Convergence Failed! (test)" << std::endl;
+		//throw std::exception();
 		if(q<2){
 			h_0 = std::max(pow(10.0,-2*q)*h_0, dt_min);
 			jac(t + h_0, y_0 + h_0*(y_0 - y_1)/h_1);
@@ -185,4 +219,9 @@ void BDF::step(void){
 	y_1 = y_0;
 	y_0 = y;
 	
+}
+
+arma::mat BDF::BDF2_fun(double t, arma::mat y){
+	F = (1.0 + h_0/(h_1+h_0)) * y - ((h_1+h_0)/h_1) * y_0 + ((h_0*h_0/h_1)/(h_1+h_0)) * y_1 - h_0 * fun(t+h_0,y);
+	return F;
 }

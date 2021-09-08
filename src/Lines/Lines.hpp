@@ -14,13 +14,12 @@ private:
 	arma::mat FF, ff, t; 
 	arma::mat drds, drdsdt, norm_drds, dedt, T;
 	arma::mat e_z;
-	arma::mat calculateStickSlip(double us, double ud, double vth, double deltamax, arma::mat velocity, arma::mat deformation, int k); //es un metodo privado proque solo se usa en lineas
 	
 public:
 	int numBcps=2;
 	int indexBcps [2];
 	int lineType, nLine, nNodos, p, N, floor_flag, BCP_1, BCP_N, flag_tension, flag_stiffness, smoothstep, frictionModel;
-	double L, dL, dL0, EA, beta, rho0, d, A, Cdt, Cdn, Cmn, CB, GK, GC, Kn, dampCoef, VR, vth, us, ud, deltamax, vstatic, vdynamic, fn;
+	double L, dL, dL0, EA, beta, rho0, d, A, Cdt, Cdn, Cmn, CB, GK, GC, Kn, dampCoef, VR, vth, ust, usn, ud, deltamax, fn;
 	double paramNormal, parammuelle1, parammuelle2, paramVel;
 	arma::mat strain_data, stress_data;
 	arma::mat ten_1 = arma::zeros(3,1), ten_N = arma::zeros(3,1);
@@ -67,6 +66,7 @@ public:
 	double SEM_poly_first_derivative(double x, int i);
 	arma::mat SEM_get_D_local(void);
 	void SEM_computeF(void);
+	
 };
 
 

@@ -62,6 +62,7 @@ public:
 	void Initialize(void);
 	void step(void);
 	void jac(double tt, arma::mat yy);
+	arma::mat BDF2_fun(double t, arma::mat y);
 };
 
 

@@ -17,7 +17,7 @@
 
 
 arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
-{
+{   
     // std::cout << "Time: " << time << " s\n";
     numCallsSysFun++;
     // std::cout << "Simulation::CalculateSystemDynamics - At first" << std::endl; 
@@ -1639,7 +1639,6 @@ void Simulation::SetupCase()
     }
     numAllLinesNodes -= numUsedJointBCPs;
 
-   // std::cout << "               ----> numAllLinesNodes = " << numAllLinesNodes << std::endl;
 
     // Build the lines coupling sparse matrix and store the lines index vectors
     int indFirstNodeAvail = 0;    
@@ -1715,14 +1714,11 @@ void Simulation::SetupCase()
         {
             pLines[i]-> frictionModel = flagLineas(i);
             pLines[i]-> flag_tension =flagTension(i);
-            //std::string filename3 = JoinPath(outputFolderPath,"PosStaticFEM_");
-            //filename3 = filename3 + "Line_" + std::to_string(i+1) + ".dat";  
-            //pLines[i]->pos.save(filename3,arma::raw_ascii);
         }
-
-
-        
-
+    }
+    for (int i=0; i < numLines; i++) {
+        //guardo la posicion inicial, necesaria para stick slip model
+        pLines[i]->posFriccion = pLines[i]->pLineSeaFloor->projectPoints(pLines[i]->pos)(0,0);
     }
 
     // Setup Springs
@@ -2060,6 +2056,6 @@ void Simulation::ComputeLinesEquilibrium(arma::mat x)
 		ss << "The maximum number of iterations was exceeded. Convergence was not achieved \n";
 		throw ValueError(ss.str());
 
-   }
+    }
     //termina el metodo porque se computaron adecuadamente las fuerzas para la solucion
 }

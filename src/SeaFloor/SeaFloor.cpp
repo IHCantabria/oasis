@@ -255,6 +255,7 @@ void Bathymetry::getVertexNormals(void){
     //se itera con cada triangulo y se sacan las coordenadas de sus vertices
     //OJO si triangleMatrix(i)= 1 2 3, las filas donde hay que buscar las coordenadas son 1-1 2-1 3-1 por venir de Matlab
     arma::mat normaTriangulo= arma::ones(numTriangulos,3);
+    barycenter= arma::ones(numTriangulos,3);
     for (int i=0; i<numTriangulos; i++) {
         arma::mat V0= arma::ones(1,3);
         arma::mat V1= arma::ones(1,3);
@@ -262,6 +263,8 @@ void Bathymetry::getVertexNormals(void){
         V0= vertexCoordinates(i).row(0);
         V1= vertexCoordinates(i).row(1);
         V2= vertexCoordinates(i).row(2);
+        //coordenadas del baricentro
+        barycenter.row(i)= (V0+V1+V2)/3.0; //media de las coordenadas de los vertices
         //lados
         arma::mat Lado1= V1-V0;
         arma::mat Lado2= V2-V0;
@@ -291,7 +294,6 @@ void Bathymetry::getProjectionMatrix(void){
     projectionMatrix= arma::field<arma::mat> (numTriangulos,7);
     changeFrameMatrix= arma::field<arma::mat> (numTriangulos,4);
     normalsTriangle= arma::field<arma::mat> (numTriangulos,3);
-    barycenter= arma::ones(numTriangulos,3);
     for (int k=0; k<numTriangulos; k++) {
         arma::mat V0= arma::ones(1,3);
         arma::mat V1= arma::ones(1,3);
@@ -307,8 +309,6 @@ void Bathymetry::getProjectionMatrix(void){
         arma::mat V0n = bigMatrix.submat(8, 1, 8, 3); //nuevas coordenadas del punto V0
         arma::mat V1n = bigMatrix.submat(9, 1, 9, 3); //nuevas coordenadas del punto V0
         arma::mat V2n = bigMatrix.submat(10, 1, 10, 3); //nuevas coordenadas del punto V0
-        //ahora puedo hallar las coordenadas del baricentro en 2D
-        barycenter.row(k)= (V0n+V1n+V2n)/3.0; //media de las coordenadas de los vertices
         changeFrameMatrix(k,2)=V1n;
         changeFrameMatrix(k,3)=V2n;
         //ahora hay que ver las normales de los vertices en este nuevo sistema
@@ -372,24 +372,16 @@ void Bathymetry::getProjectionMatrix(void){
 
 }
 arma::uvec Bathymetry::closerTriangles(arma::mat point) {
-    if (numTriangulos < 12) {
-            std::stringstream ss;
-            ss << "Searching closer barycenters should only be used if the number of triangles is higher than 12. If it is not the case, use the general method instead \n";
-            throw ValueError(ss.str());
-    }
     arma::mat distanceMatrix = arma::ones(numTriangulos, 1);
+    //std::cout << "hola pepsi" << std::endl;
     for (int k=0; k<numTriangulos; k++) {
-        //el baricentro esta en 2D ES FILA
-        //necesito que el punto tambien lo este
-        arma::mat puntoGirado = arma::strans(changeFrameMatrix(k,0)*point); //ahora es fila
-        //podria evitar volver a proyectarlo guardandolo en un atributo
-        distanceMatrix(k)= arma::norm((barycenter.submat(k,0,k,1)-puntoGirado.cols(1,2)), 2); //distancia del baricentro al punto en XY porque hemos cambiado de sist.ref. Punto tiene tamaño 4x1
+        //encuentra las distsncias del baricentro al punto
+        distanceMatrix(k)= arma::norm(barycenter.row(k)-point, 2); //distancia del baricentro al punto en XY porque hemos cambiado de sist.ref. Punto tiene tamaño 4x1
     }
     arma::uvec indicesOrdenados = arma::sort_index(distanceMatrix);
-    arma::uvec aRetornar= indicesOrdenados.rows(0,11); //los doce baricentros mas cercanos
    //estaria bien que devolviera no solo la distancia sino el punto en el sist. de ref 2D
 
-    return aRetornar;
+    return indicesOrdenados;
 
 
 }
@@ -411,17 +403,18 @@ arma::field<arma::mat> Bathymetry::projectPoints(arma::mat nodos){
     double tol = 1e-10;
     if (flagBarycenter==1){
         int k;
+        //std::cout << "hola cocacola" << std::endl;
         for (int i=0; i<numNodos; i++)
         {
-            arma::mat punto = arma::zeros(4,1);
-            punto(0)=1;
-            punto(1)=nodos(i,0);
-            punto(2)=nodos(i,1);
-            punto(3)=nodos(i,2);
-            for (int j=0; j<12; j++) {
-                if (estaProyectado(i)==0) {
-                    arma::uvec triangulosCerca = closerTriangles(punto);
+            arma::uvec triangulosCerca = closerTriangles(nodos.row(i));
+            for (int j=0; j<numTriangulos; j++) {
+                if (estaProyectado(i)==0) {                    
                     k=triangulosCerca(j);
+                    arma::mat punto = arma::zeros(4,1);
+                    punto(0)=1;
+                    punto(1)=nodos(i,0);
+                    punto(2)=nodos(i,1);
+                    punto(3)=nodos(i,2);
                     arma::mat puntoGirado = changeFrameMatrix(k,0)*punto;
                     //la z ya esta en el buen sistema de referencia
                     double z= puntoGirado(3);
@@ -524,7 +517,6 @@ arma::field<arma::mat> Bathymetry::projectPoints(arma::mat nodos){
                         normales(i,0)=normal3D(1);
                         normales(i,1)=normal3D(2);
                         normales(i,2)=normal3D(3);
-                        //std::cout << "El nodo"  << i << "esta proyectado en el triangulo" << k << std::endl;
                     }
                 }
                 
@@ -532,16 +524,24 @@ arma::field<arma::mat> Bathymetry::projectPoints(arma::mat nodos){
             }
         }
 
-    } //el del if
+    }
     
     aRetornar(0,0) = puntosProyectados;
     aRetornar(0,1)=zCoordinates;
     aRetornar(0,2)=normales;
+    int hayError = 0; //para lanzar un aviso por lo del baricentro mas cercano
     for (int i=0; i< numNodos; i++) {
         if (puntosProyectados(i,0)==0 && puntosProyectados(i,1)==0 && puntosProyectados(i,2)==0)
         {
             std::cout << "     WARNING: Probably, node" << i + 1 << " could not be projected. Check the floor size. " << std::endl;
+            hayError=1;
         }
+    }
+    if(hayError=1 && flagBarycenter==1) {
+        std::stringstream ss;
+        ss << "If it is not a floor size problem, try not to use the closest barycenter instead. \n";
+		throw ValueError(ss.str());
+
     }
     return aRetornar;
 }
