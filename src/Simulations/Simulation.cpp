@@ -1576,6 +1576,8 @@ void Simulation::SetupCase()
         {
             pLines[ii]->pLineBcps[jj] = pBcps[pLines[ii]->indexBcps[jj]];
             pLines[ii]->pLineBcps[jj]->pLines[pLines[ii]->pLineBcps[jj]->countLine] = pLines[ii];
+            pLines[ii]->pLineBcps[jj]->pBcpLineIndex[pLines[ii]->pLineBcps[jj]->countLine] = ii;
+            pLines[ii]->pLineBcps[jj]->pBcpLineNode[pLines[ii]->pLineBcps[jj]->countLine] = jj;
             pLines[ii]->pLineBcps[jj]->countLine++;
         }
 

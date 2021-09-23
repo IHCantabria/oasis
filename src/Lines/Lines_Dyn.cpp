@@ -347,27 +347,27 @@ void Line::SEM_computeF(void)
 		ff.row(k) = ff.row(k) - 0.5 * Cdn * d * rhoW * arma::norm(vn,2) * vn;
 
 		if (floor_flag == 1){
-			//GROUND FORCES--SMOOTHED PALM'S MODEL
 
-			//TAREA: comprobar si es o no unitaria
+			//GROUND NORMAL FORCES -- SMOOTHED PALM'S MODEL
 			double ultimaCoordVel = arma::as_scalar(v*arma::strans(projectionDirection.row(k)));
 			double zCoordinate = -zCoordinates(k); //porque al ir las normales hacia arriba es el criterio contrario
 	
-			if (smoothstep == 1){
-				paramNormal= step(zCoordinate, -d/2, 0, 0, 1);
-				paramVel= step(ultimaCoordVel, -VR, 1, 0, 0);
-				parammuelle1= step(zCoordinate, 0, 0, d/2, 1);
-		    	parammuelle2= GK*d*(zCoordinate) ;
-				ff.row(k)= ff.row(k) + (fg*paramNormal + parammuelle1*parammuelle2 - GC*paramNormal*dampCoef*paramVel*ultimaCoordVel)*projectionDirection.row(k)/arma::norm(projectionDirection.row(k),2);
+			double paramNormal, parammuelle1, parammuelle2, paramVel;
+			paramNormal= step(zCoordinate, -d/2, 0, 0, 1);
+			paramVel= step(ultimaCoordVel, -VR, 1, 0, 0);
+			parammuelle1= step(zCoordinate, 0, 0, d/2, 1);
+			parammuelle2= GK*d*(zCoordinate);
 
-			} else{
-				//comparativa con el anterior
-				fs = abs(fg) * exp(- GK * d * (pos(k,2) - fondo)/abs(fg));
-			    GC = 2.0 * sqrt(rho0 * GK * d ) / (abs(fg) * d);
-				fd= fs* GC*d *pow(std::min(v(2), 0.0), 2);
-				ff(k,2)=ff(k,2) + fs + fd;
+			ff.row(k)= ff.row(k) + (fg*paramNormal + parammuelle1*parammuelle2 - GC*paramNormal*dampCoef*paramVel*ultimaCoordVel)*projectionDirection.row(k)/arma::norm(projectionDirection.row(k),2);
+
+			if (k==0) {
+				paramNormal_1 = paramNormal; parammuelle1_1 = parammuelle1; parammuelle2_1 = parammuelle2; 
+				paramVel_1 = paramVel; ultimaCoordVel_1 = ultimaCoordVel; projectionDirection_1 = projectionDirection.row(k);
 			}
-
+			if (k==N-1) {
+				paramNormal_N = paramNormal; parammuelle1_N = parammuelle1; parammuelle2_N = parammuelle2; 
+				paramVel_N = paramVel; ultimaCoordVel_N = ultimaCoordVel; projectionDirection_N = projectionDirection.row(k);
+			}
 
 			//FRICTION FORCES
 			//STICK-SLIP MODEL

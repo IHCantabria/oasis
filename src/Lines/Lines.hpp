@@ -20,7 +20,8 @@ public:
 	int indexBcps [2];
 	int lineType, nLine, nNodos, p, N, floor_flag, BCP_1, BCP_N, flag_tension, flag_stiffness, smoothstep, frictionModel;
 	double L, dL, dL0, EA, beta, rho0, d, A, Cdt, Cdn, Cmn, CB, GK, GC, Kn, dampCoef, VR, vth, ust, usn, ud, deltamax, fn;
-	double paramNormal, parammuelle1, parammuelle2, paramVel;
+	double paramNormal_1, paramNormal_N, parammuelle1_1, parammuelle1_N, parammuelle2_1, parammuelle2_N, paramVel_1, paramVel_N, ultimaCoordVel_1, ultimaCoordVel_N;
+	arma::mat projectionDirection_1, projectionDirection_N;
 	arma::mat strain_data, stress_data;
 	arma::mat ten_1 = arma::zeros(3,1), ten_N = arma::zeros(3,1);
 	arma::mat pos_1 = arma::zeros(3,1), pos_N = arma::zeros(3,1);

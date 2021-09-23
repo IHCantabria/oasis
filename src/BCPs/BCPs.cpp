@@ -255,9 +255,23 @@ void JointBCP::GetValues(double t)
 	double zz = arma::as_scalar(pos(2,0));
 	double vol = std::min(std::max(0.0,vol_Joint*(rad_Joint-zz)/(2.0*rad_Joint)),vol_Joint);
 	JointForce = arma::zeros(1,3);
-	JointForce(0,2) = g*(rhoW*vol - mass_Joint);
+	double fg = g*(rhoW*vol - mass_Joint);
+	JointForce(0,2) = fg;
 	JointForce = JointForce - vel.t()*arma::norm(vel)*0.5*0.47*rhoW*sec_Joint;
-	// FALTA INCLUIR FUERZAS SUELO
+	// FUERZAS SUELO
+	double paramNormal = 0.0, parammuelle1 = 0.0, parammuelle2 = 0.0;
+	double paramVel = 0.0, ultimaCoordVel = 0.0;
+	arma::mat projectionDirection = arma::zeros(1,3); projectionDirection(0,2) = 1.0;
+	if (pBcpLineNode[0]==0) {
+		paramNormal = pLines[0]->paramNormal_1; parammuelle1 = pLines[0]->parammuelle1_1; parammuelle2 = pLines[0]->parammuelle2_1;
+		paramVel = pLines[0]->paramVel_1; ultimaCoordVel = pLines[0]->ultimaCoordVel_1; projectionDirection = pLines[0]->projectionDirection_1;
+	} else {
+		paramNormal = pLines[0]->paramNormal_N; parammuelle1 = pLines[0]->parammuelle1_N; parammuelle2 = pLines[0]->parammuelle2_N;
+		paramVel = pLines[0]->paramVel_N; ultimaCoordVel = pLines[0]->ultimaCoordVel_N; projectionDirection = pLines[0]->projectionDirection_N;
+	}
+	double GC = pLines[0]->GC;
+	double dampCoef = 2.0 * sqrt(mass_Joint * pLines[0]->GK * pLines[0]->d );
+	JointForce = JointForce - (fg*paramNormal + parammuelle1*parammuelle2 - GC*paramNormal*dampCoef*paramVel*ultimaCoordVel)*projectionDirection/arma::norm(projectionDirection,2);
 }
 
 
