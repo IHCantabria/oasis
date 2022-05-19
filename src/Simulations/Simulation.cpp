@@ -289,7 +289,9 @@ void Simulation::CloseCase()
     	WinchesController.CloseOutputFilesASCII();
 	}
 
-    pWindTurbines->Finalize();
+    if (numWindTurbines>0) {
+        pWindTurbines->Finalize();
+    }
 
 }
 
@@ -1039,6 +1041,7 @@ void Simulation::ReadPropertiesASCII()
 	fscanf(file_pointer, "%lf %[^\n]\n", &waterDepth, bufferLine);
 	fscanf(file_pointer, "%lf %[^\n]\n", &maxTimeStep, bufferLine); 
 	fscanf(file_pointer, "%lf %[^\n]\n", &hydroTimeStep, bufferLine);
+    fscanf(file_pointer, "%lf %[^\n]\n", &fastTimeStep, bufferLine);
     fscanf(file_pointer, "%lf %[^\n]\n", &timeIRF, bufferLine);
 	fscanf(file_pointer, "%lf %[^\n]\n", &sinkingTimeStep, bufferLine);
 	fscanf(file_pointer, "%lf %[^\n]\n", &simulationTime, bufferLine);
@@ -1344,6 +1347,7 @@ void Simulation::Run()
     time_t tstart, tend;
 	double wallTime = 0.0;
 	double wallTimeHydro = 0.0;
+    double wallTimeFAST = 0.0;
 	double wallTimeSinking = 0.0;
     tstart = time(0);
     std::cout<< "    t = " << wallTime << " s" << std::endl;
@@ -1369,9 +1373,6 @@ void Simulation::Run()
             }
             for(int ii=0; ii<numLines; ii=ii+1) pLines[ii]->WriteOut(wallTime);
             for(int ii=0; ii<numBodies; ii=ii+1) pBodies[ii]->WriteOut(wallTime);
-            if (numWindTurbines>0) {
-                pWindTurbines->Step();
-            }
         }
 
     	if (pTimeSolver->t >= wallTimeHydro + hydroTimeStep)
@@ -1385,6 +1386,14 @@ void Simulation::Run()
             	pBodies[ii]->Fb = pBodies[ii]->pHydro->CalculateHydrodynamicForces(wallTime);
             }
     	}
+
+        if (numWindTurbines>0) {
+            if (pTimeSolver->t >= wallTimeFAST + fastTimeStep)
+            {
+                wallTimeFAST += fastTimeStep;
+                pWindTurbines->Step();
+            }
+        }
 
     	
     	if (numSinking>0) {   
@@ -1416,9 +1425,9 @@ void Simulation::Run()
 
 void Simulation::SetupCase()
 {
-    std::cout << "----> Setting up the case configuration..." << std::endl;
+    std::cout << "----> Setting up the case configuration ..." << std::endl;
     // Count the number of BCP in each body and create pointer array
-    std::cout << "        Count the number of BCP in each body and create pointer array" << std::endl;
+    std::cout << "        Counting the number of BCPs in each body ..." << std::endl;
     for (int ii=0; ii<numBodies; ii++)
     {
         for (int jj=0; jj<pBodies[ii]->numBcps; jj++)
@@ -1450,10 +1459,11 @@ void Simulation::SetupCase()
             }
         }
     }
-    delete [] pDefined_body_bcps;
+    delete [] pDefined_body_bcps;    
+    std::cout << "        ... done!" << std::endl;
 
     // Assing to each BCP the corresponding Body pointer
-    std::cout << "        Assign to each BCP the corresponding Body pointer" << std::endl;
+    std::cout << "        Assigning to each BCP the corresponding body  ..." << std::endl;
     for (int ii=0; ii<numBodies; ii++)
     {
         for(int jj=0; jj<pBodies[ii]->numBcps; jj++)
@@ -1463,9 +1473,11 @@ void Simulation::SetupCase()
             pBodies[ii]->pBodyBcps[jj]->countBody++;
         }
         pBodies[ii]->UpdateBcps();
-    }
+    }    
+    std::cout << "        ... done!" << std::endl;
 
     // Count the number of lines in each joint BCP
+    std::cout << "        Counting the number of lines in each joint BCP ..." << std::endl;
     for (int ii=0; ii<numBcps; ii++)
     {
         if (pBcps[ii]->GetType()==3)
@@ -1487,9 +1499,10 @@ void Simulation::SetupCase()
             pBcps[ii]->velLines = arma::zeros(temp_nL,3);
         }
     }
+    std::cout << "        ... done!" << std::endl;
 
     // Count the number of Lines in each body and create pointer array
-    std::cout << "        Count the number of Lines in each body and create pointer array" << std::endl;
+    std::cout << "        Counting the number of lines in each body ..." << std::endl;
     for (int ii=0; ii<numLines; ii++)
     {
         for (int jj=0; jj<pLines[ii]->numBcps; jj++)
@@ -1522,10 +1535,11 @@ void Simulation::SetupCase()
         }
         
     }
-    delete [] pDefined_lines_bcps;
+    delete [] pDefined_lines_bcps;    
+    std::cout << "        ... done!" << std::endl;
 
     // Assing to each Line the corresponding BCP pointer
-    std::cout << "        Assing to each Line the corresponding BCP ..." << std::endl;
+    std::cout << "        Assigning to each Line the corresponding BCP ..." << std::endl;
     for (int ii=0; ii<numLines; ii++)
     {
         for(int jj=0; jj<pLines[ii]->numBcps; jj++)
@@ -1575,9 +1589,10 @@ void Simulation::SetupCase()
 			if (e==5) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " initial shape can't be computed with QS method. " << std::endl;
 			if (e==6) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " touches the seafloor althoug none of its ends are there. " << std::endl << std::endl;
 		}
-    }
+    }    
+    std::cout << "        ... done!" << std::endl;
 
-    std::cout << "        Count the number of line nodes without repetition of joint nodes" << std::endl;
+    std::cout << "        Counting the number of line nodes without repetition of joint nodes ..." << std::endl;
     // Count the number of line nodes without repetition of joint nodes
     int numUsedJointBCPs = 0;
     for (int jj=0; jj<numLines; jj++){
@@ -1590,8 +1605,6 @@ void Simulation::SetupCase()
         }
     }
     numAllLinesNodes -= numUsedJointBCPs;
-
-    std::cout << "               ----> numAllLinesNodes = " << numAllLinesNodes << std::endl;
 
     // Build the lines coupling sparse matrix and store the lines index vectors
     int indFirstNodeAvail = 0;    
@@ -1627,7 +1640,7 @@ void Simulation::SetupCase()
 
     }
 
-    std::cout << "        Computing Lines Coupling Matrix..." << std::endl;
+    std::cout << "        Computing Lines Coupling Matrix ..." << std::endl;
     pLinesCouplingMatrix = new arma::mat(numAllLinesNodes,numAllLinesNodes,arma::fill::zeros);
     pLinesCouplingMatrixInv = new arma::mat(numAllLinesNodes,numAllLinesNodes);
     pLinesCouplingMatrix_sp = new arma::sp_mat(numAllLinesNodes, numAllLinesNodes);
@@ -1636,11 +1649,11 @@ void Simulation::SetupCase()
         *pLinesCouplingMatrixInv = arma::solve(*pLinesCouplingMatrix,eye(size(*pLinesCouplingMatrix)));
         std::string filename = JoinPath(outputFolderPath,"LinesCouplingMatrix.dat");
         (*pLinesCouplingMatrix).save(filename,arma::arma_ascii);
-    }
+    }    
+    std::cout << "        ... done!" << std::endl;
 
     // Setup Springs
-    std::cout << "        Setup Springs" << std::endl;
-    std::cout << "            numBcps: " << numBcps << "\n";
+    std::cout << "        Setting up springs ..." << std::endl;
 	for(int ii=0; ii<numSprings; ii++)
     {
         std::cout << "            Spring: " << ii << "\n";
@@ -1648,25 +1661,31 @@ void Simulation::SetupCase()
         std::cout << "            Spring:->BCP_2 " << pSprings[ii]->BCP_2 << "\n";
 		pSprings[ii]->SpringBCP[0] = pBcps[pSprings[ii]->BCP_1];
 		pSprings[ii]->SpringBCP[1] = pBcps[pSprings[ii]->BCP_2];
-	}
+	}    
+    std::cout << "        ... done!" << std::endl;
 
 	// Setup hidro data bases
-	std::cout << "        Setup hidro data bases" << std::endl;
+	std::cout << "        Setting up hydro data bases ..." << std::endl;
 	for (int ii=0; ii<numBodies; ii++)
     {
         std::cout << "            Body: " << ii << "\n";
     	pBodies[ii]->pHydro->SetUp();
-    }
+    }    
+    std::cout << "        ... done!" << std::endl;
 
     // Setup winchies controller
     if (useWinches) {
-		std::cout << "        Setup winchies controller" << std::endl;
+		std::cout << "        Setting up winchies controller ..." << std::endl;
     	WinchesController.SetUpWinchiesController();
+    std::cout << "        ... done!" << std::endl;
 	}
 
     // Setup wind turbines
-    std::cout << "        Setup wind turbines ..." << std::endl;
-    pWindTurbines->Initialize();
+    if (numWindTurbines>0) {
+        std::cout << "        Setting up wind turbines ..." << std::endl;
+        pWindTurbines->Initialize();
+        std::cout << "        ... done!" << std::endl;
+    }
 
     std::cout << "----> Case configuration done" << std::endl;
 }

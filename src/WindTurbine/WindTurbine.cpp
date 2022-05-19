@@ -27,8 +27,8 @@ void WindTurbine::ReadPropertiesASCII(FILE*& pFile){
     fi.nEveryCheckPoint = 160;
     fi.dtFAST = pSim->maxTimeStep;
     fi.tMax = pSim->simulationTime;
-    fi.scStatus = false;
-    fi.scLibFile = "banana";
+    // fi.scStatus = false;
+    // fi.scLibFile = "banana";
     fi.globTurbineData.resize(fi.nTurbinesGlob);
 
     pBodies = new Body* [numWindTurbines];
@@ -70,12 +70,12 @@ void WindTurbine::ReadPropertiesASCII(FILE*& pFile){
         fi.globTurbineData[iTurbLoc].FASTInputFileName = FASTInputFileName;
         fi.globTurbineData[iTurbLoc].FASTRestartFileName = "banana";
         fi.globTurbineData[iTurbLoc].TurbineBasePos = {TurbineBasePosX,TurbineBasePosY,TurbineBasePosZ};
-        // fi.globTurbineData[iTurbLoc].TurbineHubPos = {0.0, 0.0, 0.0};
+        // fi.globTurbineData[iTurbLoc].TurbineHubPos = {0.0, 0.0, 0.0}; //
         fi.globTurbineData[iTurbLoc].numForcePtsBlade = tmp_numForcePtsBlade;
         fi.globTurbineData[iTurbLoc].numForcePtsTwr = tmp_numForcePtsTwr;
-        // fi.globTurbineData[iTurbLoc].nacelle_cd = 0.1;
-        // fi.globTurbineData[iTurbLoc].nacelle_area = 10;
-        // fi.globTurbineData[iTurbLoc].air_density = 1.225;
+        // fi.globTurbineData[iTurbLoc].nacelle_cd = 0.1; //
+        // fi.globTurbineData[iTurbLoc].nacelle_area = 10; //
+        // fi.globTurbineData[iTurbLoc].air_density = 1.225; //
     }
 
 }
@@ -98,16 +98,22 @@ void WindTurbine::Initialize(void){
 
     std::cout << "        --> FAST.setInputs(fi);" << std::endl;
     FAST.setInputs(fi);
+    std::cout << "        --> FAST.allocateTurbinesToProcsSimple();" << std::endl;
     FAST.allocateTurbinesToProcsSimple();
+    std::cout << "        --> FAST.init();" << std::endl;
     FAST.init();
-    if (FAST.isTimeZero()) FAST.solution0();
+    if (FAST.isTimeZero()){
+        std::cout << "        --> FAST.solution0();" << std::endl;
+        FAST.solution0();
+    }
+    int nt = FAST.get_ntStart();
 
 }
 
 
 void WindTurbine::Step(void){
     SetBaseMovements();
-    FAST.step();
+    FAST.stepNoWrite();
     GetBaseForces();
 }
 
@@ -133,8 +139,25 @@ void WindTurbine::Finalize(void){
 
 void WindTurbine::GetBaseForces(void){
 
+    std::vector<double> currentForce(3);
+    arma::mat totalForce;
+    for (int iTurbLoc=0; iTurbLoc<numWindTurbines; iTurbLoc++)
+    {        
+        totalForce = arma::zeros(3,1);
+        for (int iForcePt=0; iForcePt < FAST.get_numForcePts(iTurbLoc); iForcePt++) {
+            FAST.getForce(currentForce,iForcePt,iTurbLoc);
+            for (int iDOF=0; iDOF < 3; iDOF++) {
+                totalForce(iDOF,0) = totalForce(iDOF,0) + currentForce[iDOF];
+            }
+        }
+    }
+
 }
 
 void WindTurbine::SetBaseMovements(void){
+
+    // for(int iTurbLoc=0; iTurbLoc<numWindTurbines; iTurbLoc++)
+    // {
+    // }
 
 }
