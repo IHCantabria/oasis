@@ -6,7 +6,5 @@
 
 module purge
 ml Armadillo/10.5.3-foss-2020b
-ml OpenFAST/3.0.0-foss-2020b
-ml OpenMPI/4.0.5-GCC-10.2.0
-# mpiexec -np 1 ./bin/oasis "$1"
-mpirun -np 1 ./bin/oasis "$1"
+ml FASTurbine_wrapper/0.0-foss-2020b
+/home/projects/energia/developments/oasis_wind_turbine/oasis/bin/oasis "$1"

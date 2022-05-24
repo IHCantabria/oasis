@@ -47,7 +47,7 @@ public:
     double genTrq = 0.0;
     double yawTrq = 0.0;
 
-    WindTurbine(int n,Simulation* pSimInp){idWindTurbine=n; pSim = pSimInp;} // Inicializa un objeto de clase turbina dandole el indice
+    WindTurbine(int n,Simulation* pSimInp){idWindTurbine=n+1; pSim = pSimInp;} // Inicializa un objeto de clase turbina dandole el indice
 	void ReadPropertiesASCII(FILE* pFile); // Lee inputs de las turbinas
     void Initialize(void); // Configura el objeto turbina
     void Finalize(void); // Cierra el caso

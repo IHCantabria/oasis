@@ -40,7 +40,16 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 			ini = ini + 3;
 		}
 	}
-	ini = ini + numWinches;
+	for(int ii=0; ii<numWinches; ii++)
+    {
+		pWinches[ii]->theta = arma::as_scalar(y.row(ini));
+	    ini = ini + 1;
+	}
+    for(int ii=0; ii<numWindTurbines; ii++)
+    {
+		pWindTurbines[ii]->rotPos = arma::as_scalar(y.row(ini));
+	    ini = ini + 1;
+	}
 	for(int ii=0; ii<numBodies; ii++)
 	{
 		pBodies[ii]->vel = y.rows(ini,ini+5);
@@ -56,14 +65,12 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 	}
 	for(int ii=0; ii<numWinches; ii++)
     {
-		pWinches[ii]->theta = arma::as_scalar(y.row(ini));
-		pWinches[ii]->omega = arma::as_scalar(y.row(numSystem2+ini));
+		pWinches[ii]->omega = arma::as_scalar(y.row(ini));
 	    ini = ini + 1;
 	}
     for(int ii=0; ii<numWindTurbines; ii++)
     {
-		pWindTurbines[ii]->rotPos = arma::as_scalar(y.row(ini));
-		pWindTurbines[ii]->rotSpeed = arma::as_scalar(y.row(numSystem2+ini));
+		pWindTurbines[ii]->rotSpeed = arma::as_scalar(y.row(ini));
 	    ini = ini + 1;
 	}
 	
@@ -252,19 +259,24 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 		yprime.rows(ini,ini+5) = pBodies[ii]->vel;
 		ini = ini + 6;
 	}
-	ini = 6*numBodies;
 	for(int ii=0;ii<numLines;ii=ii+1){
 		for(int jj=pLines[ii]->first_node; jj<pLines[ii]->last_node; jj=jj+1){
 			yprime.rows(ini,ini+2) = pLines[ii]->vel.row(jj).t();
 			ini = ini + 3;
 		}
 	}
-	ini = numSystem2;
+	for(int ii=0;ii<numWinches;ii=ii+1){
+		yprime.row(ini) = pWinches[ii]->omega;
+        ini = ini + 1;
+	}
+    for(int ii=0;ii<numWindTurbines;ii=ii+1){
+		yprime.row(ini) = pWindTurbines[ii]->rotSpeed;
+        ini = ini + 1;
+	}
 	for(int ii=0;ii<numBodies;ii=ii+1){
 		yprime.rows(ini,ini+5) = pBodies[ii]->acc;
 		ini = ini + 6;
 	}
-	ini = numSystem2+6*numBodies;
 	for(int ii=0;ii<numLines;ii=ii+1){
 		for(int jj=pLines[ii]->first_node; jj<pLines[ii]->last_node; jj=jj+1){
 			yprime.rows(ini,ini+2) = pLines[ii]->acc.row(jj).t();
@@ -272,13 +284,11 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 		}
 	}
 	for(int ii=0;ii<numWinches;ii=ii+1){
-		yprime.row(ini) = pWinches[ii]->omega;
-		yprime.row(numSystem2+ini) = pWinches[ii]->alpha;
+		yprime.row(ini) = pWinches[ii]->alpha;
         ini = ini + 1;
 	}
     for(int ii=0;ii<numWindTurbines;ii=ii+1){
-		yprime.row(ini) = pWindTurbines[ii]->rotSpeed;
-		yprime.row(numSystem2+ini) = pWindTurbines[ii]->rotAcc;
+		yprime.row(ini) = pWindTurbines[ii]->rotAcc;
         ini = ini + 1;
 	}
 
@@ -1363,7 +1373,7 @@ void Simulation::ReadWindTurbinesASCII(void)
 	fscanf(file_pointer, "%d %[^\n]\n", &numWindTurbines, bufferLine);
     // Allocate a vector of pointers to WindTurbine class objects
     pWindTurbines = new WindTurbine* [numWindTurbines];
-    for(int ii=0; ii<numWinches; ii++)
+    for(int ii=0; ii<numWindTurbines; ii++)
     {
 		pWindTurbines[ii] = new WindTurbine(ii,this);
 		pWindTurbines[ii]->ReadPropertiesASCII(file_pointer);
@@ -1428,7 +1438,7 @@ void Simulation::Run()
 		    }
             for(int ii=0; ii<numBodies; ii=ii+1) 
             {
-            	pBodies[ii]->Fb = pBodies[ii]->pHydro->CalculateHydrodynamicForces(wallTime);
+            	pBodies[ii]->Fb = pBodies[ii]->pHydro->CalculateHydrodynamicForces(wallTimeHydro);
             }
     	}
 
@@ -1436,12 +1446,18 @@ void Simulation::Run()
             if (pTimeSolver->t >= wallTimeFAST + fastTimeStep)
             {
                 wallTimeFAST += fastTimeStep;
-                for(int ii=0; ii<numWindTurbines; ii=ii+1) pWindTurbines[ii]->ComputeForces(wallTime);
+                for(int ii=0; ii<numWindTurbines; ii=ii+1){
+                    pWindTurbines[ii]->SetInputsFAST();
+                    pWindTurbines[ii]->ComputeForces(wallTimeFAST);
+                }
             }
             if (pTimeSolver->t >= wallTimeControllerFAST + fastControllerTimeStep)
             {
                 wallTimeControllerFAST += fastControllerTimeStep;
-                for(int ii=0; ii<numWindTurbines; ii=ii+1) pWindTurbines[ii]->ComputeControler(wallTime);
+                for(int ii=0; ii<numWindTurbines; ii=ii+1){
+                    pWindTurbines[ii]->SetInputsFAST();
+                    pWindTurbines[ii]->ComputeControler(wallTimeControllerFAST);
+                }
             }
         }
 
@@ -1567,8 +1583,8 @@ void Simulation::SetupCase()
     std::cout << "        ... done!" << std::endl;
 
     
-    // Assing to each BCP the corresponding Body pointer
-    std::cout << "        Assigning to each BCP the corresponding body  ..." << std::endl;
+    // Assing to each Body the corresponding Wind Turbine pointers
+    std::cout << "       Assingning to each Body the corresponding Wind Turbine pointers  ..." << std::endl;
     for (int ii=0; ii<numBodies; ii++)
     {
         for(int jj=0; jj<pBodies[ii]->numWindTurbs; jj++)

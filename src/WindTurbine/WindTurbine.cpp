@@ -87,11 +87,13 @@ void WindTurbine::ReadPropertiesASCII(FILE* pFile){
 
 void WindTurbine::Initialize(void){
 
-    std::string OutputPath = JoinPath(pSim->outputFolderPath, "FAST");
+    std::cout << "    WindTurbine::Initialize" << std::endl;
+    std::string OutputPath = JoinPath(pSim->outputFolderPath,"FAST");
     std::copy(OutputPath.data(),
 	          OutputPath.data()+(OutputPath.size()+1),
 			  OutputPathName);
-    
+
+    std::cout << "        --> Introduce inputs in FSTW_InitInput" << std::endl;    
     FSTW_InitInput.Tmax = pSim->simulationTime;
     FSTW_InitInput.TimeInterval = pSim->fastTimeStep;
 	FSTW_InitInput.TimeInterval_SrvD = pSim->fastControllerTimeStep;
@@ -128,7 +130,7 @@ void WindTurbine::Finalize(void){
 }
 
 void WindTurbine::ComputeForces(double time){
-    std::cout << "    WindTurbine::ComputeForces" << std::endl;
+    // std::cout << "    WindTurbine::ComputeForces" << std::endl;
     FSTW_CalcForces(&time, &ErrStat, ErrMsg);
     CheckError();
 
@@ -145,7 +147,7 @@ void WindTurbine::ComputeForces(double time){
 }
 
 void WindTurbine::SetInputsFAST(void){
-    std::cout << "    WindTurbine::SetBaseMovements" << std::endl;
+    // std::cout << "    WindTurbine::SetBaseMovements" << std::endl;
 
     FSTW_Input.plat_pos[0] = pBody->pos(0,0);
 	FSTW_Input.plat_pos[1] = pBody->pos(1,0);
@@ -168,7 +170,7 @@ void WindTurbine::SetInputsFAST(void){
 }
 
 void WindTurbine::ComputeControler(double time){
-    std::cout << "    WindTurbine::ComputeControler" << std::endl;
+    // std::cout << "    WindTurbine::ComputeControler" << std::endl;
     FSTW_CalcController(&time, &ErrStat, ErrMsg);
 	CheckError();
 
@@ -177,14 +179,14 @@ void WindTurbine::ComputeControler(double time){
 }
 
 void WindTurbine::ComputeRotorAcc(void){
-    std::cout << "    WindTurbine::ComputeRotorAcc" << std::endl;
+    // std::cout << "    WindTurbine::ComputeRotorAcc" << std::endl;
 
     rotAcc = (airTrq-genTrq)/rotIner;
 
 }
 
 void WindTurbine::CheckError(void){
-    std::cout << "    WindTurbine::CheckError" << std::endl;
+    // std::cout << "    WindTurbine::CheckError" << std::endl;
     if (ErrStat != ErrID_None){
         if (ErrStat >= AbortErrLev){
             throw std::runtime_error(ErrMsg);
