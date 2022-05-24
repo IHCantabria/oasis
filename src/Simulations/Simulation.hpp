@@ -36,6 +36,7 @@ public:
     double maxTimeStep;
     double hydroTimeStep;
     double fastTimeStep;
+    double fastControllerTimeStep;
     double timeIRF;
     double sinkingTimeStep;
     int numSystem;
@@ -78,7 +79,7 @@ public:
     WinchieController WinchesController;
     Wave* pWave;
     Sinking** pSinking;
-    WindTurbine* pWindTurbines;
+    WindTurbine** pWindTurbines;
     int numAnchorBcps=0;
     int numBcps=0;
     int numBodies=0;

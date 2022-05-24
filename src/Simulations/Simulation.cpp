@@ -56,8 +56,15 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 	}
 	for(int ii=0; ii<numWinches; ii++)
     {
-		pWinches[ii]->theta = arma::as_scalar(y.row(numSystem2-(ii+1)));
-		pWinches[ii]->omega = arma::as_scalar(y.row(numSystem-(ii+1)));
+		pWinches[ii]->theta = arma::as_scalar(y.row(ini));
+		pWinches[ii]->omega = arma::as_scalar(y.row(numSystem2+ini));
+	    ini = ini + 1;
+	}
+    for(int ii=0; ii<numWindTurbines; ii++)
+    {
+		pWindTurbines[ii]->rotPos = arma::as_scalar(y.row(ini));
+		pWindTurbines[ii]->rotSpeed = arma::as_scalar(y.row(numSystem2+ini));
+	    ini = ini + 1;
 	}
 	
 	// Update BodyBCP positions and velocities
@@ -147,6 +154,14 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 		Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  Fb(arma::span(6*ii,6*(ii+1)-1), 0) + pBodies[ii]->bcpForces;
 	}
 
+    // Add wind turbine forces
+	// std::cout << "Simulation::CalculateSystemDynamics - Add wind turbine forces" << std::endl;
+	for(int ii=0; ii<numBodies; ii++)
+    {
+        pBodies[ii]->ComputeWindTurbForces();
+		Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  Fb(arma::span(6*ii,6*(ii+1)-1), 0) + pBodies[ii]->windTurbForces;
+	}
+
 	// Compute body acceleration
     // std::cout << "Simulation::CalculateSystemDynamics - Compute Bodies accelerations" << std::endl;
     arma::mat accB;
@@ -224,6 +239,12 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
         ComputeLinesCouplingMatrix();
     }
 
+    // Compute Wind Turbines rotor acceleration
+	// std::cout << "Simulation::CalculateSystemDynamics - Compute Wind Turbines" << std::endl;
+	for(int ii=0;ii<numWindTurbines;ii=ii+1){
+		pWindTurbines[ii]->ComputeRotorAcc();
+	}
+
 	// Copy info from the objects to yprime
 	// std::cout << "Simulation::CalculateSystemDynamics - Copy info to yprime" << std::endl;
 	ini = 0;
@@ -251,8 +272,14 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 		}
 	}
 	for(int ii=0;ii<numWinches;ii=ii+1){
-		yprime.row(numSystem2-(ii+1)) = pWinches[ii]->omega;
-		yprime.row(numSystem-(ii+1)) = pWinches[ii]->alpha;
+		yprime.row(ini) = pWinches[ii]->omega;
+		yprime.row(numSystem2+ini) = pWinches[ii]->alpha;
+        ini = ini + 1;
+	}
+    for(int ii=0;ii<numWindTurbines;ii=ii+1){
+		yprime.row(ini) = pWindTurbines[ii]->rotSpeed;
+		yprime.row(numSystem2+ini) = pWindTurbines[ii]->rotAcc;
+        ini = ini + 1;
 	}
 
 	// std::cout << "Simulation::CalculateSystemDynamics - Check if yprime has a NaN" << std::endl;
@@ -289,8 +316,9 @@ void Simulation::CloseCase()
     	WinchesController.CloseOutputFilesASCII();
 	}
 
-    if (numWindTurbines>0) {
-        pWindTurbines->Finalize();
+	for (int ii=0; ii<numWindTurbines; ii++)
+    {
+    	pWindTurbines[ii]->Finalize();
     }
 
 }
@@ -309,10 +337,11 @@ void Simulation::Initialize()
     double start_time = 0.0;
 
     // Initialize system vector
-    std::cout << "Num DOFs Total: " << this->numDofTotal << std::endl;
-    std::cout << "Num NumBodies: " << this->numBodies << std::endl;
-    std::cout << "Num NumWinchies: " << this->numWinches << std::endl;
-    numSystem2 = 3*this->numDofTotal + 6*this->numBodies + this->numWinches;
+    std::cout << "Num. Bodies: " << this->numBodies << std::endl;
+    std::cout << "Num. Mooring DOFs Total: " << this->numDofTotal << std::endl;
+    std::cout << "Num. Winchies: " << this->numWinches << std::endl;
+    std::cout << "Num. Wind Turbines: " << this->numWindTurbines << std::endl;
+    numSystem2 = 3*this->numDofTotal + 6*this->numBodies + this->numWinches + this->numWindTurbines;
     numSystem = 2*numSystem2;
 
     printf("Sistem size: %d\n", numSystem);
@@ -335,6 +364,16 @@ void Simulation::Initialize()
                     y.rows(ini,ini+2) = this->pLines[ii]->pos.row(jj).t();
                     ini=ini+3;
             }
+        }
+        for(int ii=0; ii<this->numWinches; ii=ii+1){
+            std::cout << "  ... Including Winch: " << ii+1 << std::endl;
+            ini=ini+1;
+        }
+        for(int ii=0; ii<this->numWindTurbines; ii=ii+1){
+            std::cout << "  ... Including Wind Turbine: " << ii+1 << std::endl;
+            y(ini) = this->pWindTurbines[ii]->rotPos;
+            y(numSystem2+ini) = this->pWindTurbines[ii]->rotSpeed;
+            ini=ini+1;
         }
     } else {
         std::cout << "Reading Equilibrium.dat..." << std::endl;
@@ -1042,6 +1081,7 @@ void Simulation::ReadPropertiesASCII()
 	fscanf(file_pointer, "%lf %[^\n]\n", &maxTimeStep, bufferLine); 
 	fscanf(file_pointer, "%lf %[^\n]\n", &hydroTimeStep, bufferLine);
     fscanf(file_pointer, "%lf %[^\n]\n", &fastTimeStep, bufferLine);
+    fscanf(file_pointer, "%lf %[^\n]\n", &fastControllerTimeStep, bufferLine);
     fscanf(file_pointer, "%lf %[^\n]\n", &timeIRF, bufferLine);
 	fscanf(file_pointer, "%lf %[^\n]\n", &sinkingTimeStep, bufferLine);
 	fscanf(file_pointer, "%lf %[^\n]\n", &simulationTime, bufferLine);
@@ -1322,8 +1362,12 @@ void Simulation::ReadWindTurbinesASCII(void)
     // Read number of Wind Turbines defined in the file
 	fscanf(file_pointer, "%d %[^\n]\n", &numWindTurbines, bufferLine);
     // Allocate a vector of pointers to WindTurbine class objects
-    pWindTurbines = new WindTurbine(numWindTurbines,this);
-    pWindTurbines->ReadPropertiesASCII(file_pointer);
+    pWindTurbines = new WindTurbine* [numWindTurbines];
+    for(int ii=0; ii<numWinches; ii++)
+    {
+		pWindTurbines[ii] = new WindTurbine(ii,this);
+		pWindTurbines[ii]->ReadPropertiesASCII(file_pointer);
+	}
 
     // Close the file
     fclose(file_pointer);
@@ -1348,6 +1392,7 @@ void Simulation::Run()
 	double wallTime = 0.0;
 	double wallTimeHydro = 0.0;
     double wallTimeFAST = 0.0;
+    double wallTimeControllerFAST = 0.0;
 	double wallTimeSinking = 0.0;
     tstart = time(0);
     std::cout<< "    t = " << wallTime << " s" << std::endl;
@@ -1391,7 +1436,12 @@ void Simulation::Run()
             if (pTimeSolver->t >= wallTimeFAST + fastTimeStep)
             {
                 wallTimeFAST += fastTimeStep;
-                pWindTurbines->Step();
+                for(int ii=0; ii<numWindTurbines; ii=ii+1) pWindTurbines[ii]->ComputeForces(wallTime);
+            }
+            if (pTimeSolver->t >= wallTimeControllerFAST + fastControllerTimeStep)
+            {
+                wallTimeControllerFAST += fastControllerTimeStep;
+                for(int ii=0; ii<numWindTurbines; ii=ii+1) pWindTurbines[ii]->ComputeControler(wallTime);
             }
         }
 
@@ -1426,6 +1476,7 @@ void Simulation::Run()
 void Simulation::SetupCase()
 {
     std::cout << "----> Setting up the case configuration ..." << std::endl;
+
     // Count the number of BCP in each body and create pointer array
     std::cout << "        Counting the number of BCPs in each body ..." << std::endl;
     for (int ii=0; ii<numBodies; ii++)
@@ -1473,6 +1524,57 @@ void Simulation::SetupCase()
             pBodies[ii]->pBodyBcps[jj]->countBody++;
         }
         pBodies[ii]->UpdateBcps();
+    }    
+    std::cout << "        ... done!" << std::endl;
+
+    // Count the number of Wind Turbines in each body and create pointer array
+    std::cout << "        Checking the number of Wind Turbines in each body ..." << std::endl;
+    for (int ii=0; ii<numBodies; ii++)
+    {
+        for (int jj=0; jj<pBodies[ii]->numWindTurbs; jj++)
+        {
+            if (pBodies[ii]->pIndexWindTurbs[jj]+1 > numWindTurbines)
+            {
+                std::stringstream ss;
+                ss << "BCP index: " << pBodies[ii]->pIndexWindTurbs[jj] << " in Body: " << pBodies[ii]->GetId() \
+                    << " is out of range when compare with the Number of BCPs(" << numBcps << ") defined in" \
+                    << " datosBCPs.dat";
+                throw ValueError(ss.str());
+            }
+        }
+    }
+    for (int ii=0; ii<numBodies; ii++)
+    {
+        for (int jj=0; jj<numBodies; jj++)
+        {
+            if (ii!=jj && pBodies[ii]->numWindTurbs>0 && pBodies[jj]->numWindTurbs>0){
+                for (int kii=0; kii<pBodies[ii]->numWindTurbs; kii++)
+                {
+                    int indWTloc = pBodies[ii]->pIndexWindTurbs[kii];
+                    for (int kjj=0; kjj<numBodies; kjj++)
+                    {
+                        if(indWTloc==pBodies[jj]->pIndexWindTurbs[kjj])
+                        {
+                            std::stringstream ss;
+                            ss << "Bodies " << ii+1 << " and " << jj+1 << " share wind turbine" << indWTloc << "!";
+                            throw ValueError(ss.str());
+                        }
+                    }
+                }
+            }
+        }
+    }
+    std::cout << "        ... done!" << std::endl;
+
+    
+    // Assing to each BCP the corresponding Body pointer
+    std::cout << "        Assigning to each BCP the corresponding body  ..." << std::endl;
+    for (int ii=0; ii<numBodies; ii++)
+    {
+        for(int jj=0; jj<pBodies[ii]->numWindTurbs; jj++)
+        {
+            pBodies[ii]->pBodyWindTurbs[jj] = pWindTurbines[pBodies[ii]->pIndexWindTurbs[jj]];
+        }
     }    
     std::cout << "        ... done!" << std::endl;
 
@@ -1680,10 +1782,36 @@ void Simulation::SetupCase()
     std::cout << "        ... done!" << std::endl;
 	}
 
-    // Setup wind turbines
-    if (numWindTurbines>0) {
+    if (numWindTurbines>0)
+    {
+        // Setup wind turbines
         std::cout << "        Setting up wind turbines ..." << std::endl;
-        pWindTurbines->Initialize();
+        for (int ii=0; ii<numWindTurbines; ii++)
+        {
+            std::cout << "            Turbine: " << ii << "\n";
+            pWindTurbines[ii]->Initialize();
+        }    
+        std::cout << "        ... done!" << std::endl;
+
+
+        // Computing bodies structural mass considering wind turbines
+        std::cout << "        Computing bodies structural mass considering wind turbines ..." << std::endl;
+        for (int ii=0; ii<numBodies; ii++)
+        {
+            if (pBodies[ii]->numWindTurbs>0) 
+            {
+                std::cout << "            Body: " << ii << "\n";
+                // Aqui seria conveniente comprobar que las distintas turbinas 
+                // la inercia de la HDB son al menos muy similares.
+                pBodies[ii]->inertia = pBodies[ii]->pBodyWindTurbs[0]->bodyInerMat;
+                for (int jj=0; jj<pBodies[ii]->numWindTurbs; jj++)
+                {
+                    
+                    pBodies[ii]->inertia += pBodies[ii]->pBodyWindTurbs[0]->towrInerMat;
+                    pBodies[ii]->inertia += pBodies[ii]->pBodyWindTurbs[0]->turbInerMat;
+                }
+            }
+        }    
         std::cout << "        ... done!" << std::endl;
     }
 

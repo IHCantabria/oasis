@@ -7,6 +7,7 @@
 #include <cstdio>
 #include "../BCPs/BCPs.hpp"
 #include "../Hydro/HydroForce.hpp"
+#include "../WindTurbine/WindTurbine.hpp"
 
 class solver_data;
 class Simulation;
@@ -18,8 +19,10 @@ private:
 public:
 	// General and management variables
 	BCP** pBodyBcps; // Array de pointers a los puntos de condicion de contorno
+	WindTurbine** pBodyWindTurbs; // Array de pointers a los puntos de condicion de contorno
 	int* pDofs; // Array to store the number of degrees of freedom considered in the body
 	int* pIndexBcps; // Array to store the index of the boundary condition points
+	int* pIndexWindTurbs; // Array to store the index of the wind turbine points
 	HydroForce* pHydro; // Hydrodynamnics body associated to the body
 	int hydroDatabaseIndex; // Index of the body in the associated hydrodynamic database, if any
 	std::string hydroDatabaseName; // Stores the hydrodynamic database name
@@ -37,6 +40,7 @@ public:
 	Simulation* pSim; // Pointer to simulation instance
 	int takeCOGHydroDatabase; // Stores if read the initial COG position from the hydrodynamic database
 	int numBcps=0; // Number of Boundary Condition Points considered
+	int numWindTurbs=0; // Number of Wind Turbines considered
 	int numDofs=0; // // Number of Degrees of freedom considered for the body
 	arma::mat isDofActive = arma::zeros(6,1); // 1 if dof is active, 0 otherwise
 
@@ -48,6 +52,7 @@ public:
 	double filling_mass = 0; // Body filling mass for sinking
 	arma::mat acc = arma::zeros(6,1); // Body acceleration w.r.t the global reference system
 	arma::mat bcpForces = arma::zeros(6,1); // Fuerzas que los BCPs ejercen sobre el cuerpo, en la referencia del CDG
+	arma::mat windTurbForces = arma::zeros(6,1); // Fuerzas que los BCPs ejercen sobre el cuerpo, en la referencia del CDG
 	arma::mat hydrostaticForces = arma::zeros(6, 1); // Storage for the hydrostatic forces
 	arma::mat inertia = arma::zeros(6,6); // matriz de inercia del cuerpo
 	arma::mat invRotMat = arma::zeros(3,3); // Matriz de rotación
@@ -79,6 +84,7 @@ public:
 	Body(void){};
 	Body(int n, Simulation* pSim); // Inicializa un objeto de clase cuerpo dandole el indice
 	void ComputeBcpForces(void); // Calcula el efecto de las fuerzas sobre los BCPs sobre su CDG
+	void ComputeWindTurbForces(void); // Calcula el efecto de las fuerzas de las turbinas sobre su CDG
 	int GetId(void); // Returns the body identification number
 	void LoadHydrodynamicDatabase(Body** hydroDatabaseBodies); // Loads the hydrodynamics database associated, if any 
 	void ReadPropertiesASCII(FILE* filePointer); // Leer datos de los cuerpos

@@ -84,6 +84,15 @@ void Body::ComputeBcpForces(void)
 	}
 }
 
+void Body::ComputeWindTurbForces(void){
+
+	windTurbForces = arma::zeros(6,1);
+	for(int ii=0; ii<numWindTurbs; ii++){
+		windTurbForces += pBodyWindTurbs[ii]->forceBodyCOG;
+	}
+	
+}
+
 
 int Body::GetId(void)
 {
@@ -204,6 +213,31 @@ void Body::ReadPropertiesASCII(FILE* pFile)
 			throw ValueError(ss.str());
 		}
 		this->pIndexBcps[ii] = itemp - 1;
+	}
+	fscanf(pFile, "%[^\n]\n", buffer_line);
+
+	// Read the wind turbines in the body
+	fgetpos(pFile, &carriage_init);
+	while (fscanf(pFile, "%d", &itemp) == 1)
+	{
+		this->numWindTurbs++;
+	}
+	fsetpos(pFile, &carriage_init);
+
+	this->pIndexWindTurbs = new int[this->numWindTurbs];
+	fgetpos(pFile, &carriage_init);
+	fgets(buffer_line, sizeof(buffer_line), pFile);
+	fsetpos(pFile, &carriage_init);
+	std::cout << buffer_line << std::endl;
+	for(int ii=0; ii<this->numWindTurbs; ii++)
+	{
+		if (fscanf(pFile, "%d", &itemp) != 1)
+		{
+			std::stringstream ss;
+			ss << "An error ocurred when trying to read the wind turbines of the body: " << this->GetId() << " " << "\n";
+			throw ValueError(ss.str());
+		}
+		this->pIndexWindTurbs[ii] = itemp - 1;
 	}
 	fscanf(pFile, "%[^\n]\n", buffer_line);
 

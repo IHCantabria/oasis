@@ -9,155 +9,185 @@
 #include "../Exceptions/Exception.hpp"
 #include "../os_tools.hpp"
 #include "../Simulations/Simulation.hpp"
-#include <OpenFAST.H>
-#include <mpi.h>
+#include "FASTurbW_Library.h"
+#include "FAST_Library.h"
 
 
-void WindTurbine::ReadPropertiesASCII(FILE*& pFile){
+void WindTurbine::ReadPropertiesASCII(FILE* pFile){
 
     // Declare variables
 	char buffer_line [1000];
-    char cFastFileName [1000];
+    char cADFileName [1000];
+    char cIWFileName [1000];
+    char cSDFileName [1000];
+    char cEDFileName [1000];
 
-    fi.nTurbinesGlob = numWindTurbines;
-    fi.dryRun = false;
-    fi.debug = false;
-    fi.simStart = fast::init;
-    fi.tStart = 0.0;
-    fi.nEveryCheckPoint = 160;
-    fi.dtFAST = pSim->maxTimeStep;
-    fi.tMax = pSim->simulationTime;
-    // fi.scStatus = false;
-    // fi.scLibFile = "banana";
-    fi.globTurbineData.resize(fi.nTurbinesGlob);
-
-    pBodies = new Body* [numWindTurbines];
-
-    for(int iTurbLoc=0; iTurbLoc<numWindTurbines; iTurbLoc++)
+    // Ignoro las tres primeras lineas, donde pone "New Turbine"
+    for(int ii=0; ii<3; ii++)
     {
-        // Ignoro las tres primeras lineas, donde pone "New Turbine"
-        for(int ii=0; ii<3; ii++)
-        {
-            fgets(buffer_line, sizeof(buffer_line), pFile);
-        }
-
-        // Leo y asigno el cuerpo correspondiente a la turbina
-        int tmp_body_id;
-        fscanf(pFile, "%d %[^\n]\n", &tmp_body_id, buffer_line); tmp_body_id--;
-        pBodies[iTurbLoc] = pSim->pBodies[tmp_body_id];
-
-        // Leo y uno al path el nombre del archivo de input de fast
-        if (fscanf(pFile, "%s %[^\n]\n", cFastFileName, buffer_line) != 2)
-        {
-            std::stringstream ss;
-            ss << "An error ocurred when trying to read the FAST input file name in Turbine: " << iTurbLoc+1 << "\n";
-            throw ValueError(ss.str());
-        }
-        std::string FASTInputFileName = JoinPath(pSim->inputFolderPath, "FAST");
-        FASTInputFileName = JoinPath(FASTInputFileName, cFastFileName);
-
-        // Leo el numero de puntos en palas y torre        
-        int tmp_numForcePtsBlade,tmp_numForcePtsTwr;
-        fscanf(pFile, "%d %[^\n]\n", &tmp_numForcePtsBlade, buffer_line);
-        fscanf(pFile, "%d %[^\n]\n", &tmp_numForcePtsTwr, buffer_line);
-
-        // Leo la posicion de la base de la turbina
-        double TurbineBasePosX,TurbineBasePosY,TurbineBasePosZ;
-        fscanf(pFile, "%lf %lf %lf %[^\n]\n", &TurbineBasePosX, &TurbineBasePosY, &TurbineBasePosZ, buffer_line);
-
-        // Guardo en estructura de fast los datos leidos
-        fi.globTurbineData[iTurbLoc].TurbID = iTurbLoc+1;
-        fi.globTurbineData[iTurbLoc].FASTInputFileName = FASTInputFileName;
-        fi.globTurbineData[iTurbLoc].FASTRestartFileName = "banana";
-        fi.globTurbineData[iTurbLoc].TurbineBasePos = {TurbineBasePosX,TurbineBasePosY,TurbineBasePosZ};
-        // fi.globTurbineData[iTurbLoc].TurbineHubPos = {0.0, 0.0, 0.0}; //
-        fi.globTurbineData[iTurbLoc].numForcePtsBlade = tmp_numForcePtsBlade;
-        fi.globTurbineData[iTurbLoc].numForcePtsTwr = tmp_numForcePtsTwr;
-        // fi.globTurbineData[iTurbLoc].nacelle_cd = 0.1; //
-        // fi.globTurbineData[iTurbLoc].nacelle_area = 10; //
-        // fi.globTurbineData[iTurbLoc].air_density = 1.225; //
+        fgets(buffer_line, sizeof(buffer_line), pFile);
     }
+
+    // Leo y asigno el cuerpo correspondiente a la turbina
+    int tmp_body_id;
+    fscanf(pFile, "%d %[^\n]\n", &tmp_body_id, buffer_line); tmp_body_id--;
+    pBody = pSim->pBodies[tmp_body_id];
+
+    // Leo y uno al path el nombre del archivo de input de AeroDyn
+    if (fscanf(pFile, "%s %[^\n]\n", cADFileName, buffer_line) != 2)
+    {
+        std::stringstream ss;
+        ss << "An error ocurred when trying to read the AeroDyn input file name in Turbine: " << idWindTurbine << "\n";
+        throw ValueError(ss.str());
+    }
+    std::string ADFileName = JoinPath(pSim->inputFolderPath, cADFileName);
+    std::copy(ADFileName.data(),
+	          ADFileName.data()+(ADFileName.size()+1),
+			  InputFileName_AD);
+    
+    // Leo y uno al path el nombre del archivo de input de InflowWind
+    if (fscanf(pFile, "%s %[^\n]\n", cIWFileName, buffer_line) != 2)
+    {
+        std::stringstream ss;
+        ss << "An error ocurred when trying to read the InflowWind input file name in Turbine: " << idWindTurbine << "\n";
+        throw ValueError(ss.str());
+    }
+    std::string IWFileName = JoinPath(pSim->inputFolderPath, cIWFileName);
+    std::copy(IWFileName.data(),
+	          IWFileName.data()+(IWFileName.size()+1),
+			  InputFileName_IW);
+    
+    // Leo y uno al path el nombre del archivo de input de ServoDyn
+    if (fscanf(pFile, "%s %[^\n]\n", cSDFileName, buffer_line) != 2)
+    {
+        std::stringstream ss;
+        ss << "An error ocurred when trying to read the ServoDyn input file name in Turbine: " << idWindTurbine << "\n";
+        throw ValueError(ss.str());
+    }
+    std::string SDFileName = JoinPath(pSim->inputFolderPath, cSDFileName);
+    std::copy(SDFileName.data(),
+	          SDFileName.data()+(SDFileName.size()+1),
+			  InputFileName_SD);
+    
+    // Leo y uno al path el nombre del archivo de input de ElastoDyn
+    if (fscanf(pFile, "%s %[^\n]\n", cEDFileName, buffer_line) != 2)
+    {
+        std::stringstream ss;
+        ss << "An error ocurred when trying to read the ElastoDyn input file name in Turbine: " << idWindTurbine << "\n";
+        throw ValueError(ss.str());
+    }
+    std::string EDFileName = JoinPath(pSim->inputFolderPath, cEDFileName);
+    std::copy(EDFileName.data(),
+	          EDFileName.data()+(EDFileName.size()+1),
+			  InputFileName_ED);
+
 
 }
 
 
 void WindTurbine::Initialize(void){
 
-    int iErr;
-    int nProcs;
-    int rank;
-    std::cout << "        --> MPI_Init" << std::endl;
-    iErr = MPI_Init(NULL, NULL);
-    std::cout << "        --> MPI_Comm_size" << std::endl;
-    iErr = MPI_Comm_size( MPI_COMM_WORLD, &nProcs);
-    std::cout << "        --> MPI_Comm_rank" << std::endl;
-    iErr = MPI_Comm_rank( MPI_COMM_WORLD, &rank);
+    std::string OutputPath = JoinPath(pSim->outputFolderPath, "FAST");
+    std::copy(OutputPath.data(),
+	          OutputPath.data()+(OutputPath.size()+1),
+			  OutputPathName);
+    
+    FSTW_InitInput.Tmax = pSim->simulationTime;
+    FSTW_InitInput.TimeInterval = pSim->fastTimeStep;
+	FSTW_InitInput.TimeInterval_SrvD = pSim->fastControllerTimeStep;
 
-    std::cout << "        --> fi.comm = MPI_COMM_WORLD;" << std::endl;
-    fi.comm = MPI_COMM_WORLD;
+    std::cout << "        --> FSTW_Init" << std::endl;
+    FSTW_Init(InputFileName_AD, InputFileName_IW, InputFileName_SD, InputFileName_ED, OutputPathName, &FSTW_InitInput, &FSTW_Input, &FSTW_Output, &ErrStat, ErrMsg);
+    CheckError();
 
-    std::cout << "        --> FAST.setInputs(fi);" << std::endl;
-    FAST.setInputs(fi);
-    std::cout << "        --> FAST.allocateTurbinesToProcsSimple();" << std::endl;
-    FAST.allocateTurbinesToProcsSimple();
-    std::cout << "        --> FAST.init();" << std::endl;
-    FAST.init();
-    if (FAST.isTimeZero()){
-        std::cout << "        --> FAST.solution0();" << std::endl;
-        FAST.solution0();
-    }
-    int nt = FAST.get_ntStart();
-
-}
-
-
-void WindTurbine::Step(void){
-    SetBaseMovements();
-    FAST.stepNoWrite();
-    GetBaseForces();
-}
-
-
-void WindTurbine::Finalize(void){
-    FAST.end();
-    MPI_Finalize();
-
-    char* s1 = new char[1000]; char* s2 = new char[1000]; char* s3 = new char[1000];
-    #if defined(_WIN32) || defined(_WIN64) || defined(__CYGWIN__)
-        sprintf(s1,"move %s\FAST\*.out %s",(pSim->inputFolderPath).c_str(),(pSim->outputFolderPath).c_str());
-        sprintf(s2,"move %s\FAST\*.outb %s",(pSim->inputFolderPath).c_str(),(pSim->outputFolderPath).c_str());
-        sprintf(s3,"move %s\FAST\*.sum %s",(pSim->inputFolderPath).c_str(),(pSim->outputFolderPath).c_str());
-        system("del *.h5");
-    #elif defined(__unix__)
-        sprintf(s1,"mv %s/FAST/*.out %s",(pSim->inputFolderPath).c_str(),(pSim->outputFolderPath).c_str());
-        sprintf(s2,"mv %s/FAST/*.outb %s",(pSim->inputFolderPath).c_str(),(pSim->outputFolderPath).c_str());
-        sprintf(s3,"mv %s/FAST/*.sum %s",(pSim->inputFolderPath).c_str(),(pSim->outputFolderPath).c_str());
-        system("rm *.h5");
-    #endif
-    system(s1); system(s2); system(s3);
-}
-
-void WindTurbine::GetBaseForces(void){
-
-    std::vector<double> currentForce(3);
-    arma::mat totalForce;
-    for (int iTurbLoc=0; iTurbLoc<numWindTurbines; iTurbLoc++)
-    {        
-        totalForce = arma::zeros(3,1);
-        for (int iForcePt=0; iForcePt < FAST.get_numForcePts(iTurbLoc); iForcePt++) {
-            FAST.getForce(currentForce,iForcePt,iTurbLoc);
-            for (int iDOF=0; iDOF < 3; iDOF++) {
-                totalForce(iDOF,0) = totalForce(iDOF,0) + currentForce[iDOF];
-            }
+    rotIner = FSTW_InitInput.turbIniRotSpeed;
+    for (int ii=0; ii<6; ii++)
+	{
+        for (int jj=0; ii<6; ii++)
+	    {
+            bodyInerMat(ii,jj) = FSTW_InitInput.platInerMat[ii][jj];
+            towrInerMat(ii,jj) = FSTW_InitInput.towrInerMat[ii][jj];
+            turbInerMat(ii,jj) = FSTW_InitInput.turbInerMat[ii][jj];
         }
     }
 
+    rotSpeed = FSTW_InitInput.turbIniRotSpeed;
+    yaw = FSTW_InitInput.turbIniYaw;
+    YCMode = FSTW_InitInput.YCMode;
+
+    if (YCMode>0){
+        std::stringstream ss;
+        ss << "Option with YAW control not implemented yet, fix ServoDyn Input for wind turbine " << idWindTurbine << "\n";
+        throw ValueError(ss.str());
+    }
+
 }
 
-void WindTurbine::SetBaseMovements(void){
+void WindTurbine::Finalize(void){
+    std::cout << "    WindTurbine::Finalize" << std::endl;
+}
 
-    // for(int iTurbLoc=0; iTurbLoc<numWindTurbines; iTurbLoc++)
-    // {
-    // }
+void WindTurbine::ComputeForces(double time){
+    std::cout << "    WindTurbine::ComputeForces" << std::endl;
+    FSTW_CalcForces(&time, &ErrStat, ErrMsg);
+    CheckError();
 
+    forceBodyCOG(0,0) = FSTW_Output.plat_forces[0];
+    forceBodyCOG(1,0) = FSTW_Output.plat_forces[1];
+    forceBodyCOG(2,0) = FSTW_Output.plat_forces[2];
+    forceBodyCOG(3,0) = FSTW_Output.plat_forces[3];
+    forceBodyCOG(4,0) = FSTW_Output.plat_forces[4];
+    forceBodyCOG(5,0) = FSTW_Output.plat_forces[5];
+
+    airTrq = FSTW_Output.aero_torque[0];
+
+    this->pBody->windTurbForces += forceBodyCOG;
+}
+
+void WindTurbine::SetInputsFAST(void){
+    std::cout << "    WindTurbine::SetBaseMovements" << std::endl;
+
+    FSTW_Input.plat_pos[0] = pBody->pos(0,0);
+	FSTW_Input.plat_pos[1] = pBody->pos(1,0);
+	FSTW_Input.plat_pos[2] = pBody->pos(2,0);
+	FSTW_Input.plat_pos[3] = pBody->pos(3,0);
+	FSTW_Input.plat_pos[4] = pBody->pos(4,0);
+	FSTW_Input.plat_pos[5] = pBody->pos(5,0);
+
+	FSTW_Input.plat_vel[0] = pBody->vel(0,0);
+	FSTW_Input.plat_vel[1] = pBody->vel(1,0);
+	FSTW_Input.plat_vel[2] = pBody->vel(2,0);
+	FSTW_Input.plat_vel[3] = pBody->vel(3,0);
+	FSTW_Input.plat_vel[4] = pBody->vel(4,0);
+	FSTW_Input.plat_vel[5] = pBody->vel(5,0);
+
+	FSTW_Input.RotPos[0] = rotPos;
+	FSTW_Input.RotSpeed[0] = rotSpeed;
+	FSTW_Input.Yaw[0] = yaw;
+	FSTW_Input.YawSpeed[0] = yawSpeed;
+}
+
+void WindTurbine::ComputeControler(double time){
+    std::cout << "    WindTurbine::ComputeControler" << std::endl;
+    FSTW_CalcController(&time, &ErrStat, ErrMsg);
+	CheckError();
+
+    genTrq = FSTW_Output.gen_torque[0];
+    yawTrq = FSTW_Output.YawMom[0];
+}
+
+void WindTurbine::ComputeRotorAcc(void){
+    std::cout << "    WindTurbine::ComputeRotorAcc" << std::endl;
+
+    rotAcc = (airTrq-genTrq)/rotIner;
+
+}
+
+void WindTurbine::CheckError(void){
+    std::cout << "    WindTurbine::CheckError" << std::endl;
+    if (ErrStat != ErrID_None){
+        if (ErrStat >= AbortErrLev){
+            throw std::runtime_error(ErrMsg);
+        }
+    }
 }

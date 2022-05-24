@@ -42,6 +42,7 @@ set(OASIS_SOURCE_FILES
     "src/BCPs/BCPs.cpp"
     "src/BCPs/Winchies.cpp"
     "src/BCPs/WinchiesController.cpp"
+    "src/WindTurbine/WindTurbine.cpp"
     "src/Bodies/Bodies.cpp"
     "src/Exceptions/Exception.cpp"
     "src/Waves/Wave.cpp"
@@ -54,7 +55,6 @@ set(OASIS_SOURCE_FILES
     "src/SEM_math/quadrule.cpp"
     "src/Spring/Spring.cpp"
     "src/Sinking/Sinking.cpp"
-    "src/WindTurbine/WindTurbine.cpp"
     )
 
 # Add include files
@@ -67,6 +67,7 @@ set(OASIS_HEADER_FILES
     "src/BCPs/BCPs.hpp"
     "src/BCPs/Winchies.hpp"
     "src/BCPs/WinchiesController.hpp"
+    "src/WindTurbine/WindTurbine.hpp"
     "src/Bodies/Bodies.hpp"
     "src/Exceptions/Exception.hpp"
     "src/Hydro/Morison.hpp"
@@ -78,7 +79,6 @@ set(OASIS_HEADER_FILES
     "src/Simulations/Simulation.hpp"
     "src/Spring/Spring.hpp"
     "src/Sinking/Sinking.hpp"
-    "src/WindTurbine/WindTurbine.hpp"
     )
 
 # Join source and header files
@@ -98,8 +98,11 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME}
   -lhdf5
   -lsuperlu
   -lopenblas
-  -lopenfastcpplib
-  -lmpi)
+  -laerodynlib
+  -lifwlib
+  -lservodynlib
+  -lnwtclibs
+  -lfasturbwrapper)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
   COMPILE_FLAGS -I/sNow/easybuild/centos/7.3.1611/SandyBridge/software/OpenMPI/4.0.5-GCC-10.2.0/include)

@@ -1,8 +1,7 @@
 
 module purge
 ml Armadillo/10.5.3-foss-2020b
-ml OpenFAST/3.0.0-foss-2020b
-ml OpenMPI/4.0.5-GCC-10.2.0
+ml FASTurbine_wrapper/0.0-foss-2020b
 
 rm ./bin/oasis
 # rm -rf build
