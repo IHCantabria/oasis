@@ -377,7 +377,7 @@ void Body::ReadPropertiesASCII(FILE* pFile)
 	this->pBodyBcps = new BCP* [this->numBcps];
 
 
-	if (flag_blocked>0){
+	if (flag_blocked==2){
 		std::cout << "    ----> Reading Body Imposed Movements..." << std::endl;
 		ReadLockBodyMovements();
 		std::cout << "    ----> Body Imposed Movements Read" << std::endl;
@@ -393,6 +393,8 @@ void Body::ReadLockBodyMovements(void){
 	int itemp;
 
 	std::string file_path = JoinPath(pSim->inputFolderPath, movementsFileName);
+	std::cout << "             Reading from file: " << file_path << std::endl;
+
 	// Open file
     FILE* pFile = fopen(file_path.c_str(), "r");
 	// Discard header lines and check for body movements type
@@ -408,6 +410,7 @@ void Body::ReadLockBodyMovements(void){
 	}
 	movementTypeFlag = itemp;
 	if (movementTypeFlag==1){
+		std::cout << "             Reading Harmonic Analytic movements..." << std::endl;
 		// Discard header lines and loop over dofs
 		for(int ii=0; ii<3; ii++)
 		{
@@ -415,10 +418,11 @@ void Body::ReadLockBodyMovements(void){
 		}
 		for(int ii=0; ii<6; ii++)
 		{
+			std::cout << "             Reading DOF " << ii << std::endl;
 			// Ignore dof name line
 			fgets(buffer_line, sizeof(buffer_line), pFile);
 			// Read offset
-			if (fscanf(pFile, "%lf", &dtemp) != 1)
+			if (fscanf(pFile, "%lf %[^\n]\n", &dtemp, buffer_line) != 2)
 			{
 				std::stringstream ss;
 				ss << "An error ocurred when trying to read analytic movement offset of body: " << this->GetId() << " in DOF " << ii << "\n";
@@ -426,7 +430,7 @@ void Body::ReadLockBodyMovements(void){
 			}
 			offset(ii, 0) =  dtemp;
 			// Read amplitude
-			if (fscanf(pFile, "%lf", &dtemp) != 1)
+			if (fscanf(pFile, "%lf %[^\n]\n", &dtemp, buffer_line) != 2)
 			{
 				std::stringstream ss;
 				ss << "An error ocurred when trying to read analytic movement amplitude of body: " << this->GetId() << " in DOF " << ii << "\n";
@@ -434,7 +438,7 @@ void Body::ReadLockBodyMovements(void){
 			}
 			amplitude(ii, 0) =  dtemp;
 			// Read period
-			if (fscanf(pFile, "%lf", &dtemp) != 1)
+			if (fscanf(pFile, "%lf %[^\n]\n", &dtemp, buffer_line) != 2)
 			{
 				std::stringstream ss;
 				ss << "An error ocurred when trying to read analytic movement period of body: " << this->GetId() << " in DOF " << ii << "\n";
@@ -442,7 +446,7 @@ void Body::ReadLockBodyMovements(void){
 			}
 			period(ii, 0) =  dtemp;
 			// Read phase
-			if (fscanf(pFile, "%lf", &dtemp) != 1)
+			if (fscanf(pFile, "%lf %[^\n]\n", &dtemp, buffer_line) != 2)
 			{
 				std::stringstream ss;
 				ss << "An error ocurred when trying to read analytic movement phase of body: " << this->GetId() << " in DOF " << ii << "\n";
@@ -458,14 +462,15 @@ void Body::ReadLockBodyMovements(void){
 		{
 			fgets(buffer_line, sizeof(buffer_line), pFile);
 		}
+		std::cout << "             Reading Time series data movements..." << std::endl;
 		// Read movements filename
 		if (fscanf(pFile, "%s %[^\n]\n", cMovementsTimeSeriesFileName, buffer_line) != 2)
 		{
 			std::stringstream ss;
-			ss << "An error ocurred when trying to read the movements file name of the body: " << this->GetId() << "\n";
+			ss << "An error ocurred when trying to read the movements time series file name of the body: " << this->GetId() << "\n";
 			throw ValueError(ss.str());
 		}
-		this->movementsTimeSeriesFileName = cMovementsTimeSeriesFileName;
+		movementsTimeSeriesFileName = cMovementsTimeSeriesFileName;
 	} else {
 		std::stringstream ss;
 		ss << "Body: " << this->GetId() <<" - Type of movement can only be 1 or 2" << ".\n";
@@ -476,15 +481,19 @@ void Body::ReadLockBodyMovements(void){
 
 
 	if (movementTypeFlag==2){
+
+		// Inicializo la variable donde guardar el numero de pasos temporales
+		int nt;
 		//Abro el fichero
 		file_path = JoinPath(pSim->inputFolderPath, movementsTimeSeriesFileName);
+		std::cout << "             Reading from file: " << file_path << std::endl;
 		std::ifstream datosPosF(file_path);
 		// Leo el numero de pasos temporales a leer
-		int nt; datosPosF >> nt; datosPosF.ignore(std::numeric_limits<int>::max(), '\n');
+		datosPosF >> nt; datosPosF.ignore(std::numeric_limits<int>::max(), '\n');
 
 		if (nt<2) {
 			std::stringstream ss;
-			ss << "Body: " << this->GetId() <<" - Movement time series does not have enough data" << ".\n";
+			ss << "Body: " << this->GetId() <<" - Movement time series does not have enough data. nt = " << nt << ".\n";
 			throw ValueError(ss.str());
 		}
 
