@@ -70,6 +70,8 @@ public:
     AnchorBCP** pAnchorBcps;
     BCP** pBcps;
     Body** pBodies;
+    Body** pBodiesFree;
+    Body** pBodiesLock;
     BodyBCP** pBodyBcps;
     FairleadBCP** pFairleadBcps;
     JointBCP** pJointBcps;
@@ -83,6 +85,8 @@ public:
     int numAnchorBcps=0;
     int numBcps=0;
     int numBodies=0;
+    int numBodiesFree=0;
+    int numBodiesLock=0;
     int numBodyBcps=0;
     int numDofTotal=0;
     int numFairBcps=0;

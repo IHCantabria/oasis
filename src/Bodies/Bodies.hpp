@@ -52,13 +52,13 @@ public:
 	double filling_mass = 0; // Body filling mass for sinking
 	arma::mat acc = arma::zeros(6,1); // Body acceleration w.r.t the global reference system
 	arma::mat bcpForces = arma::zeros(6,1); // Fuerzas que los BCPs ejercen sobre el cuerpo, en la referencia del CDG
-	arma::mat windTurbForces = arma::zeros(6,1); // Fuerzas que los BCPs ejercen sobre el cuerpo, en la referencia del CDG
 	arma::mat hydrostaticForces = arma::zeros(6, 1); // Storage for the hydrostatic forces
 	arma::mat inertia = arma::zeros(6,6); // matriz de inercia del cuerpo
 	arma::mat invRotMat = arma::zeros(3,3); // Matriz de rotación
 	arma::mat pos = arma::zeros(6,1); // Body's COG position w.r.t the global reference system
 	arma::mat pos_eq = arma::zeros(6,1); // This is used as a equilibrium reference for hydrostatic force calculation
 	arma::mat pos_filling_cog = arma::zeros(3,1); // Center of gravity position of the body filling for sinking
+	arma::mat pos_ini = arma::zeros(6,1); // Body's initial position
 	arma::mat radiationForces = arma::zeros(6, 1); // Storage for the wave radiation forces
 	arma::mat excitationForces_1 = arma::zeros(6, 1); // Storage for the wave excitation forces - 1st order
 	arma::mat excitationForces_2 = arma::zeros(6, 1); // Storage for the wave excitation forces - 2nd order
@@ -67,6 +67,17 @@ public:
 	arma::mat rotMat_dot2 = arma::eye(3,3); // Segunda erivada temporal de la matriz de rotacion del cuerpo
 	arma::mat vel = arma::zeros(6,1); // Body velocity w.r.t the global reference system
 	arma::mat velBuffer; // Velocity Buffer (global coords) in order to store the body velocities and calculate Duhamel's integral term
+	arma::mat windTurbForces = arma::zeros(6,1); // Fuerzas que los BCPs ejercen sobre el cuerpo, en la referencia del CDG
+
+
+	std::string movementsFileName; // Stores the movements file name
+	std::string movementsTimeSeriesFileName; // Stores the movements time series file name
+	int movementTypeFlag;
+	arma::mat offset = arma::zeros(6,1);
+	arma::mat amplitude = arma::zeros(6,1);
+	arma::mat period = arma::zeros(6,1);
+	arma::mat phase = arma::zeros(6,1);
+	arma::mat timeFixed,posFixed,velFixed,accFixed,omega;
 
 
 	FILE* pfile_DOF_1;
@@ -93,6 +104,8 @@ public:
 	void StoreVelocities(bool restoreMatrix); // Store last step velocity into the velocity buffer matrix
 	void UpdateBcps(void); // Actualiza valores del BCP
 	void ResetBcps(void); // Resetea fuerzas BCPs
+	void UpdateLockBody(double time);
+	void ReadLockBodyMovements(void); // Read imposed movements on lock bodies
 	// void UpdateHydrostaticForces(void); // Update the value of the wave radiation forces the current step
 	// void UpdateRadiationForces(void); // Update the value of the wave radiation forces the current step
 	void WriteOut(double t); // Escribir datos a fichero

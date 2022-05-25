@@ -42,9 +42,9 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 	// std::cout << "Simulation::CalculateSystemDynamics - Before copy y to objects" << std::endl;
 	// Copy info from y to the objects.
 	int ini = 0;
-	for(int ii=0; ii<numBodies; ii++)
+	for(int ii=0; ii<numBodiesFree; ii++)
 	{
-		pBodies[ii]->pos = y.rows(ini,ini+5);
+		pBodiesFree[ii]->pos = y.rows(ini,ini+5);
 		ini = ini + 6;
 	}
 	for(int ii=0; ii<numLines;ii++)
@@ -65,9 +65,9 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 		pWindTurbines[ii]->rotPos = arma::as_scalar(y.row(ini));
 	    ini = ini + 1;
 	}
-	for(int ii=0; ii<numBodies; ii++)
+	for(int ii=0; ii<numBodiesFree; ii++)
 	{
-		pBodies[ii]->vel = y.rows(ini,ini+5);
+		pBodiesFree[ii]->vel = y.rows(ini,ini+5);
 		ini = ini + 6;
 	}
 	for(int ii=0; ii<numLines; ii++)
@@ -87,6 +87,11 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     {
 		pWindTurbines[ii]->rotSpeed = arma::as_scalar(y.row(ini));
 	    ini = ini + 1;
+	}
+
+    for(int ii=0; ii<numBodiesLock; ii++)
+	{
+		pBodiesLock[ii]->UpdateLockBody(time);
 	}
 	
 	// Update BodyBCP positions and velocities
@@ -162,44 +167,53 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 
 	// Compute hydrostatic and hidrodynamic forces
     // std::cout << "Simulation::CalculateSystemDynamics - Compute hydrodynamic and hydrostatic forces" << std::endl;
-    arma::mat Fb = arma::zeros(6*numBodies, 1);
-    for (int ii=0; ii<numBodies; ii++)
+    arma::mat Fb = arma::zeros(6*numBodiesFree, 1);
+    for (int ii=0; ii<numBodiesFree; ii++)
     {    
-		Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  pBodies[ii]->Fb + pBodies[ii]->pHydro->CalculateHydrostaticForces();
+		Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  pBodiesFree[ii]->Fb + pBodiesFree[ii]->pHydro->CalculateHydrostaticForces();
     }
 
 	// Compute forces on BCPs
 	// std::cout << "Simulation::CalculateSystemDynamics - Compute forces on BCPs" << std::endl;
-	for(int ii=0; ii<numBodies; ii++)
+	for(int ii=0; ii<numBodiesFree; ii++)
     {
-		pBodies[ii]->ComputeBcpForces();
-		Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  Fb(arma::span(6*ii,6*(ii+1)-1), 0) + pBodies[ii]->bcpForces;
+		pBodiesFree[ii]->ComputeBcpForces();
+		Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  Fb(arma::span(6*ii,6*(ii+1)-1), 0) + pBodiesFree[ii]->bcpForces;
 	}
 
     // Add wind turbine forces
 	// std::cout << "Simulation::CalculateSystemDynamics - Add wind turbine forces" << std::endl;
-	for(int ii=0; ii<numBodies; ii++)
+	for(int ii=0; ii<numBodiesFree; ii++)
     {
-        pBodies[ii]->ComputeWindTurbForces();
-		Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  Fb(arma::span(6*ii,6*(ii+1)-1), 0) + pBodies[ii]->windTurbForces;
+        pBodiesFree[ii]->ComputeWindTurbForces();
+		Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  Fb(arma::span(6*ii,6*(ii+1)-1), 0) + pBodiesFree[ii]->windTurbForces;
+	}
+
+    // Compute also everything for locked bodies so it can be displayed on the output files
+    arma::mat dummy;
+    for(int ii=0; ii<numBodiesLock; ii++)
+	{
+        dummy = pBodiesLock[ii]->pHydro->CalculateHydrostaticForces();
+		pBodiesLock[ii]->ComputeWindTurbForces();
+        pBodiesLock[ii]->ComputeBcpForces();
 	}
 
 	// Compute body acceleration
     // std::cout << "Simulation::CalculateSystemDynamics - Compute Bodies accelerations" << std::endl;
     arma::mat accB;
-    if (numBodies>0){
+    if (numBodiesFree>0){
         accB = (*pSystemMatrixInv) * Fb;
     }
-    for (int ii=0; ii<numBodies; ii++)
+    for (int ii=0; ii<numBodiesFree; ii++)
     {
-        pBodies[ii]->acc = pBodies[ii]->flag_blocked*accB(arma::span(6*ii,6*(ii+1)-1), 0)%pBodies[ii]->isDofActive; //////////////////////////////////////////////////////////////////////////////////////////  HARCODEO
+        pBodiesFree[ii]->acc = accB(arma::span(6*ii,6*(ii+1)-1), 0)%pBodiesFree[ii]->isDofActive; //////////////////////////////////////////////////////////////////////////////////////////  HARCODEO
     }
 
 	// Update BodyBCP accelerations
 	// std::cout << "Simulation::CalculateSystemDynamics - Compute BCP accelerations" << std::endl;
-	for(int ii=0; ii<numBodies; ii++)
+	for(int ii=0; ii<numBodiesFree; ii++)
     {
-		pBodies[ii]->UpdateBcps();
+		pBodiesFree[ii]->UpdateBcps();
 	}
 
 	// Obtain Lines accelerations, imposing boundary conditions if the BCP is not a joint
@@ -270,8 +284,8 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 	// Copy info from the objects to yprime
 	// std::cout << "Simulation::CalculateSystemDynamics - Copy info to yprime" << std::endl;
 	ini = 0;
-	for(int ii=0;ii<numBodies;ii=ii+1){
-		yprime.rows(ini,ini+5) = pBodies[ii]->vel;
+	for(int ii=0;ii<numBodiesFree;ii=ii+1){
+		yprime.rows(ini,ini+5) = pBodiesFree[ii]->vel;
 		ini = ini + 6;
 	}
 	for(int ii=0;ii<numLines;ii=ii+1){
@@ -288,8 +302,8 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 		yprime.row(ini) = pWindTurbines[ii]->rotSpeed;
         ini = ini + 1;
 	}
-	for(int ii=0;ii<numBodies;ii=ii+1){
-		yprime.rows(ini,ini+5) = pBodies[ii]->acc;
+	for(int ii=0;ii<numBodiesFree;ii=ii+1){
+		yprime.rows(ini,ini+5) = pBodiesFree[ii]->acc;
 		ini = ini + 6;
 	}
 	for(int ii=0;ii<numLines;ii=ii+1){
@@ -362,11 +376,11 @@ void Simulation::Initialize()
     double start_time = 0.0;
 
     // Initialize system vector
-    std::cout << "Num. Bodies: " << this->numBodies << std::endl;
+    std::cout << "Num. Bodies Free: " << this->numBodiesFree << std::endl;
     std::cout << "Num. Mooring DOFs Total: " << this->numDofTotal << std::endl;
     std::cout << "Num. Winchies: " << this->numWinches << std::endl;
     std::cout << "Num. Wind Turbines: " << this->numWindTurbines << std::endl;
-    numSystem2 = 3*this->numDofTotal + 6*this->numBodies + this->numWinches + this->numWindTurbines;
+    numSystem2 = 3*this->numDofTotal + 6*this->numBodiesFree + this->numWinches + this->numWindTurbines;
     numSystem = 2*numSystem2;
 
     printf("Sistem size: %d\n", numSystem);
@@ -378,9 +392,9 @@ void Simulation::Initialize()
     std::string file_path;
     std::cout << "Initiallizing system vector..." << std::endl;
     if(this->readEquilibrium==0){
-        for(int ii=0; ii<this->numBodies; ii=ii+1){
+        for(int ii=0; ii<this->numBodiesFree; ii=ii+1){
                 std::cout << "  ... Including Body: " << ii+1 << std::endl;
-                y.rows(ini,ini+5) = this->pBodies[ii]->pos;
+                y.rows(ini,ini+5) = this->pBodiesFree[ii]->pos;
                 ini=ini+6;
         }
         for(int ii=0; ii<this->numLines; ii=ii+1){
@@ -405,7 +419,7 @@ void Simulation::Initialize()
         file_path = JoinPath(inputFolderPath, "Equilibrio.dat");
         y.load(file_path,arma::arma_ascii);
 
-        ini=6*this->numBodies;
+        ini=6*this->numBodiesFree;
         for(int ii=0; ii<this->numLines; ii=ii+1){
             for(int jj=this->pLines[ii]->first_node; jj<this->pLines[ii]->last_node; jj=jj+1){
                 this->pLines[ii]->pos.row(jj) = y.rows(ini,ini+2).t();
@@ -1511,6 +1525,30 @@ void Simulation::Run()
 void Simulation::SetupCase()
 {
     std::cout << "----> Setting up the case configuration ..." << std::endl;
+
+    // Checking free bodies
+    std::cout << "        Checking for free bodies ..." << std::endl;
+    for (int ii=0; ii<numBodies; ii++)
+    {
+        if (pBodies[ii]->flag_blocked>0){
+            numBodiesLock++;
+        } else {
+            numBodiesFree++;
+        }
+    }
+    pBodiesLock = new Body* [numBodiesLock];
+    pBodiesFree = new Body* [numBodiesFree];
+    int indL = 0; int indF = 0;
+    for (int ii=0; ii<numBodies; ii++)
+    {
+        if (pBodies[ii]->flag_blocked>0){
+            pBodiesLock[indL] = pBodies[ii];
+            indL++;
+        } else {
+            pBodiesFree[indF] = pBodies[ii];
+            indF++;
+        }
+    }
 
     // Count the number of BCP in each body and create pointer array
     std::cout << "        Counting the number of BCPs in each body ..." << std::endl;

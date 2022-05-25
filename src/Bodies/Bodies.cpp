@@ -13,6 +13,7 @@
 #include "../os_tools.hpp"
 #include "../ODE_solvers/ODE_solvers.hpp"
 #include "../Exceptions/Exception.hpp"
+#include "../MathTools.hpp"
 
 
 Body::Body(int n, Simulation* pIncSim)
@@ -158,6 +159,7 @@ void Body::ReadPropertiesASCII(FILE* pFile)
 	char buffer_line [1000];
 	fpos_t carriage_init;
 	char cHydroDatabaseName [1000];
+	char cMovementsFileName [1000];
 	double dtemp;
 	int itemp;
 
@@ -271,6 +273,7 @@ void Body::ReadPropertiesASCII(FILE* pFile)
 		pos(ii, 0) +=  dtemp;
 	}
 	fscanf(pFile, "%[^\n]\n", buffer_line);
+	pos_ini = pos;
 
 	// Read hydrodynamic database filename
 	if (fscanf(pFile, "%s %[^\n]\n", cHydroDatabaseName, buffer_line) != 2)
@@ -289,8 +292,6 @@ void Body::ReadPropertiesASCII(FILE* pFile)
 		throw ValueError(ss.str());
 	}
 	this->hydroDatabaseIndex--;
-
-
 	
 	// Read flag for blocking the body
 	if (fscanf(pFile, "%d %[^\n]\n", &itemp, buffer_line) != 2)
@@ -299,15 +300,22 @@ void Body::ReadPropertiesASCII(FILE* pFile)
 		ss << "Body: " << this->GetId() <<" - Not possible to read flag for blocking body." << ".\n";
 		throw ValueError(ss.str());
 	}
-	if (itemp==0){
-		flag_blocked = 1;
-	} else if (itemp==1){
-		flag_blocked = 0;
+	if (itemp<3){
+		flag_blocked = itemp;
 	} else {
 		std::stringstream ss;
-		ss << "Body: " << this->GetId() <<" - Flag for blocking body not available, must be 0 or 1." << ".\n";
+		ss << "Body: " << this->GetId() <<" - Flag for blocking body not available, must be 0, 1 or 2." << ".\n";
 		throw ValueError(ss.str());
 	}
+
+	// Read movements filename
+	if (fscanf(pFile, "%s %[^\n]\n", cMovementsFileName, buffer_line) != 2)
+	{
+		std::stringstream ss;
+		ss << "An error ocurred when trying to read the movements file name of the body: " << this->GetId() << "\n";
+		throw ValueError(ss.str());
+	}
+	this->movementsFileName = cMovementsFileName;
 
 	// Read flag for first order excitation force
 	if (fscanf(pFile, "%d %[^\n]\n", &firstOrderExcitationFlag, buffer_line) != 2)
@@ -365,12 +373,150 @@ void Body::ReadPropertiesASCII(FILE* pFile)
 	}
 	fscanf(pFile, "%[^\n]\n", buffer_line);
 
-
-
-
-
 	// Generate array of pointers in order to storage the BCPs pointers
 	this->pBodyBcps = new BCP* [this->numBcps];
+
+
+	if (flag_blocked>0){
+		std::cout << "    ----> Reading Body Imposed Movements..." << std::endl;
+		ReadLockBodyMovements();
+		std::cout << "    ----> Body Imposed Movements Read" << std::endl;
+	}
+}
+
+void Body::ReadLockBodyMovements(void){
+
+	// Declare variables
+	char buffer_line [1000];
+	char cMovementsTimeSeriesFileName [1000];
+	double dtemp;
+	int itemp;
+
+	std::string file_path = JoinPath(pSim->inputFolderPath, movementsFileName);
+	// Open file
+    FILE* pFile = fopen(file_path.c_str(), "r");
+	// Discard header lines and check for body movements type
+	for(int ii=0; ii<3; ii++)
+	{
+		fgets(buffer_line, sizeof(buffer_line), pFile);
+	}
+	if (fscanf(pFile, "%d %[^\n]\n", &itemp, buffer_line) != 2)
+	{
+		std::stringstream ss;
+		ss << "Body: " << this->GetId() <<" - Not possible to read type of movement" << ".\n";
+		throw ValueError(ss.str());
+	}
+	movementTypeFlag = itemp;
+	if (movementTypeFlag==1){
+		// Discard header lines and loop over dofs
+		for(int ii=0; ii<3; ii++)
+		{
+			fgets(buffer_line, sizeof(buffer_line), pFile);
+		}
+		for(int ii=0; ii<6; ii++)
+		{
+			// Ignore dof name line
+			fgets(buffer_line, sizeof(buffer_line), pFile);
+			// Read offset
+			if (fscanf(pFile, "%lf", &dtemp) != 1)
+			{
+				std::stringstream ss;
+				ss << "An error ocurred when trying to read analytic movement offset of body: " << this->GetId() << " in DOF " << ii << "\n";
+				throw ValueError(ss.str());
+			}
+			offset(ii, 0) =  dtemp;
+			// Read amplitude
+			if (fscanf(pFile, "%lf", &dtemp) != 1)
+			{
+				std::stringstream ss;
+				ss << "An error ocurred when trying to read analytic movement amplitude of body: " << this->GetId() << " in DOF " << ii << "\n";
+				throw ValueError(ss.str());
+			}
+			amplitude(ii, 0) =  dtemp;
+			// Read period
+			if (fscanf(pFile, "%lf", &dtemp) != 1)
+			{
+				std::stringstream ss;
+				ss << "An error ocurred when trying to read analytic movement period of body: " << this->GetId() << " in DOF " << ii << "\n";
+				throw ValueError(ss.str());
+			}
+			period(ii, 0) =  dtemp;
+			// Read phase
+			if (fscanf(pFile, "%lf", &dtemp) != 1)
+			{
+				std::stringstream ss;
+				ss << "An error ocurred when trying to read analytic movement phase of body: " << this->GetId() << " in DOF " << ii << "\n";
+				throw ValueError(ss.str());
+			}
+			phase(ii, 0) =  dtemp;
+		}
+		omega = 2.0*arma::datum::pi/period; phase = phase*arma::datum::pi/180.0;
+
+	} else if (movementTypeFlag==2){
+		// Discard lines from analytic solution
+		for(int ii=0; ii<36; ii++)
+		{
+			fgets(buffer_line, sizeof(buffer_line), pFile);
+		}
+		// Read movements filename
+		if (fscanf(pFile, "%s %[^\n]\n", cMovementsTimeSeriesFileName, buffer_line) != 2)
+		{
+			std::stringstream ss;
+			ss << "An error ocurred when trying to read the movements file name of the body: " << this->GetId() << "\n";
+			throw ValueError(ss.str());
+		}
+		this->movementsTimeSeriesFileName = cMovementsTimeSeriesFileName;
+	} else {
+		std::stringstream ss;
+		ss << "Body: " << this->GetId() <<" - Type of movement can only be 1 or 2" << ".\n";
+		throw ValueError(ss.str());
+	}
+	// Close file
+    fclose(pFile);
+
+
+	if (movementTypeFlag==2){
+		//Abro el fichero
+		file_path = JoinPath(pSim->inputFolderPath, movementsTimeSeriesFileName);
+		std::ifstream datosPosF(file_path);
+		// Leo el numero de pasos temporales a leer
+		int nt; datosPosF >> nt; datosPosF.ignore(std::numeric_limits<int>::max(), '\n');
+
+		if (nt<2) {
+			std::stringstream ss;
+			ss << "Body: " << this->GetId() <<" - Movement time series does not have enough data" << ".\n";
+			throw ValueError(ss.str());
+		}
+
+		// Alocato la matriz que contiene la informacion
+		timeFixed = arma::zeros(nt,1);
+		posFixed = arma::zeros(nt,6);
+		velFixed = arma::zeros(nt,6);
+		accFixed = arma::zeros(nt,6);
+		// Leo toda la info
+		for (int i=0; i<nt; i=i+1){
+			datosPosF >> timeFixed(i,0) >> posFixed(i,0) >> posFixed(i,1) >> posFixed(i,2) >> posFixed(i,3) >> posFixed(i,4) >> posFixed(i,5)
+			                            >> velFixed(i,0) >> velFixed(i,1) >> velFixed(i,2) >> velFixed(i,3) >> velFixed(i,4) >> velFixed(i,5)
+			                            >> accFixed(i,0) >> accFixed(i,1) >> accFixed(i,2) >> accFixed(i,3) >> accFixed(i,4) >> accFixed(i,5);
+		}
+		//Cierro el fichero
+		datosPosF.close();
+
+		if (timeFixed(0,0)>0.0) {
+			std::stringstream ss;
+			ss << "Body: " << this->GetId() <<" - Movement time series does not start in zero" << ".\n";
+			throw ValueError(ss.str());
+		}
+
+		if (timeFixed(nt-1,0)<pSim->simulationTime) {
+			std::stringstream ss;
+			ss << "Body: " << this->GetId() <<" - Movement time series is not long enough for simulation time" << ".\n";
+			throw ValueError(ss.str());
+		}
+	}
+
+	UpdateLockBody(0.0); pos_ini = pos;
+
 }
 
 
@@ -476,6 +622,30 @@ void Body::ResetBcps(void)
 	}
 	// Reseteo a cero la fuerza total de todos los BCPs
 	bcpForces = arma::zeros(6,1);
+}
+
+void Body::UpdateLockBody(double time){
+	if (flag_blocked==1){
+		pos = pos_ini;
+		vel = arma::zeros(6,1);
+		acc = arma::zeros(6,1);
+	} else if (flag_blocked==2){
+
+		if (movementTypeFlag==1){
+			for(int ii=0; ii<6; ii++)
+			{
+				pos(ii,0) = offset(ii,0) + amplitude(ii,0)*sin(time*omega(ii,0) + phase(ii,0));
+	            vel(ii,0) = omega(ii,0)*amplitude(ii,0)*cos(time*omega(ii,0) + phase(ii,0));				
+	            vel(ii,0) = -omega(ii,0)*omega(ii,0)*amplitude(ii,0)*sin(time*omega(ii,0) + phase(ii,0));
+			}
+		} else if (movementTypeFlag==2){
+			arma::mat tmp; tmp = time*arma::ones(1,1);
+			pos = (interp1(timeFixed, posFixed, tmp)).t();
+			vel = (interp1(timeFixed, velFixed, tmp)).t();
+			acc = (interp1(timeFixed, accFixed, tmp)).t();
+		}
+
+	}
 }
 
 
