@@ -40,6 +40,7 @@ public:
 	double rotAcc = 0.0;
     int YCMode = 0;
 	double yaw = 0.0;
+	double yaw_ini = 0.0;
 	double yawSpeed = 0.0;
 
     arma::mat forceBodyCOG = arma::zeros(6,1);

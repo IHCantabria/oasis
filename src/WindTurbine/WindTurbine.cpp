@@ -121,7 +121,7 @@ void WindTurbine::Initialize(void){
     rotIner = FSTW_InitInput.turbIniRotSpeed;
     for (int ii=0; ii<6; ii++)
 	{
-        for (int jj=0; ii<6; ii++)
+        for (int jj=0; jj<6; jj++)
 	    {
             bodyInerMat(ii,jj) = FSTW_InitInput.platInerMat[ii][jj];
             towrInerMat(ii,jj) = FSTW_InitInput.towrInerMat[ii][jj];
@@ -130,7 +130,7 @@ void WindTurbine::Initialize(void){
     }
 
     rotSpeed = FSTW_InitInput.turbIniRotSpeed;
-    yaw = FSTW_InitInput.turbIniYaw;
+    yaw = FSTW_InitInput.turbIniYaw; yaw_ini = yaw;
     YCMode = FSTW_InitInput.YCMode;
 
     if (YCMode>0){
@@ -181,8 +181,13 @@ void WindTurbine::SetInputsFAST(void){
 
 	FSTW_Input.RotPos[0] = rotPos;
 	FSTW_Input.RotSpeed[0] = rotSpeed;
-	FSTW_Input.Yaw[0] = yaw;
-	FSTW_Input.YawSpeed[0] = yawSpeed;
+    if (YCMode>0){
+        FSTW_Input.Yaw[0] = yaw;
+        FSTW_Input.YawSpeed[0] = yawSpeed;
+    } else {
+        FSTW_Input.Yaw[0] = yaw_ini;
+        FSTW_Input.YawSpeed[0] = 0.0;
+    }
 }
 
 void WindTurbine::ComputeControler(double time){
