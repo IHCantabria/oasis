@@ -143,6 +143,8 @@ void WindTurbine::Initialize(void){
 
 void WindTurbine::Finalize(void){
     std::cout << "    WindTurbine::Finalize" << std::endl;
+    FSTW_End(&ErrStat, ErrMsg);
+    CheckError();
 }
 
 void WindTurbine::ComputeForces(double time){
@@ -208,8 +210,14 @@ void WindTurbine::ComputeRotorAcc(void){
 
 void WindTurbine::CheckError(void){
     // std::cout << "    WindTurbine::CheckError" << std::endl;
+    int ErrStat2;
+  	char ErrMsg2[INTERFACE_STRING_LENGTH];
     if (ErrStat != ErrID_None){
         if (ErrStat >= AbortErrLev){
+            FSTW_End(&ErrStat2, ErrMsg2);
+            if (ErrStat != ErrStat2){
+                std::cout << "ERROR: " << ErrMsg2 << std::endl;
+            }
             throw std::runtime_error(ErrMsg);
         }
     }
