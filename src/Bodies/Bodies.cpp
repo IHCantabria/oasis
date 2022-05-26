@@ -602,6 +602,17 @@ void Body::UpdateBcps(void)
 	              R3_dot*R2_dot*R1 + R3*R2_dot2*R1 + R3*R2_dot*R1_dot + 
 	              R3_dot*R2*R1_dot + R3*R2_dot*R1_dot + R3*R2*R1_dot2;
 
+
+	aMat = R3;
+	aMat(0,0) = cp*cy; 
+	aMat(1,0) = cp*sy;
+	aMat(2,0) = -sp;
+
+	aMat_dot = R3_dot;
+	aMat_dot(0,0) = -pitch_dot*sp*cy-yaw_dot*cp*sy; 
+	aMat_dot(1,0) = -pitch_dot*sp*sy+yaw_dot*cp*cy;
+	aMat_dot(2,0) = -pitch_dot*cp;
+
 	// Variable temporal
 	arma::mat posG_temp, posL_temp;
 	for(int ii=0; ii<numBcps; ii++)

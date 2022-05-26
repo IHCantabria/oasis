@@ -43,6 +43,7 @@ public:
     int numSystem2;
     double simulationTime;
     bool readEquilibrium;
+    bool rotSimpFlag;
     double timeIntAbsTol;
     int timeIntMethod;
     double timeIntRelTol;
@@ -60,6 +61,10 @@ public:
     // Declare system properties
     arma::mat* pSystemMatrix;
     arma::mat* pSystemMatrixInv;
+    arma::mat* pSystemMatrixFF;
+    arma::mat* pSystemMatrixFFInv;
+    arma::mat* pSystemMatrixFL;
+    arma::uvec sysMatIndFree, sysMatIndLock;
 
     int numAllLinesNodes = 0;
     arma::sp_mat* pLinesCouplingMatrix_sp;

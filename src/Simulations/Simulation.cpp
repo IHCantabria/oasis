@@ -202,11 +202,77 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     // std::cout << "Simulation::CalculateSystemDynamics - Compute Bodies accelerations" << std::endl;
     arma::mat accB;
     if (numBodiesFree>0){
-        accB = (*pSystemMatrixInv) * Fb;
+        if (numBodiesLock>0){ // If locked bodies, reduce system matrix and include effect acc from other bodies
+
+            // Assemble a vector with all accelerations
+            arma::mat accAll = arma::zeros(6*numBodies, 1);
+            for (int ii=0; ii<numBodies; ii++)
+            {    
+                accAll(arma::span(6*ii,6*(ii+1)-1), 0) =  pBodies[ii]->acc;
+            }
+
+            if (rotSimpFlag){ // If simplification, always use same matrix
+
+                accB = (*pSystemMatrixFFInv) * (Fb.rows(sysMatIndFree) - (*pSystemMatrixFL)*accAll.rows(sysMatIndLock));
+
+            } else { // If no simplification, update matrix for new rotation states
+
+                arma::mat tmpMat = (*pSystemMatrix);
+                arma::mat tmpVec = Fb;
+                arma::mat auxM, auxV, aMat, aMat_dot, invRotMat, phi_dot;
+                for (int ii=0; ii<numBodiesFree; ii++)
+                {
+                    aMat = pBodiesFree[ii]->aMat; aMat_dot = pBodies[ii]->aMat_dot;
+                    invRotMat = pBodiesFree[ii]->invRotMat;
+                    phi_dot = pBodiesFree[ii]->vel.rows(arma::span(3,5));
+
+                    auxM = tmpMat(arma::span(6*ii+3,6*(ii+1)-1), arma::span(6*ii+3,6*(ii+1)-1));
+                    tmpMat(arma::span(6*ii+3,6*(ii+1)-1), arma::span(6*ii+3,6*(ii+1)-1)) =  auxM*invRotMat*aMat;
+
+                    auxV = tmpVec(arma::span(6*ii+3,6*(ii+1)-1), 0);
+                    tmpVec(arma::span(6*ii+3,6*(ii+1)-1), 0) = auxV - auxM*invRotMat*aMat_dot*phi_dot -
+                        arma::cross(invRotMat*aMat*phi_dot,auxM*invRotMat*aMat*phi_dot);
+                }
+
+                arma::mat tmpMat_FF = tmpMat(sysMatIndFree, sysMatIndFree);
+                arma::mat tmpMat_FL = tmpMat(sysMatIndFree, sysMatIndLock);
+                arma::mat tmpVec_FF = tmpVec.rows(sysMatIndFree);
+
+                accB = arma::solve(tmpMat,tmpVec-tmpMat_FL*accAll.rows(sysMatIndLock));
+            }
+
+        } else { // If no locked bodies, keep it simple
+
+            if (rotSimpFlag){ // If simplification, always use same matrix
+
+                accB = (*pSystemMatrixInv) * Fb;
+
+            } else { // If no simplification, update matrix for new rotation states
+
+                arma::mat tmpMat = (*pSystemMatrix);
+                arma::mat tmpVec = Fb;
+                arma::mat auxM, auxV, aMat, aMat_dot, invRotMat, phi_dot;
+                for (int ii=0; ii<numBodies; ii++)
+                {
+                    aMat = pBodies[ii]->aMat; aMat_dot = pBodies[ii]->aMat_dot;
+                    invRotMat = pBodies[ii]->invRotMat;
+                    phi_dot = pBodies[ii]->vel.rows(arma::span(3,5));
+
+                    auxM = tmpMat(arma::span(6*ii+3,6*(ii+1)-1), arma::span(6*ii+3,6*(ii+1)-1));
+                    tmpMat(arma::span(6*ii+3,6*(ii+1)-1), arma::span(6*ii+3,6*(ii+1)-1)) =  auxM*invRotMat*aMat;
+
+                    auxV = tmpVec(arma::span(6*ii+3,6*(ii+1)-1), 0);
+                    tmpVec(arma::span(6*ii+3,6*(ii+1)-1), 0) = auxV - auxM*invRotMat*aMat_dot*phi_dot -
+                        arma::cross(invRotMat*aMat*phi_dot,auxM*invRotMat*aMat*phi_dot);
+                }
+
+                accB = arma::solve(tmpMat,tmpVec);
+            }
+        }
     }
     for (int ii=0; ii<numBodiesFree; ii++)
     {
-        pBodiesFree[ii]->acc = accB(arma::span(6*ii,6*(ii+1)-1), 0)%pBodiesFree[ii]->isDofActive; //////////////////////////////////////////////////////////////////////////////////////////  HARCODEO
+        pBodiesFree[ii]->acc = accB(arma::span(6*ii,6*(ii+1)-1), 0)%pBodiesFree[ii]->isDofActive;
     }
 
 	// Update BodyBCP accelerations
@@ -720,6 +786,30 @@ void Simulation::ReadBodiesASCII()
 
     delete [] pBodiesSort;
 
+    // Checking free bodies
+    std::cout << "Checking for free bodies ..." << std::endl;
+    for (int ii=0; ii<numBodies; ii++)
+    {
+        if (pBodies[ii]->flag_blocked>0){
+            numBodiesLock++;
+        } else {
+            numBodiesFree++;
+        }
+    }
+    pBodiesLock = new Body* [numBodiesLock];
+    pBodiesFree = new Body* [numBodiesFree];
+    int indL = 0; int indF = 0;
+    for (int ii=0; ii<numBodies; ii++)
+    {
+        if (pBodies[ii]->flag_blocked>0){
+            pBodiesLock[indL] = pBodies[ii];
+            indL++;
+        } else {
+            pBodiesFree[indF] = pBodies[ii];
+            indF++;
+        }
+    }
+
     // Create an array in order to store the indexes of the bodies in each database
     int **check_hydro_bodies_id = new int* [hydro_database_count];
     Body*** check_hydro_bodies = new Body** [hydro_database_count];
@@ -809,9 +899,9 @@ void Simulation::ReadBodiesASCII()
     // Fill System Matrix
     std::cout << "Fill system matrix...\n";
     arma::span a1;
-    arma::span a2;
-    double db_shift;
-    double body_shift;
+    arma::span a2; int nn2;
+    int db_shift;
+    int body_shift;
     this->pSystemMatrix = new arma::mat(6*this->numBodies, 6*this->numBodies, arma::fill::zeros);
     this->pSystemMatrixInv = new arma::mat(6*this->numBodies, 6*this->numBodies, arma::fill::zeros);
     for (int ii=0; ii<this->numBodies; ii++)
@@ -844,12 +934,28 @@ void Simulation::ReadBodiesASCII()
         (*pSystemMatrix)(a1, a2) += pBodies[ii]->pHydro->GetTotalMass();
         pBodies[ii]->sysMatSpan1 = a1;
         pBodies[ii]->sysMatSpan2 = a2;
+        pBodies[ii]->sysMatInd1 = arma::regspace<arma::uvec>(db_shift+body_shift,db_shift+body_shift+5);
     }
+
+    sysMatIndFree.set_size(6*numBodiesFree);
+    for (int ii=0; ii<this->numBodiesFree; ii++)
+    {
+        sysMatIndFree(arma::span(6*ii,6*(ii+1)-1)) = pBodiesFree[ii]->sysMatInd1;
+    }
+    sysMatIndLock.set_size(6*numBodiesLock);
+    for (int ii=0; ii<this->numBodiesLock; ii++)
+    {
+        sysMatIndLock(arma::span(6*ii,6*(ii+1)-1)) = pBodiesLock[ii]->sysMatInd1;
+    }
+
+    *pSystemMatrixFF = (*pSystemMatrix)(sysMatIndFree, sysMatIndFree);
+    *pSystemMatrixFL = (*pSystemMatrix)(sysMatIndFree, sysMatIndLock);
+
     std::cout << "Inverting system matrix...\n";
     *pSystemMatrixInv = arma::solve(*pSystemMatrix,eye(size(*pSystemMatrix)));
-    //std::string filename = JoinPath(outputFolderPath, "SysyemMatrix.txt");  
-    //pSystemMatrix->save(filename,arma::raw_ascii);
+    *pSystemMatrixFFInv = arma::solve(*pSystemMatrixFF,eye(size(*pSystemMatrixFF)));
     std::cout << "System matrix inverted...\n";
+
     // Check the simulation time
     int time_buffer_size = this->timeBufferSize;
     for (int ii=0; ii<this->numBodies; ii++)
@@ -1128,6 +1234,8 @@ void Simulation::ReadPropertiesASCII()
     fscanf(file_pointer, "%lf %[^\n]\n", &timeIRF, bufferLine);
 	fscanf(file_pointer, "%lf %[^\n]\n", &sinkingTimeStep, bufferLine);
 	fscanf(file_pointer, "%lf %[^\n]\n", &simulationTime, bufferLine);
+    fscanf(file_pointer, "%d %[^\n]\n", &dummyBool, bufferLine);
+    rotSimpFlag = dummyBool;
 	fscanf(file_pointer, "%d %[^\n]\n", &timeIntMethod, bufferLine);
 	fscanf(file_pointer, "%lf %[^\n]\n", &timeIntAbsTol, bufferLine);
 	fscanf(file_pointer, "%lf %[^\n]\n", &timeIntRelTol, bufferLine);
@@ -1525,30 +1633,6 @@ void Simulation::Run()
 void Simulation::SetupCase()
 {
     std::cout << "----> Setting up the case configuration ..." << std::endl;
-
-    // Checking free bodies
-    std::cout << "        Checking for free bodies ..." << std::endl;
-    for (int ii=0; ii<numBodies; ii++)
-    {
-        if (pBodies[ii]->flag_blocked>0){
-            numBodiesLock++;
-        } else {
-            numBodiesFree++;
-        }
-    }
-    pBodiesLock = new Body* [numBodiesLock];
-    pBodiesFree = new Body* [numBodiesFree];
-    int indL = 0; int indF = 0;
-    for (int ii=0; ii<numBodies; ii++)
-    {
-        if (pBodies[ii]->flag_blocked>0){
-            pBodiesLock[indL] = pBodies[ii];
-            indL++;
-        } else {
-            pBodiesFree[indF] = pBodies[ii];
-            indF++;
-        }
-    }
 
     // Count the number of BCP in each body and create pointer array
     std::cout << "        Counting the number of BCPs in each body ..." << std::endl;

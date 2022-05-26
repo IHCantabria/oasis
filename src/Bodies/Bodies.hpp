@@ -45,11 +45,14 @@ public:
 	arma::mat isDofActive = arma::zeros(6,1); // 1 if dof is active, 0 otherwise
 
 	arma::span sysMatSpan1, sysMatSpan2;
+	arma::uvec sysMatInd1;
 	
 	// kinematic and Dynamic properties attributes
 	int velBufferSize=0; // Velocity Buffer size;
 	int velBufferCount=0; // Stores the positon of the last columun of the velocity buffer matrix filled.
 	double filling_mass = 0; // Body filling mass for sinking
+	arma::mat aMat = arma::zeros(3,3); // Matriz de conversion de derivadas de rpy a vector de velocidad de rotacion
+	arma::mat aMat_dot = arma::zeros(3,3); // Derivada temporal de la matriz de conversion de derivadas de rpy a vector de velocidad de rotacion
 	arma::mat acc = arma::zeros(6,1); // Body acceleration w.r.t the global reference system
 	arma::mat bcpForces = arma::zeros(6,1); // Fuerzas que los BCPs ejercen sobre el cuerpo, en la referencia del CDG
 	arma::mat hydrostaticForces = arma::zeros(6, 1); // Storage for the hydrostatic forces
