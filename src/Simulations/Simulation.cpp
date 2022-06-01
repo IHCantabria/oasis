@@ -937,23 +937,35 @@ void Simulation::ReadBodiesASCII()
         pBodies[ii]->sysMatInd1 = arma::regspace<arma::uvec>(db_shift+body_shift,db_shift+body_shift+5);
     }
 
-    sysMatIndFree.set_size(6*numBodiesFree);
+    sysMatIndFree = arma::zeros<arma::uvec>(6*numBodiesFree);
+    std::cout << "Take free dofs index from matrix...\n";
     for (int ii=0; ii<this->numBodiesFree; ii++)
     {
         sysMatIndFree(arma::span(6*ii,6*(ii+1)-1)) = pBodiesFree[ii]->sysMatInd1;
     }
-    sysMatIndLock.set_size(6*numBodiesLock);
+    sysMatIndLock = arma::zeros<arma::uvec>(6*numBodiesLock);
+    std::cout << "Take locked dofs index from matrix...\n";
     for (int ii=0; ii<this->numBodiesLock; ii++)
     {
         sysMatIndLock(arma::span(6*ii,6*(ii+1)-1)) = pBodiesLock[ii]->sysMatInd1;
     }
 
-    *pSystemMatrixFF = (*pSystemMatrix)(sysMatIndFree, sysMatIndFree);
-    *pSystemMatrixFL = (*pSystemMatrix)(sysMatIndFree, sysMatIndLock);
+    std::cout << "Extract submatrices from system matrix...\n";
+    if (numBodiesFree>0) {
+        pSystemMatrixFF = new arma::mat(6*numBodiesFree, 6*numBodiesFree, arma::fill::zeros);
+        *pSystemMatrixFF = (*pSystemMatrix)(sysMatIndFree, sysMatIndFree);
+        if (numBodiesLock>0) {
+            pSystemMatrixFL = new arma::mat(6*numBodiesFree, 6*numBodiesLock, arma::fill::zeros);
+            *pSystemMatrixFL = (*pSystemMatrix)(sysMatIndFree, sysMatIndLock);
+        }
+    }
 
     std::cout << "Inverting system matrix...\n";
     *pSystemMatrixInv = arma::solve(*pSystemMatrix,eye(size(*pSystemMatrix)));
-    *pSystemMatrixFFInv = arma::solve(*pSystemMatrixFF,eye(size(*pSystemMatrixFF)));
+    if (numBodiesFree>0) {
+        pSystemMatrixFFInv = new arma::mat(6*numBodiesFree, 6*numBodiesFree, arma::fill::zeros);
+        *pSystemMatrixFFInv = arma::solve(*pSystemMatrixFF,eye(size(*pSystemMatrixFF)));
+    }
     std::cout << "System matrix inverted...\n";
 
     // Check the simulation time

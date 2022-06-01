@@ -118,7 +118,7 @@ void WindTurbine::Initialize(void){
     FSTW_Init(InputFileName_AD, InputFileName_IW, InputFileName_SD, InputFileName_ED, OutputPathName, &FSTW_InitInput, &FSTW_Input, &FSTW_Output, &ErrStat, ErrMsg);
     CheckError();
 
-    rotIner = FSTW_InitInput.turbIniRotSpeed;
+    rotIner = FSTW_InitInput.rotorInertia;
     for (int ii=0; ii<6; ii++)
 	{
         for (int jj=0; jj<6; jj++)
@@ -161,6 +161,8 @@ void WindTurbine::ComputeForces(double time){
 
     airTrq = FSTW_Output.aero_torque[0];
 
+    std::cout << "      airTrq = " << airTrq << std::endl;
+
     this->pBody->windTurbForces += forceBodyCOG;
 }
 
@@ -181,6 +183,9 @@ void WindTurbine::SetInputsFAST(void){
 	FSTW_Input.plat_vel[4] = pBody->vel(4,0);
 	FSTW_Input.plat_vel[5] = pBody->vel(5,0);
 
+    
+    std::cout << "      rotSpeed = " << rotSpeed << std::endl;
+
 	FSTW_Input.RotPos[0] = rotPos;
 	FSTW_Input.RotSpeed[0] = rotSpeed;
     if (YCMode>0){
@@ -199,6 +204,8 @@ void WindTurbine::ComputeControler(double time){
 
     genTrq = FSTW_Output.gen_torque[0];
     yawTrq = FSTW_Output.YawMom[0];
+    
+    std::cout << "      genTrq = " << genTrq << std::endl;
 }
 
 void WindTurbine::ComputeRotorAcc(void){
