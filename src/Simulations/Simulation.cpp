@@ -1602,6 +1602,7 @@ void Simulation::Run()
                 for(int ii=0; ii<numWindTurbines; ii=ii+1){
                     pWindTurbines[ii]->SetInputsFAST();
                     pWindTurbines[ii]->ComputeForces(wallTimeFAST);
+                    pWindTurbines[ii]->WriteOut(wallTimeFAST);
                 }
             }
             if (pTimeSolver->t >= wallTimeControllerFAST + fastControllerTimeStep)

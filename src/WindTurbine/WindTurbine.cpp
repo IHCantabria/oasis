@@ -115,7 +115,7 @@ void WindTurbine::Initialize(void){
 	FSTW_InitInput.TimeInterval_SrvD = pSim->fastControllerTimeStep;
 
     std::cout << "        --> FSTW_Init" << std::endl;
-    FSTW_Init(InputFileName_AD, InputFileName_IW, InputFileName_SD, InputFileName_ED, OutputPathName, &FSTW_InitInput, &FSTW_Input, &FSTW_Output, &ErrStat, ErrMsg);
+    FSTW_Init(&idWindTurbine, InputFileName_AD, InputFileName_IW, InputFileName_SD, InputFileName_ED, OutputPathName, &FSTW_InitInput, &FSTW_Input, &FSTW_Output, &ErrStat, ErrMsg);
     CheckError();
 
     rotIner = FSTW_InitInput.rotorInertia;
@@ -206,6 +206,13 @@ void WindTurbine::ComputeControler(double time){
     yawTrq = FSTW_Output.YawMom[0];
     
     std::cout << "      genTrq = " << genTrq << std::endl;
+}
+
+
+void WindTurbine::WriteOut(double time){
+    // std::cout << "    WindTurbine::ComputeControler" << std::endl;
+    FSTW_WriteOutput(&time, &ErrStat, ErrMsg);
+	CheckError();
 }
 
 void WindTurbine::ComputeRotorAcc(void){

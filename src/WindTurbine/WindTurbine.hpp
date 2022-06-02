@@ -52,6 +52,7 @@ public:
 	void ReadPropertiesASCII(FILE* pFile); // Lee inputs de las turbinas
     void Initialize(void); // Configura el objeto turbina
     void Finalize(void); // Cierra el caso
+    void WriteOut(double t); // Escribir datos a fichero
 
     void ComputeForces(double time);
     void SetInputsFAST(void);    
