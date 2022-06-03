@@ -139,6 +139,12 @@ void WindTurbine::Initialize(void){
         throw ValueError(ss.str());
     }
 
+    // Calculate turbine at time 0.0...
+    SetInputsFAST();
+    ComputeForces(0.0);
+    ComputeControler(0.0);
+    WriteOut(0.0);
+
 }
 
 void WindTurbine::Finalize(void){
@@ -161,8 +167,6 @@ void WindTurbine::ComputeForces(double time){
 
     airTrq = FSTW_Output.aero_torque[0];
 
-    std::cout << "      airTrq = " << airTrq << std::endl;
-
     this->pBody->windTurbForces += forceBodyCOG;
 }
 
@@ -183,9 +187,6 @@ void WindTurbine::SetInputsFAST(void){
 	FSTW_Input.plat_vel[4] = pBody->vel(4,0);
 	FSTW_Input.plat_vel[5] = pBody->vel(5,0);
 
-    
-    std::cout << "      rotSpeed = " << rotSpeed << std::endl;
-
 	FSTW_Input.RotPos[0] = rotPos;
 	FSTW_Input.RotSpeed[0] = rotSpeed;
     if (YCMode>0){
@@ -204,8 +205,6 @@ void WindTurbine::ComputeControler(double time){
 
     genTrq = FSTW_Output.gen_torque[0];
     yawTrq = FSTW_Output.YawMom[0];
-    
-    std::cout << "      genTrq = " << genTrq << std::endl;
 }
 
 
