@@ -19,7 +19,7 @@ arma::mat HydroDatabase::CalculateHydrodynamicForces(double time)
 {
 	arma::mat F = arma::zeros(activeDofs,1);
 
-	double rampa = std::min(1.0,time/10.0); // duración de la rampa harcodeado a 10s!!!!
+	double rampa = std::min(1.0,time/50.0); // duración de la rampa harcodeado a 10s!!!!
 
 	double yaw = pBodies[idBody]->pos(5,0);
 
@@ -91,6 +91,8 @@ void HydroDatabase::ComputeIRF(std::string HDBname)
 	arma::mat max_position;
 	arma::mat zero_cross;
 	arma::mat dampingFreq;
+	arma::mat frequencies_trapz;
+	arma::mat dampingFreq_trapz;
 	
 	// Check input arguments
 	if ((*pFrequencies)(1)<(*pFrequencies)(0))
@@ -110,9 +112,11 @@ void HydroDatabase::ComputeIRF(std::string HDBname)
 	
 	std::cout << "    IRF Time: " << tmax << std::endl;
 	std::cout << "    IRF Time Points: " << numPointsIRF << std::endl;
-	std::cout << "    Frequency(0): " << (*pFrequencies)(0) << std::endl;
-	std::cout << "    Frequency(1): " << (*pFrequencies)(1) << std::endl;
-	std::cout << "    Frequency diff: " << df << std::endl;
+	// std::cout << "    Frequency(0): " << (*pFrequencies)(0) << std::endl;
+	// std::cout << "    Frequency(1): " << (*pFrequencies)(1) << std::endl;
+	// std::cout << "    Frequency diff: " << df << std::endl;
+
+	frequencies_trapz = arma::regspace( std::max((*pFrequencies).min(),0.01), 0.01, std::min(1.0/(2.0*pSim->hydroTimeStep),(*pFrequencies).max())).t();
 
 	// Loop to find the IRF value for each body influence and DOF
 	std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
@@ -132,17 +136,16 @@ void HydroDatabase::ComputeIRF(std::string HDBname)
 				zero_cross = arma::zeros(1, IRFTime.n_cols);
 				
 				// Start new Dof data
-				
 				dampingFreq = (*pDampingRadiation[ib]).subcube(i,j,0,i,j,numFrequencies-1);
-				dummy_mat = dampingFreq%cos(2*arma::datum::pi*(*pFrequencies)*IRFTime(0, 0));
+				arma::interp1(*pFrequencies,dampingFreq,frequencies_trapz,dampingFreq_trapz);
+				dummy_mat = dampingFreq_trapz%cos(2*arma::datum::pi*frequencies_trapz*IRFTime(0, 0));
+				(*pIRF[ib])(0, i, j) = 2*trapzi(2*arma::datum::pi*frequencies_trapz,dummy_mat)/arma::datum::pi;
 				(*pIRFPoints[ib])(i, j) = IRFTime.n_cols - 1;
-				(*pIRF[ib])(0, i, j) = 2*trapz(dummy_mat, 2*arma::datum::pi*df)/arma::datum::pi;
 				for (int k=1; k<IRFTime.n_cols; k++)
 				{
 					// Calculate new value of IRF
-					dummy_mat = dampingFreq%cos(2*arma::datum::pi*(*pFrequencies)*IRFTime(0, k));
-					(*pIRF[ib])(k, i, j) = 2*trapz(dummy_mat, 2*arma::datum::pi*df)/arma::datum::pi;
-					
+					dummy_mat = dampingFreq_trapz%cos(2*arma::datum::pi*frequencies_trapz*IRFTime(0, k));
+					(*pIRF[ib])(k, i, j) = 2*trapzi(2*arma::datum::pi*frequencies_trapz,dummy_mat)/arma::datum::pi;
 				}
 			}
 		}
@@ -154,7 +157,7 @@ void HydroDatabase::ComputeIRF(std::string HDBname)
 	std::cout << "    Time elapsed ComputeIRF: " << elapsed << std::endl;
 
 	char buffer[50];
-	for (int ib=0; ib<numBodies; ib++) {
+	for (int ib=0; ib<pSim->numBodies; ib++) {
 		// sprintf(buffer,"IRF_Body_%d_fromBody_%d.dat", pBodies[idBody]->GetId(), pBodies[ib]->GetId());
 		std::string filename = JoinPath(pSim->outputFolderPath, HDBname);
 		filename = filename + "_IRF_Body_" + std::to_string(pBodies[idBody]->GetId()) + 
@@ -482,7 +485,7 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 	this->ComputeIRF(HDBname);
 
 	// Load Morison forces data
-	std::cout << "  Reading Morison forces sata ...\n";
+	std::cout << "  Reading Morison forces data ...\n";
 	pMor = new Morison(numBodies, pSim); pMor->ReadMorisonData();
 }
 
@@ -720,24 +723,26 @@ void HydroDatabase::SetUp(void)
 arma::mat HydroDatabase::ComputeMeanDrift(void)
 {
 
-	// Compute mean drift force
-	Wave* pWave = pSim->pWave;
-	double yaw = pBodies[idBody]->pos(5,0);
-	// HARCODEO !!!!!!!!!!!! ------------------------------------------------------------ Implementar opcion de mean drift con y sin instant position
-	if(pBodies[idBody]->secondOrderExcitationFlag<5) 
-	{
-		yaw = 0;
-	}
-	arma::cube temp_mD = interp2(*pFrequencies, *pHeadings+yaw, permute(*pMeanDrift,231), pWave->freqs, pWave->headings);
-	for (int ii=0; ii<activeDofs; ii++)
-	{
-		temp_mD.slice(ii) = temp_mD.slice(ii)%pWave->amplitudes%pWave->amplitudes;
-	}
-	temp_mD = permute(temp_mD,312);
-	arma::mat F = arma::sum(arma::sum(temp_mD,1),2);
-	double Fx = arma::as_scalar(F(0,0)); double Fy = arma::as_scalar(F(1,0));
-	F(0,0) = Fx*cos(yaw)-Fy*sin(yaw); F(1,0) = Fx*sin(yaw)+Fy*cos(yaw);
-	pBodies[idBody]->excitationForces_2 = F;
+	// // Compute mean drift force
+	// Wave* pWave = pSim->pWave;
+	// double yaw = pBodies[idBody]->pos(5,0);
+	// // HARCODEO !!!!!!!!!!!! ------------------------------------------------------------ Implementar opcion de mean drift con y sin instant position
+	// if(pBodies[idBody]->secondOrderExcitationFlag<5) 
+	// {
+	// 	yaw = 0;
+	// }
+	// arma::cube temp_mD = interp2(*pFrequencies, *pHeadings+yaw, permute(*pMeanDrift,231), pWave->freqs, pWave->headings);
+	// for (int ii=0; ii<activeDofs; ii++)
+	// {
+	// 	temp_mD.slice(ii) = temp_mD.slice(ii)%pWave->amplitudes%pWave->amplitudes;
+	// }
+	// temp_mD = permute(temp_mD,312);
+	// arma::mat F = arma::sum(arma::sum(temp_mD,1),2);
+	// double Fx = arma::as_scalar(F(0,0)); double Fy = arma::as_scalar(F(1,0));
+	// F(0,0) = Fx*cos(yaw)-Fy*sin(yaw); F(1,0) = Fx*sin(yaw)+Fy*cos(yaw);
+	// pBodies[idBody]->excitationForces_2 = F;
+
+	arma::mat F = F_meanDrift;
 
 	return F;
 }
@@ -771,10 +776,14 @@ void HydroDatabase::InterpolateHydro(HydroDatabase* pHydro1, HydroDatabase* pHyd
 		throw ValueError(ss.str());
 	}
 
+	// std::cout << "            Interpolate pHydrostaticStiffness..." << std::endl;
 	(*pHydrostaticStiffness) = *(pHydro1->pHydrostaticStiffness) * (1-interpCoef) + *(pHydro2->pHydrostaticStiffness) * interpCoef;
+	// std::cout << "            Interpolate pStructuralMass..." << std::endl;
 	(*pStructuralMass) = *(pHydro1->pStructuralMass) * (1-interpCoef) + *(pHydro2->pStructuralMass) * interpCoef;
+	// std::cout << "            Interpolate pTotalMass..." << std::endl;
 	(*pTotalMass) = *(pHydro1->pTotalMass) * (1-interpCoef) + *(pHydro2->pTotalMass) * interpCoef;
 
+	// std::cout << "            Interpolate pWaveExcitingMag..." << std::endl;
 	arma::cube WaveExcitingReal_1 = *(pHydro1->pWaveExcitingMag) % arma::cos(*(pHydro1->pWaveExcitingPha));
 	arma::cube WaveExcitingImag_1 = *(pHydro1->pWaveExcitingMag) % arma::sin(*(pHydro1->pWaveExcitingPha));
 	arma::cube WaveExcitingReal_2 = *(pHydro2->pWaveExcitingMag) % arma::cos(*(pHydro2->pWaveExcitingPha));
@@ -784,7 +793,8 @@ void HydroDatabase::InterpolateHydro(HydroDatabase* pHydro1, HydroDatabase* pHyd
 	arma::cx_cube WaveExcitingCx = WaveExcitingCx_1 * (1-interpCoef) + WaveExcitingCx_2 * interpCoef;
 	(*pWaveExcitingMag) = arma::abs(WaveExcitingCx);
 	(*pWaveExcitingPha) = arma::arg(WaveExcitingCx);
-
+	
+	// std::cout << "            Interpolate added mass and damping..." << std::endl;
 	for (int ii=0; ii<numBodies; ii++)
 	{
 		*pAddedMass[ii] = *(pHydro1->pAddedMass[ii]) * (1-interpCoef) + *(pHydro2->pAddedMass[ii]) * interpCoef;
@@ -795,15 +805,21 @@ void HydroDatabase::InterpolateHydro(HydroDatabase* pHydro1, HydroDatabase* pHyd
 		*pIRF[ii] = *(pHydro1->pIRF[ii]) * (1-interpCoef) + *(pHydro2->pIRF[ii]) * interpCoef;
 	}
 
-	for (int ii=0; ii<2; ii++)
-	{
-		for (int jj=0; jj<activeDofs; jj++)
+	// std::cout << "            Interpolate pQtfDiff..." << std::endl;
+	// Esto esta un poco feo, deberíamos tener un flag que nos diga si tenemos QTFs o no en la HDB y tirar de eso
+	if(pBodies[idBody]->secondOrderExcitationFlag>0 && pBodies[idBody]->secondOrderExcitationFlag<4)
 		{
-			*pQtfDiff[ii][jj] = *(pHydro1->pQtfDiff[ii][jj]) * (1-interpCoef) + *(pHydro2->pQtfDiff[ii][jj]) * interpCoef;
-			*pQtfSum[ii][jj] = *(pHydro1->pQtfSum[ii][jj]) * (1-interpCoef) + *(pHydro2->pQtfSum[ii][jj]) * interpCoef;
+		for (int ii=0; ii<2; ii++)
+		{
+			for (int jj=0; jj<activeDofs; jj++)
+			{
+				*pQtfDiff[ii][jj] = *(pHydro1->pQtfDiff[ii][jj]) * (1-interpCoef) + *(pHydro2->pQtfDiff[ii][jj]) * interpCoef;
+				*pQtfSum[ii][jj] = *(pHydro1->pQtfSum[ii][jj]) * (1-interpCoef) + *(pHydro2->pQtfSum[ii][jj]) * interpCoef;
+			}
 		}
 	}
 
+	// std::cout << "            Interpolate SetUp();" << std::endl;
 	SetUp(); // A esta quizas habria que llamarla desde sinking e interpolar con las variables postprocesadas de setup
 
 }

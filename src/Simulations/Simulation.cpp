@@ -1032,11 +1032,13 @@ void Simulation::ReadPropertiesASCII()
     fscanf(file_pointer, "%lf %[^\n]\n", &gravity, bufferLine);
 	fscanf(file_pointer, "%lf %[^\n]\n", &waterDensity, bufferLine);
 	fscanf(file_pointer, "%lf %[^\n]\n", &waterDepth, bufferLine);
+	fscanf(file_pointer, "%lf %[^\n]\n", &writeTimeStep, bufferLine);
 	fscanf(file_pointer, "%lf %[^\n]\n", &maxTimeStep, bufferLine); 
 	fscanf(file_pointer, "%lf %[^\n]\n", &hydroTimeStep, bufferLine);
     fscanf(file_pointer, "%lf %[^\n]\n", &timeIRF, bufferLine);
 	fscanf(file_pointer, "%lf %[^\n]\n", &sinkingTimeStep, bufferLine);
-	fscanf(file_pointer, "%lf %[^\n]\n", &simulationTime, bufferLine);
+	fscanf(file_pointer, "%lf %[^\n]\n", &controllerTimeStep, bufferLine);
+    fscanf(file_pointer, "%lf %[^\n]\n", &simulationTime, bufferLine);
 	fscanf(file_pointer, "%d %[^\n]\n", &timeIntMethod, bufferLine);
 	fscanf(file_pointer, "%lf %[^\n]\n", &timeIntAbsTol, bufferLine);
 	fscanf(file_pointer, "%lf %[^\n]\n", &timeIntRelTol, bufferLine);
@@ -1294,6 +1296,7 @@ void Simulation::Run()
 	double wallTime = 0.0;
 	double wallTimeHydro = 0.0;
 	double wallTimeSinking = 0.0;
+	double wallTimeController = 0.0;
     tstart = time(0);
     std::cout<< "    t = " << wallTime << " s" << std::endl;
     //pTimeSolver->dt_max = 0.1;
@@ -1308,14 +1311,10 @@ void Simulation::Run()
         for(int ii=0; ii<numLines; ii=ii+1) pLines[ii]->WriteOut(pTimeSolver->t);
         for(int ii=0; ii<numBodies; ii=ii+1) pBodies[ii]->WriteOut(pTimeSolver->t);
         **/
-        if (pTimeSolver->t >= wallTime + maxTimeStep)
+        if (pTimeSolver->t >= wallTime + writeTimeStep)
         {
-            wallTime = wallTime + maxTimeStep;
+            wallTime = wallTime + writeTimeStep;
             std::cout<< "    t = " << wallTime << " s"  << std::endl;
-            if (numWinches>0) {
-            	WinchesController.controlWinchies(wallTime);
-            	WinchesController.WriteOut(wallTime);
-            }
             for(int ii=0; ii<numLines; ii=ii+1) pLines[ii]->WriteOut(wallTime);
             for(int ii=0; ii<numBodies; ii=ii+1) pBodies[ii]->WriteOut(wallTime);
         }
@@ -1335,14 +1334,28 @@ void Simulation::Run()
     	
     	if (numSinking>0) {   
 	        if (pTimeSolver->t >= wallTimeSinking + sinkingTimeStep) {
+                // std::cout << "Updating sinking... " << std::endl;
 	        	wallTimeSinking += sinkingTimeStep;
 	        	for(int ii=0; ii<numSinking; ii=ii+1) {
+                    // std::cout << "    pSinking[ii]->UpdateSinkingHydrodynamics(wallTime);" << std::endl;
 	            	pSinking[ii]->UpdateSinkingHydrodynamics(wallTime);
 	            }
+                // std::cout << "    UpdateSystemMatrix();" << std::endl;
 	            UpdateSystemMatrix();
+                // std::cout << "    pSinking[ii]->WriteOut(wallTime);" << std::endl;
                 for(int ii=0; ii<numSinking; ii=ii+1) pSinking[ii]->WriteOut(wallTime);
+                // std::cout << "... done updating sinking! :)" << std::endl;
 	        }
 	    }
+
+        if (numWinches>0) {
+            if (pTimeSolver->t >= wallTimeController + controllerTimeStep)
+    	    {
+	        	wallTimeController += controllerTimeStep;
+                WinchesController.controlWinchies(wallTimeController);
+                WinchesController.WriteOut(wallTimeController);
+            }
+        }
 	    
         
     } while (pTimeSolver->t <= simulationTime);

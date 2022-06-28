@@ -104,48 +104,128 @@ void WinchieController::ReadPropertiesASCII(FILE* pFile){
 		ss << "An error ocurred when trying to read the filter state-space model parameters \n";
 		throw ValueError(ss.str());
 	}
-	fscanf(pFile, "%[^\n]\n", buffer_line);
-
-	if (fscanf(pFile, "%lf", &Ar) != 1)
+	if (fscanf(pFile, "%lf", &Df) != 1)
 	{
 		std::stringstream ss;
-		ss << "An error ocurred when trying to read the reference state-space model parameters \n";
+		ss << "An error ocurred when trying to read the filter state-space model parameters \n";
 		throw ValueError(ss.str());
-	}
-	if (fscanf(pFile, "%lf", &Br) != 1)
-	{
-		std::stringstream ss;
-		ss << "An error ocurred when trying to read the reference state-space model parameters \n";
-		throw ValueError(ss.str());
-	}
-	if (fscanf(pFile, "%lf", &Cr) != 1)
-	{
-		std::stringstream ss;
-		ss << "An error ocurred when trying to read the reference state-space model parameters \n";
-		throw ValueError(ss.str());
-	}
-	if (fscanf(pFile, "%lf", &Dr) != 1)
-	{
-		std::stringstream ss;
-		ss << "An error ocurred when trying to read the reference state-space model parameters \n";
-		throw ValueError(ss.str());
-	}
-	fscanf(pFile, "%[^\n]\n", buffer_line);
-
-	for(int ii=0; ii<3; ii++)
-	{
-		if (fscanf(pFile, "%lf", &dtemp) != 1)
-		{
-			std::stringstream ss;
-			ss << "An error ocurred when trying to read the vector of reference positions \n";
-			throw ValueError(ss.str());
-		}
-		ur(ii,0) = dtemp;
 	}
 	fscanf(pFile, "%[^\n]\n", buffer_line);
 
 	fscanf(pFile, "%lf %[^\n]\n", &Kw, buffer_line);
 	fscanf(pFile, "%lf %[^\n]\n", &time_ini, buffer_line);
+	fscanf(pFile, "%ld %[^\n]\n", &reference_flag, buffer_line);
+
+	if (reference_flag<1){
+		//Ignoro la linea, donde pone "State space reference position"
+		fgets(buffer_line, sizeof(buffer_line), pFile);
+
+		if (fscanf(pFile, "%lf", &Ar) != 1)
+		{
+			std::stringstream ss;
+			ss << "An error ocurred when trying to read the reference state-space model parameters \n";
+			throw ValueError(ss.str());
+		}
+		if (fscanf(pFile, "%lf", &Br) != 1)
+		{
+			std::stringstream ss;
+			ss << "An error ocurred when trying to read the reference state-space model parameters \n";
+			throw ValueError(ss.str());
+		}
+		if (fscanf(pFile, "%lf", &Cr) != 1)
+		{
+			std::stringstream ss;
+			ss << "An error ocurred when trying to read the reference state-space model parameters \n";
+			throw ValueError(ss.str());
+		}
+		if (fscanf(pFile, "%lf", &Dr) != 1)
+		{
+			std::stringstream ss;
+			ss << "An error ocurred when trying to read the reference state-space model parameters \n";
+			throw ValueError(ss.str());
+		}
+		fscanf(pFile, "%[^\n]\n", buffer_line);
+
+		for(int ii=0; ii<3; ii++)
+		{
+			if (fscanf(pFile, "%lf", &dtemp) != 1)
+			{
+				std::stringstream ss;
+				ss << "An error ocurred when trying to read the vector of reference positions \n";
+				throw ValueError(ss.str());
+			}
+			ur(ii,0) = dtemp;
+		}
+		fscanf(pFile, "%[^\n]\n", buffer_line);
+
+		//Ignoro las lineas de "Discrete points reference position"
+		for(int ii=0; ii<5; ii++)
+		{
+			fgets(buffer_line, sizeof(buffer_line), pFile);
+		}
+	} else {
+		//Ignoro las lineas de "State space reference position"
+		for(int ii=0; ii<3; ii++)
+		{
+			fgets(buffer_line, sizeof(buffer_line), pFile);
+		}
+
+		//Ignoro la linea, donde pone "Discrete points reference position"
+		fgets(buffer_line, sizeof(buffer_line), pFile);
+
+		// Inicializo los datos de la señal de referencia
+		t_ref = arma::zeros(reference_flag,1);
+		x_ref = arma::zeros(reference_flag,1);
+		y_ref = arma::zeros(reference_flag,1);
+		yaw_ref = arma::zeros(reference_flag,1);
+
+		for(int ii=0; ii<reference_flag; ii++)
+		{
+			if (fscanf(pFile, "%lf", &dtemp) != 1)
+			{
+				std::stringstream ss;
+				ss << "An error ocurred when trying to read the times for reference positions \n";
+				throw ValueError(ss.str());
+			}
+			t_ref(ii,0) = dtemp;
+		}
+		fscanf(pFile, "%[^\n]\n", buffer_line);
+		for(int ii=0; ii<reference_flag; ii++)
+		{
+			if (fscanf(pFile, "%lf", &dtemp) != 1)
+			{
+				std::stringstream ss;
+				ss << "An error ocurred when trying to read the x for reference positions \n";
+				throw ValueError(ss.str());
+			}
+			x_ref(ii,0) = dtemp;
+		}
+		fscanf(pFile, "%[^\n]\n", buffer_line);
+		for(int ii=0; ii<reference_flag; ii++)
+		{
+			if (fscanf(pFile, "%lf", &dtemp) != 1)
+			{
+				std::stringstream ss;
+				ss << "An error ocurred when trying to read the y for reference positions \n";
+				throw ValueError(ss.str());
+			}
+			y_ref(ii,0) = dtemp;
+		}
+		fscanf(pFile, "%[^\n]\n", buffer_line);
+		for(int ii=0; ii<reference_flag; ii++)
+		{
+			if (fscanf(pFile, "%lf", &dtemp) != 1)
+			{
+				std::stringstream ss;
+				ss << "An error ocurred when trying to read the yaw for reference positions \n";
+				throw ValueError(ss.str());
+			}
+			yaw_ref(ii,0) = dtemp;
+		}
+		fscanf(pFile, "%[^\n]\n", buffer_line);
+
+	}
+
 
 	//Ignoro las tres primeras lineas, donde pone "Inversor block inputs"
 	for(int ii=0; ii<3; ii++)
@@ -366,12 +446,23 @@ void WinchieController::controlWinchies(double time){
 	if (time>=time_ini){
 		arma::mat e1;
 		// Reference signal
-		xr = Ar*xr + Br*ur; yr = Cr*xr + Dr*ur; 
+		if (reference_flag<1){
+			xr = Ar*xr + Br*ur; yr = Cr*xr + Dr*ur;
+		} else {
+			arma::mat temp_input, temp_output;
+			temp_input = arma::ones(1)*time;
+			arma::interp1(t_ref, x_ref, temp_input, temp_output, "linear", arma::as_scalar(x_ref(reference_flag-1,0)));
+			yr(0,0) = arma::as_scalar(temp_output);
+			arma::interp1(t_ref, y_ref, temp_input, temp_output, "linear", arma::as_scalar(y_ref(reference_flag-1,0)));
+			yr(1,0) = arma::as_scalar(temp_output);
+			arma::interp1(t_ref, yaw_ref, temp_input, temp_output, "linear", arma::as_scalar(yaw_ref(reference_flag-1,0)));
+			yr(2,0) = arma::as_scalar(temp_output);
+		}
 		// Extract position from body
 		// Aqui habria que meter ruido gausiano para el ruido de los sensores
 		pos = pSim->pBodies[indBody]->pos; yb(0,0) = pos(0,0);  yb(1,0) = pos(1,0); yb(2,0) = pos(5,0);
 		// First order filter
-		xf = Af*xf + Bf*yb; yf = Cf*xf;
+		xf = Af*xf + Bf*yb; yf = Cf*xf + Df*yb;
 		// Compute error
 		error.row(k) = (yr-yf).t();
 		// Integrate error
@@ -494,6 +585,17 @@ void WinchieController::OpenOutputFilesASCII(std::string path){
         throw IOError(ss.str());
 	}
 
+	char buffer4[50];
+	int nn4 = sprintf(buffer4,"WinchedLinesLengths.txt");
+	std::string file_path4 = JoinPath(path, buffer4);
+	pfile_LL = fopen (file_path4.c_str(),"w");
+	if (pfile_LL == NULL)
+	{
+        std::stringstream ss;
+        ss << "Not possible to open the file: "<< nn4 <<"\n    ->Dir: " << path << std::endl;
+        throw IOError(ss.str());
+	}
+
 }
 
 void WinchieController::CloseOutputFilesASCII(void){
@@ -501,6 +603,7 @@ void WinchieController::CloseOutputFilesASCII(void){
 	fclose(pfile_TW);
 	fclose(pfile_FC);
 	fclose(pfile_RP);
+	fclose(pfile_LL);
 
 }
 
@@ -517,4 +620,8 @@ void WinchieController::WriteOut(double t){
 	fprintf(pfile_RP, "%f    ", t);
 	for(int ii=0;ii<3;ii=ii+1) fprintf(pfile_RP, "%f    ", yr(ii, 0));
 	fprintf(pfile_RP, "\n");
+
+	fprintf(pfile_LL, "%f    ", t);
+	for(int ii=0;ii<nWinchies;ii=ii+1) fprintf(pfile_LL, "%f    ", Winchies[ii]->LineW->L*Winchies[ii]->LineW->dL/Winchies[ii]->LineW->dL0);
+	fprintf(pfile_LL, "\n");
 }

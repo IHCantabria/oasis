@@ -235,13 +235,17 @@ void Sinking::ReadPropertiesASCII(FILE* pFile, std::string inputFolderPath){
 
 void Sinking::UpdateSinkingHydrodynamics(double t){
 
+	// std::cout << "        UpdateGroupsFillingState(t);" << std::endl;
 	UpdateGroupsFillingState(t);
 
 	if (numHDBs>1) {
+		// std::cout << "        UpdateInterpHydro();" << std::endl;
 		UpdateInterpHydro();
+		// std::cout << "        pSinkingBody->pHydro->InterpolateHydro(pHydro[indHydro1], pHydro[indHydro2], hydroInterpCoef);" << std::endl;
 		pSinkingBody->pHydro->InterpolateHydro(pHydro[indHydro1], pHydro[indHydro2], hydroInterpCoef);
 	}
-
+	
+	// std::cout << "        UpdateBodyProperties();" << std::endl;
 	UpdateBodyProperties();
 }
 

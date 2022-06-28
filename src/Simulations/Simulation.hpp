@@ -32,10 +32,12 @@ public:
     // Declare simulation properties attributes
     double gravity;
     int maxIterStep;
+    double writeTimeStep;
     double maxTimeStep;
     double hydroTimeStep;
     double timeIRF;
     double sinkingTimeStep;
+    double controllerTimeStep;
     int numSystem;
     int numSystem2;
     double simulationTime;

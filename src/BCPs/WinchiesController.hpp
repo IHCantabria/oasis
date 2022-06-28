@@ -27,7 +27,7 @@ public:
 	double Ac,Bc,Cc,Dc; // Controller state-space model parameters
 	arma::mat Kc = arma::zeros(3,1); // Lead controller gains
 	arma::mat Ki = arma::zeros(3,1); // Integral time gains
-	double Af,Bf,Cf; // Filter state-space model parameters
+	double Af,Bf,Cf,Df; // Filter state-space model parameters
 	double Ar,Br,Cr,Dr; // Reference state-space model parameters
 	arma::mat ur = arma::zeros(3,1); // Vector of reference positions x(m), y(m), heading(rad)
 	arma::mat yb = arma::zeros(3,1); // Vector of actual positions of the body
@@ -37,8 +37,11 @@ public:
 	arma::mat yc = arma::zeros(3,1); // Output del controlador
 	arma::mat xf = arma::zeros(3,1); // Variables de estado del filtro
 	arma::mat yf = arma::zeros(3,1); // Output del filtro
+
+	int reference_flag; // Flag for reference type [0: state-space; n<=1: n discrete points]
 	arma::mat xr = arma::zeros(3,1); // Variables de estado de la referencia
 	arma::mat yr = arma::zeros(3,1); // Output de la referencia
+	arma::mat t_ref, x_ref, y_ref, yaw_ref;
 
 	double Kw; // Ganancia de los winchies
 	double time_ini;
@@ -60,6 +63,7 @@ public:
 	FILE* pfile_TW;
 	FILE* pfile_FC;
 	FILE* pfile_RP;
+	FILE* pfile_LL;
 
 	WinchieController(void);
 	WinchieController(int n, Winchie** Ws, Simulation* pIncSim); // Inicializar el objeto de la clase winchie controler

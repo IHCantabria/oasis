@@ -46,7 +46,7 @@ void Wave::CheckBreakingWave(void)
 void Wave::GetWaveLengths(void)
 {
 	lambdas = arma::zeros(size(periods)); double T;
-	for(int ii=0; ii<num_comps; ii++)
+	for(int ii=1; ii<num_comps; ii++)
 	{
 		T = arma::as_scalar(periods(ii,0));
 		lambdas(ii,0) = solve_lambda(T);
@@ -75,8 +75,10 @@ double Wave::solve_lambda(double T)
 
 	if (abs(f)>atol)
 	{
+		arma::uvec ind = arma::find(T==periods);
+		double H  = arma::accu(amplitudes.rows(ind));
 		std::stringstream ss;
-	    ss << "Convergence failed for computing wave length. \n";
+	    ss << "Convergence failed for computing wave length. T = " << T << " s; H = " << H << " m \n";
 	    throw ValueError(ss.str());
 	}
 	return lambda;
@@ -113,10 +115,10 @@ void Wave::GetFreeSurface(void)
 	}
 	arma::cx_mat eta_cx = arma::ifft(Y);
 	double imag = arma::as_scalar(arma::sum(arma::abs(arma::imag(eta_cx)),0));
-	if (imag>1e-13*num_points)
+	if (imag>1e-9*num_points)
 	{
 		std::stringstream ss;
-	    ss << "Something went wrong with the ifft. \n";
+	    ss << "Something went wrong with the ifft. imag = " << imag << " \n";
 	    throw ValueError(ss.str());
 	}
 	eta_FS = arma::real(eta_cx);
@@ -459,8 +461,11 @@ void IrregularWave::ReadWaveSpectrumASCII(void)
 	amplitudes_1D = amplitudes;
 	phases_1D = phases;
 	S_w = psd;
+	std::cout << "    ----> Compute wave lengths" << std::endl;
 	GetWaveLengths();
+	std::cout << "    ----> Build free surface" << std::endl;
 	GetFreeSurface();
+	std::cout << "    ----> Remove unnecesary frequencies" << std::endl;
 	CutSpectrumZeros();
 
     std::cout << "----> Wave Spectrum Read" << std::endl;
