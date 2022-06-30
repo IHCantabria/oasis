@@ -70,6 +70,7 @@ arma::mat HydroDatabase::CalculateHydrodynamicForces(double time)
 
 arma::mat HydroDatabase::CalculateHydrostaticForces()
 {	
+	// Linear hydrostatic forces
 	arma::mat hydrostatic_force = -(*pHydrostaticStiffness)*(pBodies[idBody]->pos - pBodies[idBody]->pos_eq);
 	if (pBodies[idBody]->filling_mass>0){
 		arma::mat Fg = arma::zeros(3,1); Fg(2,0) = - pSim->gravity * pBodies[idBody]->filling_mass;
