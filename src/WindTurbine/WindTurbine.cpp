@@ -129,7 +129,7 @@ void WindTurbine::Initialize(void){
         }
     }
 
-    rotSpeed = FSTW_InitInput.turbIniRotSpeed;
+    rotSpeed = FSTW_InitInput.turbIniRotSpeed; 
     yaw = FSTW_InitInput.turbIniYaw; yaw_ini = yaw;
     YCMode = FSTW_InitInput.YCMode;
 

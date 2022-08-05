@@ -4,7 +4,6 @@
 
 #include <armadillo>
 #include <string>
-#include <OpenFAST.H>
 #include "FASTurbW_Library.h"
 #include "FAST_Library.h"
 
