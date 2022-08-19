@@ -149,6 +149,7 @@ void Body::ReadPropertiesASCII(FILE* pFile)
 	char buffer_line [1000];
 	fpos_t carriage_init;
 	char cHydroDatabaseName [1000];
+	char cHydrostaticMeshName [1000];
 	double dtemp;
 	int itemp;
 
@@ -255,8 +256,6 @@ void Body::ReadPropertiesASCII(FILE* pFile)
 		throw ValueError(ss.str());
 	}
 	this->hydroDatabaseIndex--;
-
-
 	
 	// Read flag for blocking the body
 	if (fscanf(pFile, "%d %[^\n]\n", &itemp, buffer_line) != 2)
@@ -271,9 +270,38 @@ void Body::ReadPropertiesASCII(FILE* pFile)
 		flag_blocked = 0;
 	} else {
 		std::stringstream ss;
-		ss << "Body: " << this->GetId() <<" - Flag for blocking body not available, must be 0 or 1." << ".\n";
+		ss << "Body: " << this->GetId() <<" - Flag for blocking the body not available, must be 0 or 1." << ".\n";
 		throw ValueError(ss.str());
 	}
+
+	// Read flag for hidrostatics of the body
+	if (fscanf(pFile, "%d %[^\n]\n", &itemp, buffer_line) != 2)
+	{
+		std::stringstream ss;
+		ss << "Body: " << this->GetId() <<" - Not possible to read flag for hidrostatics of the body." << ".\n";
+		throw ValueError(ss.str());
+	}
+	if (itemp==0 || itemp==1) {
+		this->flag_hidrostatics = itemp;
+	} else if (itemp==2) {
+		std::stringstream ss;
+		ss << "Body: " << this->GetId() <<" - Flag for hidrostatics of the body =2 not implemented yet." << ".\n";
+		throw NotImplementedError(ss.str());
+	} else {
+		std::stringstream ss;
+		ss << "Body: " << this->GetId() <<" - Flag for hidrostatics of the body not available, must be 0, 1 or 2." << ".\n";
+		throw ValueError(ss.str());
+	}
+
+	// Read body mesh file name
+	if (fscanf(pFile, "%s %[^\n]\n", cHydrostaticMeshName, buffer_line) != 2)
+	{
+		std::stringstream ss;
+		ss << "An error ocurred when trying to read the hidrostatics mesh name of the body: " << this->GetId() << "\n";
+		throw ValueError(ss.str());
+	}
+	this->hydrostaticMeshName = cHydrostaticMeshName;
+
 
 	// Read flag for first order excitation force
 	if (fscanf(pFile, "%d %[^\n]\n", &firstOrderExcitationFlag, buffer_line) != 2)
@@ -332,11 +360,17 @@ void Body::ReadPropertiesASCII(FILE* pFile)
 	fscanf(pFile, "%[^\n]\n", buffer_line);
 
 
-
-
-
 	// Generate array of pointers in order to storage the BCPs pointers
 	this->pBodyBcps = new BCP* [this->numBcps];
+
+	// Generate object of hidrostatic mesh if needed
+	if (flag_hidrostatics>0){
+		std::string filename = JoinPath(pSim->inputFolderPath, hydrostaticMeshName);
+		// HARCODED: mesh type, the user should be able to choose different meshes
+		pNLHSMesh = new BodyTri2DMesh(this->id,filename,this);
+		pNLHSMesh->ReadPropertiesASCII();
+		pNLHSMesh->Preprocess();
+	}
 }
 
 

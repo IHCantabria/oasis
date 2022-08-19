@@ -11,7 +11,7 @@ class HydroForce
 public:
     // Create class methods
     virtual arma::mat CalculateHydrodynamicForces(double time)=0;
-    virtual arma::mat CalculateHydrostaticForces(void)=0;
+    virtual arma::mat CalculateHydrostaticForces(double time)=0;
     virtual arma::mat GetCog(void)=0;
     virtual int GetNumBodies(void)=0;
 	virtual int GetNumPointsIrf(void)=0;

@@ -135,7 +135,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     arma::mat Fb = arma::zeros(6*numBodies, 1);
     for (int ii=0; ii<numBodies; ii++)
     {    
-		Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  pBodies[ii]->Fb + pBodies[ii]->pHydro->CalculateHydrostaticForces();
+		Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  pBodies[ii]->Fb + pBodies[ii]->pHydro->CalculateHydrostaticForces(time);
     }
 
 	// Compute forces on BCPs

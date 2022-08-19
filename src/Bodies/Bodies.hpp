@@ -7,6 +7,7 @@
 #include <cstdio>
 #include "../BCPs/BCPs.hpp"
 #include "../Hydro/HydroForce.hpp"
+#include "BodyMesh.hpp"
 
 class solver_data;
 class Simulation;
@@ -21,9 +22,12 @@ public:
 	int* pDofs; // Array to store the number of degrees of freedom considered in the body
 	int* pIndexBcps; // Array to store the index of the boundary condition points
 	HydroForce* pHydro; // Hydrodynamnics body associated to the body
+	BodyTri2DMesh* pNLHSMesh;
 	int hydroDatabaseIndex; // Index of the body in the associated hydrodynamic database, if any
 	std::string hydroDatabaseName; // Stores the hydrodynamic database name
 	int flag_blocked;
+	int flag_hidrostatics;
+	std::string hydrostaticMeshName; // Stores the hidrostatics mesh filename
 	int firstOrderExcitationFlag; // flag for first order excitation force
 	int secondOrderExcitationFlag; // flag for second order excitation force
 	arma::mat A_visc = arma::zeros(6,1); // viscous added mass coefficients
@@ -46,6 +50,7 @@ public:
 	int velBufferSize=0; // Velocity Buffer size;
 	int velBufferCount=0; // Stores the positon of the last columun of the velocity buffer matrix filled.
 	double filling_mass = 0; // Body filling mass for sinking
+	double structuralMass = 0; // structural mass
 	arma::mat acc = arma::zeros(6,1); // Body acceleration w.r.t the global reference system
 	arma::mat bcpForces = arma::zeros(6,1); // Fuerzas que los BCPs ejercen sobre el cuerpo, en la referencia del CDG
 	arma::mat hydrostaticForces = arma::zeros(6, 1); // Storage for the hydrostatic forces

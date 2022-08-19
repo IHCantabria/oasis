@@ -19,6 +19,10 @@ arma::mat wrapToPi(arma::mat x);
 arma::uvec comp_ind(int n,arma::uvec ind);
 arma::umat comb_n_k(int n,int k);
 double step(double x, double x0, double h0, double x1, double h1);
+std::tuple<arma::mat,arma::uvec> unique_rows(arma::mat& x);
+
+arma::mat sort_rows(arma::mat x, int icol);
+arma::umat indMat(arma::uvec ind, arma::umat x);
 
 
 #endif // mathtoolsdef_hpp__

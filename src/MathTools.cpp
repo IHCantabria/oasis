@@ -477,3 +477,75 @@ double step(double x, double x0, double h0, double x1, double h1)
 		return h1;
 	}
 }
+
+
+template <typename T>
+inline bool rows_equal(const T& lhs, const T& rhs, double tol = 0.00000001) {
+    return arma::approx_equal(lhs, rhs, "absdiff", tol);
+}
+
+std::tuple<arma::mat,arma::uvec> unique_rows(arma::mat& x) {
+
+	// mat_out = unique_rows(mat_in)
+	// mat_in = mat_out(ind)
+	// modified from:
+	//     https://stackoverflow.com/questions/37143283/finding-unique-rows-in-armamat
+
+    unsigned int count = 1, i = 1, j = 1, nr = x.n_rows, nc = x.n_cols;
+    arma::mat result(nr, nc);
+	arma::uvec ind = arma::zeros<arma::uvec>(nr);
+    result.row(0) = x.row(0);
+	ind.row(0) = 0;
+
+    for ( ; i < nr; i++) {
+		bool empty = (arma::as_scalar(ind(i)) == 0);
+		bool flag = true;
+		bool matched = false;
+
+        if (!empty || rows_equal(x.row(i), result.row(0))) continue;
+
+		for (j = i + 1; j < nr; j++) {
+			if (rows_equal(x.row(i), x.row(j))) {
+				if (flag) {
+					result.row(count) = x.row(i);
+					ind(i) = count++;
+					matched = true;
+					flag = false;
+				}
+				ind(j) = ind(i);
+			}
+		}
+
+		if (!matched) {
+			result.row(count) = x.row(i);
+			ind(i) = count++;
+		}
+    }
+
+	return std::make_tuple(result.rows(0, count - 1),ind);
+}
+
+
+arma::mat sort_rows(arma::mat x, int icol) {
+
+	if (icol < 0 || icol+1 > x.n_cols) {
+		std::stringstream ss;
+		ss << "Column index out of bounds. \n";
+		throw ValueError(ss.str());
+	}
+
+	arma::uvec ind = arma::sort_index(x.col(icol));
+
+	return x.rows(ind);
+}
+
+
+arma::umat indMat(arma::uvec ind, arma::umat x) {
+	int nr = x.n_rows, nc = x.n_cols;
+	arma::umat result = arma::zeros<arma::umat>(nr, nc);
+    for (int icol = 0; icol < nc; icol++) {
+        result.col(icol) = ind.elem(x.col(icol));
+    }
+
+	return result;
+}

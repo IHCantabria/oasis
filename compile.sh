@@ -1,6 +1,8 @@
 
+ml purge
 ml Armadillo/10.5.3-foss-2020b
 ml OpenFAST/3.0.0-foss-2020b
+ml stl_reader/1.0.0-foss-2020b
 
 rm ./bin/oasis
 # rm -rf build
