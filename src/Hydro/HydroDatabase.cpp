@@ -105,12 +105,17 @@ arma::mat HydroDatabase::CalculateHydrostaticForces(double time)
 			hydrostatic_force(i+3,0) = arma::dot(-pressure, (radius.col(i1) % weightsJacNormal.col(i2) - radius.col(i2) % weightsJacNormal.col(i1)));
 		}
 
-		std::cout << "--> hydrostatic_force_1 = \n" << hydrostatic_force << std::endl;
+		// std::cout << "--> hydrostatic_force_1 = \n" << hydrostatic_force << std::endl;
 
 		// Add gravity force
 		hydrostatic_force(2,0) = hydrostatic_force(2,0) - pSim->gravity*pBodies[idBody]->structuralMass;
 
-		std::cout << "--> hydrostatic_force_2 = \n" << hydrostatic_force << std::endl;
+		// std::cout << "--> hydrostatic_force_2 = \n" << hydrostatic_force << std::endl;
+		// std::cout << "--> pos = \n" << pBodies[idBody]->pos << std::endl;
+
+		// std::stringstream ss;
+		// ss << "stop" << ".\n";
+		// throw NotImplementedError(ss.str());
 
 	} else if (pBodies[idBody]->flag_hidrostatics==2) {
 		// Non-inear hydrostatic forces with wave
@@ -881,7 +886,7 @@ void HydroDatabase::UpdateHydroStiffness(arma::mat newHydrostaticStiffness)
 
 arma::mat HydroDatabase::CalculateHydrostaticPressure(double t)
 {
-	std::cout << "--> Calculating Hydrostatic Pressure" << std::endl;
+	// std::cout << "--> Calculating Hydrostatic Pressure" << std::endl;
 
 	arma::mat pressure;
 
@@ -901,7 +906,5 @@ arma::mat HydroDatabase::CalculateHydrostaticPressure(double t)
 	}
 
 	return pressure;
-
-	std::cout << "--> END Calculating Hydrostatic Pressure" << std::endl;
 	
 }

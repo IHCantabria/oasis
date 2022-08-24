@@ -82,9 +82,10 @@ void BodyMesh::TransformMesh(void)
     
     // Rotation matrix
     arma::mat rotMat = pBody->rotMat;
+    arma::vec pos = pBody->pos.rows(0,2);
 
     // Nodes transformation
-    nodes = (pBody->pos.rows(0,2)*arma::ones(1,iniNumNodes) + rotMat * iniNodes.t()).t();
+    nodes = (pos*arma::ones(1,iniNumNodes) + rotMat * iniNodes.t()).t();
 
     // Normals transformation
     normals = (rotMat * iniNormals.t()).t();
@@ -127,7 +128,7 @@ void BodyMesh::CutMesh(void)
 
     // Loop variables initialization
     arma::rowvec p_1, p_2, p_3, p_4, p_12, p_23, p_31, p_34, p_41, p_123, p_134, p_1234;
-    arma::rowvec v_1, v_2, v_3, w_1, w_2, tmp_normal;
+    arma::rowvec v_1, v_2, v_3, v_4, w_1, w_2, tmp_normal;
     arma::urowvec auxVec, auxVec1, auxVec2;
     arma::vec jac;
     arma::mat incNodes, outNodes;
@@ -137,9 +138,10 @@ void BodyMesh::CutMesh(void)
     for (int ielem : ind2) {
 
         //Sorting vertices by height
-        arma::mat incNodes = sort_rows(iniNodes.rows(iniElems(ielem,arma::span(0,2))),2);
+        arma::mat incNodes = sort_rows(transNodes.rows(iniElems(ielem,arma::span(0,2))),2);
 
-        //////////////////// Cutting element: cutTriangMeshGQ2_v2 ////////////////////
+        // ----------------------- Cutting element: cutTriangMeshGQ2_v2 -----------------------
+
         // Initial vertex nodes
         p_1 = incNodes.row(0);
         p_2 = incNodes.row(1);
@@ -154,10 +156,11 @@ void BodyMesh::CutMesh(void)
         p_4.subvec(0,1) = p_1.subvec(0,1) + mu_1 * w_1.subvec(0,1);
 
         // Other nodes
-        p_12 = p_1 + LAMBDA * (p_2-p_1);
-        p_23 = p_3 + LAMBDA * (p_2-p_3);
-        p_34 = p_3 + LAMBDA * (p_4-p_3);
-        p_41 = p_1 + LAMBDA * (p_4-p_1);
+        v_1 = p_2-p_1; v_2 = p_2-p_3; v_3 = p_4-p_3; v_4 = p_4-p_1;
+        p_12 = p_1 + LAMBDA * v_1;
+        p_23 = p_3 + LAMBDA * v_2;
+        p_34 = p_3 + LAMBDA * v_3;
+        p_41 = p_1 + LAMBDA * v_4;
         p_123 = (p_12 + p_23) / 2;
         p_134 = (p_34 + p_41) / 2;
         p_1234 = (p_1 + p_3) / 2;
@@ -177,11 +180,11 @@ void BodyMesh::CutMesh(void)
         outNodes.row(10) = p_1234;
 
         // Jacobian computation
-        v_1 = p_1-p_2, v_2 = p_1-p_3, v_3 = p_1-p_4;
         jac1 = arma::norm(arma::cross(v_1,v_2))/4;
-        jac2 = arma::norm(arma::cross(v_2,v_3))/4;
+        jac2 = arma::norm(arma::cross(v_3,v_4))/4;
         jac = {jac1, jac2};
-        //////////////////// Cutting element: cutTriangMeshGQ2_v2 ////////////////////
+
+        // ----------------------- Cutting element: cutTriangMeshGQ2_v2 -----------------------
 
         // Extracting the normal of the original element
         tmp_normal = transNormals.row(ielem);
@@ -201,9 +204,10 @@ void BodyMesh::CutMesh(void)
     for (int ielem : ind1) {
 
         //Sorting vertices by height
-        incNodes = sort_rows(iniNodes.rows(iniElems(ielem,arma::span(0,2))),2);
+        incNodes = sort_rows(transNodes.rows(iniElems(ielem,arma::span(0,2))),2);
 
-        //////////////////// Cutting element: cutTriangMeshGQ2_v1 ////////////////////
+        // ----------------------- Cutting element: cutTriangMeshGQ2_v1 -----------------------
+        
         // Initial vertex nodes
         p_1 = incNodes.row(0);
         p_2 = incNodes.row(1);
@@ -217,9 +221,10 @@ void BodyMesh::CutMesh(void)
         p_3.subvec(0,1) = p_1.subvec(0,1) + mu_2 * w_2.subvec(0,1); p_3(2) = 0;
 
         // Other nodes
+        v_1 = p_3-p_1; v_2 = p_3-p_2;
         p_12 = (p_1 + p_2) / 2;
-        p_23 = p_2 + LAMBDA * (p_3-p_2);
-        p_31 = p_1 + LAMBDA * (p_3-p_1);
+        p_23 = p_2 + LAMBDA * v_2;
+        p_31 = p_1 + LAMBDA * v_1;
         p_123 = (p_23 + p_31) / 2;
 
         // Nodes output matrix
@@ -233,8 +238,9 @@ void BodyMesh::CutMesh(void)
         outNodes.row(6) = p_123;
 
         // Jacobian computation
-        jac = {arma::norm(arma::cross(w_1,w_2))/4};
-        //////////////////// Cutting element: cutTriangMeshGQ2_v1 ////////////////////
+        jac = {arma::norm(arma::cross(v_1,v_2))/4};
+        
+        // ----------------------- Cutting element: cutTriangMeshGQ2_v1 -----------------------
 
         // Extracting the normal of the original element
         tmp_normal = transNormals.row(ielem);
@@ -248,6 +254,7 @@ void BodyMesh::CutMesh(void)
         numNodes += 7;
         numElems += 1;
     }
+    
 }
 
 
