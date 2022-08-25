@@ -125,6 +125,15 @@ void Wave::GetFreeSurface(void)
 	std::cout << "----> Free Surface Computed" << std::endl;
 }
 
+arma::vec Wave::GetFreeSurface(double time, arma::vec x, arma::vec y)
+{
+	arma::vec eta = arma::zeros(size(x));
+
+	
+
+	return eta;
+}
+
 void Wave::WriteOut(std::string path)
 {
 	char buffer1[50];

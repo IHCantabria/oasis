@@ -72,6 +72,7 @@ public:
     double f_lambda(double lambda, double T);
     double df_lambda(double lambda, double T);
     void GetFreeSurface(void);
+    arma::vec GetFreeSurface(double time, arma::vec x, arma::vec y);
     void WriteOut(std::string path);
 };
 

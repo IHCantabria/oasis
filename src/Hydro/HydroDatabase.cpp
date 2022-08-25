@@ -94,7 +94,7 @@ arma::mat HydroDatabase::CalculateHydrostaticForces(double time)
 						   arma::ones(pBodies[idBody]->pNLHSMesh->numNodes,1)*pBodies[idBody]->pos.rows(0,2).t();
 		
 		hydrostatic_force = arma::zeros(6,1);
-		arma::uvec i1_vec = {1, 2, 0}; arma::uvec i2_vec = {2, 0, 1};
+		arma::uvec i1_vec = {1, 2, 0}, i2_vec = {2, 0, 1};
 		arma::mat weightsJacNormal = pBodies[idBody]->pNLHSMesh->weightsJacNormal;
 
 		for (int i = 0; i < 3; i++)
@@ -105,17 +105,11 @@ arma::mat HydroDatabase::CalculateHydrostaticForces(double time)
 			hydrostatic_force(i+3,0) = arma::dot(-pressure, (radius.col(i1) % weightsJacNormal.col(i2) - radius.col(i2) % weightsJacNormal.col(i1)));
 		}
 
-		// std::cout << "--> hydrostatic_force_1 = \n" << hydrostatic_force << std::endl;
-
 		// Add gravity force
 		hydrostatic_force(2,0) = hydrostatic_force(2,0) - pSim->gravity*pBodies[idBody]->structuralMass;
 
-		// std::cout << "--> hydrostatic_force_2 = \n" << hydrostatic_force << std::endl;
-		// std::cout << "--> pos = \n" << pBodies[idBody]->pos << std::endl;
-
-		// std::stringstream ss;
-		// ss << "stop" << ".\n";
-		// throw NotImplementedError(ss.str());
+		// Transform the moments into the local frame
+		hydrostatic_force.rows(3,5) = pBodies[idBody]->rotMat.t()*hydrostatic_force.rows(3,5);
 
 	} else if (pBodies[idBody]->flag_hidrostatics==2) {
 		// Non-inear hydrostatic forces with wave
