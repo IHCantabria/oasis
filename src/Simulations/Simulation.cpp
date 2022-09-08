@@ -1120,13 +1120,13 @@ void Simulation::ReadWavesASCII()
     // Read body
     if (strncmp(wave_type, "REG", 3) == 0)
     {
-        pWave = new RegularWave(H,T,D);
+        pWave = new RegularWave(this,H,T,D);
     }
     else
     {
         if (strncmp(wave_type, "IRR", 3) == 0)
 		{
-		    pWave = new IrregularWave(H,T,D);
+		    pWave = new IrregularWave(this,H,T,D);
 		    for(int ii=0; ii<3; ii++)
 			{
 				fgets(bufferLine, sizeof(bufferLine), file_pointer);

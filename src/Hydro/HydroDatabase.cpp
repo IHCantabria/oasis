@@ -82,11 +82,11 @@ arma::mat HydroDatabase::CalculateHydrostaticForces(double time)
 			hydrostatic_force.rows(3,5) = hydrostatic_force.rows(3,5) + arma::cross(pBodies[idBody]->pos_filling_cog,pBodies[idBody]->rotMat.t()*Fg);
 		}
 
-	} else if (pBodies[idBody]->flag_hidrostatics==1) {
+	} else if (pBodies[idBody]->flag_hidrostatics > 0) {
 
-		// Non-linear hydrostatic forces without wave
+		// Non-linear hydrostatic forces
 		pBodies[idBody]->pNLHSMesh->TransformMesh();
-		pBodies[idBody]->pNLHSMesh->CutMesh();
+		pBodies[idBody]->pNLHSMesh->CutMesh(time);
 		pBodies[idBody]->pNLHSMesh->IntegrateMesh();
 		arma::mat pressure = CalculateHydrostaticPressure(time);
 		
@@ -111,15 +111,14 @@ arma::mat HydroDatabase::CalculateHydrostaticForces(double time)
 		// Transform the moments into the local frame
 		hydrostatic_force.rows(3,5) = pBodies[idBody]->rotMat.t()*hydrostatic_force.rows(3,5);
 
-	} else if (pBodies[idBody]->flag_hidrostatics==2) {
-		// Non-inear hydrostatic forces with wave
-		std::stringstream ss;
-		ss << "Body: " << pBodies[idBody]->GetId() <<" - Non-linear hidrostatics with wave not implemented yet." << ".\n";
-		throw NotImplementedError(ss.str());
+		// std::cout << "--> hydrostatic_force = \n" << hydrostatic_force.t() << std::endl;
+		// std::cout << "--> pBodies[idBody]->pos = \n" << pBodies[idBody]->pos.t() << std::endl;
+
+		// std::stringstream ss;
+		// ss << "STOP TO DEBUG.\n";
+		// throw NotImplementedError(ss.str());
 	}
 
-	
-	
 	pBodies[idBody]->hydrostaticForces = hydrostatic_force;
 	return hydrostatic_force;
 }
@@ -457,13 +456,21 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 	// Read Wave exciting data
 	std::cout << "  Reading wave exciting data...\n";
 	std::stringstream wave_exciting_mag_fn;
-	wave_exciting_mag_fn << "body_" << this->GetId() << "/wave_exciting_mag";
+	if (pBodies[idBody]->flag_hidrostatics==2){
+		wave_exciting_mag_fn << "body_" << this->GetId() << "/wave_diffraction_mag";
+	} else {
+		wave_exciting_mag_fn << "body_" << this->GetId() << "/wave_exciting_mag";
+	}
 	pWaveExcitingMag = new arma::cube;
 	pWaveExcitingMag->load(arma::hdf5_name(filePath, wave_exciting_mag_fn.str()));
 	
 	std::stringstream wave_exciting_pha_fn;
 	pWaveExcitingPha = new arma::cube;
-	wave_exciting_pha_fn << "body_" << this->GetId() << "/wave_exciting_pha";
+	if (pBodies[idBody]->flag_hidrostatics==2){
+		wave_exciting_pha_fn << "body_" << this->GetId() << "/wave_diffraction_pha";
+	} else {
+		wave_exciting_pha_fn << "body_" << this->GetId() << "/wave_exciting_pha";
+	}
 	pWaveExcitingPha->load(arma::hdf5_name(filePath, wave_exciting_pha_fn.str()));
 
 
@@ -883,19 +890,19 @@ arma::mat HydroDatabase::CalculateHydrostaticPressure(double t)
 	// std::cout << "--> Calculating Hydrostatic Pressure" << std::endl;
 
 	arma::mat pressure;
+	arma::mat z = pBodies[idBody]->pNLHSMesh->nodes.col(2);
 
 	if (pBodies[idBody]->flag_hidrostatics==1) {
 
 		// Non-linear hydrostatic forces without wave
-		arma::mat z = pBodies[idBody]->pNLHSMesh->nodes.col(2);
 		pressure = -z*pSim->gravity*pSim->waterDensity;
 
 	} else if (pBodies[idBody]->flag_hidrostatics==2) {
 
 		// Non-linear hydrostatic forces with wave
-		std::stringstream ss;
-		ss << "Body: " << pBodies[idBody]->GetId() << " - Non-linear hidrostatics with wave not implemented yet." << ".\n";
-		throw NotImplementedError(ss.str());
+		arma::mat x = pBodies[idBody]->pNLHSMesh->nodes.col(0);
+		arma::mat y = pBodies[idBody]->pNLHSMesh->nodes.col(1);
+		pressure = pSim->pWave->GetPressure(t,x,y,z);
 
 	}
 

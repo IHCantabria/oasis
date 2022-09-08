@@ -5,12 +5,15 @@
 #include "../Exceptions/Exception.hpp"
 #include "../MathTools.hpp"
 #include "../os_tools.hpp"
+#include "../Simulations/Simulation.hpp"
+#include <math.h>
 
-Wave::Wave(double H, double T, double D)
+Wave::Wave(Simulation* pSimInc,double H, double T, double D)
 {
     height = H;
     period = T;
     heading = D*pi/180.0;
+	pSim = pSimInc;
 }
 
 void Wave::CheckBreakingWave(void)
@@ -45,13 +48,21 @@ void Wave::CheckBreakingWave(void)
 
 void Wave::GetWaveLengths(void)
 {
+	std::cout << "--> Getting Wave Lengths" << std::endl;
+
 	lambdas = arma::zeros(size(periods)); double T;
-	for(int ii=1; ii<num_comps; ii++)
+	k = lambdas;
+	for(int ii=0; ii<num_comps; ii++)
 	{
 		T = arma::as_scalar(periods(ii,0));
-		lambdas(ii,0) = solve_lambda(T);
+		if ((T == 0) || isinf(T)){
+            lambdas(ii,0) = 0.0;
+            k(ii,0) = 0.0;
+        } else {
+			lambdas(ii,0) = solve_lambda(T);
+            k(ii,0) = 2.0*pi/lambdas(ii,0);
+        }
 	}
-	k = 2.0*pi/lambdas;
 	arma::mat cos_theta = arma::cos(headings.t());
 	arma::mat sin_theta = arma::sin(headings.t());
 	kx = k*cos_theta; ky = k*sin_theta;
@@ -127,11 +138,34 @@ void Wave::GetFreeSurface(void)
 
 arma::vec Wave::GetFreeSurface(double time, arma::vec x, arma::vec y)
 {
-	arma::vec eta = arma::zeros(size(x));
 
-	
+	arma::vec eta = arma::sum(amplitudes*ones(size(amplitudes.t())) * arma::cos(phases*ones(size(x.t()))
+							 + kx*x.t() + ky*y.t() - time*ang_freqs*ones(size(x.t())))).t();
 
 	return eta;
+}
+
+arma::vec Wave::GetPressure(double time, arma::vec x, arma::vec y, arma::vec z)
+{
+	// std::cout << "--> Getting Pressure " << std::endl;
+
+	arma::vec dPhidt, dPhidx, dPhidy, dPhidz, pressure;
+	arma::vec A = amplitudes, W = ang_freqs; double H = waterDepth;
+	arma::mat onesNp = arma::ones(size(x.t()));
+	arma::mat aux = phases*onesNp + kx*x.t() + ky*y.t() - time*ang_freqs*onesNp;
+
+	dPhidt = arma::sum(-((A % arma::pow(W,2))*onesNp) % arma::cos(aux) % arma::cosh(k * (H*onesNp+z.t())) / 
+	                    ((k % arma::sinh(H * k))*onesNp)).t();
+	dPhidx = arma::sum( ((A % kx % W)*onesNp) % arma::cos(aux) % arma::cosh(k * (H*onesNp+z.t())) / 
+						((k % arma::sinh(H * k))*onesNp)).t();
+	dPhidy = arma::sum( ((A % ky % W)*onesNp) % arma::cos(aux) % arma::cosh(k * (H*onesNp+z.t())) / 
+						((k % arma::sinh(H * k))*onesNp)).t();
+	dPhidz = arma::sum( ((A % W)*onesNp % arma::sin(aux)) % arma::sinh(k * (H*onesNp+z.t())) /
+			          	(arma::sinh(H * k)*onesNp)).t();
+
+	pressure = -pSim->waterDensity*(pSim->gravity*z + dPhidt + 0.5*(dPhidx%dPhidx + dPhidy%dPhidy + dPhidz%dPhidz));
+
+	return pressure;
 }
 
 void Wave::WriteOut(std::string path)
@@ -139,7 +173,7 @@ void Wave::WriteOut(std::string path)
 	char buffer1[50];
 	int nn1 = sprintf(buffer1,"WaveSpectrum.txt");
 	std::string file_path1 = JoinPath(path, buffer1);
-	pfile_SPEC = fopen (file_path1.c_str(),"w");
+	pfile_SPEC = fopen (file_path1.c_str(),"ang_freqs");
 	if (pfile_SPEC == NULL)
 	{
         std::stringstream ss;
@@ -152,7 +186,7 @@ void Wave::WriteOut(std::string path)
 	char buffer2[50];	
 	int nn2 = sprintf(buffer2,"WaveTimeSeries.txt");	
 	std::string file_path2 = JoinPath(path, buffer2);	
-	pfile_TIME = fopen (file_path2.c_str(),"w");
+	pfile_TIME = fopen (file_path2.c_str(),"ang_freqs");
 	if (pfile_TIME == NULL)
 	{
         std::stringstream ss;
@@ -179,7 +213,7 @@ void RegularWave::GetWaveSpectrum(void)
 	headings_1D = headings;
 	amplitudes_1D = amplitudes;
 	phases_1D = phases;
-	GetWaveLengths();
+	GetWaveLengths(); 
 }
 
 void IrregularWave::GetWaveSpectrum(void)

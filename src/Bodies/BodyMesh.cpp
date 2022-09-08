@@ -15,6 +15,7 @@ Library for body meshes
 #include "BodyMesh.hpp"
 #include "../Bodies/Bodies.hpp"
 #include "../Exceptions/Exception.hpp"
+#include "../Simulations/Simulation.hpp"
 #include "../os_tools.hpp"
 #include "../MathTools.hpp"
 #include <stl_reader.h>
@@ -73,6 +74,8 @@ void BodyMesh::ReadPropertiesASCII(void)
 
     // Rearrange elems index
     iniElems = indMat(ind, tmp_elems);
+
+    pSim = pBody->pSim;
 }
 
 
@@ -92,53 +95,72 @@ void BodyMesh::TransformMesh(void)
 }
 
 
-void BodyMesh::CutMesh(void)
+void BodyMesh::CutMesh(double time)
 {
     // std::cout << "--> Cutting Body 2D Mesh" << std::endl;
 
     double LAMBDA = 0.4; // RATIO FOR SOME GAUSSIAN NODES
+    double TOL = 1.e-6; // TOLERANCE FOR NUMERIC BOUND
 
     // Dummy variables
     arma::mat transNodes = nodes, transNormals = normals;
 
     // Sorting elements
-    arma::uvec verticesUW = (transNodes.submat(0,2,numVertices-1,2) <= 0);
-    arma::umat tmp_status = indMat(verticesUW, iniElems.cols(0,2));
-
+    arma::uvec verticesUW; arma::vec eta;
+    if (pBody->flag_hidrostatics == 1) {
+        verticesUW = (transNodes.submat(0,2,numVertices-1,2) <= 0);
+    } else if (pBody->flag_hidrostatics == 2) {
+        eta = pSim->pWave->GetFreeSurface(time,transNodes.col(0),transNodes.col(1));        
+        verticesUW = (transNodes.submat(0,2,numVertices-1,2)) <= eta.subvec(0,numVertices-1);
+    }
+    
     // Element status and UW index
-    arma::uvec status = arma::sum(tmp_status, 1);
+    arma::uvec status = arma::sum(indMat(verticesUW, iniElems.cols(0,2)), 1);
     arma::uvec ind1 = arma::find(status == 1); int numElem1 = ind1.n_rows;
     arma::uvec ind2 = arma::find(status == 2); int numElem2 = ind2.n_rows;
     arma::uvec ind3 = arma::find(status == 3); int numElem3 = ind3.n_rows;
 
     // Completely submerged elements and their nodes
-    arma::uvec nodesUW = arma::find(transNodes.col(2) <= 0);
+    arma::umat auxNodes = iniElems.rows(ind3);
+    arma::uvec nodesUW; arma::uvec indNodesUW;
+    arma::uvec tmpNodesUW = arma::vectorise(auxNodes.t());
+    std::tie(nodesUW, indNodesUW) = unique(tmpNodesUW);
     int numNodesUW = nodesUW.n_rows;
     arma::uvec indMap = arma::zeros<arma::uvec>(iniNumNodes);
     indMap.rows(nodesUW) = arma::linspace<arma::uvec>(0, numNodesUW-1, numNodesUW);
-    arma::umat tmp_elems = iniElems.rows(ind3);
     
     // Including elements with 3 vertices submerged
     nodes = transNodes.rows(nodesUW);
     normals = transNormals.rows(ind3);
-    elems = indMat(indMap, tmp_elems);
+    elems = indMat(indMap, auxNodes);
     jacobians = iniJacobians(ind3);
     numNodes = numNodesUW;
     numElems = numElem3;
 
     // Loop variables initialization
     arma::rowvec p_1, p_2, p_3, p_4, p_12, p_23, p_31, p_34, p_41, p_123, p_134, p_1234;
-    arma::rowvec v_1, v_2, v_3, v_4, w_1, w_2, tmp_normal;
-    arma::urowvec auxVec, auxVec1, auxVec2;
-    arma::vec jac;
+    arma::rowvec pi_1, pi_2, pi_3, v_p, v_pi;
+    arma::rowvec v_1, v_2, v_3, v_4, w_1, w_2, q_2, q_3, q_4, tmpNormal;
+    arma::urowvec auxVec, auxVec1, auxVec2, tmpElems;
+    arma::uvec sortInd, icol;
+    arma::vec jac, incEta;
     arma::mat incNodes, outNodes;
-    double mu_1, mu_2, jac1, jac2;
+    double mu_1, mu_2, jac1, jac2, lambda;
     
     // Including elements with 2 vertices submerged
     for (int ielem : ind2) {
 
-        //Sorting vertices by height
-        arma::mat incNodes = sort_rows(transNodes.rows(iniElems(ielem,arma::span(0,2))),2);
+        if (pBody->flag_hidrostatics == 1) {
+            //Sorting vertices by height
+            incNodes = sort_rows(transNodes.rows(iniElems(ielem,arma::span(0,2))),2);
+
+        } else if (pBody->flag_hidrostatics == 2) {
+            // Sorting vertices by height wrt free surface
+            tmpElems = iniElems(ielem, arma::span(0,2)); icol = {2};
+            sortInd = arma::sort_index(transNodes.submat(tmpElems,icol)-eta(tmpElems));
+            incNodes = transNodes.rows(tmpElems(sortInd));
+            incEta = eta.rows(tmpElems(sortInd));
+        }
 
         // ----------------------- Cutting element: cutTriangMeshGQ2_v2 -----------------------
 
@@ -146,14 +168,41 @@ void BodyMesh::CutMesh(void)
         p_1 = incNodes.row(0);
         p_2 = incNodes.row(1);
         p_3 = incNodes.row(2);
-        p_4 = arma::zeros<arma::rowvec>(3);
+        q_3 = q_4 = arma::zeros<arma::rowvec>(3);
+        
+        // Triangle cut
+        if (pBody->flag_hidrostatics == 1) {
+            w_1 = p_3-p_1; w_2 = p_3-p_2;
+            mu_1 = arma::as_scalar(-p_1.col(2) / w_1.col(2));
+            mu_2 = arma::as_scalar(-p_2.col(2) / w_2.col(2));
+            q_3.subvec(0,1) = p_2.subvec(0,1) + mu_2 * w_2.subvec(0,1); q_3(2) = 0;
+            q_4.subvec(0,1) = p_1.subvec(0,1) + mu_1 * w_1.subvec(0,1); q_4(2) = 0;
+        
+        } else if (pBody->flag_hidrostatics == 2) {
+            // Vectices proyections on Free Surface
+            pi_1 = {p_1(0), p_1(1), incEta(0)};
+            pi_2 = {p_2(0), p_2(1), incEta(1)};
+            pi_3 = {p_3(0), p_3(1), incEta(2)};
+
+            v_p = p_3-p_1; v_pi = pi_3-pi_1;
+            if (arma::norm(v_p.subvec(0,1)) < TOL) {
+                q_4 = pi_3;
+            } else {
+                lambda = (p_1(2)-pi_1(2)) / (v_pi(2)-v_p(2));
+                q_4 = p_1 + lambda*v_p;
+            }
+
+            v_p = p_3-p_2; v_pi = pi_3-pi_2;
+            if (arma::norm(v_p.subvec(0,1)) < TOL) {
+                q_3 = pi_3;
+            } else {
+                lambda = (p_2(2)-pi_2(2)) / (v_pi(2)-v_p(2));
+                q_3 = p_2 + lambda*v_p;
+            }
+        }
 
         // New vertex nodes
-        w_1 = p_3-p_1; w_2 = p_3-p_2;
-        mu_1 = arma::as_scalar(-p_1.col(2) / w_1.col(2));
-        mu_2 = arma::as_scalar(-p_2.col(2) / w_2.col(2));
-        p_3.subvec(0,1) = p_2.subvec(0,1) + mu_2 * w_2.subvec(0,1); p_3(2) = 0;
-        p_4.subvec(0,1) = p_1.subvec(0,1) + mu_1 * w_1.subvec(0,1);
+        p_3 = q_3; p_4 = q_4;        
 
         // Other nodes
         v_1 = p_2-p_1; v_2 = p_2-p_3; v_3 = p_4-p_3; v_4 = p_4-p_1;
@@ -166,7 +215,7 @@ void BodyMesh::CutMesh(void)
         p_1234 = (p_1 + p_3) / 2;
 
         // Nodes output matrix
-        arma::mat outNodes = arma::zeros(11,3);
+        outNodes = arma::zeros(11,3);
         outNodes.row(0) = p_1;
         outNodes.row(1) = p_2;
         outNodes.row(2) = p_3;
@@ -187,11 +236,11 @@ void BodyMesh::CutMesh(void)
         // ----------------------- Cutting element: cutTriangMeshGQ2_v2 -----------------------
 
         // Extracting the normal of the original element
-        tmp_normal = transNormals.row(ielem);
+        tmpNormal = transNormals.row(ielem);
 
         // Copy elem info
         nodes = arma::join_vert(nodes, outNodes);
-        normals = arma::join_vert(normals, tmp_normal, tmp_normal);
+        normals = arma::join_vert(normals, tmpNormal, tmpNormal);
         auxVec1 = {2, 0, 1, 10, 4, 5, 8};
         auxVec2 = {0, 2, 3, 10, 6, 7, 9};
         elems = arma::join_vert(elems, numNodes + auxVec1, numNodes + auxVec2);
@@ -203,8 +252,17 @@ void BodyMesh::CutMesh(void)
     // Including elements with 1 vertex submerged
     for (int ielem : ind1) {
 
-        //Sorting vertices by height
-        incNodes = sort_rows(transNodes.rows(iniElems(ielem,arma::span(0,2))),2);
+        if (pBody->flag_hidrostatics == 1) {
+            //Sorting vertices by height
+            incNodes = sort_rows(transNodes.rows(iniElems(ielem,arma::span(0,2))),2); 
+
+        } else if (pBody->flag_hidrostatics == 2) {
+            // Sorting vertices by height wrt free surface
+            tmpElems = iniElems(ielem, arma::span(0,2)); icol = {2};
+            sortInd = arma::sort_index(transNodes.submat(tmpElems,icol)-eta(tmpElems));
+            incNodes = transNodes.rows(tmpElems(sortInd));
+            incEta = eta.rows(tmpElems(sortInd));
+        }
 
         // ----------------------- Cutting element: cutTriangMeshGQ2_v1 -----------------------
         
@@ -213,12 +271,39 @@ void BodyMesh::CutMesh(void)
         p_2 = incNodes.row(1);
         p_3 = incNodes.row(2);
 
+        // Triangle cut
+        if (pBody->flag_hidrostatics == 1) {
+            w_1 = p_2-p_1; w_2 = p_3-p_1;
+            mu_1 = arma::as_scalar(-p_1(2) / w_1(2));
+            mu_2 = arma::as_scalar(-p_1(2) / w_2(2));
+            q_2.subvec(0,1) = p_1.subvec(0,1) + mu_1 * w_1.subvec(0,1); q_2(2) = 0;
+            q_3.subvec(0,1) = p_1.subvec(0,1) + mu_2 * w_2.subvec(0,1); q_3(2) = 0;
+            
+        } else if (pBody->flag_hidrostatics == 2) {
+            // Vectices proyections on Free Surface
+            pi_1 = {p_1(0), p_1(1), incEta(0)};
+            pi_2 = {p_2(0), p_2(1), incEta(1)};
+            pi_3 = {p_3(0), p_3(1), incEta(2)};
+
+            v_p = p_2-p_1; v_pi = pi_2-pi_1;
+            if (arma::norm(v_p.subvec(0,1)) < TOL) {
+                q_2 = pi_2;
+            } else {
+                lambda = (p_1(2)-pi_1(2)) / (v_pi(2)-v_p(2));
+                q_2 = p_1 + lambda*v_p;
+            }
+
+            v_p = p_3-p_1; v_pi = pi_3-pi_1;
+            if (arma::norm(v_p.subvec(0,1)) < TOL) {
+                q_3 = pi_3;
+            } else {
+                lambda = (p_1(2)-pi_1(2)) / (v_pi(2)-v_p(2));
+                q_3 = p_1 + lambda*v_p;
+            }
+        }
+
         // New vertex nodes
-        w_1 = p_2-p_1; w_2 = p_3-p_1;
-        double mu_1 = arma::as_scalar(-p_1(2) / w_1(2));
-        double mu_2 = arma::as_scalar(-p_1(2) / w_2(2));
-        p_2.subvec(0,1) = p_1.subvec(0,1) + mu_1 * w_1.subvec(0,1); p_2(2) = 0;
-        p_3.subvec(0,1) = p_1.subvec(0,1) + mu_2 * w_2.subvec(0,1); p_3(2) = 0;
+        p_2 = q_2; p_3 = q_3;
 
         // Other nodes
         v_1 = p_3-p_1; v_2 = p_3-p_2;
@@ -243,18 +328,18 @@ void BodyMesh::CutMesh(void)
         // ----------------------- Cutting element: cutTriangMeshGQ2_v1 -----------------------
 
         // Extracting the normal of the original element
-        tmp_normal = transNormals.row(ielem);
+        tmpNormal = transNormals.row(ielem);
 
         // Copy elem info
         nodes = arma::join_vert(nodes, outNodes);
-        normals = arma::join_vert(normals, tmp_normal);
+        normals = arma::join_vert(normals, tmpNormal);
         auxVec = {0, 1, 2, 3, 4, 5, 6};
         elems = arma::join_vert(elems, numNodes + auxVec);
         jacobians = arma::join_vert(jacobians, jac);
         numNodes += 7;
         numElems += 1;
     }
-    
+
 }
 
 
@@ -304,11 +389,12 @@ void BodyTri2DMesh::Preprocess(void)
     arma::mat faces = arma::zeros(iniNumElems, 3);
     arma::umat tmp_elems_edges = arma::zeros<arma::umat>(iniNumElems, 3);
     arma::uvec elems_faces = arma::zeros<arma::uvec>(iniNumElems);
+    arma::vec edges_length = arma::zeros(iniNumElems * 3);
     iniNormals = arma::zeros(iniNumElems, 3);
     iniJacobians = arma::zeros(iniNumElems);
 
     // Elements gaussian nodes computation
-    arma::rowvec p_1, p_2, p_3, p_12, p_23, p_31, p_123, v_1, v_2, tmp_normal;
+    arma::rowvec p_1, p_2, p_3, p_12, p_23, p_31, p_123, v_1, v_2, tmpNormal;
     double norm_fN;
 
     for (uint iface = 0; iface < iniNumElems; iface++) {
@@ -333,10 +419,14 @@ void BodyTri2DMesh::Preprocess(void)
         tmp_elems_edges.row(iface) = {3*iface, 3*iface+1, 3*iface+2};
         elems_faces(iface) = iface;
 
-        tmp_normal = arma::cross(v_1, v_2);
-        norm_fN = arma::norm(tmp_normal);
-        iniNormals.row(iface) = tmp_normal / norm_fN;
+        tmpNormal = arma::cross(v_1, v_2);
+        norm_fN = arma::norm(tmpNormal);
+        iniNormals.row(iface) = tmpNormal / norm_fN;
         iniJacobians(iface) = norm_fN / 4;
+
+        edges_length(3*iface  ) = arma::norm(p_1-p_2);
+        edges_length(3*iface+1) = arma::norm(p_2-p_3);
+        edges_length(3*iface+2) = arma::norm(p_3-p_1);
     }
 
     // Duplicated edges nodes removal
@@ -355,5 +445,8 @@ void BodyTri2DMesh::Preprocess(void)
     iniNodes = arma::join_vert(vertices, edges, faces);
     iniNumNodes = numVertices + numEdges + iniNumElems;
     iniElems = arma::join_horiz(elems_vertices, elems_edges, elems_faces);
+
+    // Maximum edges length
+    maxEdgesLength = arma::max(edges_length);
 
 }

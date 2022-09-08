@@ -14,13 +14,12 @@
 #include "../ODE_solvers/ODE_solvers.hpp"
 #include "../Exceptions/Exception.hpp"
 
-
+// 
 Body::Body(int n, Simulation* pIncSim)
 {
 	id = n;
 	pSim = pIncSim;
 }
-
 
 // Calcula el efecto de las fuerzas sobre los BCPs sobre su CDG
 void Body::ComputeBcpForces(void)
@@ -84,13 +83,13 @@ void Body::ComputeBcpForces(void)
 	}
 }
 
-
+// 
 int Body::GetId(void)
 {
 	return id;
 }
 
-
+// 
 void Body::LoadHydrodynamicDatabase(Body** hydroDatabaseBodies)
 {
 	std::cout << "--> Reading Hydrodynamics Properties (HDF5 format)" << std::endl;
@@ -140,7 +139,6 @@ void Body::LoadHydrodynamicDatabase(Body** hydroDatabaseBodies)
 	
 	std::cout << "----> Hydrodynamic Properties Read" << std::endl;
 }
-
 
 // Leer datos de los cuerpos
 void Body::ReadPropertiesASCII(FILE* pFile)
@@ -281,12 +279,8 @@ void Body::ReadPropertiesASCII(FILE* pFile)
 		ss << "Body: " << this->GetId() <<" - Not possible to read flag for hidrostatics of the body." << ".\n";
 		throw ValueError(ss.str());
 	}
-	if (itemp==0 || itemp==1) {
+	if (itemp==0 || itemp==1 || itemp==2) {
 		this->flag_hidrostatics = itemp;
-	} else if (itemp==2) {
-		std::stringstream ss;
-		ss << "Body: " << this->GetId() <<" - Flag for hidrostatics of the body =2 not implemented yet." << ".\n";
-		throw NotImplementedError(ss.str());
 	} else {
 		std::stringstream ss;
 		ss << "Body: " << this->GetId() <<" - Flag for hidrostatics of the body not available, must be 0, 1 or 2." << ".\n";
@@ -373,7 +367,7 @@ void Body::ReadPropertiesASCII(FILE* pFile)
 	}
 }
 
-
+// 
 void Body::StoreVelocities(bool restoreMatrix)
 {
 	if (!restoreMatrix)
@@ -389,7 +383,6 @@ void Body::StoreVelocities(bool restoreMatrix)
 		velBufferCount = num_points_irf-1;
 	}
 }
-
 
 // Actualiza valores del BCP
 void Body::UpdateBcps(void)
@@ -464,7 +457,6 @@ void Body::UpdateBcps(void)
 	}
 }
 
-
 // Resetea fuerzas BCPs
 void Body::ResetBcps(void)
 {
@@ -478,7 +470,7 @@ void Body::ResetBcps(void)
 	bcpForces = arma::zeros(6,1);
 }
 
-
+// 
 void Body::OpenOutputFilesASCII (std::string path)
 {
 	char buffer1[50], buffer2[50], buffer3[50], buffer4[50], buffer5[50], buffer6[50], buffer7[50], buffer8[50], buffer9[50], buffer10[50];
@@ -577,7 +569,7 @@ void Body::OpenOutputFilesASCII (std::string path)
 	}
 }
 
-
+// 
 void Body::CloseOutputFilesASCII (void)
 {
 	fclose(pfile_DOF_1);
@@ -591,7 +583,6 @@ void Body::CloseOutputFilesASCII (void)
 	fclose(pfile_BCPF);
 	fclose(pfile_WEF);
 }
-
 
 // Escibir datos a fichero
 void Body::WriteOut(double t)
