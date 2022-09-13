@@ -93,6 +93,7 @@ public:
 	FILE* pfile_WRF;
 	FILE* pfile_BCPF;
 	FILE* pfile_WEF;
+	FILE* pfile_WindTurb;
 
 	// Methods definition
 	Body(void){};

@@ -128,6 +128,9 @@ void WindTurbine::Initialize(void){
             turbInerMat(ii,jj) = FSTW_InitInput.turbInerMat[ii][jj];
         }
     }
+    bodyInerMat.save( JoinPath(OutputPath,"bodyInerMat.dat"),arma::raw_ascii);
+    towrInerMat.save( JoinPath(OutputPath,"towrInerMat.dat"),arma::raw_ascii);
+    turbInerMat.save( JoinPath(OutputPath,"turbInerMat.dat"),arma::raw_ascii);
 
     rotSpeed = FSTW_InitInput.turbIniRotSpeed; 
     yaw = FSTW_InitInput.turbIniYaw; yaw_ini = yaw;

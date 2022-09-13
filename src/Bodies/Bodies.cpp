@@ -85,6 +85,7 @@ void Body::ComputeBcpForces(void)
 	}
 }
 
+
 void Body::ComputeWindTurbForces(void){
 
 	windTurbForces = arma::zeros(6,1);
@@ -150,7 +151,6 @@ void Body::LoadHydrodynamicDatabase(Body** hydroDatabaseBodies)
 	
 	std::cout << "----> Hydrodynamic Properties Read" << std::endl;
 }
-
 
 // Leer datos de los cuerpos
 void Body::ReadPropertiesASCII(FILE* pFile)
@@ -226,6 +226,8 @@ void Body::ReadPropertiesASCII(FILE* pFile)
 	}
 	fsetpos(pFile, &carriage_init);
 
+	
+    this->pBodyWindTurbs = new WindTurbine* [this->numWindTurbs];
 	this->pIndexWindTurbs = new int[this->numWindTurbs];
 	fgetpos(pFile, &carriage_init);
 	fgets(buffer_line, sizeof(buffer_line), pFile);
@@ -384,6 +386,7 @@ void Body::ReadPropertiesASCII(FILE* pFile)
 	}
 }
 
+
 void Body::ReadLockBodyMovements(void){
 
 	// Declare variables
@@ -519,7 +522,8 @@ void Body::ReadLockBodyMovements(void){
 
 		if (timeFixed(nt-1,0)<pSim->simulationTime) {
 			std::stringstream ss;
-			ss << "Body: " << this->GetId() <<" - Movement time series is not long enough for simulation time" << ".\n";
+			ss << "Body: " << this->GetId() <<" - Movement time series is not long enough for simulation time" << ".\n" 
+			<< "pSim->simulationTime = " << pSim->simulationTime << " s;  timeFixed(nt-1,0) = " << timeFixed(nt-1,0) << " s; nt = " << nt << ".\n";
 			throw ValueError(ss.str());
 		}
 	}
@@ -644,6 +648,7 @@ void Body::ResetBcps(void)
 	bcpForces = arma::zeros(6,1);
 }
 
+
 void Body::UpdateLockBody(double time){
 	if (flag_blocked==1){
 		pos = pos_ini;
@@ -671,7 +676,8 @@ void Body::UpdateLockBody(double time){
 
 void Body::OpenOutputFilesASCII (std::string path)
 {
-	char buffer1[50], buffer2[50], buffer3[50], buffer4[50], buffer5[50], buffer6[50], buffer7[50], buffer8[50], buffer9[50], buffer10[50];
+	char buffer1[50], buffer2[50], buffer3[50], buffer4[50], buffer5[50], buffer6[50];
+	char buffer7[50], buffer8[50], buffer9[50], buffer10[50], buffer11[50];
 
 	int nn1 = sprintf(buffer1,"DOF_1_Body_%d.txt", GetId());
 	int nn2 = sprintf(buffer2,"DOF_2_Body_%d.txt", GetId());
@@ -683,6 +689,7 @@ void Body::OpenOutputFilesASCII (std::string path)
 	int nn8 = sprintf(buffer8,"WaveRadiationForce_Body_%d.txt", GetId());
 	int nn9 = sprintf(buffer9,"BCPForce_Body_%d.txt", GetId());
 	int nn10 = sprintf(buffer10,"WaveExcitationForce_Body_%d.txt", GetId());
+	int nn11 = sprintf(buffer11,"WindTurbineForce_Body_%d.txt", GetId());
 
 	std::string file_path1 = JoinPath(path, buffer1);
 	std::string file_path2 = JoinPath(path, buffer2);
@@ -694,6 +701,7 @@ void Body::OpenOutputFilesASCII (std::string path)
 	std::string file_path8 = JoinPath(path, buffer8);
 	std::string file_path9 = JoinPath(path, buffer9);
 	std::string file_path10 = JoinPath(path, buffer10);
+	std::string file_path11 = JoinPath(path, buffer11);
 
 	pfile_DOF_1 = fopen (file_path1.c_str(),"w");
 	if (pfile_DOF_1 == NULL)
@@ -765,6 +773,13 @@ void Body::OpenOutputFilesASCII (std::string path)
         ss << "Not possible to open the file: "<< nn10 <<"\n    ->Dir: " << path << std::endl;
         throw IOError(ss.str());
 	}
+	pfile_WindTurb = fopen (file_path11.c_str(),"w");
+	if (pfile_WindTurb == NULL)
+	{
+        std::stringstream ss;
+        ss << "Not possible to open the file: "<< nn11 <<"\n    ->Dir: " << path << std::endl;
+        throw IOError(ss.str());
+	}
 }
 
 
@@ -780,6 +795,7 @@ void Body::CloseOutputFilesASCII (void)
 	fclose(pfile_WRF);
 	fclose(pfile_BCPF);
 	fclose(pfile_WEF);
+	fclose(pfile_WindTurb);
 }
 
 
@@ -819,4 +835,18 @@ void Body::WriteOut(double t)
 		fprintf(pfile_BCPF, "%f    ", bcpForces(jj, 0));
 	}
 	fprintf(pfile_BCPF, "\n");
+
+	fprintf(pfile_WindTurb, "%f    ", t);
+	for(int ii=0;ii<numWindTurbs;ii=ii+1)
+	{
+		for(int jj=0;jj<6;jj=jj+1)
+		{
+			fprintf(pfile_WindTurb, "%f    ", pBodyWindTurbs[ii]->forceBodyCOG(jj, 0));
+		}
+	}
+	for(int jj=0;jj<6;jj=jj+1)
+	{
+		fprintf(pfile_WindTurb, "%f    ", windTurbForces(jj, 0));
+	}
+	fprintf(pfile_WindTurb, "\n");
 }
