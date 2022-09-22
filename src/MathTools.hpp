@@ -21,7 +21,7 @@ arma::umat comb_n_k(int n,int k);
 double step(double x, double x0, double h0, double x1, double h1);
 
 std::tuple<arma::mat,arma::uvec> unique_rows(arma::mat& x);
-std::tuple<arma::uvec,arma::uvec> unique(arma::uvec& v);
+arma::uvec unique(arma::uvec& v);
 arma::mat sort_rows(arma::mat x, int icol);
 arma::umat indMat(arma::uvec ind, arma::umat x);
 

@@ -31,6 +31,8 @@ BodyMesh::BodyMesh(int incId, std::string incMeshFileName, Body* incpBody)
     id = incId;
     meshFileName = incMeshFileName;
     pBody = incpBody;
+
+    pSim = pBody->pSim;
 }
 
 
@@ -74,8 +76,6 @@ void BodyMesh::ReadPropertiesASCII(void)
 
     // Rearrange elems index
     iniElems = indMat(ind, tmp_elems);
-
-    pSim = pBody->pSim;
 }
 
 
@@ -102,7 +102,7 @@ void BodyMesh::CutMesh(double time)
     double LAMBDA = 0.4; // RATIO FOR SOME GAUSSIAN NODES
     double TOL = 1.e-6; // TOLERANCE FOR NUMERIC BOUND
 
-    // Dummy variables
+    // Temporary variables
     arma::mat transNodes = nodes, transNormals = normals;
 
     // Sorting elements
@@ -121,12 +121,15 @@ void BodyMesh::CutMesh(double time)
     arma::uvec ind3 = arma::find(status == 3); int numElem3 = ind3.n_rows;
 
     // Completely submerged elements and their nodes
+    arma::uvec nodesUW, indMap;
     arma::umat auxNodes = iniElems.rows(ind3);
-    arma::uvec nodesUW; arma::uvec indNodesUW;
-    arma::uvec tmpNodesUW = arma::vectorise(auxNodes.t());
-    std::tie(nodesUW, indNodesUW) = unique(tmpNodesUW);
+    if (pBody->flag_hidrostatics == 1) {
+        nodesUW = arma::find(transNodes.col(2) <= 0);
+    } else if (pBody->flag_hidrostatics == 2) {
+        nodesUW = unique(arma::vectorise(auxNodes.t()));
+    }
     int numNodesUW = nodesUW.n_rows;
-    arma::uvec indMap = arma::zeros<arma::uvec>(iniNumNodes);
+    indMap = arma::zeros<arma::uvec>(iniNumNodes);
     indMap.rows(nodesUW) = arma::linspace<arma::uvec>(0, numNodesUW-1, numNodesUW);
     
     // Including elements with 3 vertices submerged
@@ -139,13 +142,15 @@ void BodyMesh::CutMesh(double time)
 
     // Loop variables initialization
     arma::rowvec p_1, p_2, p_3, p_4, p_12, p_23, p_31, p_34, p_41, p_123, p_134, p_1234;
+    arma::rowvec v_1, v_2, v_3, v_4, w_1, w_2, tmpNormal;
     arma::rowvec pi_1, pi_2, pi_3, v_p, v_pi;
-    arma::rowvec v_1, v_2, v_3, v_4, w_1, w_2, q_2, q_3, q_4, tmpNormal;
+    arma::rowvec q_2, q_3, q_4;
     arma::urowvec auxVec, auxVec1, auxVec2, tmpElems;
     arma::uvec sortInd, icol;
     arma::vec jac, incEta;
     arma::mat incNodes, outNodes;
     double mu_1, mu_2, jac1, jac2, lambda;
+    q_2 = q_3 = q_4 = arma::zeros<arma::rowvec>(3);
     
     // Including elements with 2 vertices submerged
     for (int ielem : ind2) {
@@ -162,13 +167,12 @@ void BodyMesh::CutMesh(double time)
             incEta = eta.rows(tmpElems(sortInd));
         }
 
-        // ----------------------- Cutting element: cutTriangMeshGQ2_v2 -----------------------
+        // --------------------- Cutting element with two vertices underewater ---------------------
 
         // Initial vertex nodes
         p_1 = incNodes.row(0);
         p_2 = incNodes.row(1);
         p_3 = incNodes.row(2);
-        q_3 = q_4 = arma::zeros<arma::rowvec>(3);
         
         // Triangle cut
         if (pBody->flag_hidrostatics == 1) {
@@ -233,7 +237,7 @@ void BodyMesh::CutMesh(double time)
         jac2 = arma::norm(arma::cross(v_3,v_4))/4;
         jac = {jac1, jac2};
 
-        // ----------------------- Cutting element: cutTriangMeshGQ2_v2 -----------------------
+        // --------------------- Cutting element with two vertices underewater ---------------------
 
         // Extracting the normal of the original element
         tmpNormal = transNormals.row(ielem);
@@ -264,7 +268,7 @@ void BodyMesh::CutMesh(double time)
             incEta = eta.rows(tmpElems(sortInd));
         }
 
-        // ----------------------- Cutting element: cutTriangMeshGQ2_v1 -----------------------
+        // --------------------- Cutting element with one vertex underewater ---------------------
         
         // Initial vertex nodes
         p_1 = incNodes.row(0);
@@ -325,7 +329,7 @@ void BodyMesh::CutMesh(double time)
         // Jacobian computation
         jac = {arma::norm(arma::cross(v_1,v_2))/4};
         
-        // ----------------------- Cutting element: cutTriangMeshGQ2_v1 -----------------------
+        // --------------------- Cutting element with one vertex underewater ---------------------
 
         // Extracting the normal of the original element
         tmpNormal = transNormals.row(ielem);
@@ -353,10 +357,8 @@ void BodyMesh::IntegrateMesh(void)
 
     // Ensambling the integration vectors with the weights, jacs and normals
     for (int ielem=0; ielem < numElems; ielem++) {
-
         tmpInd = elems.row(ielem).t();
         weightsJacNormal.rows(tmpInd) += weightsVector * jacobians(ielem) * normals.row(ielem);
-
     }
 
 }
@@ -448,5 +450,8 @@ void BodyTri2DMesh::Preprocess(void)
 
     // Maximum edges length
     maxEdgesLength = arma::max(edges_length);
+    if (pBody->flag_hidrostatics == 2 && pSim->pWave->lambda_peak < 8*maxEdgesLength) {
+            std::cout << "    WARNING: The mesh is too coarse for the selected waves." << std::endl;
+    }
 
 }

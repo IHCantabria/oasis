@@ -525,45 +525,14 @@ std::tuple<arma::mat,arma::uvec> unique_rows(arma::mat& x) {
 	return std::make_tuple(result.rows(0, count-1),ind);
 }
 
-std::tuple<arma::uvec,arma::uvec> unique(arma::uvec& v) {
+arma::uvec unique(arma::uvec& v) {
 
-	// vec_out = unique(vec_in)
-	// vec_in = vec_out(ind)
-	// modified from:
-	//     https://stackoverflow.com/questions/37143283/finding-unique-rows-in-armamat
+	arma::uvec s, sort_ind, ind, aux = {0};
+	sort_ind = arma::sort_index(v);
+	s = v(sort_ind) + arma::ones<arma::uvec>(size(v(sort_ind)));
+	ind = arma::find(arma::diff(arma::join_vert(aux,s)));
 
-    unsigned int count = 1, i = 1, j = 1, nr = v.n_rows;
-    arma::uvec result(nr);
-	arma::uvec ind = arma::zeros<arma::uvec>(nr);
-    result(0) = v(0);
-	ind.row(0) = 0;
-
-    for ( ; i < nr; i++) {
-		bool empty = (arma::as_scalar(ind(i)) == 0);
-		bool flag = true;
-		bool matched = false;
-
-        if (!empty || (v(i) == result(0))) continue;
-
-		for (j = i + 1; j < nr; j++) {
-			if (v(i) == v(j)) {
-				if (flag) {
-					result(count) = v(i);
-					ind(i) = count++;
-					matched = true;
-					flag = false;
-				}
-				ind(j) = ind(i);
-			}
-		}
-
-		if (!matched) {
-			result(count) = v(i);
-			ind(i) = count++;
-		}
-    }
-
-	return std::make_tuple(result.subvec(0, count-1),ind);
+	return v(arma::sort(sort_ind(ind)));
 }
 
 arma::mat sort_rows(arma::mat x, int icol) {

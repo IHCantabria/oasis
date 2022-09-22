@@ -69,6 +69,7 @@ void Wave::GetWaveLengths(void)
     kx_1D = k*cos(heading);
     ky_1D = k*sin(heading);
     headings = wrapToPi(headings);
+	lambda_peak = solve_lambda(period);
 }
 
 double Wave::solve_lambda(double T)

@@ -383,8 +383,8 @@ void Simulation::LoadCase()
     this->ReadProperties();
 
     // Read Components Data
-    this->ReadBodies();
     this->ReadWaves();
+    this->ReadBodies();
     this->ReadLines();
     this->ReadBcps();
     if (useWinches)

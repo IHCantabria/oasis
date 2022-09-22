@@ -41,6 +41,7 @@ public:
 
     double gravity;
     double waterDepth;
+    double lambda_peak;
     arma::mat lambdas;
     arma::mat k;
     arma::mat kx;

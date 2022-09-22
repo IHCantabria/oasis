@@ -110,13 +110,6 @@ arma::mat HydroDatabase::CalculateHydrostaticForces(double time)
 
 		// Transform the moments into the local frame
 		hydrostatic_force.rows(3,5) = pBodies[idBody]->rotMat.t()*hydrostatic_force.rows(3,5);
-
-		// std::cout << "--> hydrostatic_force = \n" << hydrostatic_force.t() << std::endl;
-		// std::cout << "--> pBodies[idBody]->pos = \n" << pBodies[idBody]->pos.t() << std::endl;
-
-		// std::stringstream ss;
-		// ss << "STOP TO DEBUG.\n";
-		// throw NotImplementedError(ss.str());
 	}
 
 	pBodies[idBody]->hydrostaticForces = hydrostatic_force;
