@@ -135,7 +135,7 @@ void Morison::ReadMorisonData(void)
 
 		// Read WIND Froude–Krylov matrix for symmetry axis heading (X)
 		dataMorCoeff >> Dummy; dataMorCoeff.ignore(std::numeric_limits<int>::max(), '\n');
-		for(ii=0;ii<6;ii=ii+1){
+		for(int ii=0;ii<6;ii++){
 			dataMorCoeff >> windFKCoef_X(ii,0); dataMorCoeff >> windFKCoef_X(ii,1);  dataMorCoeff.ignore(std::numeric_limits<int>::max(), '\n');
 		}
 		// Read WIND Drag matrix for symmetry axis heading (X)
@@ -220,7 +220,6 @@ void Morison::ReadMorisonData(void)
 				pCurrFKCoeff[ii] = new arma::cube; *pCurrFKCoeff[ii] = CurrFKCoeff;
 				pCurrDragCoeff[ii] = new arma::cube; *pCurrDragCoeff[ii] = CurrDragCoeff;
 			}
-
 		}
 
     }
@@ -233,11 +232,13 @@ void Morison::ReadMorisonData(void)
 
 	if(arma::accu(arma::abs(wind_spd))>0)
 	{
+		std::cout << "    --> Morison forces for wind are activated." << std::endl;
 		flag_wind = true;
 	}
 
 	if(arma::accu(arma::abs(curr_spd))>0)
 	{
+		std::cout << "    --> Morison forces for currents are activated." << std::endl;
 		flag_curr = true;
 	}
 
@@ -324,7 +325,7 @@ arma::mat Morison::ComputeCurrForce(int idBody, double yaw, double t)
 	vel(0,0) = cspd*cos(pi*cdir/180);
 	vel(1,0) = cspd*sin(pi*cdir/180); 
 
-	arma::mat h = arma::zeros(1,1) + yaw + cdir; // REVISAR SIGNOS
+	arma::mat h = arma::zeros(1,1) + yaw*0 + cdir; // REVISAR SIGNOS
 
 	arma::cube temp_B = interp1(headings,*(pCurrDragCoeff[idBody]),h);
 	arma::mat B = temp_B(arma::span(0),arma::span::all,arma::span::all);

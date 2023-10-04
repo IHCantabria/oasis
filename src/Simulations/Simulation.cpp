@@ -172,6 +172,10 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     {    
 		Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  pBodiesFree[ii]->Fb + pBodiesFree[ii]->pHydro->CalculateHydrostaticForces();
     }
+    if (Fb.has_nan() | Fb.has_inf()){
+		std::cout << std::endl << "ERROR: NaN or Inf detected in Fb for hydrostatic or hydrodynamic forces" << std::endl;
+		throw std::exception();
+	}
 
 	// Compute forces on BCPs
 	// std::cout << "Simulation::CalculateSystemDynamics - Compute forces on BCPs" << std::endl;
@@ -180,6 +184,10 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 		pBodiesFree[ii]->ComputeBcpForces();
 		Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  Fb(arma::span(6*ii,6*(ii+1)-1), 0) + pBodiesFree[ii]->bcpForces;
 	}
+    if (Fb.has_nan() | Fb.has_inf()){
+		std::cout << std::endl << "ERROR: NaN or Inf detected in Fb for BCP forces" << std::endl;
+		throw std::exception();
+	}
 
     // Add wind turbine forces
 	// std::cout << "Simulation::CalculateSystemDynamics - Add wind turbine forces" << std::endl;
@@ -187,6 +195,10 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     {
         pBodiesFree[ii]->ComputeWindTurbForces();
 		Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  Fb(arma::span(6*ii,6*(ii+1)-1), 0) + pBodiesFree[ii]->windTurbForces;
+	}
+    if (Fb.has_nan() | Fb.has_inf()){
+		std::cout << std::endl << "ERROR: NaN or Inf detected in Fb for wind turbine forces" << std::endl;
+		throw std::exception();
 	}
 
     // Compute also everything for locked bodies so it can be displayed on the output files
@@ -270,6 +282,10 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
             }
         }
     }
+    if (accB.has_nan() | accB.has_inf()){
+		std::cout << std::endl << "ERROR: NaN or Inf detected in bodies accelerations" << std::endl;
+		throw std::exception();
+	}
     for (int ii=0; ii<numBodiesFree; ii++)
     {
         pBodiesFree[ii]->acc = accB(arma::span(6*ii,6*(ii+1)-1), 0)%pBodiesFree[ii]->isDofActive;
@@ -306,6 +322,10 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     arma::mat LinesCouplingVector = arma::zeros(numAllLinesNodes,3);
     for(int ii=0; ii<numLines; ii++)
     {
+        if (pLines[ii]->F.has_nan() | pLines[ii]->F.has_inf()){
+            std::cout << std::endl << "ERROR: NaN or Inf detected in Force vector for Line " << ii << std::endl;
+            throw std::exception();
+        }
         LinesCouplingVector.rows(pLines[ii]->ind4CouplingMat) += pLines[ii]->F;
     }
     for(int ii=0; ii<numBcps; ii++){
@@ -313,6 +333,10 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
             LinesCouplingVector.row(pBcps[ii]->couplingMatIndex) += pBcps[ii]->JointForce;
         }
     }
+    if (LinesCouplingVector.has_nan() | LinesCouplingVector.has_inf()){
+		std::cout << std::endl << "ERROR: NaN or Inf detected in lines force vector" << std::endl;
+		throw std::exception();
+	}
 
     // std::cout << "Simulation::CalculateSystemDynamics - Solve lines accelerations" << std::endl;
     arma::mat LinesAccelerations;
@@ -326,6 +350,10 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
             LinesAccelerations = (*pLinesCouplingMatrixInv) * LinesCouplingVector;
         }
     }
+    if (LinesAccelerations.has_nan() | LinesAccelerations.has_inf()){
+		std::cout << std::endl << "ERROR: NaN or Inf detected in lines accelerations" << std::endl;
+		throw std::exception();
+	}
     for(int ii=0; ii<numLines; ii++)
     {
         pLines[ii]->acc = LinesAccelerations.rows(pLines[ii]->ind4CouplingMat);
@@ -1600,6 +1628,7 @@ void Simulation::Run()
             {
                 wallTimeFAST += fastTimeStep;
                 for(int ii=0; ii<numWindTurbines; ii=ii+1){
+                    // std::cout<< "Computing forces for turbine " << ii << std::endl;
                     pWindTurbines[ii]->SetInputsFAST();
                     pWindTurbines[ii]->ComputeForces(wallTimeFAST);
                     pWindTurbines[ii]->WriteOut(wallTimeFAST);
@@ -1609,6 +1638,7 @@ void Simulation::Run()
             {
                 wallTimeControllerFAST += fastControllerTimeStep;
                 for(int ii=0; ii<numWindTurbines; ii=ii+1){
+                    // std::cout<< "Calling controller for turbine " << ii << std::endl;
                     pWindTurbines[ii]->SetInputsFAST();
                     pWindTurbines[ii]->ComputeControler(wallTimeControllerFAST);
                 }

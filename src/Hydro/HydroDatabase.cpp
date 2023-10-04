@@ -91,6 +91,8 @@ void HydroDatabase::ComputeIRF(std::string HDBname)
 	arma::mat max_position;
 	arma::mat zero_cross;
 	arma::mat dampingFreq;
+	arma::mat frequencies_trapz;
+	arma::mat dampingFreq_trapz;
 	
 	// Check input arguments
 	if ((*pFrequencies)(1)<(*pFrequencies)(0))
@@ -99,8 +101,6 @@ void HydroDatabase::ComputeIRF(std::string HDBname)
 	}
 	
 	// Calculate maximum time allowed
-	double df = (*pFrequencies)(1)-(*pFrequencies)(0);
-	double tmax = 1/df/2.0;
 	IRFTime = arange(0, IRFTotalTime, pSim->hydroTimeStep);
 	
 	// Allocate IRF matrix
@@ -108,11 +108,13 @@ void HydroDatabase::ComputeIRF(std::string HDBname)
 	pIRF = new arma::cube* [numBodies];
 	pIRFPoints = new arma::mat* [numBodies];
 	
-	std::cout << "    IRF Time: " << tmax << std::endl;
 	std::cout << "    IRF Time Points: " << numPointsIRF << std::endl;
-	std::cout << "    Frequency(0): " << (*pFrequencies)(0) << std::endl;
-	std::cout << "    Frequency(1): " << (*pFrequencies)(1) << std::endl;
-	std::cout << "    Frequency diff: " << df << std::endl;
+	// std::cout << "    Frequency(0): " << (*pFrequencies)(0) << std::endl;
+	// std::cout << "    Frequency(1): " << (*pFrequencies)(1) << std::endl;
+
+	double df = 1.0/(2.0*IRFTotalTime);
+
+	frequencies_trapz = arma::regspace( std::max((*pFrequencies).min(),df), df, std::min(1.0/(2.0*pSim->hydroTimeStep),(*pFrequencies).max())).t();
 
 	// Loop to find the IRF value for each body influence and DOF
 	std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
@@ -132,29 +134,27 @@ void HydroDatabase::ComputeIRF(std::string HDBname)
 				zero_cross = arma::zeros(1, IRFTime.n_cols);
 				
 				// Start new Dof data
-				
 				dampingFreq = (*pDampingRadiation[ib]).subcube(i,j,0,i,j,numFrequencies-1);
-				dummy_mat = dampingFreq%cos(2*arma::datum::pi*(*pFrequencies)*IRFTime(0, 0));
+				arma::interp1(*pFrequencies,dampingFreq,frequencies_trapz,dampingFreq_trapz);
+				dummy_mat = dampingFreq_trapz%cos(2*arma::datum::pi*frequencies_trapz*IRFTime(0, 0));
+				(*pIRF[ib])(0, i, j) = 2*trapzi(2*arma::datum::pi*frequencies_trapz,dummy_mat)/arma::datum::pi;
 				(*pIRFPoints[ib])(i, j) = IRFTime.n_cols - 1;
-				(*pIRF[ib])(0, i, j) = 2*trapz(dummy_mat, 2*arma::datum::pi*df)/arma::datum::pi;
 				for (int k=1; k<IRFTime.n_cols; k++)
 				{
 					// Calculate new value of IRF
-					dummy_mat = dampingFreq%cos(2*arma::datum::pi*(*pFrequencies)*IRFTime(0, k));
-					(*pIRF[ib])(k, i, j) = 2*trapz(dummy_mat, 2*arma::datum::pi*df)/arma::datum::pi;
-					
+					dummy_mat = dampingFreq_trapz%cos(2*arma::datum::pi*frequencies_trapz*IRFTime(0, k));
+					(*pIRF[ib])(k, i, j) = 2*trapzi(2*arma::datum::pi*frequencies_trapz,dummy_mat)/arma::datum::pi;
 				}
 			}
 		}
 	}
 
-	std::cout << "    Maximum retardation time: " << tmax << std::endl;
 	std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
 	int elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 	std::cout << "    Time elapsed ComputeIRF: " << elapsed << std::endl;
 
 	char buffer[50];
-	for (int ib=0; ib<numBodies; ib++) {
+	for (int ib=0; ib<pSim->numBodies; ib++) {
 		// sprintf(buffer,"IRF_Body_%d_fromBody_%d.dat", pBodies[idBody]->GetId(), pBodies[ib]->GetId());
 		std::string filename = JoinPath(pSim->outputFolderPath, HDBname);
 		filename = filename + "_IRF_Body_" + std::to_string(pBodies[idBody]->GetId()) + 

@@ -175,7 +175,7 @@ void WindTurbine::ComputeForces(double time){
 
     airTrq = FSTW_Output.aero_torque[0];
 
-    this->pBody->windTurbForces += forceBodyCOG;
+    // this->pBody->windTurbForces += forceBodyCOG;
 }
 
 void WindTurbine::SetInputsFAST(void){
@@ -226,6 +226,8 @@ void WindTurbine::ComputeRotorAcc(void){
     // std::cout << "    WindTurbine::ComputeRotorAcc" << std::endl;
 
     rotAcc = (airTrq-genTrq)/rotIner;
+    // std::cout << "WindTurbine::ComputeRotorAcc - airTrq = " << airTrq << std::endl;
+    // std::cout << "WindTurbine::ComputeRotorAcc - genTrq = " << genTrq << std::endl;
 
 }
 
