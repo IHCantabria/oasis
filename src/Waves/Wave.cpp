@@ -45,13 +45,23 @@ void Wave::CheckBreakingWave(void)
 
 void Wave::GetWaveLengths(void)
 {
+	std::cout << "--> Computing wave lengths." << std::endl;
 	lambdas = arma::zeros(size(periods)); double T;
+	k = lambdas;
 	for(int ii=0; ii<num_comps; ii++)
 	{
 		T = arma::as_scalar(periods(ii,0));
-		lambdas(ii,0) = solve_lambda(T);
+		if (T == 0){
+			lambdas(ii,0) = 0.0;
+			k(ii,0) = 0.0;
+		} else if (isinf(T)) {
+			lambdas(ii,0) = 0.0;
+			k(ii,0) = 0.0;
+		} else {
+			lambdas(ii,0) = solve_lambda(T);
+			k(ii,0) = 2.0*pi/lambdas(ii,0);
+		}
 	}
-	k = 2.0*pi/lambdas;
 	arma::mat cos_theta = arma::cos(headings.t());
 	arma::mat sin_theta = arma::sin(headings.t());
 	kx = k*cos_theta; ky = k*sin_theta;
@@ -76,7 +86,7 @@ double Wave::solve_lambda(double T)
 	if (abs(f)>atol)
 	{
 		std::stringstream ss;
-	    ss << "Convergence failed for computing wave length. \n";
+	    ss << "Convergence failed for computing wave length for period T = " << T << " s. \n";
 	    throw ValueError(ss.str());
 	}
 	return lambda;
