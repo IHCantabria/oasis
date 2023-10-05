@@ -54,7 +54,7 @@ void Wave::GetWaveLengths(void)
 		if (T == 0){
 			lambdas(ii,0) = 0.0;
 			k(ii,0) = 0.0;
-		} else if (isinf(T)) {
+		} else if (std::isinf(T)) {
 			lambdas(ii,0) = 0.0;
 			k(ii,0) = 0.0;
 		} else {
