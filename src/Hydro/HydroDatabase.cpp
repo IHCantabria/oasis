@@ -101,8 +101,6 @@ void HydroDatabase::ComputeIRF(std::string HDBname)
 	}
 	
 	// Calculate maximum time allowed
-	double df = (*pFrequencies)(1)-(*pFrequencies)(0);
-	double tmax = 1/df/2.0;
 	IRFTime = arange(0, IRFTotalTime, pSim->hydroTimeStep);
 	
 	// Allocate IRF matrix
@@ -110,13 +108,13 @@ void HydroDatabase::ComputeIRF(std::string HDBname)
 	pIRF = new arma::cube* [numBodies];
 	pIRFPoints = new arma::mat* [numBodies];
 	
-	std::cout << "    IRF Time: " << tmax << std::endl;
 	std::cout << "    IRF Time Points: " << numPointsIRF << std::endl;
 	// std::cout << "    Frequency(0): " << (*pFrequencies)(0) << std::endl;
 	// std::cout << "    Frequency(1): " << (*pFrequencies)(1) << std::endl;
-	// std::cout << "    Frequency diff: " << df << std::endl;
 
-	frequencies_trapz = arma::regspace( std::max((*pFrequencies).min(),0.01), 0.01, std::min(1.0/(2.0*pSim->hydroTimeStep),(*pFrequencies).max())).t();
+	double df = 1.0/(2.0*IRFTotalTime);
+
+	frequencies_trapz = arma::regspace( std::max((*pFrequencies).min(),df), df, std::min(1.0/(2.0*pSim->hydroTimeStep),(*pFrequencies).max())).t();
 
 	// Loop to find the IRF value for each body influence and DOF
 	std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
@@ -151,7 +149,6 @@ void HydroDatabase::ComputeIRF(std::string HDBname)
 		}
 	}
 
-	std::cout << "    Maximum retardation time: " << tmax << std::endl;
 	std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
 	int elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 	std::cout << "    Time elapsed ComputeIRF: " << elapsed << std::endl;

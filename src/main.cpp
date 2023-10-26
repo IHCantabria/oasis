@@ -72,7 +72,7 @@ int main (int argc, char* argv[])
 		mySim->LoadCase();
 		mySim->Initialize();
 		mySim->Run();
-		printf("Water Depth: %f\n", mySim->waterDepth);
+		mySim->CloseCase();
 	}
 	catch(Exception& error)
 	{

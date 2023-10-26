@@ -11,6 +11,7 @@
 #include "../Spring/Spring.hpp"
 #include "../Waves/Wave.hpp"
 #include "../Sinking/Sinking.hpp"
+#include "../WindTurbine/WindTurbine.hpp"
 
 class BDF;
 
@@ -35,6 +36,8 @@ public:
     double writeTimeStep;
     double maxTimeStep;
     double hydroTimeStep;
+    double fastTimeStep;
+    double fastControllerTimeStep;
     double timeIRF;
     double sinkingTimeStep;
     double controllerTimeStep;
@@ -42,6 +45,7 @@ public:
     int numSystem2;
     double simulationTime;
     bool readEquilibrium;
+    bool rotSimpFlag;
     double timeIntAbsTol;
     int timeIntMethod;
     double timeIntRelTol;
@@ -59,6 +63,10 @@ public:
     // Declare system properties
     arma::mat* pSystemMatrix;
     arma::mat* pSystemMatrixInv;
+    arma::mat* pSystemMatrixFF;
+    arma::mat* pSystemMatrixFFInv;
+    arma::mat* pSystemMatrixFL;
+    arma::uvec sysMatIndFree, sysMatIndLock;
 
     int numAllLinesNodes = 0;
     arma::sp_mat* pLinesCouplingMatrix_sp;
@@ -69,6 +77,8 @@ public:
     AnchorBCP** pAnchorBcps;
     BCP** pBcps;
     Body** pBodies;
+    Body** pBodiesFree;
+    Body** pBodiesLock;
     BodyBCP** pBodyBcps;
     FairleadBCP** pFairleadBcps;
     JointBCP** pJointBcps;
@@ -78,9 +88,12 @@ public:
     WinchieController WinchesController;
     Wave* pWave;
     Sinking** pSinking;
+    WindTurbine** pWindTurbines;
     int numAnchorBcps=0;
     int numBcps=0;
     int numBodies=0;
+    int numBodiesFree=0;
+    int numBodiesLock=0;
     int numBodyBcps=0;
     int numDofTotal=0;
     int numFairBcps=0;
@@ -89,6 +102,7 @@ public:
     int numSprings=0;
     int numWinches=0;
     int numSinking=0;
+    int numWindTurbines=0;
 
     // Declare constructors
     Simulation(std::string projectPath, std::string incDataFormat);
@@ -101,8 +115,10 @@ public:
     void (Simulation::*pReadSprings)(void);
     void (Simulation::*pReadProperties)(void);
     void (Simulation::*pReadWaves)(void);
+    void (Simulation::*pReadWind)(void);
     void (Simulation::*pReadWinches)(void);
     void (Simulation::*pReadSinking)(void);
+    void (Simulation::*pReadWindTurbines)(void);
     void PrintSetup(void);
     void ReadBcps(void);
     void ReadBcpsASCII(void);
@@ -128,6 +144,9 @@ public:
     void ReadWaves(void);
     void ReadWavesASCII(void);
     void ReadWavesHDF5(void);
+    void ReadWindTurbines(void);
+    void ReadWindTurbinesASCII(void);
+    void ReadWindTurbinesHDF5(void);
 
     // Declare general purpose class methods
     arma::mat CalculateSystemDynamics(double time, arma::mat y);

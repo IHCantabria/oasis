@@ -27,6 +27,8 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/version.cpp.in
                ${CMAKE_CURRENT_BINARY_DIR}/version.cpp)
 set(version_file "${CMAKE_CURRENT_BINARY_DIR}/version.cpp")
 
+# find_package(MPI REQUIRED)
+
 # Add target link libraries
 set(EXTERNAL_LIBS_INCLUDE_PATH "$<BUILD_INTERFACE:$ENV{EBROOTArmadillo}/include>"
 "$<BUILD_INTERFACE:$ENV{EBROOTOPENBLAS}/include>" "$<BUILD_INTERFACE:$ENV{EBROOTOpenFAST}/install/include>")
@@ -40,6 +42,7 @@ set(OASIS_SOURCE_FILES
     "src/BCPs/BCPs.cpp"
     "src/BCPs/Winchies.cpp"
     "src/BCPs/WinchiesController.cpp"
+    "src/WindTurbine/WindTurbine.cpp"
     "src/Bodies/Bodies.cpp"
     "src/Exceptions/Exception.cpp"
     "src/Waves/Wave.cpp"
@@ -64,6 +67,7 @@ set(OASIS_HEADER_FILES
     "src/BCPs/BCPs.hpp"
     "src/BCPs/Winchies.hpp"
     "src/BCPs/WinchiesController.hpp"
+    "src/WindTurbine/WindTurbine.hpp"
     "src/Bodies/Bodies.hpp"
     "src/Exceptions/Exception.hpp"
     "src/Hydro/Morison.hpp"
@@ -86,5 +90,33 @@ ADD_EXECUTABLE(${PROJECT_NAME} ${OASIS_FILES} ${version_file})
 # Target to the include directories
 TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${EXTERNAL_LIBS_INCLUDE_PATH})
 # Target to the link libraries
-TARGET_LINK_LIBRARIES(${PROJECT_NAME} -lgfortran -lquadmath -lpthread -lstdc++fs -lhdf5 -lsuperlu -lopenblas -lopenfastcpplib)
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} 
+  -lgfortran
+  -lquadmath
+  -lpthread
+  -lstdc++fs
+  -lhdf5
+  -lsuperlu
+  -lopenblas
+  -laerodynlib
+  -lifwlib
+  -lservodynlib
+  -lnwtclibs
+  -lfasturbwrapper)
 
+set_target_properties(${PROJECT_NAME} PROPERTIES
+  COMPILE_FLAGS -I/sNow/easybuild/centos/7.3.1611/SandyBridge/software/OpenMPI/4.0.5-GCC-10.2.0/include)
+
+set_target_properties(${PROJECT_NAME} PROPERTIES
+  LINK_FLAGS -L/sNow/easybuild/centos/7.3.1611/SandyBridge/software/hwloc/2.2.0-GCCcore-10.2.0/lib 
+  -L/sNow/easybuild/centos/7.3.1611/SandyBridge/software/libevent/2.1.12-GCCcore-10.2.0/lib64 
+  -Wl,-rpath 
+  -Wl,/sNow/easybuild/centos/7.3.1611/SandyBridge/software/hwloc/2.2.0-GCCcore-10.2.0/lib 
+  -Wl,-rpath 
+  -Wl,/sNow/easybuild/centos/7.3.1611/SandyBridge/software/libevent/2.1.12-GCCcore-10.2.0/lib64 
+  -Wl,-rpath 
+  -Wl,/sNow/easybuild/centos/7.3.1611/SandyBridge/software/OpenMPI/4.0.5-GCC-10.2.0/lib 
+  -Wl,--enable-new-dtags 
+  -L/sNow/easybuild/centos/7.3.1611/SandyBridge/software/OpenMPI/4.0.5-GCC-10.2.0/lib 
+  -lmpi)
+set_property(TARGET ${PROJECT_NAME} PROPERTY LINKER_LANGUAGE CXX)

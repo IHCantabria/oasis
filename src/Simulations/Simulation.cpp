@@ -4,8 +4,8 @@
 #include <string>
 #include <sstream>
 #include <ctime>
-#include "../CommonTools.hpp"
 #include "Simulation.hpp"
+#include "../CommonTools.hpp"
 #include "../Exceptions/Exception.hpp"
 #include "../os_tools.hpp"
 #include "../Bodies/Bodies.hpp"
@@ -14,6 +14,22 @@
 #include "../BCPs/WinchiesController.hpp"
 #include "../Waves/Wave.hpp"
 #include "../ODE_solvers/ODE_solvers.hpp"
+#include "../WindTurbine/WindTurbine.hpp"
+
+#ifndef __has_include
+  static_assert(false, "__has_include not supported");
+#else
+#  if __cplusplus >= 201703L && __has_include(<filesystem>)
+#    include <filesystem>
+     namespace fs = std::filesystem;
+#  elif __has_include(<experimental/filesystem>)
+#    include <experimental/filesystem>
+     namespace fs = std::experimental::filesystem;
+#  elif __has_include(<boost/filesystem.hpp>)
+#    include <boost/filesystem.hpp>
+     namespace fs = boost::filesystem;
+#  endif
+#endif
 
 
 arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
@@ -26,9 +42,9 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 	// std::cout << "Simulation::CalculateSystemDynamics - Before copy y to objects" << std::endl;
 	// Copy info from y to the objects.
 	int ini = 0;
-	for(int ii=0; ii<numBodies; ii++)
+	for(int ii=0; ii<numBodiesFree; ii++)
 	{
-		pBodies[ii]->pos = y.rows(ini,ini+5);
+		pBodiesFree[ii]->pos = y.rows(ini,ini+5);
 		ini = ini + 6;
 	}
 	for(int ii=0; ii<numLines;ii++)
@@ -39,10 +55,19 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 			ini = ini + 3;
 		}
 	}
-	ini = ini + numWinches;
-	for(int ii=0; ii<numBodies; ii++)
+	for(int ii=0; ii<numWinches; ii++)
+    {
+		pWinches[ii]->theta = arma::as_scalar(y.row(ini));
+	    ini = ini + 1;
+	}
+    for(int ii=0; ii<numWindTurbines; ii++)
+    {
+		pWindTurbines[ii]->rotPos = arma::as_scalar(y.row(ini));
+	    ini = ini + 1;
+	}
+	for(int ii=0; ii<numBodiesFree; ii++)
 	{
-		pBodies[ii]->vel = y.rows(ini,ini+5);
+		pBodiesFree[ii]->vel = y.rows(ini,ini+5);
 		ini = ini + 6;
 	}
 	for(int ii=0; ii<numLines; ii++)
@@ -55,8 +80,18 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 	}
 	for(int ii=0; ii<numWinches; ii++)
     {
-		pWinches[ii]->theta = arma::as_scalar(y.row(numSystem2-(ii+1)));
-		pWinches[ii]->omega = arma::as_scalar(y.row(numSystem-(ii+1)));
+		pWinches[ii]->omega = arma::as_scalar(y.row(ini));
+	    ini = ini + 1;
+	}
+    for(int ii=0; ii<numWindTurbines; ii++)
+    {
+		pWindTurbines[ii]->rotSpeed = arma::as_scalar(y.row(ini));
+	    ini = ini + 1;
+	}
+
+    for(int ii=0; ii<numBodiesLock; ii++)
+	{
+		pBodiesLock[ii]->UpdateLockBody(time);
 	}
 	
 	// Update BodyBCP positions and velocities
@@ -132,36 +167,135 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 
 	// Compute hydrostatic and hidrodynamic forces
     // std::cout << "Simulation::CalculateSystemDynamics - Compute hydrodynamic and hydrostatic forces" << std::endl;
-    arma::mat Fb = arma::zeros(6*numBodies, 1);
-    for (int ii=0; ii<numBodies; ii++)
+    arma::mat Fb = arma::zeros(6*numBodiesFree, 1);
+    for (int ii=0; ii<numBodiesFree; ii++)
     {    
-		Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  pBodies[ii]->Fb + pBodies[ii]->pHydro->CalculateHydrostaticForces();
+		Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  pBodiesFree[ii]->Fb + pBodiesFree[ii]->pHydro->CalculateHydrostaticForces();
     }
+    if (Fb.has_nan() | Fb.has_inf()){
+		std::cout << std::endl << "ERROR: NaN or Inf detected in Fb for hydrostatic or hydrodynamic forces" << std::endl;
+		throw std::exception();
+	}
 
 	// Compute forces on BCPs
 	// std::cout << "Simulation::CalculateSystemDynamics - Compute forces on BCPs" << std::endl;
-	for(int ii=0; ii<numBodies; ii++)
+	for(int ii=0; ii<numBodiesFree; ii++)
     {
-		pBodies[ii]->ComputeBcpForces();
-		Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  Fb(arma::span(6*ii,6*(ii+1)-1), 0) + pBodies[ii]->bcpForces;
+		pBodiesFree[ii]->ComputeBcpForces();
+		Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  Fb(arma::span(6*ii,6*(ii+1)-1), 0) + pBodiesFree[ii]->bcpForces;
+	}
+    if (Fb.has_nan() | Fb.has_inf()){
+		std::cout << std::endl << "ERROR: NaN or Inf detected in Fb for BCP forces" << std::endl;
+		throw std::exception();
+	}
+
+    // Add wind turbine forces
+	// std::cout << "Simulation::CalculateSystemDynamics - Add wind turbine forces" << std::endl;
+	for(int ii=0; ii<numBodiesFree; ii++)
+    {
+        pBodiesFree[ii]->ComputeWindTurbForces();
+		Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  Fb(arma::span(6*ii,6*(ii+1)-1), 0) + pBodiesFree[ii]->windTurbForces;
+	}
+    if (Fb.has_nan() | Fb.has_inf()){
+		std::cout << std::endl << "ERROR: NaN or Inf detected in Fb for wind turbine forces" << std::endl;
+		throw std::exception();
+	}
+
+    // Compute also everything for locked bodies so it can be displayed on the output files
+    arma::mat dummy;
+    for(int ii=0; ii<numBodiesLock; ii++)
+	{
+        dummy = pBodiesLock[ii]->pHydro->CalculateHydrostaticForces();
+		pBodiesLock[ii]->ComputeWindTurbForces();
+        pBodiesLock[ii]->ComputeBcpForces();
 	}
 
 	// Compute body acceleration
     // std::cout << "Simulation::CalculateSystemDynamics - Compute Bodies accelerations" << std::endl;
     arma::mat accB;
-    if (numBodies>0){
-        accB = (*pSystemMatrixInv) * Fb;
+    if (numBodiesFree>0){
+        if (numBodiesLock>0){ // If locked bodies, reduce system matrix and include effect acc from other bodies
+
+            // Assemble a vector with all accelerations
+            arma::mat accAll = arma::zeros(6*numBodies, 1);
+            for (int ii=0; ii<numBodies; ii++)
+            {    
+                accAll(arma::span(6*ii,6*(ii+1)-1), 0) =  pBodies[ii]->acc;
+            }
+
+            if (rotSimpFlag){ // If simplification, always use same matrix
+
+                accB = (*pSystemMatrixFFInv) * (Fb.rows(sysMatIndFree) - (*pSystemMatrixFL)*accAll.rows(sysMatIndLock));
+
+            } else { // If no simplification, update matrix for new rotation states
+
+                arma::mat tmpMat = (*pSystemMatrix);
+                arma::mat tmpVec = Fb;
+                arma::mat auxM, auxV, aMat, aMat_dot, invRotMat, phi_dot;
+                for (int ii=0; ii<numBodiesFree; ii++)
+                {
+                    aMat = pBodiesFree[ii]->aMat; aMat_dot = pBodies[ii]->aMat_dot;
+                    invRotMat = pBodiesFree[ii]->invRotMat;
+                    phi_dot = pBodiesFree[ii]->vel.rows(arma::span(3,5));
+
+                    auxM = tmpMat(arma::span(6*ii+3,6*(ii+1)-1), arma::span(6*ii+3,6*(ii+1)-1));
+                    tmpMat(arma::span(6*ii+3,6*(ii+1)-1), arma::span(6*ii+3,6*(ii+1)-1)) =  auxM*invRotMat*aMat;
+
+                    auxV = tmpVec(arma::span(6*ii+3,6*(ii+1)-1), 0);
+                    tmpVec(arma::span(6*ii+3,6*(ii+1)-1), 0) = auxV - auxM*invRotMat*aMat_dot*phi_dot -
+                        arma::cross(invRotMat*aMat*phi_dot,auxM*invRotMat*aMat*phi_dot);
+                }
+
+                arma::mat tmpMat_FF = tmpMat(sysMatIndFree, sysMatIndFree);
+                arma::mat tmpMat_FL = tmpMat(sysMatIndFree, sysMatIndLock);
+                arma::mat tmpVec_FF = tmpVec.rows(sysMatIndFree);
+
+                accB = arma::solve(tmpMat,tmpVec-tmpMat_FL*accAll.rows(sysMatIndLock));
+            }
+
+        } else { // If no locked bodies, keep it simple
+
+            if (rotSimpFlag){ // If simplification, always use same matrix
+
+                accB = (*pSystemMatrixInv) * Fb;
+
+            } else { // If no simplification, update matrix for new rotation states
+
+                arma::mat tmpMat = (*pSystemMatrix);
+                arma::mat tmpVec = Fb;
+                arma::mat auxM, auxV, aMat, aMat_dot, invRotMat, phi_dot;
+                for (int ii=0; ii<numBodies; ii++)
+                {
+                    aMat = pBodies[ii]->aMat; aMat_dot = pBodies[ii]->aMat_dot;
+                    invRotMat = pBodies[ii]->invRotMat;
+                    phi_dot = pBodies[ii]->vel.rows(arma::span(3,5));
+
+                    auxM = tmpMat(arma::span(6*ii+3,6*(ii+1)-1), arma::span(6*ii+3,6*(ii+1)-1));
+                    tmpMat(arma::span(6*ii+3,6*(ii+1)-1), arma::span(6*ii+3,6*(ii+1)-1)) =  auxM*invRotMat*aMat;
+
+                    auxV = tmpVec(arma::span(6*ii+3,6*(ii+1)-1), 0);
+                    tmpVec(arma::span(6*ii+3,6*(ii+1)-1), 0) = auxV - auxM*invRotMat*aMat_dot*phi_dot -
+                        arma::cross(invRotMat*aMat*phi_dot,auxM*invRotMat*aMat*phi_dot);
+                }
+
+                accB = arma::solve(tmpMat,tmpVec);
+            }
+        }
     }
-    for (int ii=0; ii<numBodies; ii++)
+    if (accB.has_nan() | accB.has_inf()){
+		std::cout << std::endl << "ERROR: NaN or Inf detected in bodies accelerations" << std::endl;
+		throw std::exception();
+	}
+    for (int ii=0; ii<numBodiesFree; ii++)
     {
-        pBodies[ii]->acc = pBodies[ii]->flag_blocked*accB(arma::span(6*ii,6*(ii+1)-1), 0)%pBodies[ii]->isDofActive; //////////////////////////////////////////////////////////////////////////////////////////  HARCODEO
+        pBodiesFree[ii]->acc = accB(arma::span(6*ii,6*(ii+1)-1), 0)%pBodiesFree[ii]->isDofActive;
     }
 
 	// Update BodyBCP accelerations
 	// std::cout << "Simulation::CalculateSystemDynamics - Compute BCP accelerations" << std::endl;
-	for(int ii=0; ii<numBodies; ii++)
+	for(int ii=0; ii<numBodiesFree; ii++)
     {
-		pBodies[ii]->UpdateBcps();
+		pBodiesFree[ii]->UpdateBcps();
 	}
 
 	// Obtain Lines accelerations, imposing boundary conditions if the BCP is not a joint
@@ -188,6 +322,10 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     arma::mat LinesCouplingVector = arma::zeros(numAllLinesNodes,3);
     for(int ii=0; ii<numLines; ii++)
     {
+        if (pLines[ii]->F.has_nan() | pLines[ii]->F.has_inf()){
+            std::cout << std::endl << "ERROR: NaN or Inf detected in Force vector for Line " << ii << std::endl;
+            throw std::exception();
+        }
         LinesCouplingVector.rows(pLines[ii]->ind4CouplingMat) += pLines[ii]->F;
     }
     for(int ii=0; ii<numBcps; ii++){
@@ -195,6 +333,10 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
             LinesCouplingVector.row(pBcps[ii]->couplingMatIndex) += pBcps[ii]->JointForce;
         }
     }
+    if (LinesCouplingVector.has_nan() | LinesCouplingVector.has_inf()){
+		std::cout << std::endl << "ERROR: NaN or Inf detected in lines force vector" << std::endl;
+		throw std::exception();
+	}
 
     // std::cout << "Simulation::CalculateSystemDynamics - Solve lines accelerations" << std::endl;
     arma::mat LinesAccelerations;
@@ -208,6 +350,10 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
             LinesAccelerations = (*pLinesCouplingMatrixInv) * LinesCouplingVector;
         }
     }
+    if (LinesAccelerations.has_nan() | LinesAccelerations.has_inf()){
+		std::cout << std::endl << "ERROR: NaN or Inf detected in lines accelerations" << std::endl;
+		throw std::exception();
+	}
     for(int ii=0; ii<numLines; ii++)
     {
         pLines[ii]->acc = LinesAccelerations.rows(pLines[ii]->ind4CouplingMat);
@@ -223,26 +369,37 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
         ComputeLinesCouplingMatrix();
     }
 
+    // Compute Wind Turbines rotor acceleration
+	// std::cout << "Simulation::CalculateSystemDynamics - Compute Wind Turbines" << std::endl;
+	for(int ii=0;ii<numWindTurbines;ii=ii+1){
+		pWindTurbines[ii]->ComputeRotorAcc();
+	}
+
 	// Copy info from the objects to yprime
 	// std::cout << "Simulation::CalculateSystemDynamics - Copy info to yprime" << std::endl;
 	ini = 0;
-	for(int ii=0;ii<numBodies;ii=ii+1){
-		yprime.rows(ini,ini+5) = pBodies[ii]->vel;
+	for(int ii=0;ii<numBodiesFree;ii=ii+1){
+		yprime.rows(ini,ini+5) = pBodiesFree[ii]->vel;
 		ini = ini + 6;
 	}
-	ini = 6*numBodies;
 	for(int ii=0;ii<numLines;ii=ii+1){
 		for(int jj=pLines[ii]->first_node; jj<pLines[ii]->last_node; jj=jj+1){
 			yprime.rows(ini,ini+2) = pLines[ii]->vel.row(jj).t();
 			ini = ini + 3;
 		}
 	}
-	ini = numSystem2;
-	for(int ii=0;ii<numBodies;ii=ii+1){
-		yprime.rows(ini,ini+5) = pBodies[ii]->acc;
+	for(int ii=0;ii<numWinches;ii=ii+1){
+		yprime.row(ini) = pWinches[ii]->omega;
+        ini = ini + 1;
+	}
+    for(int ii=0;ii<numWindTurbines;ii=ii+1){
+		yprime.row(ini) = pWindTurbines[ii]->rotSpeed;
+        ini = ini + 1;
+	}
+	for(int ii=0;ii<numBodiesFree;ii=ii+1){
+		yprime.rows(ini,ini+5) = pBodiesFree[ii]->acc;
 		ini = ini + 6;
 	}
-	ini = numSystem2+6*numBodies;
 	for(int ii=0;ii<numLines;ii=ii+1){
 		for(int jj=pLines[ii]->first_node; jj<pLines[ii]->last_node; jj=jj+1){
 			yprime.rows(ini,ini+2) = pLines[ii]->acc.row(jj).t();
@@ -250,8 +407,12 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 		}
 	}
 	for(int ii=0;ii<numWinches;ii=ii+1){
-		yprime.row(numSystem2-(ii+1)) = pWinches[ii]->omega;
-		yprime.row(numSystem-(ii+1)) = pWinches[ii]->alpha;
+		yprime.row(ini) = pWinches[ii]->alpha;
+        ini = ini + 1;
+	}
+    for(int ii=0;ii<numWindTurbines;ii=ii+1){
+		yprime.row(ini) = pWindTurbines[ii]->rotAcc;
+        ini = ini + 1;
 	}
 
 	// std::cout << "Simulation::CalculateSystemDynamics - Check if yprime has a NaN" << std::endl;
@@ -287,6 +448,12 @@ void Simulation::CloseCase()
     if (useWinches) {
     	WinchesController.CloseOutputFilesASCII();
 	}
+
+	for (int ii=0; ii<numWindTurbines; ii++)
+    {
+    	pWindTurbines[ii]->Finalize();
+    }
+
 }
 
 
@@ -303,10 +470,11 @@ void Simulation::Initialize()
     double start_time = 0.0;
 
     // Initialize system vector
-    std::cout << "Num DOFs Total: " << this->numDofTotal << std::endl;
-    std::cout << "Num NumBodies: " << this->numBodies << std::endl;
-    std::cout << "Num NumWinchies: " << this->numWinches << std::endl;
-    numSystem2 = 3*this->numDofTotal + 6*this->numBodies + this->numWinches;
+    std::cout << "Num. Bodies Free: " << this->numBodiesFree << std::endl;
+    std::cout << "Num. Mooring DOFs Total: " << this->numDofTotal << std::endl;
+    std::cout << "Num. Winchies: " << this->numWinches << std::endl;
+    std::cout << "Num. Wind Turbines: " << this->numWindTurbines << std::endl;
+    numSystem2 = 3*this->numDofTotal + 6*this->numBodiesFree + this->numWinches + this->numWindTurbines;
     numSystem = 2*numSystem2;
 
     printf("Sistem size: %d\n", numSystem);
@@ -318,9 +486,9 @@ void Simulation::Initialize()
     std::string file_path;
     std::cout << "Initiallizing system vector..." << std::endl;
     if(this->readEquilibrium==0){
-        for(int ii=0; ii<this->numBodies; ii=ii+1){
+        for(int ii=0; ii<this->numBodiesFree; ii=ii+1){
                 std::cout << "  ... Including Body: " << ii+1 << std::endl;
-                y.rows(ini,ini+5) = this->pBodies[ii]->pos;
+                y.rows(ini,ini+5) = this->pBodiesFree[ii]->pos;
                 ini=ini+6;
         }
         for(int ii=0; ii<this->numLines; ii=ii+1){
@@ -330,12 +498,22 @@ void Simulation::Initialize()
                     ini=ini+3;
             }
         }
+        for(int ii=0; ii<this->numWinches; ii=ii+1){
+            std::cout << "  ... Including Winch: " << ii+1 << std::endl;
+            ini=ini+1;
+        }
+        for(int ii=0; ii<this->numWindTurbines; ii=ii+1){
+            std::cout << "  ... Including Wind Turbine: " << ii+1 << std::endl;
+            y(ini) = this->pWindTurbines[ii]->rotPos;
+            y(numSystem2+ini) = this->pWindTurbines[ii]->rotSpeed;
+            ini=ini+1;
+        }
     } else {
         std::cout << "Reading Equilibrium.dat..." << std::endl;
         file_path = JoinPath(inputFolderPath, "Equilibrio.dat");
         y.load(file_path,arma::arma_ascii);
 
-        ini=6*this->numBodies;
+        ini=6*this->numBodiesFree;
         for(int ii=0; ii<this->numLines; ii=ii+1){
             for(int jj=this->pLines[ii]->first_node; jj<this->pLines[ii]->last_node; jj=jj+1){
                 this->pLines[ii]->pos.row(jj) = y.rows(ini,ini+2).t();
@@ -379,6 +557,10 @@ void Simulation::Initialize()
 
 void Simulation::LoadCase()
 {
+
+    fs::remove_all(outputFolderPath);
+    fs::create_directory(outputFolderPath);
+    
     // Read Simulation Properties
     this->ReadProperties();
 
@@ -393,6 +575,7 @@ void Simulation::LoadCase()
     }
     this->ReadSprings();
     this->ReadSinking();
+    this->ReadWindTurbines();
 
     // Setup case
     this->SetupCase();
@@ -631,6 +814,30 @@ void Simulation::ReadBodiesASCII()
 
     delete [] pBodiesSort;
 
+    // Checking free bodies
+    std::cout << "Checking for free bodies ..." << std::endl;
+    for (int ii=0; ii<numBodies; ii++)
+    {
+        if (pBodies[ii]->flag_blocked>0){
+            numBodiesLock++;
+        } else {
+            numBodiesFree++;
+        }
+    }
+    pBodiesLock = new Body* [numBodiesLock];
+    pBodiesFree = new Body* [numBodiesFree];
+    int indL = 0; int indF = 0;
+    for (int ii=0; ii<numBodies; ii++)
+    {
+        if (pBodies[ii]->flag_blocked>0){
+            pBodiesLock[indL] = pBodies[ii];
+            indL++;
+        } else {
+            pBodiesFree[indF] = pBodies[ii];
+            indF++;
+        }
+    }
+
     // Create an array in order to store the indexes of the bodies in each database
     int **check_hydro_bodies_id = new int* [hydro_database_count];
     Body*** check_hydro_bodies = new Body** [hydro_database_count];
@@ -720,9 +927,9 @@ void Simulation::ReadBodiesASCII()
     // Fill System Matrix
     std::cout << "Fill system matrix...\n";
     arma::span a1;
-    arma::span a2;
-    double db_shift;
-    double body_shift;
+    arma::span a2; int nn2;
+    int db_shift;
+    int body_shift;
     this->pSystemMatrix = new arma::mat(6*this->numBodies, 6*this->numBodies, arma::fill::zeros);
     this->pSystemMatrixInv = new arma::mat(6*this->numBodies, 6*this->numBodies, arma::fill::zeros);
     for (int ii=0; ii<this->numBodies; ii++)
@@ -755,12 +962,40 @@ void Simulation::ReadBodiesASCII()
         (*pSystemMatrix)(a1, a2) += pBodies[ii]->pHydro->GetTotalMass();
         pBodies[ii]->sysMatSpan1 = a1;
         pBodies[ii]->sysMatSpan2 = a2;
+        pBodies[ii]->sysMatInd1 = arma::regspace<arma::uvec>(db_shift+body_shift,db_shift+body_shift+5);
     }
+
+    sysMatIndFree = arma::zeros<arma::uvec>(6*numBodiesFree);
+    std::cout << "Take free dofs index from matrix...\n";
+    for (int ii=0; ii<this->numBodiesFree; ii++)
+    {
+        sysMatIndFree(arma::span(6*ii,6*(ii+1)-1)) = pBodiesFree[ii]->sysMatInd1;
+    }
+    sysMatIndLock = arma::zeros<arma::uvec>(6*numBodiesLock);
+    std::cout << "Take locked dofs index from matrix...\n";
+    for (int ii=0; ii<this->numBodiesLock; ii++)
+    {
+        sysMatIndLock(arma::span(6*ii,6*(ii+1)-1)) = pBodiesLock[ii]->sysMatInd1;
+    }
+
+    std::cout << "Extract submatrices from system matrix...\n";
+    if (numBodiesFree>0) {
+        pSystemMatrixFF = new arma::mat(6*numBodiesFree, 6*numBodiesFree, arma::fill::zeros);
+        *pSystemMatrixFF = (*pSystemMatrix)(sysMatIndFree, sysMatIndFree);
+        if (numBodiesLock>0) {
+            pSystemMatrixFL = new arma::mat(6*numBodiesFree, 6*numBodiesLock, arma::fill::zeros);
+            *pSystemMatrixFL = (*pSystemMatrix)(sysMatIndFree, sysMatIndLock);
+        }
+    }
+
     std::cout << "Inverting system matrix...\n";
     *pSystemMatrixInv = arma::solve(*pSystemMatrix,eye(size(*pSystemMatrix)));
-    //std::string filename = JoinPath(outputFolderPath, "SysyemMatrix.txt");  
-    //pSystemMatrix->save(filename,arma::raw_ascii);
+    if (numBodiesFree>0) {
+        pSystemMatrixFFInv = new arma::mat(6*numBodiesFree, 6*numBodiesFree, arma::fill::zeros);
+        *pSystemMatrixFFInv = arma::solve(*pSystemMatrixFF,eye(size(*pSystemMatrixFF)));
+    }
     std::cout << "System matrix inverted...\n";
+
     // Check the simulation time
     int time_buffer_size = this->timeBufferSize;
     for (int ii=0; ii<this->numBodies; ii++)
@@ -1029,24 +1264,25 @@ void Simulation::ReadPropertiesASCII()
 	
     char bufferLine [1000];
     int dummyBool;
-    fscanf(file_pointer, "%lf %[^\n]\n", &gravity, bufferLine);
-	fscanf(file_pointer, "%lf %[^\n]\n", &waterDensity, bufferLine);
-	fscanf(file_pointer, "%lf %[^\n]\n", &waterDepth, bufferLine);
-	fscanf(file_pointer, "%lf %[^\n]\n", &writeTimeStep, bufferLine);
-	fscanf(file_pointer, "%lf %[^\n]\n", &maxTimeStep, bufferLine); 
-	fscanf(file_pointer, "%lf %[^\n]\n", &hydroTimeStep, bufferLine);
-    fscanf(file_pointer, "%lf %[^\n]\n", &timeIRF, bufferLine);
-	fscanf(file_pointer, "%lf %[^\n]\n", &sinkingTimeStep, bufferLine);
-	fscanf(file_pointer, "%lf %[^\n]\n", &controllerTimeStep, bufferLine);
-    fscanf(file_pointer, "%lf %[^\n]\n", &simulationTime, bufferLine);
-	fscanf(file_pointer, "%d %[^\n]\n", &timeIntMethod, bufferLine);
-	fscanf(file_pointer, "%lf %[^\n]\n", &timeIntAbsTol, bufferLine);
-	fscanf(file_pointer, "%lf %[^\n]\n", &timeIntRelTol, bufferLine);
-	fscanf(file_pointer, "%d %[^\n]\n", &maxIterStep, bufferLine);
-	fscanf(file_pointer, "%d %[^\n]\n", &dummyBool, bufferLine);
-    readEquilibrium = dummyBool;
-	fscanf(file_pointer, "%d %[^\n]\n", &dummyBool, bufferLine);
-    writeEquilibrium = dummyBool;
+    fscanf(file_pointer, "%lf %[^\n]\n", &gravity, bufferLine); // Gravity acceleration [m/s^2]
+	fscanf(file_pointer, "%lf %[^\n]\n", &waterDensity, bufferLine); // Water density [kg/m^3]
+	fscanf(file_pointer, "%lf %[^\n]\n", &waterDepth, bufferLine); // Seabed vertical coordinate [m]
+	fscanf(file_pointer, "%lf %[^\n]\n", &writeTimeStep, bufferLine); // Output time step [s]
+	fscanf(file_pointer, "%lf %[^\n]\n", &maxTimeStep, bufferLine); // Maximum time step for time integration [s]
+	fscanf(file_pointer, "%lf %[^\n]\n", &hydroTimeStep, bufferLine); // Time step for hydrodynamic forces computation [s]
+    fscanf(file_pointer, "%lf %[^\n]\n", &fastTimeStep, bufferLine); // Time step for FAST wind turbines forces computation [s]
+    fscanf(file_pointer, "%lf %[^\n]\n", &fastControllerTimeStep, bufferLine); // Time step for FAST wind turbines controller update [s]
+    fscanf(file_pointer, "%lf %[^\n]\n", &timeIRF, bufferLine); // IRF time [s]
+	fscanf(file_pointer, "%lf %[^\n]\n", &sinkingTimeStep, bufferLine); // Time step for synking hydrodinamic data bases update [s]
+	fscanf(file_pointer, "%lf %[^\n]\n", &controllerTimeStep, bufferLine); // Time step for winches controller [s]
+    fscanf(file_pointer, "%lf %[^\n]\n", &simulationTime, bufferLine); // Total time of simulation [s]
+    fscanf(file_pointer, "%d %[^\n]\n", &dummyBool, bufferLine); rotSimpFlag = dummyBool;  // Flag to use simplification for rigid body rotation dynamics [0 No, 1 Yes]
+	fscanf(file_pointer, "%d %[^\n]\n", &timeIntMethod, bufferLine); // Solver temporal [1: BDF1]
+	fscanf(file_pointer, "%lf %[^\n]\n", &timeIntAbsTol, bufferLine); // Absolute tolerance for temporal integration.
+	fscanf(file_pointer, "%lf %[^\n]\n", &timeIntRelTol, bufferLine); // Relative tolerance for temporal integration.
+	fscanf(file_pointer, "%d %[^\n]\n", &maxIterStep, bufferLine); // Maximum number of iterations for one step of temporal integration.
+	fscanf(file_pointer, "%d %[^\n]\n", &dummyBool, bufferLine); readEquilibrium = dummyBool; // Read Equilibrio.dat? [0 No, 1 Yes]
+	fscanf(file_pointer, "%d %[^\n]\n", &dummyBool, bufferLine); writeEquilibrium = dummyBool; // Write Equilibrio.dat? [0 No, 1 Yes]
 
     // Close file
     fclose(file_pointer);
@@ -1290,11 +1526,63 @@ void Simulation::ReadWinchesHDF5()
 }
 
 
+void Simulation::ReadWindTurbines(void)
+{
+     (this->*pReadWindTurbines)();
+}
+
+
+void Simulation::ReadWindTurbinesASCII(void)
+{
+    std::cout << "--> Reading Wind Turbines Properties (ASCII format)" << std::endl;
+    // Declare local variables
+    char bufferLine [1000];
+
+    // Open file
+	std::string file_path = JoinPath(inputFolderPath, "datosWindTurbines.dat");
+    FILE* file_pointer = fopen(file_path.c_str(), "r");
+	
+	if (file_pointer == NULL)
+	{
+        std::stringstream ss;
+        ss << "Not possible to open the file: datosWindTurbines.dat\n    ->Dir: " << inputFolderPath << std::endl;
+        throw IOError(ss.str());
+	}
+
+    // Read number of Wind Turbines defined in the file
+	fscanf(file_pointer, "%d %[^\n]\n", &numWindTurbines, bufferLine);
+    // Allocate a vector of pointers to WindTurbine class objects
+    pWindTurbines = new WindTurbine* [numWindTurbines];
+    for(int ii=0; ii<numWindTurbines; ii++)
+    {
+		pWindTurbines[ii] = new WindTurbine(ii,this);
+		pWindTurbines[ii]->ReadPropertiesASCII(file_pointer);
+	}
+
+    // Close the file
+    fclose(file_pointer);
+    std::cout << "----> Wind Turbines Properties Read" << std::endl;
+
+}
+
+
+void Simulation::ReadWindTurbinesHDF5(void)
+{
+    std::cout << "--> Reading Wind Turbines (HDF5 format)" << std::endl;
+    std::stringstream ss;
+    ss << "Method ReadWindTurbinesHDF5 in class Simulation not implemented yet.";
+    throw NotImplementedError(ss.str());
+    std::cout << "----> Wind Turbines Properties Read" << std::endl;
+}
+
+
 void Simulation::Run()
 {
     time_t tstart, tend;
 	double wallTime = 0.0;
 	double wallTimeHydro = 0.0;
+    double wallTimeFAST = 0.0;
+    double wallTimeControllerFAST = 0.0;
 	double wallTimeSinking = 0.0;
 	double wallTimeController = 0.0;
     tstart = time(0);
@@ -1327,9 +1615,31 @@ void Simulation::Run()
 		    }
             for(int ii=0; ii<numBodies; ii=ii+1) 
             {
-            	pBodies[ii]->Fb = pBodies[ii]->pHydro->CalculateHydrodynamicForces(wallTime);
+            	pBodies[ii]->Fb = pBodies[ii]->pHydro->CalculateHydrodynamicForces(wallTimeHydro);
             }
     	}
+
+        if (numWindTurbines>0) {
+            if (pTimeSolver->t >= wallTimeFAST + fastTimeStep)
+            {
+                wallTimeFAST += fastTimeStep;
+                for(int ii=0; ii<numWindTurbines; ii=ii+1){
+                    // std::cout<< "Computing forces for turbine " << ii << std::endl;
+                    pWindTurbines[ii]->SetInputsFAST();
+                    pWindTurbines[ii]->ComputeForces(wallTimeFAST);
+                    pWindTurbines[ii]->WriteOut(wallTimeFAST);
+                }
+            }
+            if (pTimeSolver->t >= wallTimeControllerFAST + fastControllerTimeStep)
+            {
+                wallTimeControllerFAST += fastControllerTimeStep;
+                for(int ii=0; ii<numWindTurbines; ii=ii+1){
+                    // std::cout<< "Calling controller for turbine " << ii << std::endl;
+                    pWindTurbines[ii]->SetInputsFAST();
+                    pWindTurbines[ii]->ComputeControler(wallTimeControllerFAST);
+                }
+            }
+        }
 
     	
     	if (numSinking>0) {   
@@ -1375,9 +1685,10 @@ void Simulation::Run()
 
 void Simulation::SetupCase()
 {
-    std::cout << "----> Setting up the case configuration..." << std::endl;
+    std::cout << "----> Setting up the case configuration ..." << std::endl;
+
     // Count the number of BCP in each body and create pointer array
-    std::cout << "        Count the number of BCP in each body and create pointer array" << std::endl;
+    std::cout << "        Counting the number of BCPs in each body ..." << std::endl;
     for (int ii=0; ii<numBodies; ii++)
     {
         for (int jj=0; jj<pBodies[ii]->numBcps; jj++)
@@ -1409,10 +1720,11 @@ void Simulation::SetupCase()
             }
         }
     }
-    delete [] pDefined_body_bcps;
+    delete [] pDefined_body_bcps;    
+    std::cout << "        ... done!" << std::endl;
 
     // Assing to each BCP the corresponding Body pointer
-    std::cout << "        Assign to each BCP the corresponding Body pointer" << std::endl;
+    std::cout << "        Assigning to each BCP the corresponding body  ..." << std::endl;
     for (int ii=0; ii<numBodies; ii++)
     {
         for(int jj=0; jj<pBodies[ii]->numBcps; jj++)
@@ -1422,9 +1734,62 @@ void Simulation::SetupCase()
             pBodies[ii]->pBodyBcps[jj]->countBody++;
         }
         pBodies[ii]->UpdateBcps();
+    }    
+    std::cout << "        ... done!" << std::endl;
+
+    // Count the number of Wind Turbines in each body and create pointer array
+    std::cout << "        Checking the number of Wind Turbines in each body ..." << std::endl;
+    for (int ii=0; ii<numBodies; ii++)
+    {
+        for (int jj=0; jj<pBodies[ii]->numWindTurbs; jj++)
+        {
+            if (pBodies[ii]->pIndexWindTurbs[jj]+1 > numWindTurbines)
+            {
+                std::stringstream ss;
+                ss << "BCP index: " << pBodies[ii]->pIndexWindTurbs[jj] << " in Body: " << pBodies[ii]->GetId() \
+                    << " is out of range when compare with the Number of BCPs(" << numBcps << ") defined in" \
+                    << " datosBCPs.dat";
+                throw ValueError(ss.str());
+            }
+        }
     }
+    for (int ii=0; ii<numBodies; ii++)
+    {
+        for (int jj=0; jj<numBodies; jj++)
+        {
+            if (ii!=jj && pBodies[ii]->numWindTurbs>0 && pBodies[jj]->numWindTurbs>0){
+                for (int kii=0; kii<pBodies[ii]->numWindTurbs; kii++)
+                {
+                    int indWTloc = pBodies[ii]->pIndexWindTurbs[kii];
+                    for (int kjj=0; kjj<numBodies; kjj++)
+                    {
+                        if(indWTloc==pBodies[jj]->pIndexWindTurbs[kjj])
+                        {
+                            std::stringstream ss;
+                            ss << "Bodies " << ii+1 << " and " << jj+1 << " share wind turbine" << indWTloc << "!";
+                            throw ValueError(ss.str());
+                        }
+                    }
+                }
+            }
+        }
+    }
+    std::cout << "        ... done!" << std::endl;
+
+    
+    // Assing to each Body the corresponding Wind Turbine pointers
+    std::cout << "       Assingning to each Body the corresponding Wind Turbine pointers  ..." << std::endl;
+    for (int ii=0; ii<numBodies; ii++)
+    {
+        for(int jj=0; jj<pBodies[ii]->numWindTurbs; jj++)
+        {
+            pBodies[ii]->pBodyWindTurbs[jj] = pWindTurbines[pBodies[ii]->pIndexWindTurbs[jj]];
+        }
+    }    
+    std::cout << "        ... done!" << std::endl;
 
     // Count the number of lines in each joint BCP
+    std::cout << "        Counting the number of lines in each joint BCP ..." << std::endl;
     for (int ii=0; ii<numBcps; ii++)
     {
         if (pBcps[ii]->GetType()==3)
@@ -1446,9 +1811,10 @@ void Simulation::SetupCase()
             pBcps[ii]->velLines = arma::zeros(temp_nL,3);
         }
     }
+    std::cout << "        ... done!" << std::endl;
 
     // Count the number of Lines in each body and create pointer array
-    std::cout << "        Count the number of Lines in each body and create pointer array" << std::endl;
+    std::cout << "        Counting the number of lines in each body ..." << std::endl;
     for (int ii=0; ii<numLines; ii++)
     {
         for (int jj=0; jj<pLines[ii]->numBcps; jj++)
@@ -1481,10 +1847,11 @@ void Simulation::SetupCase()
         }
         
     }
-    delete [] pDefined_lines_bcps;
+    delete [] pDefined_lines_bcps;    
+    std::cout << "        ... done!" << std::endl;
 
     // Assing to each Line the corresponding BCP pointer
-    std::cout << "        Assing to each Line the corresponding BCP ..." << std::endl;
+    std::cout << "        Assigning to each Line the corresponding BCP ..." << std::endl;
     for (int ii=0; ii<numLines; ii++)
     {
         for(int jj=0; jj<pLines[ii]->numBcps; jj++)
@@ -1534,9 +1901,10 @@ void Simulation::SetupCase()
 			if (e==5) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " initial shape can't be computed with QS method. " << std::endl;
 			if (e==6) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " touches the seafloor althoug none of its ends are there. " << std::endl << std::endl;
 		}
-    }
+    }    
+    std::cout << "        ... done!" << std::endl;
 
-    std::cout << "        Count the number of line nodes without repetition of joint nodes" << std::endl;
+    std::cout << "        Counting the number of line nodes without repetition of joint nodes ..." << std::endl;
     // Count the number of line nodes without repetition of joint nodes
     int numUsedJointBCPs = 0;
     for (int jj=0; jj<numLines; jj++){
@@ -1549,8 +1917,6 @@ void Simulation::SetupCase()
         }
     }
     numAllLinesNodes -= numUsedJointBCPs;
-
-    std::cout << "               ----> numAllLinesNodes = " << numAllLinesNodes << std::endl;
 
     // Build the lines coupling sparse matrix and store the lines index vectors
     int indFirstNodeAvail = 0;    
@@ -1586,7 +1952,7 @@ void Simulation::SetupCase()
 
     }
 
-    std::cout << "        Computing Lines Coupling Matrix..." << std::endl;
+    std::cout << "        Computing Lines Coupling Matrix ..." << std::endl;
     pLinesCouplingMatrix = new arma::mat(numAllLinesNodes,numAllLinesNodes,arma::fill::zeros);
     pLinesCouplingMatrixInv = new arma::mat(numAllLinesNodes,numAllLinesNodes);
     pLinesCouplingMatrix_sp = new arma::sp_mat(numAllLinesNodes, numAllLinesNodes);
@@ -1595,11 +1961,11 @@ void Simulation::SetupCase()
         *pLinesCouplingMatrixInv = arma::solve(*pLinesCouplingMatrix,eye(size(*pLinesCouplingMatrix)));
         std::string filename = JoinPath(outputFolderPath,"LinesCouplingMatrix.dat");
         (*pLinesCouplingMatrix).save(filename,arma::arma_ascii);
-    }
+    }    
+    std::cout << "        ... done!" << std::endl;
 
     // Setup Springs
-    std::cout << "        Setup Springs" << std::endl;
-    std::cout << "            numBcps: " << numBcps << "\n";
+    std::cout << "        Setting up springs ..." << std::endl;
 	for(int ii=0; ii<numSprings; ii++)
     {
         std::cout << "            Spring: " << ii << "\n";
@@ -1607,21 +1973,57 @@ void Simulation::SetupCase()
         std::cout << "            Spring:->BCP_2 " << pSprings[ii]->BCP_2 << "\n";
 		pSprings[ii]->SpringBCP[0] = pBcps[pSprings[ii]->BCP_1];
 		pSprings[ii]->SpringBCP[1] = pBcps[pSprings[ii]->BCP_2];
-	}
+	}    
+    std::cout << "        ... done!" << std::endl;
 
 	// Setup hidro data bases
-	std::cout << "        Setup hidro data bases" << std::endl;
+	std::cout << "        Setting up hydro data bases ..." << std::endl;
 	for (int ii=0; ii<numBodies; ii++)
     {
         std::cout << "            Body: " << ii << "\n";
     	pBodies[ii]->pHydro->SetUp();
-    }
+    }    
+    std::cout << "        ... done!" << std::endl;
 
     // Setup winchies controller
     if (useWinches) {
-		std::cout << "        Setup winchies controller" << std::endl;
+		std::cout << "        Setting up winchies controller ..." << std::endl;
     	WinchesController.SetUpWinchiesController();
+    std::cout << "        ... done!" << std::endl;
 	}
+
+    if (numWindTurbines>0)
+    {
+        // Setup wind turbines
+        std::cout << "        Setting up wind turbines ..." << std::endl;
+        for (int ii=0; ii<numWindTurbines; ii++)
+        {
+            std::cout << "            Turbine: " << ii << "\n";
+            pWindTurbines[ii]->Initialize();
+        }    
+        std::cout << "        ... done!" << std::endl;
+
+
+        // Computing bodies structural mass considering wind turbines
+        std::cout << "        Computing bodies structural mass considering wind turbines ..." << std::endl;
+        for (int ii=0; ii<numBodies; ii++)
+        {
+            if (pBodies[ii]->numWindTurbs>0) 
+            {
+                std::cout << "            Body: " << ii << "\n";
+                // Aqui seria conveniente comprobar que las distintas turbinas 
+                // la inercia de la HDB son al menos muy similares.
+                pBodies[ii]->inertia = pBodies[ii]->pBodyWindTurbs[0]->bodyInerMat;
+                for (int jj=0; jj<pBodies[ii]->numWindTurbs; jj++)
+                {
+                    
+                    pBodies[ii]->inertia += pBodies[ii]->pBodyWindTurbs[0]->towrInerMat;
+                    pBodies[ii]->inertia += pBodies[ii]->pBodyWindTurbs[0]->turbInerMat;
+                }
+            }
+        }    
+        std::cout << "        ... done!" << std::endl;
+    }
 
     std::cout << "----> Case configuration done" << std::endl;
 }
@@ -1689,6 +2091,7 @@ Simulation::Simulation(std::string incProjectPath, std::string incDataFormat)
         pReadLines = &Simulation::ReadLinesASCII;
         pReadSprings = &Simulation::ReadSpringsASCII;
         pReadWinches = &Simulation::ReadWinchesASCII;
+        pReadWindTurbines = &Simulation::ReadWindTurbinesASCII;
     }
     else if (!incDataFormat.compare("HDF5"))
     {
@@ -1704,6 +2107,7 @@ Simulation::Simulation(std::string incProjectPath, std::string incDataFormat)
         pReadLines = &Simulation::ReadLinesHDF5;
         pReadSprings = &Simulation::ReadSpringsHDF5;
         pReadWinches = &Simulation::ReadWinchesHDF5;
+        pReadWindTurbines = &Simulation::ReadWindTurbinesHDF5;
     }
     else
     {

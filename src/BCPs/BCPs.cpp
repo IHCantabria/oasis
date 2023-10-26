@@ -88,7 +88,7 @@ void BCP::ReadPropertiesASCII(FILE* &pFilePointer)
 	// Read BCP position
 	fscanf(pFilePointer, "%lf %lf %lf %[^\n]\n", &pos(0, 0), &pos(1, 0), &pos(2, 0), buffer_line);
 
-	// Read Wind ID
+	// Read Winch ID
 	fscanf(pFilePointer, "%d %[^\n]\n", &winchId, buffer_line);
 
 	// Read actuator if any
@@ -253,7 +253,10 @@ void JointBCP::GetValues(double t)
 	vel = arma::mean(velLines).t();
 
 	double zz = arma::as_scalar(pos(2,0));
-	double vol = std::min(std::max(0.0,vol_Joint*(rad_Joint-zz)/(2.0*rad_Joint)),vol_Joint);
+	double vol = 0.0;
+	if (vol_Joint>0.0){
+		vol = std::min(std::max(0.0,vol_Joint*(rad_Joint-zz)/(2.0*rad_Joint)),vol_Joint);
+	}
 	JointForce = arma::zeros(1,3);
 	JointForce(0,2) = g*(rhoW*vol - mass_Joint);
 	JointForce = JointForce - vel.t()*arma::norm(vel)*0.5*0.47*rhoW*sec_Joint;
