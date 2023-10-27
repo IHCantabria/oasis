@@ -5,10 +5,14 @@
 #include <string>
 #include <cstdio>
 
+// Class predefinition in order to avoid class cross-linking
+class Simulation;
+
 class Wave
 {
 public:
     // Declare class variables
+	Simulation* pSim; // Pointer to simulation instance
     double pi = arma::datum::pi;
     double height;
     double period;
@@ -37,6 +41,7 @@ public:
 
     double gravity;
     double waterDepth;
+    double lambda_peak;
     arma::mat lambdas;
     arma::mat k;
     arma::mat kx;
@@ -61,7 +66,7 @@ public:
     FILE* pfile_TIME;
 
     // Declare class constructors
-    Wave(double H, double T, double D);
+    Wave(Simulation* pSimInc, double H, double T, double D);
 
     // Methods
 
@@ -72,13 +77,15 @@ public:
     double f_lambda(double lambda, double T);
     double df_lambda(double lambda, double T);
     void GetFreeSurface(void);
+    arma::vec GetFreeSurface(double time, arma::vec x, arma::vec y);
+    arma::vec GetPressure(double time, arma::vec x, arma::vec y, arma::vec z);
     void WriteOut(std::string path);
 };
 
 class RegularWave: public Wave
 {
 public:
-	RegularWave(double H, double T, double D): Wave(H,T,D){};
+	RegularWave(Simulation* pSimInc, double H, double T, double D): Wave(pSimInc,H,T,D){};
 	void GetWaveSpectrum(void);
 };
 
@@ -86,7 +93,7 @@ public:
 class IrregularWave: public Wave
 {
 public:
-	IrregularWave(double H, double T, double D): Wave(H,T,D){};
+	IrregularWave(Simulation* pSimInc, double H, double T, double D): Wave(pSimInc,H,T,D){};
 	void GetWaveSpectrum(void);
 	void ReadWaveSpectrumHDF5(void);
     void ReadWaveSpectrumASCII(void);

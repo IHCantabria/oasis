@@ -37,180 +37,180 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     // std::cout << "Time: " << time << " s\n";
     numCallsSysFun++;
     // std::cout << "Simulation::CalculateSystemDynamics - At first" << std::endl; 
-	arma::mat yprime = arma::zeros(size(y));
-	int i0;
-	// std::cout << "Simulation::CalculateSystemDynamics - Before copy y to objects" << std::endl;
-	// Copy info from y to the objects.
-	int ini = 0;
-	for(int ii=0; ii<numBodiesFree; ii++)
-	{
-		pBodiesFree[ii]->pos = y.rows(ini,ini+5);
-		ini = ini + 6;
-	}
-	for(int ii=0; ii<numLines;ii++)
-	{
-		for(int jj=pLines[ii]->first_node; jj<pLines[ii]->last_node; jj=jj+1)
+    arma::mat yprime = arma::zeros(size(y));
+    int i0;
+    // std::cout << "Simulation::CalculateSystemDynamics - Before copy y to objects" << std::endl;
+    // Copy info from y to the objects.
+    int ini = 0;
+    for(int ii=0; ii<numBodiesFree; ii++)
+    {
+        pBodiesFree[ii]->pos = y.rows(ini,ini+5);
+        ini = ini + 6;
+    }
+    for(int ii=0; ii<numLines;ii++)
+    {
+        for(int jj=pLines[ii]->first_node; jj<pLines[ii]->last_node; jj=jj+1)
         {
-			pLines[ii]->pos.row(jj) = y.rows(ini,ini+2).t();
-			ini = ini + 3;
-		}
-	}
-	for(int ii=0; ii<numWinches; ii++)
+            pLines[ii]->pos.row(jj) = y.rows(ini,ini+2).t();
+            ini = ini + 3;
+        }
+    }
+    for(int ii=0; ii<numWinches; ii++)
     {
-		pWinches[ii]->theta = arma::as_scalar(y.row(ini));
-	    ini = ini + 1;
-	}
+        pWinches[ii]->theta = arma::as_scalar(y.row(ini));
+        ini = ini + 1;
+    }
     for(int ii=0; ii<numWindTurbines; ii++)
     {
-		pWindTurbines[ii]->rotPos = arma::as_scalar(y.row(ini));
-	    ini = ini + 1;
-	}
-	for(int ii=0; ii<numBodiesFree; ii++)
-	{
-		pBodiesFree[ii]->vel = y.rows(ini,ini+5);
-		ini = ini + 6;
-	}
-	for(int ii=0; ii<numLines; ii++)
-	{
-		for(int jj=pLines[ii]->first_node; jj<pLines[ii]->last_node; jj=jj+1)
-		{
-			pLines[ii]->vel.row(jj) = y.rows(ini,ini+2).t();
-			ini = ini + 3;
-		}
-	}
-	for(int ii=0; ii<numWinches; ii++)
+        pWindTurbines[ii]->rotPos = arma::as_scalar(y.row(ini));
+        ini = ini + 1;
+    }
+    for(int ii=0; ii<numBodiesFree; ii++)
     {
-		pWinches[ii]->omega = arma::as_scalar(y.row(ini));
-	    ini = ini + 1;
-	}
+        pBodiesFree[ii]->vel = y.rows(ini,ini+5);
+        ini = ini + 6;
+    }
+    for(int ii=0; ii<numLines; ii++)
+    {
+        for(int jj=pLines[ii]->first_node; jj<pLines[ii]->last_node; jj=jj+1)
+        {
+            pLines[ii]->vel.row(jj) = y.rows(ini,ini+2).t();
+            ini = ini + 3;
+        }
+    }
+    for(int ii=0; ii<numWinches; ii++)
+    {
+        pWinches[ii]->omega = arma::as_scalar(y.row(ini));
+            ini = ini + 1;
+    }
     for(int ii=0; ii<numWindTurbines; ii++)
     {
-		pWindTurbines[ii]->rotSpeed = arma::as_scalar(y.row(ini));
-	    ini = ini + 1;
-	}
-
-    for(int ii=0; ii<numBodiesLock; ii++)
-	{
-		pBodiesLock[ii]->UpdateLockBody(time);
-	}
-	
-	// Update BodyBCP positions and velocities
-	// std::cout << "Simulation::CalculateSystemDynamics - Update BCP positions and velocities" << std::endl;
-	for(int ii=0; ii<numBodies; ii++)
-    {
-		pBodies[ii]->UpdateBcps();
-		pBodies[ii]->ResetBcps();
-	}
-	// Set boundary conditions on pos and vel of Lines if the BCP is not a joint
-	// std::cout << "Simulation::CalculateSystemDynamics - Set Boundary conditios" << std::endl;
-	for(int ii=0; ii<numLines; ii++)
-    {
-		if(pLines[ii]->pLineBcps[0]->GetType() != 3){
-			pLines[ii]->pLineBcps[0]->GetValues(time);
-			pLines[ii]->pos.row(0)                = pLines[ii]->pLineBcps[0]->pos.t();
-			pLines[ii]->vel.row(0)                = pLines[ii]->pLineBcps[0]->vel.t();
-		}
-		if(pLines[ii]->pLineBcps[1]->GetType() != 3){
-			pLines[ii]->pLineBcps[1]->GetValues(time);
-			pLines[ii]->pos.row(pLines[ii]->N-1) = pLines[ii]->pLineBcps[1]->pos.t();
-			pLines[ii]->vel.row(pLines[ii]->N-1) = pLines[ii]->pLineBcps[1]->vel.t();
-		}
-	}	
-	// Set boundary conditions on pos and vel of Lines if the BCP is a joint
-	// std::cout << "Simulation::CalculateSystemDynamics - Set Boundary conditios if BCP is a Joint" << std::endl;
-	for(int ii=0; ii<numLines; ii++)
-    {
-		if(pLines[ii]->pLineBcps[0]->GetType() == 3){
-			pLines[ii]->pLineBcps[0]->posLines.row(pLines[ii]->pLineBcps[0]->iLJ) = pLines[ii]->pos.row(0);
-			pLines[ii]->pLineBcps[0]->velLines.row(pLines[ii]->pLineBcps[0]->iLJ) = pLines[ii]->vel.row(0);
-			pLines[ii]->pLineBcps[0]->iLJ = pLines[ii]->pLineBcps[0]->iLJ + 1;
-		}
-		if(pLines[ii]->pLineBcps[1]->GetType() == 3){
-			pLines[ii]->pLineBcps[1]->posLines.row(pLines[ii]->pLineBcps[1]->iLJ) = pLines[ii]->pos.row(pLines[ii]->N-1);
-			pLines[ii]->pLineBcps[1]->velLines.row(pLines[ii]->pLineBcps[1]->iLJ) = pLines[ii]->vel.row(pLines[ii]->N-1);
-			pLines[ii]->pLineBcps[1]->iLJ = pLines[ii]->pLineBcps[1]->iLJ + 1;
-		}
-	}
-	for(int ii=0; ii<numLines; ii++)
-    {
-		if(pLines[ii]->pLineBcps[0]->GetType() == 3){
-			pLines[ii]->pLineBcps[0]->GetValues(time);
-			pLines[ii]->pos.row(0)                = pLines[ii]->pLineBcps[0]->pos.t();
-			pLines[ii]->vel.row(0)                = pLines[ii]->pLineBcps[0]->vel.t();
-		}
-		if(pLines[ii]->pLineBcps[1]->GetType() == 3){
-			pLines[ii]->pLineBcps[1]->GetValues(time);
-			pLines[ii]->pos.row(pLines[ii]->N-1) = pLines[ii]->pLineBcps[1]->pos.t();
-			pLines[ii]->vel.row(pLines[ii]->N-1) = pLines[ii]->pLineBcps[1]->vel.t();
-		}
-	}
-
-	// Compute forces vector for the different Lines
-	// std::cout << "Simulation::CalculateSystemDynamics - Compute forces vector for different lines" << std::endl;
-	for(int ii=0; ii<numLines; ii++)
-    {
-		pLines[ii]->SEM_computeF();
-	}
-
-	// Compute forces of Springs
-	// std::cout << "Simulation::CalculateSystemDynamics - Compute spring" << std::endl;
-	for(int ii=0; ii<numSprings; ii++)
-    {
-		pSprings[ii]->computeSpringForces();
-	}
-
-	// Update hydrostatic parameters if there is sinking
-    // std::cout << "Simulation::CalculateSystemDynamics - Update Sinking Hydrostatics" << std::endl;
-	for(int ii=0; ii<numSinking; ii=ii+1) {
-    	pSinking[ii]->UpdateSinkingHydrostatics(time);
+        pWindTurbines[ii]->rotSpeed = arma::as_scalar(y.row(ini));
+        ini = ini + 1;
     }
 
-	// Compute hydrostatic and hidrodynamic forces
+    for(int ii=0; ii<numBodiesLock; ii++)
+    {
+        pBodiesLock[ii]->UpdateLockBody(time);
+    }
+    
+    // Update BodyBCP positions and velocities
+    // std::cout << "Simulation::CalculateSystemDynamics - Update BCP positions and velocities" << std::endl;
+    for(int ii=0; ii<numBodies; ii++)
+    {
+        pBodies[ii]->UpdateBcps();
+        pBodies[ii]->ResetBcps();
+    }
+    // Set boundary conditions on pos and vel of Lines if the BCP is not a joint
+    // std::cout << "Simulation::CalculateSystemDynamics - Set Boundary conditios" << std::endl;
+    for(int ii=0; ii<numLines; ii++)
+    {
+        if(pLines[ii]->pLineBcps[0]->GetType() != 3){
+            pLines[ii]->pLineBcps[0]->GetValues(time);
+            pLines[ii]->pos.row(0)                = pLines[ii]->pLineBcps[0]->pos.t();
+            pLines[ii]->vel.row(0)                = pLines[ii]->pLineBcps[0]->vel.t();
+        }
+        if(pLines[ii]->pLineBcps[1]->GetType() != 3){
+            pLines[ii]->pLineBcps[1]->GetValues(time);
+            pLines[ii]->pos.row(pLines[ii]->N-1) = pLines[ii]->pLineBcps[1]->pos.t();
+            pLines[ii]->vel.row(pLines[ii]->N-1) = pLines[ii]->pLineBcps[1]->vel.t();
+        }
+    }    
+    // Set boundary conditions on pos and vel of Lines if the BCP is a joint
+    // std::cout << "Simulation::CalculateSystemDynamics - Set Boundary conditios if BCP is a Joint" << std::endl;
+    for(int ii=0; ii<numLines; ii++)
+    {
+        if(pLines[ii]->pLineBcps[0]->GetType() == 3){
+            pLines[ii]->pLineBcps[0]->posLines.row(pLines[ii]->pLineBcps[0]->iLJ) = pLines[ii]->pos.row(0);
+            pLines[ii]->pLineBcps[0]->velLines.row(pLines[ii]->pLineBcps[0]->iLJ) = pLines[ii]->vel.row(0);
+            pLines[ii]->pLineBcps[0]->iLJ = pLines[ii]->pLineBcps[0]->iLJ + 1;
+        }
+        if(pLines[ii]->pLineBcps[1]->GetType() == 3){
+            pLines[ii]->pLineBcps[1]->posLines.row(pLines[ii]->pLineBcps[1]->iLJ) = pLines[ii]->pos.row(pLines[ii]->N-1);
+            pLines[ii]->pLineBcps[1]->velLines.row(pLines[ii]->pLineBcps[1]->iLJ) = pLines[ii]->vel.row(pLines[ii]->N-1);
+            pLines[ii]->pLineBcps[1]->iLJ = pLines[ii]->pLineBcps[1]->iLJ + 1;
+        }
+    }
+    for(int ii=0; ii<numLines; ii++)
+    {
+        if(pLines[ii]->pLineBcps[0]->GetType() == 3){
+            pLines[ii]->pLineBcps[0]->GetValues(time);
+            pLines[ii]->pos.row(0)                = pLines[ii]->pLineBcps[0]->pos.t();
+            pLines[ii]->vel.row(0)                = pLines[ii]->pLineBcps[0]->vel.t();
+        }
+        if(pLines[ii]->pLineBcps[1]->GetType() == 3){
+            pLines[ii]->pLineBcps[1]->GetValues(time);
+            pLines[ii]->pos.row(pLines[ii]->N-1) = pLines[ii]->pLineBcps[1]->pos.t();
+            pLines[ii]->vel.row(pLines[ii]->N-1) = pLines[ii]->pLineBcps[1]->vel.t();
+        }
+    }
+
+    // Compute forces vector for the different Lines
+    // std::cout << "Simulation::CalculateSystemDynamics - Compute forces vector for different lines" << std::endl;
+    for(int ii=0; ii<numLines; ii++)
+    {
+        pLines[ii]->SEM_computeF();
+    }
+
+    // Compute forces of Springs
+    // std::cout << "Simulation::CalculateSystemDynamics - Compute spring" << std::endl;
+    for(int ii=0; ii<numSprings; ii++)
+    {
+        pSprings[ii]->computeSpringForces();
+    }
+
+    // Update hydrostatic parameters if there is sinking
+    // std::cout << "Simulation::CalculateSystemDynamics - Update Sinking Hydrostatics" << std::endl;
+    for(int ii=0; ii<numSinking; ii=ii+1) {
+        pSinking[ii]->UpdateSinkingHydrostatics(time);
+    }
+
+    // Compute hydrostatic and hidrodynamic forces
     // std::cout << "Simulation::CalculateSystemDynamics - Compute hydrodynamic and hydrostatic forces" << std::endl;
     arma::mat Fb = arma::zeros(6*numBodiesFree, 1);
     for (int ii=0; ii<numBodiesFree; ii++)
     {    
-		Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  pBodiesFree[ii]->Fb + pBodiesFree[ii]->pHydro->CalculateHydrostaticForces();
+        Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  pBodiesFree[ii]->Fb + pBodiesFree[ii]->pHydro->CalculateHydrostaticForces(time);
     }
     if (Fb.has_nan() | Fb.has_inf()){
-		std::cout << std::endl << "ERROR: NaN or Inf detected in Fb for hydrostatic or hydrodynamic forces" << std::endl;
-		throw std::exception();
-	}
+        std::cout << std::endl << "ERROR: NaN or Inf detected in Fb for hydrostatic or hydrodynamic forces" << std::endl;
+        throw std::exception();
+    }
 
-	// Compute forces on BCPs
-	// std::cout << "Simulation::CalculateSystemDynamics - Compute forces on BCPs" << std::endl;
-	for(int ii=0; ii<numBodiesFree; ii++)
+    // Compute forces on BCPs
+    // std::cout << "Simulation::CalculateSystemDynamics - Compute forces on BCPs" << std::endl;
+    for(int ii=0; ii<numBodiesFree; ii++)
     {
-		pBodiesFree[ii]->ComputeBcpForces();
-		Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  Fb(arma::span(6*ii,6*(ii+1)-1), 0) + pBodiesFree[ii]->bcpForces;
-	}
+        pBodiesFree[ii]->ComputeBcpForces();
+        Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  Fb(arma::span(6*ii,6*(ii+1)-1), 0) + pBodiesFree[ii]->bcpForces;
+    }
     if (Fb.has_nan() | Fb.has_inf()){
-		std::cout << std::endl << "ERROR: NaN or Inf detected in Fb for BCP forces" << std::endl;
-		throw std::exception();
-	}
+        std::cout << std::endl << "ERROR: NaN or Inf detected in Fb for BCP forces" << std::endl;
+        throw std::exception();
+    }
 
     // Add wind turbine forces
-	// std::cout << "Simulation::CalculateSystemDynamics - Add wind turbine forces" << std::endl;
-	for(int ii=0; ii<numBodiesFree; ii++)
+    // std::cout << "Simulation::CalculateSystemDynamics - Add wind turbine forces" << std::endl;
+    for(int ii=0; ii<numBodiesFree; ii++)
     {
         pBodiesFree[ii]->ComputeWindTurbForces();
-		Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  Fb(arma::span(6*ii,6*(ii+1)-1), 0) + pBodiesFree[ii]->windTurbForces;
-	}
+        Fb(arma::span(6*ii,6*(ii+1)-1), 0) =  Fb(arma::span(6*ii,6*(ii+1)-1), 0) + pBodiesFree[ii]->windTurbForces;
+    }
     if (Fb.has_nan() | Fb.has_inf()){
-		std::cout << std::endl << "ERROR: NaN or Inf detected in Fb for wind turbine forces" << std::endl;
-		throw std::exception();
-	}
+        std::cout << std::endl << "ERROR: NaN or Inf detected in Fb for wind turbine forces" << std::endl;
+        throw std::exception();
+    }
 
     // Compute also everything for locked bodies so it can be displayed on the output files
     arma::mat dummy;
     for(int ii=0; ii<numBodiesLock; ii++)
-	{
-        dummy = pBodiesLock[ii]->pHydro->CalculateHydrostaticForces();
-		pBodiesLock[ii]->ComputeWindTurbForces();
+    {
+        dummy = pBodiesLock[ii]->pHydro->CalculateHydrostaticForces(time);
+        pBodiesLock[ii]->ComputeWindTurbForces();
         pBodiesLock[ii]->ComputeBcpForces();
-	}
+    }
 
-	// Compute body acceleration
+    // Compute body acceleration
     // std::cout << "Simulation::CalculateSystemDynamics - Compute Bodies accelerations" << std::endl;
     arma::mat accB;
     if (numBodiesFree>0){
@@ -283,40 +283,40 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
         }
     }
     if (accB.has_nan() | accB.has_inf()){
-		std::cout << std::endl << "ERROR: NaN or Inf detected in bodies accelerations" << std::endl;
-		throw std::exception();
-	}
+        std::cout << std::endl << "ERROR: NaN or Inf detected in bodies accelerations" << std::endl;
+        throw std::exception();
+    }
     for (int ii=0; ii<numBodiesFree; ii++)
     {
         pBodiesFree[ii]->acc = accB(arma::span(6*ii,6*(ii+1)-1), 0)%pBodiesFree[ii]->isDofActive;
     }
 
-	// Update BodyBCP accelerations
-	// std::cout << "Simulation::CalculateSystemDynamics - Compute BCP accelerations" << std::endl;
-	for(int ii=0; ii<numBodiesFree; ii++)
+    // Update BodyBCP accelerations
+    // std::cout << "Simulation::CalculateSystemDynamics - Compute BCP accelerations" << std::endl;
+    for(int ii=0; ii<numBodiesFree; ii++)
     {
-		pBodiesFree[ii]->UpdateBcps();
-	}
+        pBodiesFree[ii]->UpdateBcps();
+    }
 
-	// Obtain Lines accelerations, imposing boundary conditions if the BCP is not a joint
-	// std::cout << "Simulation::CalculateSystemDynamics - Compute lines accelerations" << std::endl;
-	for(int ii=0; ii<numLines; ii++)
+    // Obtain Lines accelerations, imposing boundary conditions if the BCP is not a joint
+    // std::cout << "Simulation::CalculateSystemDynamics - Compute lines accelerations" << std::endl;
+    for(int ii=0; ii<numLines; ii++)
     {
-    	// For body BCPs, the accelertion has changed, so GetValues() routine is called again
-    	if(pLines[ii]->pLineBcps[0]->GetType() == 4){
-					pLines[ii]->pLineBcps[0]->GetValues(time);
-		}
-		if(pLines[ii]->pLineBcps[1]->GetType() == 4){
-					pLines[ii]->pLineBcps[1]->GetValues(time);
-		}
-		// Impose BCP accelerations on lines forces vectors
-		if(pLines[ii]->pLineBcps[0]->GetType() != 3){
-			pLines[ii]->F.row(0)                = pLines[ii]->pLineBcps[0]->acc.t();
-		}
-		if(pLines[ii]->pLineBcps[1]->GetType() != 3){
-			pLines[ii]->F.row(pLines[ii]->N-1) = pLines[ii]->pLineBcps[1]->acc.t();
-		}
-	}
+        // For body BCPs, the accelertion has changed, so GetValues() routine is called again
+        if(pLines[ii]->pLineBcps[0]->GetType() == 4){
+                    pLines[ii]->pLineBcps[0]->GetValues(time);
+        }
+        if(pLines[ii]->pLineBcps[1]->GetType() == 4){
+                    pLines[ii]->pLineBcps[1]->GetValues(time);
+        }
+        // Impose BCP accelerations on lines forces vectors
+        if(pLines[ii]->pLineBcps[0]->GetType() != 3){
+            pLines[ii]->F.row(0)                = pLines[ii]->pLineBcps[0]->acc.t();
+        }
+        if(pLines[ii]->pLineBcps[1]->GetType() != 3){
+            pLines[ii]->F.row(pLines[ii]->N-1) = pLines[ii]->pLineBcps[1]->acc.t();
+        }
+    }
 
     // std::cout << "Simulation::CalculateSystemDynamics - Assemble lines forces vectors" << std::endl;
     arma::mat LinesCouplingVector = arma::zeros(numAllLinesNodes,3);
@@ -334,9 +334,9 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
         }
     }
     if (LinesCouplingVector.has_nan() | LinesCouplingVector.has_inf()){
-		std::cout << std::endl << "ERROR: NaN or Inf detected in lines force vector" << std::endl;
-		throw std::exception();
-	}
+        std::cout << std::endl << "ERROR: NaN or Inf detected in lines force vector" << std::endl;
+        throw std::exception();
+    }
 
     // std::cout << "Simulation::CalculateSystemDynamics - Solve lines accelerations" << std::endl;
     arma::mat LinesAccelerations;
@@ -351,79 +351,79 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
         }
     }
     if (LinesAccelerations.has_nan() | LinesAccelerations.has_inf()){
-		std::cout << std::endl << "ERROR: NaN or Inf detected in lines accelerations" << std::endl;
-		throw std::exception();
-	}
+        std::cout << std::endl << "ERROR: NaN or Inf detected in lines accelerations" << std::endl;
+        throw std::exception();
+    }
     for(int ii=0; ii<numLines; ii++)
     {
         pLines[ii]->acc = LinesAccelerations.rows(pLines[ii]->ind4CouplingMat);
     }
 
-	// Compute Winchies
-	// std::cout << "Simulation::CalculateSystemDynamics - Compute Winchies" << std::endl;
-	for(int ii=0;ii<numWinches;ii=ii+1){
-		pWinches[ii]->computeWinchie();
-	}
+    // Compute Winchies
+    // std::cout << "Simulation::CalculateSystemDynamics - Compute Winchies" << std::endl;
+    for(int ii=0;ii<numWinches;ii=ii+1){
+        pWinches[ii]->computeWinchie();
+    }
     // Recompute Lines coupling matrix for new dL values
     if(useWinches && numJointBcps>0){
         ComputeLinesCouplingMatrix();
     }
 
     // Compute Wind Turbines rotor acceleration
-	// std::cout << "Simulation::CalculateSystemDynamics - Compute Wind Turbines" << std::endl;
-	for(int ii=0;ii<numWindTurbines;ii=ii+1){
-		pWindTurbines[ii]->ComputeRotorAcc();
-	}
-
-	// Copy info from the objects to yprime
-	// std::cout << "Simulation::CalculateSystemDynamics - Copy info to yprime" << std::endl;
-	ini = 0;
-	for(int ii=0;ii<numBodiesFree;ii=ii+1){
-		yprime.rows(ini,ini+5) = pBodiesFree[ii]->vel;
-		ini = ini + 6;
-	}
-	for(int ii=0;ii<numLines;ii=ii+1){
-		for(int jj=pLines[ii]->first_node; jj<pLines[ii]->last_node; jj=jj+1){
-			yprime.rows(ini,ini+2) = pLines[ii]->vel.row(jj).t();
-			ini = ini + 3;
-		}
-	}
-	for(int ii=0;ii<numWinches;ii=ii+1){
-		yprime.row(ini) = pWinches[ii]->omega;
-        ini = ini + 1;
-	}
+    // std::cout << "Simulation::CalculateSystemDynamics - Compute Wind Turbines" << std::endl;
     for(int ii=0;ii<numWindTurbines;ii=ii+1){
-		yprime.row(ini) = pWindTurbines[ii]->rotSpeed;
-        ini = ini + 1;
-	}
-	for(int ii=0;ii<numBodiesFree;ii=ii+1){
-		yprime.rows(ini,ini+5) = pBodiesFree[ii]->acc;
-		ini = ini + 6;
-	}
-	for(int ii=0;ii<numLines;ii=ii+1){
-		for(int jj=pLines[ii]->first_node; jj<pLines[ii]->last_node; jj=jj+1){
-			yprime.rows(ini,ini+2) = pLines[ii]->acc.row(jj).t();
-			ini = ini + 3;
-		}
-	}
-	for(int ii=0;ii<numWinches;ii=ii+1){
-		yprime.row(ini) = pWinches[ii]->alpha;
-        ini = ini + 1;
-	}
-    for(int ii=0;ii<numWindTurbines;ii=ii+1){
-		yprime.row(ini) = pWindTurbines[ii]->rotAcc;
-        ini = ini + 1;
-	}
+        pWindTurbines[ii]->ComputeRotorAcc();
+    }
 
-	// std::cout << "Simulation::CalculateSystemDynamics - Check if yprime has a NaN" << std::endl;
-	if (yprime.has_nan() | yprime.has_inf()){
-		std::cout << std::endl << "ERROR: NaN or Inf Detected! yprime = " << std::endl;
-		std::cout << yprime << std::endl;
-		throw std::exception();
-	}
-	
-	// std::cout << "Simulation::CalculateSystemDynamics - End of fcn" << std::endl;
-	return yprime;
+    // Copy info from the objects to yprime
+    // std::cout << "Simulation::CalculateSystemDynamics - Copy info to yprime" << std::endl;
+    ini = 0;
+    for(int ii=0;ii<numBodiesFree;ii=ii+1){
+        yprime.rows(ini,ini+5) = pBodiesFree[ii]->vel;
+        ini = ini + 6;
+    }
+    for(int ii=0;ii<numLines;ii=ii+1){
+        for(int jj=pLines[ii]->first_node; jj<pLines[ii]->last_node; jj=jj+1){
+            yprime.rows(ini,ini+2) = pLines[ii]->vel.row(jj).t();
+            ini = ini + 3;
+        }
+    }
+    for(int ii=0;ii<numWinches;ii=ii+1){
+        yprime.row(ini) = pWinches[ii]->omega;
+        ini = ini + 1;
+    }
+    for(int ii=0;ii<numWindTurbines;ii=ii+1){
+        yprime.row(ini) = pWindTurbines[ii]->rotSpeed;
+        ini = ini + 1;
+    }
+    for(int ii=0;ii<numBodiesFree;ii=ii+1){
+        yprime.rows(ini,ini+5) = pBodiesFree[ii]->acc;
+        ini = ini + 6;
+    }
+    for(int ii=0;ii<numLines;ii=ii+1){
+        for(int jj=pLines[ii]->first_node; jj<pLines[ii]->last_node; jj=jj+1){
+            yprime.rows(ini,ini+2) = pLines[ii]->acc.row(jj).t();
+            ini = ini + 3;
+        }
+    }
+    for(int ii=0;ii<numWinches;ii=ii+1){
+        yprime.row(ini) = pWinches[ii]->alpha;
+        ini = ini + 1;
+    }
+    for(int ii=0;ii<numWindTurbines;ii=ii+1){
+        yprime.row(ini) = pWindTurbines[ii]->rotAcc;
+        ini = ini + 1;
+    }
+
+    // std::cout << "Simulation::CalculateSystemDynamics - Check if yprime has a NaN" << std::endl;
+    if (yprime.has_nan() | yprime.has_inf()){
+        std::cout << std::endl << "ERROR: NaN or Inf Detected! yprime = " << std::endl;
+        std::cout << yprime << std::endl;
+        throw std::exception();
+    }
+    
+    // std::cout << "Simulation::CalculateSystemDynamics - End of fcn" << std::endl;
+    return yprime;
 }
 
 
@@ -432,26 +432,26 @@ void Simulation::CloseCase()
 
     for (int ii=0; ii<numLines; ii++)
     {
-    	pLines[ii]->CloseOutputFilesASCII();
+        pLines[ii]->CloseOutputFilesASCII();
     }
 
     for (int ii=0; ii<numBodies; ii++)
     {
-    	pBodies[ii]->CloseOutputFilesASCII();
+        pBodies[ii]->CloseOutputFilesASCII();
     }
 
     for (int ii=0; ii<numSinking; ii++)
     {
-    	pSinking[ii]->CloseOutputFilesASCII();
+        pSinking[ii]->CloseOutputFilesASCII();
     }
 
     if (useWinches) {
-    	WinchesController.CloseOutputFilesASCII();
-	}
+        WinchesController.CloseOutputFilesASCII();
+    }
 
-	for (int ii=0; ii<numWindTurbines; ii++)
+    for (int ii=0; ii<numWindTurbines; ii++)
     {
-    	pWindTurbines[ii]->Finalize();
+        pWindTurbines[ii]->Finalize();
     }
 
 }
@@ -534,7 +534,7 @@ void Simulation::Initialize()
 
      // Initialize Temporal Solver
     if (this->timeIntMethod == 1)
-	{
+    {
         std::cout << "Initializing temporal solver..." << std::endl;
         pTimeSolver = new BDF(start_time, this->simulationTime, this->maxTimeStep, y, this);
         std::cout << "  Temporal solver constructor done!" << std::endl;
@@ -565,8 +565,8 @@ void Simulation::LoadCase()
     this->ReadProperties();
 
     // Read Components Data
-    this->ReadBodies();
     this->ReadWaves();
+    this->ReadBodies();
     this->ReadLines();
     this->ReadBcps();
     if (useWinches)
@@ -610,65 +610,65 @@ void Simulation::ReadBcpsASCII()
     // Open file
     std::string file_path = JoinPath(inputFolderPath, "datosBCPs.dat");
     FILE* file_pointer = fopen(file_path.c_str(), "r");
-	
-	if (file_pointer == NULL)
-	{
+    
+    if (file_pointer == NULL)
+    {
         std::stringstream ss;
         ss << "Not possible to open the file: datosBCPs.dat\n    ->Dir: " << inputFolderPath << std::endl;
         throw IOError(ss.str());
-	}
+    }
     
     // Read data
     fscanf(file_pointer, "%d %[^\n]\n", &numFairBcps, bufferLine);
     fscanf(file_pointer, "%d %[^\n]\n", &numAnchorBcps, bufferLine);
     fscanf(file_pointer, "%d %[^\n]\n", &numJointBcps, bufferLine);
     fscanf(file_pointer, "%d %[^\n]\n", &numBodyBcps, bufferLine);
-	numBcps = numFairBcps + numAnchorBcps + numJointBcps + numBodyBcps;
+    numBcps = numFairBcps + numAnchorBcps + numJointBcps + numBodyBcps;
 
     printf("Number of fairleads: %d\n", numFairBcps);
     printf("Number of anchor: %d\n", numAnchorBcps);
     printf("Number of joint: %d\n", numJointBcps);
     printf("Number of body: %d\n", numBodyBcps);
 
-	//ALOCATO UN VECTOR DE POINTERS A OBJETOS, UNO PARA CADA BCP
-	pBcps = new BCP* [numBcps];
-	int bcp_count = 0;
+    //ALOCATO UN VECTOR DE POINTERS A OBJETOS, UNO PARA CADA BCP
+    pBcps = new BCP* [numBcps];
+    int bcp_count = 0;
 
     // Se leen los BCPs
-	pFairleadBcps = new FairleadBCP* [numFairBcps];
-	for(int ii=0; ii<numFairBcps; ii++)
+    pFairleadBcps = new FairleadBCP* [numFairBcps];
+    for(int ii=0; ii<numFairBcps; ii++)
     {
-		pFairleadBcps[ii] = new FairleadBCP(bcp_count);
-		pFairleadBcps[ii]->ReadPropertiesASCII(file_pointer, inputFolderPath);
-		dynamic_cast<FairleadBCP*>(pFairleadBcps[ii])->Initialize(inputFolderPath);
-		pBcps[bcp_count] = pFairleadBcps[ii];
-		bcp_count++;
-	}
-	pAnchorBcps = new AnchorBCP* [numAnchorBcps];
-	for(int ii=0; ii<numAnchorBcps; ii++)
+        pFairleadBcps[ii] = new FairleadBCP(bcp_count);
+        pFairleadBcps[ii]->ReadPropertiesASCII(file_pointer, inputFolderPath);
+        dynamic_cast<FairleadBCP*>(pFairleadBcps[ii])->Initialize(inputFolderPath);
+        pBcps[bcp_count] = pFairleadBcps[ii];
+        bcp_count++;
+    }
+    pAnchorBcps = new AnchorBCP* [numAnchorBcps];
+    for(int ii=0; ii<numAnchorBcps; ii++)
     {
-		pAnchorBcps[ii] = new AnchorBCP(bcp_count);
-		pAnchorBcps[ii]->ReadPropertiesASCII(file_pointer);
-		pBcps[bcp_count] = pAnchorBcps[ii];
-		bcp_count++;
-	}
-	pJointBcps = new JointBCP* [numJointBcps];
-	for(int ii=0; ii<numJointBcps; ii++)
+        pAnchorBcps[ii] = new AnchorBCP(bcp_count);
+        pAnchorBcps[ii]->ReadPropertiesASCII(file_pointer);
+        pBcps[bcp_count] = pAnchorBcps[ii];
+        bcp_count++;
+    }
+    pJointBcps = new JointBCP* [numJointBcps];
+    for(int ii=0; ii<numJointBcps; ii++)
     {
-		pJointBcps[ii] = new JointBCP(bcp_count);
-		pJointBcps[ii]->ReadPropertiesASCII(file_pointer);
+        pJointBcps[ii] = new JointBCP(bcp_count);
+        pJointBcps[ii]->ReadPropertiesASCII(file_pointer);
         dynamic_cast<JointBCP*>(pJointBcps[ii])->Initialize(this->gravity,this->waterDensity,this->waterDepth);
-		pBcps[bcp_count] = pJointBcps[ii];
-		bcp_count++;
-	}
-	pBodyBcps = new BodyBCP* [numBodyBcps];
-	for(int ii=0; ii<numBodyBcps; ii++)
+        pBcps[bcp_count] = pJointBcps[ii];
+        bcp_count++;
+    }
+    pBodyBcps = new BodyBCP* [numBodyBcps];
+    for(int ii=0; ii<numBodyBcps; ii++)
     {
-		pBodyBcps[ii] = new BodyBCP(bcp_count);
-		pBodyBcps[ii]->ReadPropertiesASCII(file_pointer);
-		pBcps[bcp_count] = pBodyBcps[ii];
-		bcp_count++;
-	}
+        pBodyBcps[ii] = new BodyBCP(bcp_count);
+        pBodyBcps[ii]->ReadPropertiesASCII(file_pointer);
+        pBcps[bcp_count] = pBodyBcps[ii];
+        bcp_count++;
+    }
 
     // Loop over BCPs to check if it is necessary to read the winches file
     for (int ii=0; ii<numBcps; ii++)
@@ -723,17 +723,17 @@ void Simulation::ReadBodiesASCII()
 
     // Open file
     FILE* pFile = fopen(file_path.c_str(), "r");
-	
-	if (pFile == NULL)
-	{
+    
+    if (pFile == NULL)
+    {
         std::stringstream ss;
         ss << "Not possible to open the file: datosBodies.dat\n    ->Dir: " << inputFolderPath << std::endl;
         throw IOError(ss.str());
-	}
+    }
 
-	//Read all bodies
+    //Read all bodies
     pBodies = new Body* [numBodies];
-	for(int ii=0; ii<numBodies; ii++)
+    for(int ii=0; ii<numBodies; ii++)
     {
         // Discard header lines and check for body type
         for(int ii=0; ii<3; ii++)
@@ -757,7 +757,7 @@ void Simulation::ReadBodiesASCII()
             ss << "Error while parsing file: datosBodies.dat\n --> Expected body: " << ii <<" type definition\n";
             throw ValueError(ss.str());
         }
-	}
+    }
     std::cout << "All bodies read" << std::endl;
     // Loop over bodies in order to get the number of hydrodynamic databases
     hydro_databases_name[hydro_database_count] = pBodies[0]->hydroDatabaseName;
@@ -1050,26 +1050,26 @@ void Simulation::ReadLinesASCII()
     char bufferLine [1000];
 
     // Open file
-	std::string file_path = JoinPath(inputFolderPath, "datosLines.dat");
+    std::string file_path = JoinPath(inputFolderPath, "datosLines.dat");
     FILE* file_pointer = fopen(file_path.c_str(), "r");
-	
-	if (file_pointer == NULL)
-	{
+    
+    if (file_pointer == NULL)
+    {
         std::stringstream ss;
         ss << "Not possible to open the file: datosLines.dat\n    ->Dir: " << inputFolderPath << std::endl;
         throw IOError(ss.str());
-	}
+    }
 
    // Read total number of springs to read 
     fscanf(file_pointer, "%d %[^\n]\n", &numLines, bufferLine);
 
-	pLines = new Line*[numLines];
-	//INICIO LAS LINEAS
-	for(int ii=0; ii<numLines; ii++)
+    pLines = new Line*[numLines];
+    //INICIO LAS LINEAS
+    for(int ii=0; ii<numLines; ii++)
     {
-		pLines[ii] = new Line(ii, gravity, waterDensity, waterDepth);
-		try
-		{
+        pLines[ii] = new Line(ii, gravity, waterDensity, waterDepth);
+        try
+        {
             pLines[ii]->ReadPropertiesASCII(file_pointer);
             pLines[ii]->OpenOutputFilesASCII(outputFolderPath);
             //pLines[ii]->print_out();
@@ -1082,19 +1082,19 @@ void Simulation::ReadLinesASCII()
             if(flag_read_eq==0) pLines[ii]->initLine();
             Lines[ii].SEM_getBaseFunctions();
             **/
-		}
-		catch (int e) 
-		{
-			if (e==0) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " is under the floor level." << std::endl << std::endl;
-			if (e==1) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " touches the seafloor and it shouldn't. " << std::endl << std::endl;
-			if (e==2) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " is not tense and laying on the seafloor. It should be pretensed. " << std::endl << std::endl;
-			if (e==3) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " is not tense and vertical. It should be pretensed. " << std::endl << std::endl;
-			if (e==4) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " is not tense and it should. " << std::endl << std::endl;
-			if (e==5) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " initial shape can't be computed with QS method. " << std::endl;
-			if (e==6) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " touches the seafloor althoug none of its ends are there. " << std::endl << std::endl;
-		}
+        }
+        catch (int e) 
+        {
+            if (e==0) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " is under the floor level." << std::endl << std::endl;
+            if (e==1) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " touches the seafloor and it shouldn't. " << std::endl << std::endl;
+            if (e==2) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " is not tense and laying on the seafloor. It should be pretensed. " << std::endl << std::endl;
+            if (e==3) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " is not tense and vertical. It should be pretensed. " << std::endl << std::endl;
+            if (e==4) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " is not tense and it should. " << std::endl << std::endl;
+            if (e==5) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " initial shape can't be computed with QS method. " << std::endl;
+            if (e==6) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " touches the seafloor althoug none of its ends are there. " << std::endl << std::endl;
+        }
         
-	}
+    }
 
     // Close the file
     fclose(file_pointer);
@@ -1129,15 +1129,15 @@ void Simulation::ReadSinkingASCII()
     // Open file
     std::string file_path = JoinPath(inputFolderPath, "dataSinking.dat");
     FILE* pFile = fopen(file_path.c_str(), "r");
-	
-	if (pFile == NULL)
-	{
+    
+    if (pFile == NULL)
+    {
         std::stringstream ss;
         ss << "Not possible to open the file: dataSinking.dat\n    ->Dir: " << inputFolderPath << std::endl;
         throw IOError(ss.str());
-	}
+    }
 
-	// Read total number of sinking bodies to read 
+    // Read total number of sinking bodies to read 
     fscanf(pFile, "%d %[^\n]\n", &numSinking, bufferLine);
 
     if (numSinking>0) {
@@ -1148,29 +1148,29 @@ void Simulation::ReadSinkingASCII()
             throw IOError(ss.str());
         }
 
-	    //Read all sinking bodies
-	    pSinking = new Sinking* [numSinking];
-	    for(int ii=0; ii<numSinking; ii++)
-	    {
-	    	// Discard header lines
-	        for(int ii=0; ii<3; ii++)
-	        {
-	            fgets(bufferLine, sizeof(bufferLine), pFile);
-	        }
+        //Read all sinking bodies
+        pSinking = new Sinking* [numSinking];
+        for(int ii=0; ii<numSinking; ii++)
+        {
+            // Discard header lines
+            for(int ii=0; ii<3; ii++)
+            {
+                fgets(bufferLine, sizeof(bufferLine), pFile);
+            }
 
-	        // Get sinking body id
-	        fscanf(pFile, "%d %[^\n]\n", &sinkingBodyIndex, bufferLine);
+            // Get sinking body id
+            fscanf(pFile, "%d %[^\n]\n", &sinkingBodyIndex, bufferLine);
 
-	        // Initiallice Sinking object
-	    	pSinking[ii] = new Sinking(sinkingBodyIndex, this);
+            // Initiallice Sinking object
+            pSinking[ii] = new Sinking(sinkingBodyIndex, this);
 
-	    	// Read sinking body properties
-	    	pSinking[ii]->ReadPropertiesASCII(pFile,inputFolderPath);
+            // Read sinking body properties
+            pSinking[ii]->ReadPropertiesASCII(pFile,inputFolderPath);
 
             pSinking[ii]->OpenOutputFilesASCII(outputFolderPath);
-	    }
+        }
 
-	}
+    }
 
     // Close file
     fclose(pFile);
@@ -1202,30 +1202,30 @@ void Simulation::ReadSpringsASCII()
     char bufferLine [1000];
 
     // Open file
-	std::string file_path = JoinPath(inputFolderPath, "datosSprings.dat");
+    std::string file_path = JoinPath(inputFolderPath, "datosSprings.dat");
     FILE* file_pointer = fopen(file_path.c_str(), "r");
-	
-	if (file_pointer == NULL)
-	{
+    
+    if (file_pointer == NULL)
+    {
         std::stringstream ss;
         ss << "Not possible to open the file: datosSprings.dat\n    ->Dir: " << inputFolderPath << std::endl;
         throw IOError(ss.str());
-	}
+    }
 
     // Read file contents
     fscanf(file_pointer, "%d %[^\n]", &numSprings, bufferLine);
 
-	//ALOCATO UN VECTOR DE POINTERS A OBJETOS, UNO PARA CADA MUELLE
-	pSprings = new Spring*[numSprings];
+    //ALOCATO UN VECTOR DE POINTERS A OBJETOS, UNO PARA CADA MUELLE
+    pSprings = new Spring*[numSprings];
 
-	//INICIO LLOS MUELLES
-	for(int ii=0; ii<numSprings; ii++)
+    //INICIO LLOS MUELLES
+    for(int ii=0; ii<numSprings; ii++)
     {
-		pSprings[ii] = new Spring(ii);
-		pSprings[ii]->ReadPropertiesASCII(file_path);
-		//pSprings[ii].SpringBCP[0] = BCPs[Springs[ii].BCP_1-1];
-		//pSprings[ii].SpringBCP[1] = BCPs[Springs[ii].BCP_2-1];
-	}
+        pSprings[ii] = new Spring(ii);
+        pSprings[ii]->ReadPropertiesASCII(file_path);
+        //pSprings[ii].SpringBCP[0] = BCPs[Springs[ii].BCP_1-1];
+        //pSprings[ii].SpringBCP[1] = BCPs[Springs[ii].BCP_2-1];
+    }
 
     // Close the file
     fclose(file_pointer);
@@ -1254,35 +1254,35 @@ void Simulation::ReadPropertiesASCII()
     std::cout << "--> Reading Simulation Properties (ASCII format)" << std::endl;
     std::string file_path = JoinPath(inputFolderPath, "datosProblema.dat");
     FILE* file_pointer = fopen(file_path.c_str(), "r");
-	
-	if (file_pointer == NULL)
-	{
+    
+    if (file_pointer == NULL)
+    {
         std::stringstream ss;
         ss << "Not possible to open the file: datosProblema.dat\n    ->Dir: " << inputFolderPath << std::endl;
         throw IOError(ss.str());
-	}
-	
+    }
+    
     char bufferLine [1000];
     int dummyBool;
     fscanf(file_pointer, "%lf %[^\n]\n", &gravity, bufferLine); // Gravity acceleration [m/s^2]
-	fscanf(file_pointer, "%lf %[^\n]\n", &waterDensity, bufferLine); // Water density [kg/m^3]
-	fscanf(file_pointer, "%lf %[^\n]\n", &waterDepth, bufferLine); // Seabed vertical coordinate [m]
-	fscanf(file_pointer, "%lf %[^\n]\n", &writeTimeStep, bufferLine); // Output time step [s]
-	fscanf(file_pointer, "%lf %[^\n]\n", &maxTimeStep, bufferLine); // Maximum time step for time integration [s]
-	fscanf(file_pointer, "%lf %[^\n]\n", &hydroTimeStep, bufferLine); // Time step for hydrodynamic forces computation [s]
+    fscanf(file_pointer, "%lf %[^\n]\n", &waterDensity, bufferLine); // Water density [kg/m^3]
+    fscanf(file_pointer, "%lf %[^\n]\n", &waterDepth, bufferLine); // Seabed vertical coordinate [m]
+    fscanf(file_pointer, "%lf %[^\n]\n", &writeTimeStep, bufferLine); // Output time step [s]
+    fscanf(file_pointer, "%lf %[^\n]\n", &maxTimeStep, bufferLine); // Maximum time step for time integration [s]
+    fscanf(file_pointer, "%lf %[^\n]\n", &hydroTimeStep, bufferLine); // Time step for hydrodynamic forces computation [s]
     fscanf(file_pointer, "%lf %[^\n]\n", &fastTimeStep, bufferLine); // Time step for FAST wind turbines forces computation [s]
     fscanf(file_pointer, "%lf %[^\n]\n", &fastControllerTimeStep, bufferLine); // Time step for FAST wind turbines controller update [s]
     fscanf(file_pointer, "%lf %[^\n]\n", &timeIRF, bufferLine); // IRF time [s]
-	fscanf(file_pointer, "%lf %[^\n]\n", &sinkingTimeStep, bufferLine); // Time step for synking hydrodinamic data bases update [s]
-	fscanf(file_pointer, "%lf %[^\n]\n", &controllerTimeStep, bufferLine); // Time step for winches controller [s]
+    fscanf(file_pointer, "%lf %[^\n]\n", &sinkingTimeStep, bufferLine); // Time step for synking hydrodinamic data bases update [s]
+    fscanf(file_pointer, "%lf %[^\n]\n", &controllerTimeStep, bufferLine); // Time step for winches controller [s]
     fscanf(file_pointer, "%lf %[^\n]\n", &simulationTime, bufferLine); // Total time of simulation [s]
     fscanf(file_pointer, "%d %[^\n]\n", &dummyBool, bufferLine); rotSimpFlag = dummyBool;  // Flag to use simplification for rigid body rotation dynamics [0 No, 1 Yes]
-	fscanf(file_pointer, "%d %[^\n]\n", &timeIntMethod, bufferLine); // Solver temporal [1: BDF1]
-	fscanf(file_pointer, "%lf %[^\n]\n", &timeIntAbsTol, bufferLine); // Absolute tolerance for temporal integration.
-	fscanf(file_pointer, "%lf %[^\n]\n", &timeIntRelTol, bufferLine); // Relative tolerance for temporal integration.
-	fscanf(file_pointer, "%d %[^\n]\n", &maxIterStep, bufferLine); // Maximum number of iterations for one step of temporal integration.
-	fscanf(file_pointer, "%d %[^\n]\n", &dummyBool, bufferLine); readEquilibrium = dummyBool; // Read Equilibrio.dat? [0 No, 1 Yes]
-	fscanf(file_pointer, "%d %[^\n]\n", &dummyBool, bufferLine); writeEquilibrium = dummyBool; // Write Equilibrio.dat? [0 No, 1 Yes]
+    fscanf(file_pointer, "%d %[^\n]\n", &timeIntMethod, bufferLine); // Solver temporal [1: BDF1]
+    fscanf(file_pointer, "%lf %[^\n]\n", &timeIntAbsTol, bufferLine); // Absolute tolerance for temporal integration.
+    fscanf(file_pointer, "%lf %[^\n]\n", &timeIntRelTol, bufferLine); // Relative tolerance for temporal integration.
+    fscanf(file_pointer, "%d %[^\n]\n", &maxIterStep, bufferLine); // Maximum number of iterations for one step of temporal integration.
+    fscanf(file_pointer, "%d %[^\n]\n", &dummyBool, bufferLine); readEquilibrium = dummyBool; // Read Equilibrio.dat? [0 No, 1 Yes]
+    fscanf(file_pointer, "%d %[^\n]\n", &dummyBool, bufferLine); writeEquilibrium = dummyBool; // Write Equilibrio.dat? [0 No, 1 Yes]
 
     // Close file
     fclose(file_pointer);
@@ -1326,24 +1326,24 @@ void Simulation::ReadWaves()
 
 void Simulation::ReadWavesASCII()
 {
-	std::cout << "--> Reading Waves (ASCII format)" << std::endl;
+    std::cout << "--> Reading Waves (ASCII format)" << std::endl;
     std::string file_path = JoinPath(inputFolderPath, "dataWaves.dat");
     FILE* file_pointer = fopen(file_path.c_str(), "r");
-	
-	if (file_pointer == NULL)
-	{
+    
+    if (file_pointer == NULL)
+    {
         std::stringstream ss;
         ss << "Not possible to open the file: dataWaves.dat\n    ->Dir: " << inputFolderPath << std::endl;
         throw IOError(ss.str());
-	}
-	
+    }
+    
     char bufferLine [1000];
 
     //Ignoro las tres primeras lineas
-	for(int ii=0; ii<3; ii++)
-	{
-		fgets(bufferLine, sizeof(bufferLine), file_pointer);
-	}
+    for(int ii=0; ii<3; ii++)
+    {
+        fgets(bufferLine, sizeof(bufferLine), file_pointer);
+    }
 
     // Get wave type line
     char wave_type [1000];
@@ -1356,37 +1356,37 @@ void Simulation::ReadWavesASCII()
     // Read body
     if (strncmp(wave_type, "REG", 3) == 0)
     {
-        pWave = new RegularWave(H,T,D);
+        pWave = new RegularWave(this,H,T,D);
     }
     else
     {
         if (strncmp(wave_type, "IRR", 3) == 0)
-		{
-		    pWave = new IrregularWave(H,T,D);
-		    for(int ii=0; ii<3; ii++)
-			{
-				fgets(bufferLine, sizeof(bufferLine), file_pointer);
-			}
-			fscanf(file_pointer, "%d %[^\n]\n", &pWave->specType_flag, bufferLine);
-			fgets(bufferLine, sizeof(bufferLine), file_pointer);
-			fscanf(file_pointer, "%lf %[^\n]\n", &pWave->gamma, bufferLine);
-			fscanf(file_pointer, "%lf %[^\n]\n", &pWave->s, bufferLine);
-			fscanf(file_pointer, "%lf %[^\n]\n", &pWave->dtheta, bufferLine);
-			fscanf(file_pointer, "%lf %[^\n]\n", &pWave->rel_tol, bufferLine);
-			fscanf(file_pointer, "%lf %[^\n]\n", &pWave->dt, bufferLine);
-			fscanf(file_pointer, "%lf %[^\n]\n", &pWave->factor, bufferLine);
-			fgets(bufferLine, sizeof(bufferLine), file_pointer);
-			char cWaveDatabaseName [1000];
-			fscanf(file_pointer, "%s %[^\n]\n", cWaveDatabaseName, bufferLine);
-			pWave->waveDatabaseName = cWaveDatabaseName;
-			pWave->file_path = JoinPath(inputFolderPath, pWave->waveDatabaseName);
-		}
-		else
-		{
-		    std::stringstream ss;
-		    ss << "Error while parsing file: dataWaves.dat; Unexpected wave type. \n";
-		    throw ValueError(ss.str());
-		}
+        {
+            pWave = new IrregularWave(this,H,T,D);
+            for(int ii=0; ii<3; ii++)
+            {
+                fgets(bufferLine, sizeof(bufferLine), file_pointer);
+            }
+            fscanf(file_pointer, "%d %[^\n]\n", &pWave->specType_flag, bufferLine);
+            fgets(bufferLine, sizeof(bufferLine), file_pointer);
+            fscanf(file_pointer, "%lf %[^\n]\n", &pWave->gamma, bufferLine);
+            fscanf(file_pointer, "%lf %[^\n]\n", &pWave->s, bufferLine);
+            fscanf(file_pointer, "%lf %[^\n]\n", &pWave->dtheta, bufferLine);
+            fscanf(file_pointer, "%lf %[^\n]\n", &pWave->rel_tol, bufferLine);
+            fscanf(file_pointer, "%lf %[^\n]\n", &pWave->dt, bufferLine);
+            fscanf(file_pointer, "%lf %[^\n]\n", &pWave->factor, bufferLine);
+            fgets(bufferLine, sizeof(bufferLine), file_pointer);
+            char cWaveDatabaseName [1000];
+            fscanf(file_pointer, "%s %[^\n]\n", cWaveDatabaseName, bufferLine);
+            pWave->waveDatabaseName = cWaveDatabaseName;
+            pWave->file_path = JoinPath(inputFolderPath, pWave->waveDatabaseName);
+        }
+        else
+        {
+            std::stringstream ss;
+            ss << "Error while parsing file: dataWaves.dat; Unexpected wave type. \n";
+            throw ValueError(ss.str());
+        }
     }
 
     // Close file
@@ -1395,32 +1395,32 @@ void Simulation::ReadWavesASCII()
     // Show inputs
     if (true)
     {
-    	if (strncmp(wave_type, "REG", 3) == 0)
-    	{
-    		std::cout << "Wave type: Regular" << std::endl;
-    		std::cout << "Wave height: " << H << std::endl;
-    		std::cout << "Wave period: " << T << std::endl;
-    		std::cout << "Wave heading: " << D << std::endl;
-    	}
-    	else
-    	{
-    		std::cout << "Wave type: Irregular" << std::endl;
-    		std::cout << "Wave significant height: " << H << std::endl;
-    		std::cout << "Wave peak period: " << T << std::endl;
-    		std::cout << "Wave heading: " << D << std::endl;
-    		if (pWave->specType_flag==1)
-    		{
-    			std::cout << "Wave peak enhacement factor: " << pWave->gamma << std::endl;
-    			std::cout << "Wave directional spreading: " << pWave->s << std::endl;
-    			std::cout << "Wave directional step: " << pWave->dtheta << std::endl;
-    			std::cout << "Relative tolerance for wave check: " << pWave->rel_tol << std::endl;
-    			std::cout << "Time step for wave check: " << pWave->dt << std::endl;
-    		}
-    		else
-    		{
-    			std::cout << "Wave base data file name: " << pWave->waveDatabaseName << std::endl;
-    		}
-    	}
+        if (strncmp(wave_type, "REG", 3) == 0)
+        {
+            std::cout << "Wave type: Regular" << std::endl;
+            std::cout << "Wave height: " << H << std::endl;
+            std::cout << "Wave period: " << T << std::endl;
+            std::cout << "Wave heading: " << D << std::endl;
+        }
+        else
+        {
+            std::cout << "Wave type: Irregular" << std::endl;
+            std::cout << "Wave significant height: " << H << std::endl;
+            std::cout << "Wave peak period: " << T << std::endl;
+            std::cout << "Wave heading: " << D << std::endl;
+            if (pWave->specType_flag==1)
+            {
+                std::cout << "Wave peak enhacement factor: " << pWave->gamma << std::endl;
+                std::cout << "Wave directional spreading: " << pWave->s << std::endl;
+                std::cout << "Wave directional step: " << pWave->dtheta << std::endl;
+                std::cout << "Relative tolerance for wave check: " << pWave->rel_tol << std::endl;
+                std::cout << "Time step for wave check: " << pWave->dt << std::endl;
+            }
+            else
+            {
+                std::cout << "Wave base data file name: " << pWave->waveDatabaseName << std::endl;
+            }
+        }
     }
 
     std::cout << "----> Waves Read" << std::endl;
@@ -1451,7 +1451,7 @@ void Simulation::ReadWavesASCII()
 
 void Simulation::ReadWavesHDF5()
 {
-	std::cout << "--> Reading Waves (HDF5 format)" << std::endl;
+    std::cout << "--> Reading Waves (HDF5 format)" << std::endl;
     std::stringstream ss;
     ss << "Method ReadWavesHDF5 in class Simulation not implemented yet.";
     throw NotImplementedError(ss.str());
@@ -1472,34 +1472,34 @@ void Simulation::ReadWinchesASCII()
     char bufferLine [1000];
 
     // Open file
-	std::string file_path = JoinPath(inputFolderPath, "datosWinchies.dat");
+    std::string file_path = JoinPath(inputFolderPath, "datosWinchies.dat");
     FILE* file_pointer = fopen(file_path.c_str(), "r");
-	
-	if (file_pointer == NULL)
-	{
+    
+    if (file_pointer == NULL)
+    {
         std::stringstream ss;
         ss << "Not possible to open the file: datosWinchies.dat\n    ->Dir: " << inputFolderPath << std::endl;
         throw IOError(ss.str());
-	}
+    }
 
     // Read number of winches defined in the file
-	fscanf(file_pointer, "%d %[^\n]\n", &numWinches, bufferLine);
+    fscanf(file_pointer, "%d %[^\n]\n", &numWinches, bufferLine);
     printf("NumWinches: %d - UseWinches: %d\n", numWinches, useWinches);
     if ((numWinches ==0) && useWinches)
     {
         throw ValueError("Use of winches is requested when loading BCPs but there is no winches specified in datosWinches.dat\n");
     }
 
-	// Allocate a vector of pointers to Winch class objects
-	pWinches = new Winchie*[numWinches];
+    // Allocate a vector of pointers to Winch class objects
+    pWinches = new Winchie*[numWinches];
 
-	// Read Winches
-	for(int ii=0; ii<numWinches; ii++)
+    // Read Winches
+    for(int ii=0; ii<numWinches; ii++)
     {
-		pWinches[ii] = new Winchie(ii);
-		pWinches[ii]->ReadPropertiesASCII(file_pointer);
-		pWinches[ii]->LineW = pLines[pWinches[ii]->nLine - 1];
-	}
+        pWinches[ii] = new Winchie(ii);
+        pWinches[ii]->ReadPropertiesASCII(file_pointer);
+        pWinches[ii]->LineW = pLines[pWinches[ii]->nLine - 1];
+    }
 
     // Close the file
     fclose(file_pointer);
@@ -1539,25 +1539,25 @@ void Simulation::ReadWindTurbinesASCII(void)
     char bufferLine [1000];
 
     // Open file
-	std::string file_path = JoinPath(inputFolderPath, "datosWindTurbines.dat");
+    std::string file_path = JoinPath(inputFolderPath, "datosWindTurbines.dat");
     FILE* file_pointer = fopen(file_path.c_str(), "r");
-	
-	if (file_pointer == NULL)
-	{
+    
+    if (file_pointer == NULL)
+    {
         std::stringstream ss;
         ss << "Not possible to open the file: datosWindTurbines.dat\n    ->Dir: " << inputFolderPath << std::endl;
         throw IOError(ss.str());
-	}
+    }
 
     // Read number of Wind Turbines defined in the file
-	fscanf(file_pointer, "%d %[^\n]\n", &numWindTurbines, bufferLine);
+    fscanf(file_pointer, "%d %[^\n]\n", &numWindTurbines, bufferLine);
     // Allocate a vector of pointers to WindTurbine class objects
     pWindTurbines = new WindTurbine* [numWindTurbines];
     for(int ii=0; ii<numWindTurbines; ii++)
     {
-		pWindTurbines[ii] = new WindTurbine(ii,this);
-		pWindTurbines[ii]->ReadPropertiesASCII(file_pointer);
-	}
+        pWindTurbines[ii] = new WindTurbine(ii,this);
+        pWindTurbines[ii]->ReadPropertiesASCII(file_pointer);
+    }
 
     // Close the file
     fclose(file_pointer);
@@ -1579,12 +1579,12 @@ void Simulation::ReadWindTurbinesHDF5(void)
 void Simulation::Run()
 {
     time_t tstart, tend;
-	double wallTime = 0.0;
-	double wallTimeHydro = 0.0;
+    double wallTime = 0.0;
+    double wallTimeHydro = 0.0;
     double wallTimeFAST = 0.0;
     double wallTimeControllerFAST = 0.0;
-	double wallTimeSinking = 0.0;
-	double wallTimeController = 0.0;
+    double wallTimeSinking = 0.0;
+    double wallTimeController = 0.0;
     tstart = time(0);
     std::cout<< "    t = " << wallTime << " s" << std::endl;
     //pTimeSolver->dt_max = 0.1;
@@ -1607,17 +1607,17 @@ void Simulation::Run()
             for(int ii=0; ii<numBodies; ii=ii+1) pBodies[ii]->WriteOut(wallTime);
         }
 
-    	if (pTimeSolver->t >= wallTimeHydro + hydroTimeStep)
-    	{
+        if (pTimeSolver->t >= wallTimeHydro + hydroTimeStep)
+        {
             wallTimeHydro += hydroTimeStep;
-    		if (numBodies>0){   
-		        UpdateSystem();
-		    }
+            if (numBodies>0){   
+                UpdateSystem();
+            }
             for(int ii=0; ii<numBodies; ii=ii+1) 
             {
-            	pBodies[ii]->Fb = pBodies[ii]->pHydro->CalculateHydrodynamicForces(wallTimeHydro);
+                pBodies[ii]->Fb = pBodies[ii]->pHydro->CalculateHydrodynamicForces(wallTimeHydro);
             }
-    	}
+        }
 
         if (numWindTurbines>0) {
             if (pTimeSolver->t >= wallTimeFAST + fastTimeStep)
@@ -1641,32 +1641,32 @@ void Simulation::Run()
             }
         }
 
-    	
-    	if (numSinking>0) {   
-	        if (pTimeSolver->t >= wallTimeSinking + sinkingTimeStep) {
+        
+        if (numSinking>0) {   
+            if (pTimeSolver->t >= wallTimeSinking + sinkingTimeStep) {
                 // std::cout << "Updating sinking... " << std::endl;
-	        	wallTimeSinking += sinkingTimeStep;
-	        	for(int ii=0; ii<numSinking; ii=ii+1) {
+                wallTimeSinking += sinkingTimeStep;
+                for(int ii=0; ii<numSinking; ii=ii+1) {
                     // std::cout << "    pSinking[ii]->UpdateSinkingHydrodynamics(wallTime);" << std::endl;
-	            	pSinking[ii]->UpdateSinkingHydrodynamics(wallTime);
-	            }
+                    pSinking[ii]->UpdateSinkingHydrodynamics(wallTime);
+                }
                 // std::cout << "    UpdateSystemMatrix();" << std::endl;
-	            UpdateSystemMatrix();
+                UpdateSystemMatrix();
                 // std::cout << "    pSinking[ii]->WriteOut(wallTime);" << std::endl;
                 for(int ii=0; ii<numSinking; ii=ii+1) pSinking[ii]->WriteOut(wallTime);
                 // std::cout << "... done updating sinking! :)" << std::endl;
-	        }
-	    }
+            }
+        }
 
         if (numWinches>0) {
             if (pTimeSolver->t >= wallTimeController + controllerTimeStep)
-    	    {
-	        	wallTimeController += controllerTimeStep;
+            {
+                wallTimeController += controllerTimeStep;
                 WinchesController.controlWinchies(wallTimeController);
                 WinchesController.WriteOut(wallTimeController);
             }
         }
-	    
+        
         
     } while (pTimeSolver->t <= simulationTime);
     
@@ -1862,21 +1862,21 @@ void Simulation::SetupCase()
         }
 
         if (pLines[ii]->pLineBcps[0]->GetType() != 3 && pLines[ii]->pLineBcps[1]->GetType() != 3){
-        	numDofTotal += (pLines[ii]->N-2);
-        	pLines[ii]->first_node = 1;
-        	pLines[ii]->last_node = pLines[ii]->N-1;
+            numDofTotal += (pLines[ii]->N-2);
+            pLines[ii]->first_node = 1;
+            pLines[ii]->last_node = pLines[ii]->N-1;
         } else if (pLines[ii]->pLineBcps[0]->GetType() == 3 && pLines[ii]->pLineBcps[1]->GetType() == 3){
-        	numDofTotal += pLines[ii]->N;
-        	pLines[ii]->first_node = 0;
-        	pLines[ii]->last_node = pLines[ii]->N;
+            numDofTotal += pLines[ii]->N;
+            pLines[ii]->first_node = 0;
+            pLines[ii]->last_node = pLines[ii]->N;
         } else if (pLines[ii]->pLineBcps[0]->GetType() == 3 && pLines[ii]->pLineBcps[1]->GetType() != 3){
-        	numDofTotal += (pLines[ii]->N - 1);
-        	pLines[ii]->first_node = 0;
-        	pLines[ii]->last_node = pLines[ii]->N-1;
+            numDofTotal += (pLines[ii]->N - 1);
+            pLines[ii]->first_node = 0;
+            pLines[ii]->last_node = pLines[ii]->N-1;
         } else if (pLines[ii]->pLineBcps[0]->GetType() != 3 && pLines[ii]->pLineBcps[1]->GetType() == 3){
-        	numDofTotal += (pLines[ii]->N-1);
-        	pLines[ii]->first_node = 1;
-        	pLines[ii]->last_node = pLines[ii]->N;
+            numDofTotal += (pLines[ii]->N-1);
+            pLines[ii]->first_node = 1;
+            pLines[ii]->last_node = pLines[ii]->N;
         }
 
         try
@@ -1892,15 +1892,15 @@ void Simulation::SetupCase()
             pLines[ii]->s.save(filename2,arma::arma_ascii);
         }
         catch (int e) 
-		{
-			if (e==0) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " is under the floor level." << std::endl << std::endl;
-			if (e==1) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " touches the seafloor and it shouldn't. " << std::endl << std::endl;
-			if (e==2) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " is not tense and laying on the seafloor. It should be pretensed. " << std::endl << std::endl;
-			if (e==3) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " is not tense and vertical. It should be pretensed. " << std::endl << std::endl;
-			if (e==4) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " is not tense and it should. " << std::endl << std::endl;
-			if (e==5) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " initial shape can't be computed with QS method. " << std::endl;
-			if (e==6) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " touches the seafloor althoug none of its ends are there. " << std::endl << std::endl;
-		}
+        {
+            if (e==0) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " is under the floor level." << std::endl << std::endl;
+            if (e==1) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " touches the seafloor and it shouldn't. " << std::endl << std::endl;
+            if (e==2) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " is not tense and laying on the seafloor. It should be pretensed. " << std::endl << std::endl;
+            if (e==3) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " is not tense and vertical. It should be pretensed. " << std::endl << std::endl;
+            if (e==4) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " is not tense and it should. " << std::endl << std::endl;
+            if (e==5) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " initial shape can't be computed with QS method. " << std::endl;
+            if (e==6) std::cout<< "ERROR: Line " << pLines[ii]->nLine << " touches the seafloor althoug none of its ends are there. " << std::endl << std::endl;
+        }
     }    
     std::cout << "        ... done!" << std::endl;
 
@@ -1966,31 +1966,31 @@ void Simulation::SetupCase()
 
     // Setup Springs
     std::cout << "        Setting up springs ..." << std::endl;
-	for(int ii=0; ii<numSprings; ii++)
+    for(int ii=0; ii<numSprings; ii++)
     {
         std::cout << "            Spring: " << ii << "\n";
         std::cout << "            Spring:->BCP_1 " << pSprings[ii]->BCP_1 << "\n";
         std::cout << "            Spring:->BCP_2 " << pSprings[ii]->BCP_2 << "\n";
-		pSprings[ii]->SpringBCP[0] = pBcps[pSprings[ii]->BCP_1];
-		pSprings[ii]->SpringBCP[1] = pBcps[pSprings[ii]->BCP_2];
-	}    
+        pSprings[ii]->SpringBCP[0] = pBcps[pSprings[ii]->BCP_1];
+        pSprings[ii]->SpringBCP[1] = pBcps[pSprings[ii]->BCP_2];
+    }    
     std::cout << "        ... done!" << std::endl;
 
-	// Setup hidro data bases
-	std::cout << "        Setting up hydro data bases ..." << std::endl;
-	for (int ii=0; ii<numBodies; ii++)
+    // Setup hidro data bases
+    std::cout << "        Setting up hydro data bases ..." << std::endl;
+    for (int ii=0; ii<numBodies; ii++)
     {
         std::cout << "            Body: " << ii << "\n";
-    	pBodies[ii]->pHydro->SetUp();
+        pBodies[ii]->pHydro->SetUp();
     }    
     std::cout << "        ... done!" << std::endl;
 
     // Setup winchies controller
     if (useWinches) {
-		std::cout << "        Setting up winchies controller ..." << std::endl;
-    	WinchesController.SetUpWinchiesController();
+        std::cout << "        Setting up winchies controller ..." << std::endl;
+        WinchesController.SetUpWinchiesController();
     std::cout << "        ... done!" << std::endl;
-	}
+    }
 
     if (numWindTurbines>0)
     {

@@ -8,6 +8,7 @@
 #include "../BCPs/BCPs.hpp"
 #include "../Hydro/HydroForce.hpp"
 #include "../WindTurbine/WindTurbine.hpp"
+#include "BodyMesh.hpp"
 
 class solver_data;
 class Simulation;
@@ -24,9 +25,12 @@ public:
 	int* pIndexBcps; // Array to store the index of the boundary condition points
 	int* pIndexWindTurbs; // Array to store the index of the wind turbine points
 	HydroForce* pHydro; // Hydrodynamnics body associated to the body
+	BodyTri2DMesh* pNLHSMesh;
 	int hydroDatabaseIndex; // Index of the body in the associated hydrodynamic database, if any
 	std::string hydroDatabaseName; // Stores the hydrodynamic database name
 	int flag_blocked;
+	int flag_hidrostatics;
+	std::string hydrostaticMeshName; // Stores the hidrostatics mesh filename
 	int firstOrderExcitationFlag; // flag for first order excitation force
 	int secondOrderExcitationFlag; // flag for second order excitation force
 	arma::mat A_visc = arma::zeros(6,1); // viscous added mass coefficients
@@ -53,6 +57,7 @@ public:
 	double filling_mass = 0; // Body filling mass for sinking
 	arma::mat aMat = arma::zeros(3,3); // Matriz de conversion de derivadas de rpy a vector de velocidad de rotacion
 	arma::mat aMat_dot = arma::zeros(3,3); // Derivada temporal de la matriz de conversion de derivadas de rpy a vector de velocidad de rotacion
+	double structuralMass = 0; // structural mass
 	arma::mat acc = arma::zeros(6,1); // Body acceleration w.r.t the global reference system
 	arma::mat bcpForces = arma::zeros(6,1); // Fuerzas que los BCPs ejercen sobre el cuerpo, en la referencia del CDG
 	arma::mat hydrostaticForces = arma::zeros(6, 1); // Storage for the hydrostatic forces

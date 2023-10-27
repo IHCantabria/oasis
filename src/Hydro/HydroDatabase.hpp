@@ -70,7 +70,7 @@ public:
 	~HydroDatabase(){};
 
 	// Class Methods
-	arma::mat CalculateHydrostaticForces(void);
+	arma::mat CalculateHydrostaticForces(double time);
 	arma::mat ComputeRadiationForces(void);
 	void ComputeIRF(std::string HDBname); // Calcula la impulse response function
 	arma::mat GetCog(void); // Interface method, it returns center of gravity
@@ -82,6 +82,7 @@ public:
 	arma::mat ComputeFirstWaveExcForce(double t); // Interpolate First Order Wave Excitation forces using first order polynomial
 	arma::mat ComputeSecondWaveExcForce(double t);
 	arma::mat ComputeMeanDrift(void);
+	arma::mat CalculateHydrostaticPressure(double t);
 	void Refresh(void); // This method refresh the state of the object properties
 	int GetId(void);
 	arma::mat GetInertiaMatrixInv(void);

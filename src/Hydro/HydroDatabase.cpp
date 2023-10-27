@@ -68,14 +68,50 @@ arma::mat HydroDatabase::CalculateHydrodynamicForces(double time)
 }
 
 
-arma::mat HydroDatabase::CalculateHydrostaticForces()
+arma::mat HydroDatabase::CalculateHydrostaticForces(double time)
 {	
-	arma::mat hydrostatic_force = -(*pHydrostaticStiffness)*(pBodies[idBody]->pos - pBodies[idBody]->pos_eq);
-	if (pBodies[idBody]->filling_mass>0){
-		arma::mat Fg = arma::zeros(3,1); Fg(2,0) = - pSim->gravity * pBodies[idBody]->filling_mass;
-		hydrostatic_force.rows(0,2) = hydrostatic_force.rows(0,2) + Fg;
-		hydrostatic_force.rows(3,5) = hydrostatic_force.rows(3,5) + arma::cross(pBodies[idBody]->pos_filling_cog,pBodies[idBody]->rotMat.t()*Fg);
+
+	arma::mat hydrostatic_force;
+	if (pBodies[idBody]->flag_hidrostatics==0) {
+
+		// Linear hydrostatic forces
+		hydrostatic_force = -(*pHydrostaticStiffness)*(pBodies[idBody]->pos - pBodies[idBody]->pos_eq);
+		if (pBodies[idBody]->filling_mass > 0){
+			arma::mat Fg = arma::zeros(3,1); Fg(2,0) = - pSim->gravity * pBodies[idBody]->filling_mass;
+			hydrostatic_force.rows(0,2) = hydrostatic_force.rows(0,2) + Fg;
+			hydrostatic_force.rows(3,5) = hydrostatic_force.rows(3,5) + arma::cross(pBodies[idBody]->pos_filling_cog,pBodies[idBody]->rotMat.t()*Fg);
+		}
+
+	} else if (pBodies[idBody]->flag_hidrostatics > 0) {
+
+		// Non-linear hydrostatic forces
+		pBodies[idBody]->pNLHSMesh->TransformMesh();
+		pBodies[idBody]->pNLHSMesh->CutMesh(time);
+		pBodies[idBody]->pNLHSMesh->IntegrateMesh();
+		arma::mat pressure = CalculateHydrostaticPressure(time);
+		
+		arma::mat radius = pBodies[idBody]->pNLHSMesh->nodes -
+						   arma::ones(pBodies[idBody]->pNLHSMesh->numNodes,1)*pBodies[idBody]->pos.rows(0,2).t();
+		
+		hydrostatic_force = arma::zeros(6,1);
+		arma::uvec i1_vec = {1, 2, 0}, i2_vec = {2, 0, 1};
+		arma::mat weightsJacNormal = pBodies[idBody]->pNLHSMesh->weightsJacNormal;
+
+		for (int i = 0; i < 3; i++)
+		{
+			hydrostatic_force(i,0) = arma::dot(-pressure, weightsJacNormal.col(i));
+			arma::uword i1 = i1_vec(i);
+			arma::uword i2 = i2_vec(i);
+			hydrostatic_force(i+3,0) = arma::dot(-pressure, (radius.col(i1) % weightsJacNormal.col(i2) - radius.col(i2) % weightsJacNormal.col(i1)));
+		}
+
+		// Add gravity force
+		hydrostatic_force(2,0) = hydrostatic_force(2,0) - pSim->gravity*pBodies[idBody]->structuralMass;
+
+		// Transform the moments into the local frame
+		hydrostatic_force.rows(3,5) = pBodies[idBody]->rotMat.t()*hydrostatic_force.rows(3,5);
 	}
+
 	pBodies[idBody]->hydrostaticForces = hydrostatic_force;
 	return hydrostatic_force;
 }
@@ -334,6 +370,9 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 	structural_mass_fn << "body_" << this->GetId() << "/mass";
 	pStructuralMass->load(arma::hdf5_name(filePath, structural_mass_fn.str(), arma::hdf5_opts::trans));
 
+	// Load the structural mass intr
+	pBodies[idBody]->structuralMass = (*pStructuralMass)(0,0);
+
 	// Create total mass matrix and fill with structural data
 	std::cout << "  Creating total mass matrix...\n";
 	pTotalMass = new arma::mat(6, 6*numBodies, arma::fill::zeros);
@@ -407,13 +446,21 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 	// Read Wave exciting data
 	std::cout << "  Reading wave exciting data...\n";
 	std::stringstream wave_exciting_mag_fn;
-	wave_exciting_mag_fn << "body_" << this->GetId() << "/wave_exciting_mag";
+	if (pBodies[idBody]->flag_hidrostatics==2){
+		wave_exciting_mag_fn << "body_" << this->GetId() << "/wave_diffraction_mag";
+	} else {
+		wave_exciting_mag_fn << "body_" << this->GetId() << "/wave_exciting_mag";
+	}
 	pWaveExcitingMag = new arma::cube;
 	pWaveExcitingMag->load(arma::hdf5_name(filePath, wave_exciting_mag_fn.str()));
 	
 	std::stringstream wave_exciting_pha_fn;
 	pWaveExcitingPha = new arma::cube;
-	wave_exciting_pha_fn << "body_" << this->GetId() << "/wave_exciting_pha";
+	if (pBodies[idBody]->flag_hidrostatics==2){
+		wave_exciting_pha_fn << "body_" << this->GetId() << "/wave_diffraction_pha";
+	} else {
+		wave_exciting_pha_fn << "body_" << this->GetId() << "/wave_exciting_pha";
+	}
 	pWaveExcitingPha->load(arma::hdf5_name(filePath, wave_exciting_pha_fn.str()));
 
 
@@ -822,6 +869,33 @@ void HydroDatabase::InterpolateHydro(HydroDatabase* pHydro1, HydroDatabase* pHyd
 }
 
 
-void HydroDatabase::UpdateHydroStiffness(arma::mat newHydrostaticStiffness){
+void HydroDatabase::UpdateHydroStiffness(arma::mat newHydrostaticStiffness)
+{
 	*pHydrostaticStiffness = newHydrostaticStiffness;
+}
+
+
+arma::mat HydroDatabase::CalculateHydrostaticPressure(double t)
+{
+	// std::cout << "--> Calculating Hydrostatic Pressure" << std::endl;
+
+	arma::mat pressure;
+	arma::mat z = pBodies[idBody]->pNLHSMesh->nodes.col(2);
+
+	if (pBodies[idBody]->flag_hidrostatics==1) {
+
+		// Non-linear hydrostatic forces without wave
+		pressure = -z*pSim->gravity*pSim->waterDensity;
+
+	} else if (pBodies[idBody]->flag_hidrostatics==2) {
+
+		// Non-linear hydrostatic forces with wave
+		arma::mat x = pBodies[idBody]->pNLHSMesh->nodes.col(0);
+		arma::mat y = pBodies[idBody]->pNLHSMesh->nodes.col(1);
+		pressure = pSim->pWave->GetPressure(t,x,y,z);
+
+	}
+
+	return pressure;
+	
 }
