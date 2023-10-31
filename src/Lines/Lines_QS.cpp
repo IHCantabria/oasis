@@ -26,7 +26,6 @@ void Line::qs_Functions(double& ff,double& gg,double& DfDH,double& DfDV,double& 
 	*/
 
 	double om, temp, temp2, tempSq, tempLg, tempOm, tempOm2, tempOmSq, tempOmLg, LmVFpOm;
-
 	om = (rho0-rhoW*A)*g;
 	temp = VF/HF;
 	tempOm = ( VF - om*L) / HF;

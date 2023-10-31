@@ -13,6 +13,7 @@
 #include "../MathTools.hpp"
 #include "../os_tools.hpp"
 #include "../Exceptions/Exception.hpp"
+#include "../SeaFloor/SeaFloor.hpp"
 
 
 int Line::GetId()
@@ -85,9 +86,7 @@ void Line::ReadPropertiesASCII(FILE* pFilePointer)
 	fscanf(pFilePointer, "%lf %[^\n]\n", &Cdt, buffer_line);
 	fscanf(pFilePointer, "%lf %[^\n]\n", &GK, buffer_line);
 	fscanf(pFilePointer, "%lf %[^\n]\n", &GC, buffer_line);
-	fscanf(pFilePointer, "%lf %[^\n]\n", &Gmu, buffer_line);
-	fscanf(pFilePointer, "%lf %[^\n]\n", &Gvc, buffer_line);
-	fscanf(pFilePointer, "%lf %[^\n]\n", &Dz, buffer_line);
+	fscanf(pFilePointer, "%d %[^\n]\n", &indexSeaFloor, buffer_line); indexSeaFloor--;
 	fscanf(pFilePointer, "%d %[^\n]\n", &BCP_N, buffer_line);
 	BCP_N -= 1;
 	indexBcps[1] = BCP_N;
@@ -98,12 +97,22 @@ void Line::ReadPropertiesASCII(FILE* pFilePointer)
 	if (lineType==1){
 		floor_flag = 1;
 	}
-
+	fscanf(pFilePointer, "%d %[^\n]\n", &smoothstep, buffer_line); // UNUSED?!!!!!!!!!
+	fscanf(pFilePointer, "%d %[^\n]\n", &frictionModel, buffer_line);
+	fscanf(pFilePointer, "%lf %[^\n]\n", &vth, buffer_line);
+	fscanf(pFilePointer, "%lf %[^\n]\n", &ust, buffer_line);
+	fscanf(pFilePointer, "%lf %[^\n]\n", &usn, buffer_line);
+	fscanf(pFilePointer, "%lf %[^\n]\n", &ud, buffer_line);
+	fscanf(pFilePointer, "%lf %[^\n]\n", &deltamax, buffer_line);
 	A = arma::datum::pi*d*d*0.25;
 	dL = L/(nNodos-1);
 	dL0 = dL;
 	N = p*(nNodos-1)+1;
 	Kn = Cmn * A * rhoW;
+
+	dampCoef = 2.0 * sqrt(rho0 * GK * d ) ;
+	VR= 0.01*(d*d*GK)/(dampCoef);
+
 
 	pos = arma::zeros(3*N);
 	vel = arma::zeros(N,3);
@@ -122,7 +131,29 @@ void Line::ReadPropertiesASCII(FILE* pFilePointer)
 	t = arma::zeros(N,3);
 	e_z = arma::zeros(1,3);
 	e_z(0,2) = 1.0;
+	projectionDirection_1 = arma::zeros(1,3);
+	projectionDirection_1(0,2) = 1.0;
+	projectionDirection_N = arma::zeros(1,3);
+	projectionDirection_N(0,2) = 1.0;
+	posFriccion = arma::zeros(N,3);
+	isSlip = arma::zeros(N,1);
 
+	if (frictionModel==1){
+		//voy a resolver un solo sistema que dara los coeficientes por si hay friccion de velocidad al principio del problemna.
+		//es el step fuerte
+		//Los coeficientes van a ser siempre esos asi que solo hace falta hacerlo una vez y asi se obtiene el polinomio
+		arma::mat tmpA = arma::zeros(4,4);
+		arma::mat tmpB = arma::zeros(4,1);
+		double x1= 0;
+		double x2= 1e-04;
+		tmpA = {{  pow(x1,3), pow(x1,2), 1*x1, 1},
+	       		{3*pow(x1,2),    2*(x1),    1, 0},
+				{    pow(x2,3),   pow(x2,2),   1*x2, 1},
+				{  3*pow(x2,2),        2*x2,    1, 0}};
+		tmpB(0,0) = 1e-07; tmpB(1,0) = 0.0; tmpB(2,0) = x2; tmpB(3,0) = 1;
+		a_1 = arma::solve(tmpA,tmpB);
+
+	}
 	double * roots_temp   = new double[p+1];
 	double * weights_temp = new double[p+1];
 
@@ -139,6 +170,7 @@ void Line::ReadPropertiesASCII(FILE* pFilePointer)
 		kk = ii % p;
 		s(ii,0) = dL * ( (ii-kk)/p + ( roots(kk) + 1.0 ) * 0.5 );
 	}
+
 }
 
 
@@ -262,7 +294,6 @@ arma::mat Line::SEM_get_D_local(void)
 
 void Line::SEM_computeF(void)
 {
-
 	//drds = (D_sp * pos) * (2.0/dL0);
 	//drdsdt = (D_sp * vel) * (2.0/dL0);
 
@@ -292,33 +323,204 @@ void Line::SEM_computeF(void)
 		arma::umat ind = arma::find(((T>0.0)&&(T<T0)));
 		T.elem(ind) = temp_T.elem(ind);
 	}
+	
+
+	if (floor_flag==1)
+	{
+		arma::field<arma::mat> temp = pLineSeaFloor->projectPoints(pos);
+		//ahora toman valor
+		projectedPoints = temp(0,0);
+		projectionDirection= temp(0,2);
+		zCoordinates= temp(0,1);
+	
+	}
+
 
 	for(int k=0;k<N;k=k+1){
 		t.row(k) = drds.row(k) / norm_drds(k);
 		FF.row(k) = T(k) * t.row(k);
 
-		fg = (rhoW * A - rho0) * g / norm_drds(k);
-		ff.row(k) = fg * e_z;
+		fg = (rho0 - rhoW * A) * g  / norm_drds(k);
+		ff.row(k) = -fg * e_z;
 
 		v = vel.row(k);
 		vt = (v * t.row(k).t())* t.row(k);
 		vn = v - vt;
+
 		ff.row(k) = ff.row(k) - 0.5 * Cdt * d * rhoW * arma::norm(vt,2) * vt;
 		ff.row(k) = ff.row(k) - 0.5 * Cdn * d * rhoW * arma::norm(vn,2) * vn;
 
 		if (floor_flag == 1){
-			fs = abs(fg) * exp(- GK * d * (pos(k,2) - fondo)/abs(fg));
-			GC = 2.0 * sqrt(rho0 * GK * d ) / (abs(fg) * d);
-			if ((k==0)&&(pLineBcps[0]->GetType()==3)){
-				GC = 2.0 * sqrt(GK*(rho0*d+pLineBcps[0]->mass_Joint)) / (abs(fg) * d);
+
+			//GROUND NORMAL FORCES -- SMOOTHED PALM'S MODEL
+			double ultimaCoordVel = arma::as_scalar(v*arma::strans(projectionDirection.row(k)));
+			double zCoordinate = -zCoordinates(k); //porque al ir las normales hacia arriba es el criterio contrario
+	
+			double paramNormal, parammuelle1, parammuelle2, paramVel;
+			paramNormal= step(zCoordinate, -d/2, 0, 0, 1);
+			paramVel= step(ultimaCoordVel, -VR, 1, 0, 0);
+			parammuelle1= step(zCoordinate, 0, 0, d/2, 1);
+			parammuelle2= GK*d*(zCoordinate);
+
+			ff.row(k)= ff.row(k) + (fg*paramNormal + parammuelle1*parammuelle2 - GC*paramNormal*dampCoef*paramVel*ultimaCoordVel)*projectionDirection.row(k)/arma::norm(projectionDirection.row(k),2);
+
+			if (k==0) {
+				paramNormal_1 = paramNormal; parammuelle1_1 = parammuelle1; parammuelle2_1 = parammuelle2; 
+				paramVel_1 = paramVel; ultimaCoordVel_1 = ultimaCoordVel; projectionDirection_1 = projectionDirection.row(k);
 			}
-			if ((k==N-1)&&(pLineBcps[1]->GetType()==3)){
-				GC = 2.0 * sqrt(GK*(rho0*d+pLineBcps[1]->mass_Joint)) / (abs(fg) * d);
+			if (k==N-1) {
+				paramNormal_N = paramNormal; parammuelle1_N = parammuelle1; parammuelle2_N = parammuelle2; 
+				paramVel_N = paramVel; ultimaCoordVel_N = ultimaCoordVel; projectionDirection_N = projectionDirection.row(k);
 			}
-			fd = fs * GC * d * pow(std::min(v(2),0.0),2);
-			ff(k,2) = ff(k,2) + fs + fd;
+
+			//FRICTION FORCES
+			//STICK-SLIP MODEL
+			if (frictionModel==2 || frictionModel==1) {				
+				
+				fn=fg*step(zCoordinate, -d/2, 0, 0, 1);
+
+				if (fn>0){  //en otro caso se considera que no hay friccion
+
+					//parametros a utilizar
+					arma::mat vpi = arma::zeros(1,3); //velocidad en el plano del suelo
+					vpi=v - arma::as_scalar(v*arma::strans(projectionDirection.row(k))) * projectionDirection.row(k) /arma::norm(projectionDirection.row(k),2);
+					double normVel= arma::norm(vpi,2);
+
+					//isSlip vale 0 si en la iter.anterior es slip
+					//isSlip vale 1 si en la iter.anterior es stick
+					double betaStick, usstep, udstep;
+
+					if (frictionModel==1){
+						if (isSlip(k,0)==1){
+							if(normVel > vth){
+								//en este caso cambia a slip
+								isSlip(k,0)=0;
+								//no guarda posicion, ya que solo la guarda si pasa de slip a stick
+							}
+						}
+						if(isSlip(k,0)==0){
+							if (normVel <= vth){
+								//en este caso cambia a stick
+								isSlip(k,0)=1;
+								//se deben guardar las posiciones cuando ocurre esto					
+								posFriccion.row(k)=projectedPoints.row(k);
+							}
+						}						
+					
+						arma::mat deformationpi= projectedPoints.row(k) - posFriccion.row(k); //deformacion en el plano del suelo
+						double delta= arma::norm(deformationpi, 2);
+
+						// parametros distintos si es stick o slip
+						double usstep;
+						if(isSlip(k,0) == 0){
+							betaStick=1;
+							usstep=0;
+							udstep=ud;
+						}else{
+							//betaStick=step(normVel, -vth, -1.0, vth, 1.0);
+							betaStick=step(normVel, 0.0, 0.0, vth, 1.0);
+							usstep=step(delta, 0.0, 0.0, deltamax, ust);
+							//usstep=step(delta, -deltamax, -ust, deltamax, ust);
+							//udstep=step(normVel, -vth, -ud, vth, ud);
+							udstep=step(normVel, 0.0, 0.0, vth, ud);
+
+						}
+						//hay que calcular las fuerzas
+						double tol_max;
+						tol_max = vth*0.01;
+						double velocidadSuave = std::max(normVel,tol_max);
+						arma::mat ffslid = -vpi * udstep * fn*step(normVel,tol_max, 0, 2*tol_max, 1)/velocidadSuave;
+						ff.row(k) = ff.row(k) + ffslid;
+						//std::cout << "ffslid del nodo " << k << "= " << ffslid << std::endl;
+						if((isSlip(k,0)==1)) {
+							tol_max = deltamax*0.01;
+							double deltaSuave= std::max(delta,tol_max);
+							arma::mat ffstick= -deformationpi*(1-betaStick)*usstep*fn *step(delta, tol_max, 0, 2*tol_max, 1)/deltaSuave;
+							ff.row(k) = ff.row(k) + ffstick;
+							//std::cout << "delta del nodo " << k << "= " << delta << std::endl;
+							//std::cout << "ffstick del nodo " << k << "= " << ffstick << std::endl;
+						}
+						
+					}
+					if (frictionModel==2) {
+						arma::mat ffsticktan, ffslidtan, ffslidnorm, ffsticknorm;
+						arma::mat tpi= arma::zeros(1,3);
+						tpi= t.row(k) - arma::as_scalar(t.row(k)* arma::strans(projectionDirection.row(k)))*projectionDirection.row(k)/ arma::norm(projectionDirection.row(k));
+						tpi = tpi / arma::norm(tpi,2);
+
+
+						//arma::mat velocityTan = vt-  arma::as_scalar(vt* arma::strans(projectionDirection.row(k)))*projectionDirection.row(k)/ arma::norm(projectionDirection.row(k));
+						//arma::mat velocityNorm = vn-  arma::as_scalar(vn* arma::strans(projectionDirection.row(k)))*projectionDirection.row(k)/ arma::norm(projectionDirection.row(k));
+						arma::mat velocityTan = arma::as_scalar(vpi * arma::strans(tpi)) *tpi;
+						arma:: mat velocityNorm = vpi -velocityTan;
+
+						double normVelTan = arma::norm(velocityTan,2);
+						double normVelNorm = arma::norm(velocityNorm,2);
+
+						if (isSlip(k,0)==1){
+							if((normVelTan > vth) || normVelNorm > vth){
+								//en este caso cambia a slip
+								isSlip(k,0)=0;
+								//no guarda posicion, ya que solo la guarda si pasa de slip a stick
+							}
+						}
+						if(isSlip(k,0)==0){
+							if (normVelTan <= vth && normVelNorm <= vth){
+								//en este caso cambia a stick
+								isSlip(k,0)=1;
+								//se deben guardar las posiciones cuando ocurre esto					
+								posFriccion.row(k)=projectedPoints.row(k);
+							}
+						}
+						
+						arma::mat deformationpi= projectedPoints.row(k) - posFriccion.row(k); //deformacion en el plano del suelo
+						double delta= arma::norm(deformationpi, 2);
+						//arma::mat deformationTan = arma::as_scalar(tpi * arma::strans(deformationpi)) *tpi /arma::norm(tpi, 2);
+						arma::mat deformationTan = arma::as_scalar(tpi * arma::strans(deformationpi)) *tpi;
+						arma:: mat deformationNor = deformationpi -deformationTan;
+						double deltaTan = arma::norm(deformationTan,2);
+						double deltaNorm = arma::norm(deformationNor,2);
+
+						double uststep, usnstep, udstep;
+						// parametros distintos si es stick o slip
+						if(isSlip(k,0) == 0){
+							betaStick=1;
+							betaStick=1;
+							uststep=0;
+							usnstep=0;
+							udstep=ud;
+
+						}else{
+							betaStick=step(normVel, 0.0, 0.0, vth, 1.0);
+							uststep=step(deltaTan, 0.0, 0.0, deltamax, ust);
+							usnstep=step(deltaNorm, 0.0, 0.0, deltamax, usn);
+							udstep=step(normVel, 0.0, 0.0, vth, ud);
+						}
+						double tol_max;
+						tol_max = vth*0.01;
+						double velocidadSuaveTan = std::max(normVelTan,tol_max);
+						double velocidadSuaveNor = std::max(normVelNorm,tol_max);
+						//hay que calcular las fuerzas
+						ffslidtan= -velocityTan* udstep* fn * step(normVelTan,tol_max, 0, 2*tol_max, 1)/velocidadSuaveTan;
+						ffslidnorm= -velocityNorm* udstep* fn* step(normVelNorm,tol_max, 0, 2*tol_max, 1)/velocidadSuaveNor;
+
+						ff.row(k) = ff.row(k) + ffslidtan + ffslidnorm;
+
+						if((isSlip(k,0)==1)) {
+							tol_max = deltamax*0.01;
+							double deltaSuaveTan= std::max(deltaTan,tol_max);
+							double deltaSuaveNor= std::max(deltaNorm,tol_max);
+							ffsticktan= -deformationTan*(1-betaStick)*uststep*fn*step(deltaTan,tol_max, 0, 2*tol_max, 1)/deltaSuaveTan;
+							ffsticknorm= -deformationNor*(1-betaStick)*usnstep*fn* step(deltaNorm,tol_max, 0, 2*tol_max, 1)/deltaSuaveNor;
+							ff.row(k) = ff.row(k) + ffsticktan + ffsticknorm;
+						}
+
+					}
+				}
+			}
 		}
 	}
+
 
 	//F = 0.5 * dL * (MassMatrix_sp * ff) - (MSMatrix_sp * FF);
 	F = 0.5 * dL * (MassMatrix * ff) - (MSMatrix * FF);
@@ -348,8 +550,8 @@ void Line::SEM_computeF(void)
 	pLineBcps[1]->forceBcp.rows(0,2) = pLineBcps[1]->forceBcp.rows(0,2) + F_N;
 	pLineBcps[0]->temp = pLineBcps[0]->forceBcp; 
 	pLineBcps[1]->temp = pLineBcps[1]->forceBcp;
-}
 
+}
 
 void Line::print_out (void)
 {
@@ -368,11 +570,15 @@ void Line::print_out (void)
 		std::cout << "Cdt      " << this->Cdt << std::endl;
 		std::cout << "GK       " << this->GK << std::endl;
 		std::cout << "GC       " << this->GC << std::endl;
-		std::cout << "Gmu      " << this->Gmu << std::endl;
-		std::cout << "Gvc      " << this->Gvc << std::endl;
-		std::cout << "Dz       " << this->Dz << std::endl;
 		std::cout << "pos_N  " << this->pos_N(0,0) << " " << this->pos_N(1,0) << " " << this->pos_N(2,0) << std::endl;
-		std::cout << "pos_1  " << this->pos_1(0,0) << " " << this->pos_1(1,0) << " " << this->pos_1(2,0) << std::endl << std::endl;
+		std::cout << "pos_1  " << this->pos_1(0,0) << " " << this->pos_1(1,0) << " " << this->pos_1(2,0) << std::endl;
+		std::cout << "smoothstep      " << this->smoothstep << std::endl;
+		std::cout << "frictionModel      " << this->frictionModel << std::endl;
+		std::cout << "vth      " << this->vth << std::endl;
+		std::cout << "us    tangential  " << this->ust << std::endl;
+		std::cout << "us    normal  " << this->usn << std::endl;			
+		std::cout << "ud      " << this->ud << std::endl;
+		std::cout << "deltamax      " << this->deltamax << std::endl << std::endl;
 }
 
 void Line::initLine (void) 

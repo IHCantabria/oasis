@@ -11,6 +11,7 @@
 #include "../Spring/Spring.hpp"
 #include "../Waves/Wave.hpp"
 #include "../Sinking/Sinking.hpp"
+#include "../SeaFloor/SeaFloor.hpp"
 #include "../WindTurbine/WindTurbine.hpp"
 
 class BDF;
@@ -52,6 +53,7 @@ public:
     double waterDensity;
     double waterDepth;
     bool writeEquilibrium;
+    int flagStatic;
 
     // Declare time simulation attributes
     int numCallsSysFun=0;
@@ -72,6 +74,9 @@ public:
     arma::sp_mat* pLinesCouplingMatrix_sp;
     arma::mat* pLinesCouplingMatrix;
     arma::mat* pLinesCouplingMatrixInv;
+    arma::uvec indexesNoFairNoAnchor; //indices a quitar, tienen que ser enteros
+    arma::uvec indexesFairAnchor; //indices a quitar, tienen que ser enteros
+    arma::mat filasQuitadas; //las filas que se quitaron 
 
     // Declare Components Setup Attributes
     AnchorBCP** pAnchorBcps;
@@ -88,6 +93,10 @@ public:
     WinchieController WinchesController;
     Wave* pWave;
     Sinking** pSinking;
+    SeaFloor** pSeaFloor;
+    Bathymetry** pBathymetry;
+    Inclined** pInclined;
+    Flat** pFlat;
     WindTurbine** pWindTurbines;
     int numAnchorBcps=0;
     int numBcps=0;
@@ -102,6 +111,10 @@ public:
     int numSprings=0;
     int numWinches=0;
     int numSinking=0;
+    int numFloor=0;
+    int numBathymetry=0;
+    int numInclined=0;
+    int numFlat=0;
     int numWindTurbines=0;
 
     // Declare constructors
@@ -118,6 +131,7 @@ public:
     void (Simulation::*pReadWind)(void);
     void (Simulation::*pReadWinches)(void);
     void (Simulation::*pReadSinking)(void);
+    void (Simulation::*pReadSeaFloor)(void);
     void (Simulation::*pReadWindTurbines)(void);
     void PrintSetup(void);
     void ReadBcps(void);
@@ -144,6 +158,10 @@ public:
     void ReadWaves(void);
     void ReadWavesASCII(void);
     void ReadWavesHDF5(void);
+    void ReadSeaFloor(void);
+    void ReadSeaFloorASCII(void);
+    void ReadSeaFloorHDF5(void);
+
     void ReadWindTurbines(void);
     void ReadWindTurbinesASCII(void);
     void ReadWindTurbinesHDF5(void);
@@ -157,6 +175,11 @@ public:
     void UpdateSystem(void);
     void UpdateSystemMatrix(void);
     void ComputeLinesCouplingMatrix(void);
+    arma::mat ComputeLinesInitialPoint(void);
+    arma::mat ComputeLinesForces(arma::mat position);
+    arma::mat ComputeLinesJacobian(arma::mat position, arma::mat fuerzaEnPosInicial);
+    void ComputeLinesEquilibrium(arma::mat x);
+
 
 };
 

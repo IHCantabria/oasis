@@ -19,6 +19,7 @@ arma::mat wrapToPi(arma::mat x);
 arma::uvec comp_ind(int n,arma::uvec ind);
 arma::umat comb_n_k(int n,int k);
 double step(double x, double x0, double h0, double x1, double h1);
+arma::mat triangleChangeFrame(arma::mat V0, arma::mat V1, arma::mat V2);
 
 std::tuple<arma::mat,arma::uvec> unique_rows(arma::mat& x);
 arma::uvec unique(arma::uvec& v);
