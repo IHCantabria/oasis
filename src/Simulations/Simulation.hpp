@@ -22,6 +22,7 @@ private:
     int dataFormat;
     std::string dataFormatStr;
     bool status;
+
 public:
     // Declare file system attributes
     std::string inputFolderPath;
@@ -56,66 +57,66 @@ public:
     int flagStatic;
 
     // Declare time simulation attributes
-    int numCallsSysFun=0;
-    BDF* pTimeSolver;
-    int timeBufferSize=0;
-	arma::mat timeBuffer = arma::zeros(1, timeBufferSize);
-    int timeBufferCount=0;
+    int numCallsSysFun = 0;
+    BDF *pTimeSolver;
+    int timeBufferSize = 0;
+    arma::mat timeBuffer = arma::zeros(1, timeBufferSize);
+    int timeBufferCount = 0;
 
     // Declare system properties
-    arma::mat* pSystemMatrix;
-    arma::mat* pSystemMatrixInv;
-    arma::mat* pSystemMatrixFF;
-    arma::mat* pSystemMatrixFFInv;
-    arma::mat* pSystemMatrixFL;
+    arma::mat *pSystemMatrix;
+    arma::mat *pSystemMatrixInv;
+    arma::mat *pSystemMatrixFF;
+    arma::mat *pSystemMatrixFFInv;
+    arma::mat *pSystemMatrixFL;
     arma::uvec sysMatIndFree, sysMatIndLock;
 
     int numAllLinesNodes = 0;
-    arma::sp_mat* pLinesCouplingMatrix_sp;
-    arma::mat* pLinesCouplingMatrix;
-    arma::mat* pLinesCouplingMatrixInv;
-    arma::uvec indexesNoFairNoAnchor; //indices a quitar, tienen que ser enteros
-    arma::uvec indexesFairAnchor; //indices a quitar, tienen que ser enteros
-    arma::mat filasQuitadas; //las filas que se quitaron 
+    arma::sp_mat *pLinesCouplingMatrix_sp;
+    arma::mat *pLinesCouplingMatrix;
+    arma::mat *pLinesCouplingMatrixInv;
+    arma::uvec indexesNoFairNoAnchor; // indices a quitar, tienen que ser enteros
+    arma::uvec indexesFairAnchor;     // indices a quitar, tienen que ser enteros
+    arma::mat filasQuitadas;          // las filas que se quitaron
 
     // Declare Components Setup Attributes
-    AnchorBCP** pAnchorBcps;
-    BCP** pBcps;
-    Body** pBodies;
-    Body** pBodiesFree;
-    Body** pBodiesLock;
-    BodyBCP** pBodyBcps;
-    FairleadBCP** pFairleadBcps;
-    JointBCP** pJointBcps;
-    Line** pLines;
-    Spring** pSprings;
-    Winchie** pWinches;
+    AnchorBCP **pAnchorBcps;
+    BCP **pBcps;
+    Body **pBodies;
+    Body **pBodiesFree;
+    Body **pBodiesLock;
+    BodyBCP **pBodyBcps;
+    FairleadBCP **pFairleadBcps;
+    JointBCP **pJointBcps;
+    Line **pLines;
+    Spring **pSprings;
+    Winchie **pWinches;
     WinchieController WinchesController;
-    Wave* pWave;
-    Sinking** pSinking;
-    SeaFloor** pSeaFloor;
-    Bathymetry** pBathymetry;
-    Inclined** pInclined;
-    Flat** pFlat;
-    WindTurbine** pWindTurbines;
-    int numAnchorBcps=0;
-    int numBcps=0;
-    int numBodies=0;
-    int numBodiesFree=0;
-    int numBodiesLock=0;
-    int numBodyBcps=0;
-    int numDofTotal=0;
-    int numFairBcps=0;
-    int numJointBcps=0;
-    int numLines=0;
-    int numSprings=0;
-    int numWinches=0;
-    int numSinking=0;
-    int numFloor=0;
-    int numBathymetry=0;
-    int numInclined=0;
-    int numFlat=0;
-    int numWindTurbines=0;
+    Wave *pWave;
+    Sinking **pSinking;
+    SeaFloor **pSeaFloor;
+    Bathymetry **pBathymetry;
+    Inclined **pInclined;
+    Flat **pFlat;
+    WindTurbine **pWindTurbines;
+    int numAnchorBcps = 0;
+    int numBcps = 0;
+    int numBodies = 0;
+    int numBodiesFree = 0;
+    int numBodiesLock = 0;
+    int numBodyBcps = 0;
+    int numDofTotal = 0;
+    int numFairBcps = 0;
+    int numJointBcps = 0;
+    int numLines = 0;
+    int numSprings = 0;
+    int numWinches = 0;
+    int numSinking = 0;
+    int numFloor = 0;
+    int numBathymetry = 0;
+    int numInclined = 0;
+    int numFlat = 0;
+    int numWindTurbines = 0;
 
     // Declare constructors
     Simulation(std::string projectPath, std::string incDataFormat);
@@ -179,8 +180,6 @@ public:
     arma::mat ComputeLinesForces(arma::mat position);
     arma::mat ComputeLinesJacobian(arma::mat position, arma::mat fuerzaEnPosInicial);
     void ComputeLinesEquilibrium(arma::mat x);
-
-
 };
 
 #endif // simulation_hpp__
