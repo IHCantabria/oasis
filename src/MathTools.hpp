@@ -5,9 +5,9 @@
 #include <armadillo>
 
 arma::mat arange(double a, double b, double step);
-arma::mat interp1(arma::mat x, arma::mat y, arma::mat xi);
-arma::cube interp1(arma::mat x, arma::cube y, arma::mat xi);
-arma::cube interp2(arma::mat x, arma::mat y, arma::cube z, arma::mat xi, arma::mat yi);
+arma::mat interp1(arma::vec x, arma::mat y, arma::vec xi);
+arma::cube interp1(arma::vec x, arma::cube y, arma::vec xi);
+arma::cube interp2(arma::vec x, arma::vec y, arma::cube z, arma::vec xi, arma::vec yi);
 arma::mat linspace(double a, double b, int numPoints);
 arma::mat mod(arma::mat a, double x);
 double trapz(arma::mat y, double h);

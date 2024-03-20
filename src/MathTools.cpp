@@ -158,23 +158,8 @@ arma::mat mod(arma::mat a, double x)
 	return a - arma::floor(a / x) * x;
 }
 
-arma::mat interp1(arma::mat x, arma::mat y, arma::mat xi)
+arma::mat interp1(arma::vec x, arma::mat y, arma::vec xi)
 {
-	// Check that x and xi are vectors, reshape to columns
-	if ((x.n_cols > 1) && (x.n_rows > 1))
-	{
-		std::stringstream ss;
-		ss << "Error in interp1: x must be a column or row vector. \n";
-		throw ValueError(ss.str());
-	}
-	if ((xi.n_cols > 1) && (xi.n_rows > 1))
-	{
-		std::stringstream ss;
-		ss << "Error in interp1: xi must be a column or row vector. \n";
-		throw ValueError(ss.str());
-	}
-	x = arma::reshape(x, x.n_elem, 1);
-	xi = arma::reshape(xi, xi.n_elem, 1);
 
 	// Check that the number of columns in y is the same as in x
 	if (y.n_rows != x.n_rows)
@@ -187,7 +172,7 @@ arma::mat interp1(arma::mat x, arma::mat y, arma::mat xi)
 	// Initiallize the output matrix
 	arma::mat yi = arma::zeros(xi.n_rows, y.n_cols);
 
-	arma::mat temp_input, temp_output;
+	arma::vec temp_input, temp_output;
 
 	for (int ii = 0; ii < y.n_cols; ii++)
 	{
@@ -199,23 +184,8 @@ arma::mat interp1(arma::mat x, arma::mat y, arma::mat xi)
 	return yi;
 }
 
-arma::cube interp1(arma::mat x, arma::cube y, arma::mat xi)
+arma::cube interp1(arma::vec x, arma::cube y, arma::vec xi)
 {
-	// Check that x and xi are vectors, reshape to columns
-	if ((x.n_cols > 1) && (x.n_rows > 1))
-	{
-		std::stringstream ss;
-		ss << "Error in interp1: x must be a column or row vector. \n";
-		throw ValueError(ss.str());
-	}
-	if ((xi.n_cols > 1) && (xi.n_rows > 1))
-	{
-		std::stringstream ss;
-		ss << "Error in interp1: xi must be a column or row vector. \n";
-		throw ValueError(ss.str());
-	}
-	x = arma::reshape(x, x.n_elem, 1);
-	xi = arma::reshape(xi, xi.n_elem, 1);
 
 	// Check that the number of columns in y is the same as in x
 	if (y.n_rows != x.n_rows)
@@ -228,7 +198,7 @@ arma::cube interp1(arma::mat x, arma::cube y, arma::mat xi)
 	// Initiallize the output matrix
 	arma::cube yi = arma::zeros(xi.n_rows, y.n_cols, y.n_slices);
 
-	arma::mat temp_input, temp_output;
+	arma::vec temp_input, temp_output;
 
 	for (int ii = 0; ii < y.n_cols; ii++)
 	{
@@ -243,41 +213,12 @@ arma::cube interp1(arma::mat x, arma::cube y, arma::mat xi)
 	return yi;
 }
 
-arma::cube interp2(arma::mat x, arma::mat y, arma::cube z, arma::mat xi, arma::mat yi)
+arma::cube interp2(arma::vec x, arma::vec y, arma::cube z, arma::vec xi, arma::vec yi)
 {
-	// Check that x, y, xi and yi are vectors, reshape to columns
-	if ((x.n_cols > 1) && (x.n_rows > 1))
-	{
-		std::stringstream ss;
-		ss << "Error in interp1: x must be a column or row vector. \n";
-		throw ValueError(ss.str());
-	}
-	if ((xi.n_cols > 1) && (xi.n_rows > 1))
-	{
-		std::stringstream ss;
-		ss << "Error in interp1: xi must be a column or row vector. \n";
-		throw ValueError(ss.str());
-	}
-	if ((y.n_cols > 1) && (y.n_rows > 1))
-	{
-		std::stringstream ss;
-		ss << "Error in interp1: y must be a column or row vector. \n";
-		throw ValueError(ss.str());
-	}
-	if ((yi.n_cols > 1) && (yi.n_rows > 1))
-	{
-		std::stringstream ss;
-		ss << "Error in interp1: yi must be a column or row vector. \n";
-		throw ValueError(ss.str());
-	}
-	x = arma::reshape(x, x.n_elem, 1);
-	xi = arma::reshape(xi, xi.n_elem, 1);
-	y = arma::reshape(y, y.n_elem, 1);
-	yi = arma::reshape(yi, yi.n_elem, 1);
 
 	// Check that the number of rows in z is the same as in x,
 	// and that the number of columns in z is the same as in y.
-	if ((z.n_rows != x.n_rows) || (z.n_cols != y.n_rows))
+	if ((z.n_rows != x.n_elem) || (z.n_cols != y.n_elem))
 	{
 		std::stringstream ss;
 		ss << "Error in interp2: number of rows in z must be equal to x length, and the number of columns in z must be equal to y length. \n";
@@ -285,7 +226,7 @@ arma::cube interp2(arma::mat x, arma::mat y, arma::cube z, arma::mat xi, arma::m
 	}
 
 	// Initiallize the output matrix
-	arma::cube zi = arma::zeros(xi.n_rows, yi.n_rows, z.n_slices);
+	arma::cube zi = arma::zeros(xi.n_elem, yi.n_elem, z.n_slices);
 
 	arma::mat temp_input, temp_output;
 

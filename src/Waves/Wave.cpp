@@ -242,6 +242,8 @@ void Wave::SetSinglePiece(void)
 	time_end = arma::vec(1);
 	amplitudes_piece = arma::field<arma::mat>(1);
 	phases_piece = arma::field<arma::mat>(1);
+	amplitudes_1D_piece = arma::field<arma::vec>(1);
+	phases_1D_piece = arma::field<arma::vec>(1);
 
 	time_ref(0) = 0.0;
 	time_ini(0) = 0.0;
@@ -260,6 +262,9 @@ void Wave::SetSinglePiece(void)
 	k_piece = k;
 	kx_piece = kx;
 	ky_piece = ky;
+	headings_1D_piece = headings_1D;
+	amplitudes_1D_piece(0) = amplitudes_1D;
+	phases_1D_piece(0) = phases_1D;
 	kx_1D_piece = kx_1D;
 	ky_1D_piece = ky_1D;
 	headings_piece = headings;
@@ -386,11 +391,18 @@ void IrregularWave::GetWaveSpectrum(void)
 		{
 			for (int jj = 0; jj < num_headings; jj++)
 			{
-				this->amplitudes(ii, jj) = sqrt(2.0 * S_w(ii) * df * g_theta(jj) * dtheta);
+				this->amplitudes(ii, jj) = std::sqrt(2.0 * S_w(ii) * df * g_theta(jj) * dtheta);
 			}
 		}
 		// Get the wave checked free surface and phases
 		this->eta_FS = GetCheckedFreeSurface(this->amplitudes, this->num_points, this->simulationTime);
+		// TODO: Review how to define the 1D wave
+		// Get the 1D amplitudes and headings
+		this->headings_1D = arma::ones<arma::vec>(1) * this->heading;
+		this->amplitudes_1D = arma::sqrt(2.0 * S_w * df);
+		// Get the 1D phases
+		arma::cx_vec spc = arma::fft(this->eta_FS);
+		this->phases_1D = arma::atan2(arma::imag(spc), arma::real(spc));
 		// Get the wave lengths
 		GetWaveLengths();
 
@@ -414,10 +426,10 @@ void IrregularWave::GetWaveSpectrum(void)
 		this->time_end(this->num_pieces - 1) = this->simulationTime;
 
 		// Compute the wave frequency spectrum for each piece
-		this->amplitudes_piece = arma::field<arma::mat>(this->num_pieces);
-		this->phases_piece = arma::field<arma::mat>(this->num_pieces);
 		if (this->num_pieces > 1)
 		{
+			this->amplitudes_piece = arma::field<arma::mat>(this->num_pieces);
+			this->phases_piece = arma::field<arma::mat>(this->num_pieces);
 			arma::vec time_piece_total = arma::regspace(0, this->dt, 3 * this->time_piece);
 			num_points_piece = time_piece_total.n_elem;
 			if (num_points_piece % 2 == 0)
@@ -459,6 +471,25 @@ void IrregularWave::GetWaveSpectrum(void)
 			}
 			headings_piece = headings;
 			num_headings_piece = num_headings;
+			// Repeat for 1D wave
+			// TODO: Review how to define the 1D wave
+			this->amplitudes_1D_piece = arma::field<arma::vec>(this->num_pieces);
+			this->phases_1D_piece = arma::field<arma::vec>(this->num_pieces);
+			for (int ii = 0; ii < this->num_pieces; ii++)
+			{
+				arma::vec tmp_t = time_piece_total + arma::as_scalar(this->time_ref(ii));
+				arma::vec tmp_eta;
+				arma::interp1(t_FS, eta_FS, tmp_t, tmp_eta, "*linear");
+				arma::cx_vec yf = arma::fft(tmp_eta) / num_points_piece;
+				arma::vec psd = arma::pow(arma::abs(yf.rows(0, num_comps_piece - 1)), 2) / df_piece;
+				psd.rows(1, num_comps_piece - 1) = 2.0 * psd.rows(1, num_comps_piece - 1);
+				psd(0, 0) = 0.0;
+				this->amplitudes_piece(ii) = arma::sqrt(2.0 * psd * df_piece);
+				this->phases_piece(ii) = arma::atan2(arma::imag(yf.rows(0, num_comps_piece - 1)),
+													 arma::real(yf.rows(0, num_comps_piece - 1))) -
+										 ang_freqs_piece * this->time_ref(ii); // TODO: Check this
+			}
+			headings_1D_piece = headings_1D;
 		}
 		else
 		{
@@ -869,12 +900,12 @@ void IrregularWave::CutPiecesSpectrumZeros(void)
 	std::cout << "--> Cropping pieces spectrum to avoid zeros..." << std::endl;
 
 	// Find the maximum amplitude value among the pieces
-	arma::mat amplitudes_max = arma::zeros(num_comps_piece, num_headings);
+	arma::mat amplitudes_max = arma::zeros(num_comps_piece, num_headings_piece);
 	for (int ii = 0; ii < this->num_pieces; ii++)
 	{
 		for (int jj = 0; jj < num_comps_piece; jj++)
 		{
-			for (int kk = 0; kk < num_headings; kk++)
+			for (int kk = 0; kk < num_headings_piece; kk++)
 			{
 				amplitudes_max(jj, kk) = std::max(amplitudes_max(jj, kk), this->amplitudes_piece(ii)(jj, kk));
 			}

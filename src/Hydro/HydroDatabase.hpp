@@ -39,8 +39,8 @@ public:
 	arma::cube **pDampingRadiation;	 // Matrix components: [body, dof, dof, freqs];
 	arma::mat **pDampingRadiationLf; // Matrix components: [body, dof, dof]
 	arma::mat *fidd;
-	arma::mat *pFrequencies;		  // Vector: [1, freqs]
-	arma::mat *pHeadings;			  // Vector: [1, headings]
+	arma::vec *pFrequencies;		  // Vector: [1, freqs]
+	arma::vec *pHeadings;			  // Vector: [1, headings]
 	arma::mat *pHydrostaticStiffness; // Matrix components: [dof, dof]
 	arma::cube **pIRF;				  // Matrix components: [body, numTime, dof, dof]
 	arma::mat **pIRFPoints;			  // Matrix components: [body, dof, dof]
@@ -62,8 +62,22 @@ public:
 	arma::cube WE_Real_w;	 // Matrix components after SetUp: [headings, freqs_w, dofs];
 	arma::cube WE_Imag_w;	 // Matrix components after SetUp: [headings, freqs_w, dofs];
 
-	arma::mat ampP, wD, phD, kxD, kyD, wS, phS, kxS, kyS; // Postproces matrices for QTF computation
-	arma::mat F_meanDrift = arma::zeros(6, 1);
+	// Preprocess matrices for QTF computation
+	arma::field<arma::mat> ampP; // Amplitude products matrices for all wave pieces
+	arma::mat wD; // Angular frequencies differences matrices for all wave pieces
+	arma::field<arma::mat> phD; // Phases differences matrices for all wave pieces
+	arma::mat kxD; // X-axis wave number differences matrices for all wave pieces
+	arma::mat kyD; // Y-axis wave number differences matrices for all wave pieces
+	arma::mat wS; // Angular frequencies sums matrices for all wave pieces
+	arma::field<arma::mat> phS; // Phases sums matrices for all wave pieces
+	arma::mat kxS; // X-axis wave number sums matrices for all wave pieces
+	arma::mat kyS; // Y-axis wave number sums matrices for all wave pieces
+	arma::mat F_meanDrift = arma::zeros(6, 1); // Mean drift force
+
+	// Variables for precomputed excitation forces
+	arma::vec time_exc; // Time vector for the precomputed excitation forces
+	arma::mat force_excFirstOrder; // Precomputed forces for the first order wave excitation
+	arma::mat force_excSecondOrder; // Precomputed forces for the second order wave excitation
 
 	// Class Constructors
 	HydroDatabase(int incId, int incIdBody, Body **incBodies, Simulation *pIncSim);

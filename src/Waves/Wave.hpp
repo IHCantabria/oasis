@@ -75,6 +75,9 @@ public:
     int num_comps_piece;
     int num_points_piece;
     int num_headings_piece;
+    arma::vec time_ref;
+    arma::vec time_ini;
+    arma::vec time_end;
     arma::vec periods_piece;
     arma::vec freqs_piece;
     arma::vec ang_freqs_piece;
@@ -82,14 +85,14 @@ public:
     arma::vec k_piece;
     arma::mat kx_piece;
     arma::mat ky_piece;
-    arma::vec kx_1D_piece;
-    arma::vec ky_1D_piece;
     arma::vec headings_piece;
-    arma::vec time_ref;
-    arma::vec time_ini;
-    arma::vec time_end;
     arma::field<arma::mat> amplitudes_piece;
     arma::field<arma::mat> phases_piece;
+    arma::vec headings_1D_piece;
+    arma::vec kx_1D_piece;
+    arma::vec ky_1D_piece;
+    arma::field<arma::vec> amplitudes_1D_piece;
+    arma::field<arma::vec> phases_1D_piece;
 
     // Declare class constructors
     Wave(Simulation *pSimInc, double H, double T, double D);
