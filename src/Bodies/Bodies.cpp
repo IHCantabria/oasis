@@ -177,6 +177,8 @@ void Body::ReadPropertiesASCII(FILE *pFile)
     double dtemp;
     int itemp;
 
+    std::cout << "--> Reading Body: " << this->GetId() + 1 << std::endl;
+
     // Read flag to take COG from Hydrodynamic database
     if (fscanf(pFile, "%d %[^\n]\n", &takeCOGHydroDatabase, buffer_line) != 2)
     {
@@ -186,6 +188,8 @@ void Body::ReadPropertiesASCII(FILE *pFile)
         throw ValueError(ss.str());
     }
 
+    std::cout << " takeCOGHydroDatabase: " << takeCOGHydroDatabase << std::endl;
+
     // Read dofs considered
     fgetpos(pFile, &carriage_init);
     while (fscanf(pFile, "%d", &itemp) == 1)
@@ -193,6 +197,8 @@ void Body::ReadPropertiesASCII(FILE *pFile)
         this->numDofs++;
     }
     fsetpos(pFile, &carriage_init);
+
+    std::cout << " numDofs: " << numDofs << std::endl;
 
     this->pDofs = new int[this->numDofs];
     for (int ii = 0; ii < this->numDofs; ii++)
@@ -208,6 +214,8 @@ void Body::ReadPropertiesASCII(FILE *pFile)
     }
     fscanf(pFile, "%[^\n]\n", buffer_line);
 
+    std::cout << "    --> Degrees of Freedom: " << this->pDofs << std::endl;
+
     // Read the boundary condition points in the body
     fgetpos(pFile, &carriage_init);
     while (fscanf(pFile, "%d", &itemp) == 1)
@@ -220,7 +228,6 @@ void Body::ReadPropertiesASCII(FILE *pFile)
     fgetpos(pFile, &carriage_init);
     fgets(buffer_line, sizeof(buffer_line), pFile);
     fsetpos(pFile, &carriage_init);
-    std::cout << buffer_line << std::endl;
     for (int ii = 0; ii < this->numBcps; ii++)
     {
         if (fscanf(pFile, "%d", &itemp) != 1)
@@ -233,6 +240,8 @@ void Body::ReadPropertiesASCII(FILE *pFile)
         this->pIndexBcps[ii] = itemp - 1;
     }
     fscanf(pFile, "%[^\n]\n", buffer_line);
+
+    std::cout << "    --> Boundary Condition Points: " << this->pIndexBcps << std::endl;
 
     // Read the wind turbines in the body
     fgetpos(pFile, &carriage_init);
@@ -247,7 +256,6 @@ void Body::ReadPropertiesASCII(FILE *pFile)
     fgetpos(pFile, &carriage_init);
     fgets(buffer_line, sizeof(buffer_line), pFile);
     fsetpos(pFile, &carriage_init);
-    std::cout << buffer_line << std::endl;
     for (int ii = 0; ii < this->numWindTurbs; ii++)
     {
         if (fscanf(pFile, "%d", &itemp) != 1)
@@ -260,6 +268,8 @@ void Body::ReadPropertiesASCII(FILE *pFile)
         this->pIndexWindTurbs[ii] = itemp - 1;
     }
     fscanf(pFile, "%[^\n]\n", buffer_line);
+
+    std::cout << "    --> Wind Turbines: " << this->pIndexWindTurbs << std::endl;
 
     // Read Initial position
     for (int ii = 0; ii < 6; ii++)
@@ -279,6 +289,8 @@ void Body::ReadPropertiesASCII(FILE *pFile)
     }
     fscanf(pFile, "%[^\n]\n", buffer_line);
 
+    std::cout << "    --> Initial Position: " << this->pos.t() << std::endl;
+
     // Read Initial displacement from reference position
     for (int ii = 0; ii < 6; ii++)
     {
@@ -293,6 +305,8 @@ void Body::ReadPropertiesASCII(FILE *pFile)
     fscanf(pFile, "%[^\n]\n", buffer_line);
     pos_ini = pos;
 
+    std::cout << "    --> Initial Disp: " << pos.t() << std::endl;
+
     // Read hydrodynamic database filename
     if (fscanf(pFile, "%s %[^\n]\n", cHydroDatabaseName, buffer_line) != 2)
     {
@@ -302,6 +316,8 @@ void Body::ReadPropertiesASCII(FILE *pFile)
     }
     this->hydroDatabaseName = cHydroDatabaseName;
 
+    std::cout << "    --> Hidrodynamic Database: " << this->hydroDatabaseName << std::endl;
+
     // Read body index in the associated database
     if (fscanf(pFile, "%d %[^\n]\n", &(this->hydroDatabaseIndex), buffer_line) != 2)
     {
@@ -310,6 +326,8 @@ void Body::ReadPropertiesASCII(FILE *pFile)
         throw ValueError(ss.str());
     }
     this->hydroDatabaseIndex--;
+
+    std::cout << "    --> Hidrodynamic Database Index: " << this->hydroDatabaseIndex + 1 << std::endl;
 
     // Read flag for blocking the body
     if (fscanf(pFile, "%d %[^\n]\n", &itemp, buffer_line) != 2)
@@ -331,6 +349,8 @@ void Body::ReadPropertiesASCII(FILE *pFile)
         throw ValueError(ss.str());
     }
 
+    std::cout << "    --> Flag Blocked: " << flag_blocked << std::endl;
+
     // Read movements filename
     if (fscanf(pFile, "%s %[^\n]\n", cMovementsFileName, buffer_line) != 2)
     {
@@ -339,6 +359,8 @@ void Body::ReadPropertiesASCII(FILE *pFile)
         throw ValueError(ss.str());
     }
     this->movementsFileName = cMovementsFileName;
+
+    std::cout << "    --> Movements File Name: " << this->movementsFileName << std::endl;
 
     // Read flag for hidrostatics of the body
     if (fscanf(pFile, "%d %[^\n]\n", &itemp, buffer_line) != 2)
@@ -360,6 +382,8 @@ void Body::ReadPropertiesASCII(FILE *pFile)
         throw ValueError(ss.str());
     }
 
+    std::cout << "    --> Flag Hidrostatics: " << flag_hidrostatics << std::endl;
+
     // Read body mesh file name
     if (fscanf(pFile, "%s %[^\n]\n", cHydrostaticMeshName, buffer_line) != 2)
     {
@@ -368,6 +392,8 @@ void Body::ReadPropertiesASCII(FILE *pFile)
         throw ValueError(ss.str());
     }
     this->hydrostaticMeshName = cHydrostaticMeshName;
+
+    std::cout << "    --> Hidrostatic Mesh Name: " << this->hydrostaticMeshName << std::endl;
 
     // Read flag for first order excitation force
     if (fscanf(pFile, "%d %[^\n]\n", &firstOrderExcitationFlag, buffer_line) != 2)
@@ -378,6 +404,8 @@ void Body::ReadPropertiesASCII(FILE *pFile)
         throw ValueError(ss.str());
     }
 
+    std::cout << "    --> First Order Excitation Flag: " << firstOrderExcitationFlag << std::endl;
+
     // Read flag for second order excitation force
     if (fscanf(pFile, "%d %[^\n]\n", &secondOrderExcitationFlag, buffer_line) != 2)
     {
@@ -386,6 +414,8 @@ void Body::ReadPropertiesASCII(FILE *pFile)
            << ".\n";
         throw ValueError(ss.str());
     }
+
+    std::cout << "    --> Second Order Excitation Flag: " << secondOrderExcitationFlag << std::endl;
 
     // Read viscous added mass coefficients
     for (int ii = 0; ii < 6; ii++)
@@ -400,6 +430,8 @@ void Body::ReadPropertiesASCII(FILE *pFile)
     }
     fscanf(pFile, "%[^\n]\n", buffer_line);
 
+    std::cout << "    --> Viscous Added Mass: " << A_visc.t() << std::endl;
+
     // Read viscous damping coefficients
     for (int ii = 0; ii < 6; ii++)
     {
@@ -412,6 +444,8 @@ void Body::ReadPropertiesASCII(FILE *pFile)
         B_visc(ii, 0) += dtemp;
     }
     fscanf(pFile, "%[^\n]\n", buffer_line);
+
+    std::cout << "    --> Viscous Damping: " << B_visc.t() << std::endl;
 
     // Read viscous damping coefficients
     for (int ii = 0; ii < 6; ii++)
@@ -426,14 +460,16 @@ void Body::ReadPropertiesASCII(FILE *pFile)
     }
     fscanf(pFile, "%[^\n]\n", buffer_line);
 
+    std::cout << "    --> Viscous Damping 2: " << B_visc2.t() << std::endl;
+
     // Generate array of pointers in order to storage the BCPs pointers
     this->pBodyBcps = new BCP *[this->numBcps];
 
     if (flag_blocked == 2)
     {
-        std::cout << "    ----> Reading Body Imposed Movements..." << std::endl;
+        std::cout << "    --> Reading Body Imposed Movements..." << std::endl;
         ReadLockBodyMovements();
-        std::cout << "    ----> Body Imposed Movements Read" << std::endl;
+        std::cout << "    --> Body Imposed Movements Read" << std::endl;
     }
 
     // Generate object of hidrostatic mesh if needed

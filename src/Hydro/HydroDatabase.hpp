@@ -57,26 +57,35 @@ public:
 	arma::cube *pWaveExcitingMag; // Matrix components: [dofs, freqs, headings];
 	arma::cube *pWaveExcitingPha; // Matrix components: [dofs, freqs, headings];
 
-	arma::cube ***QtfDiff_w; // Matrix componets after SetUp: [parts, dofs, freq1_w, freq2_w, headings] | The first two are pointers to cube variables and last three are arma::cube
-	arma::cube ***QtfSum_w;	 // Matrix componets after SetUp: [parts, dofs, freq1_w, freq2_w, headings] | The first two are pointers to cube variables and last three are arma::cube
-	arma::cube WE_Real_w;	 // Matrix components after SetUp: [headings, freqs_w, dofs];
-	arma::cube WE_Imag_w;	 // Matrix components after SetUp: [headings, freqs_w, dofs];
+	arma::cube ***QtfDiff_w;			 // Matrix componets after SetUp: [parts, dofs, freq1_w, freq2_w, headings] | The first two are pointers to cube variables and last three are arma::cube
+	arma::cube ***QtfSum_w;				 // Matrix componets after SetUp: [parts, dofs, freq1_w, freq2_w, headings] | The first two are pointers to cube variables and last three are arma::cube
+	arma::cube WE_Real_w;				 // Matrix components after SetUp: [headings, freqs_w, dofs];
+	arma::cube WE_Imag_w;				 // Matrix components after SetUp: [headings, freqs_w, dofs];
+	int numFrequencies_w;				 // Number of frequencies in the wave spectrum inside the frequency range of hydrodynamic database coefficients
+	arma::vec freqs_w;					 // Wave frequencies vector: [1, numFrequencies_w] (Hz)
+	arma::vec ang_freqs_w;				 // Wave angular frequencies vector: [1, numFrequencies_w] (rad/s)
+	arma::mat kx_w;						 // Wave number in the x-axis in the frequency range of hydrodynamic database coefficients
+	arma::mat ky_w;						 // Wave number in the y-axis in the frequency range of hydrodynamic database coefficients
+	arma::field<arma::mat> amplitudes_w; // Wave amplitudes in the frequency range of hydrodynamic database coefficients
+	arma::field<arma::mat> phases_w;	 // Wave phases in the frequency range of hydrodynamic database coefficients
 
 	// Preprocess matrices for QTF computation
 	arma::field<arma::mat> ampP; // Amplitude products matrices for all wave pieces
-	arma::mat wD; // Angular frequencies differences matrices for all wave pieces
-	arma::field<arma::mat> phD; // Phases differences matrices for all wave pieces
-	arma::mat kxD; // X-axis wave number differences matrices for all wave pieces
-	arma::mat kyD; // Y-axis wave number differences matrices for all wave pieces
-	arma::mat wS; // Angular frequencies sums matrices for all wave pieces
-	arma::field<arma::mat> phS; // Phases sums matrices for all wave pieces
-	arma::mat kxS; // X-axis wave number sums matrices for all wave pieces
-	arma::mat kyS; // Y-axis wave number sums matrices for all wave pieces
-	arma::mat F_meanDrift = arma::zeros(6, 1); // Mean drift force
+	arma::mat wD;				 // Angular frequencies differences matrices for all wave pieces
+	arma::field<arma::mat> phD;	 // Phases differences matrices for all wave pieces
+	arma::mat kxD;				 // X-axis wave number differences matrices for all wave pieces
+	arma::mat kyD;				 // Y-axis wave number differences matrices for all wave pieces
+	arma::mat wS;				 // Angular frequencies sums matrices for all wave pieces
+	arma::field<arma::mat> phS;	 // Phases sums matrices for all wave pieces
+	arma::mat kxS;				 // X-axis wave number sums matrices for all wave pieces
+	arma::mat kyS;				 // Y-axis wave number sums matrices for all wave pieces
+
+	// Mean drift force
+	arma::mat F_meanDrift = arma::zeros(6, 1);
 
 	// Variables for precomputed excitation forces
-	arma::vec time_exc; // Time vector for the precomputed excitation forces
-	arma::mat force_excFirstOrder; // Precomputed forces for the first order wave excitation
+	arma::vec time_exc;				// Time vector for the precomputed excitation forces
+	arma::mat force_excFirstOrder;	// Precomputed forces for the first order wave excitation
 	arma::mat force_excSecondOrder; // Precomputed forces for the second order wave excitation
 
 	// Class Constructors

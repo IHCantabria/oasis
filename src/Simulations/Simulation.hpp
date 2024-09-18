@@ -75,9 +75,9 @@ public:
     arma::sp_mat *pLinesCouplingMatrix_sp;
     arma::mat *pLinesCouplingMatrix;
     arma::mat *pLinesCouplingMatrixInv;
-    arma::uvec indexesNoFairNoAnchor; // indices a quitar, tienen que ser enteros
-    arma::uvec indexesFairAnchor;     // indices a quitar, tienen que ser enteros
-    arma::mat filasQuitadas;          // las filas que se quitaron
+    arma::uvec indexesNoFairNoAnchor;
+    arma::uvec indexesFairAnchor;
+    arma::mat removed_rows;
 
     // Declare Components Setup Attributes
     AnchorBCP **pAnchorBcps;
@@ -162,7 +162,6 @@ public:
     void ReadSeaFloor(void);
     void ReadSeaFloorASCII(void);
     void ReadSeaFloorHDF5(void);
-
     void ReadWindTurbines(void);
     void ReadWindTurbinesASCII(void);
     void ReadWindTurbinesHDF5(void);

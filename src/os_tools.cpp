@@ -21,35 +21,36 @@
 namespace fs = std::experimental::filesystem;
 
 #if defined(_WIN32) || defined(_WIN64) || defined(__CYGWIN__)
-	#include <windows.h>
-	
-	std::string GetWorkingDir() {
-		char buffer[MAX_PATH];
-		GetModuleFileName( NULL, buffer, MAX_PATH );
-		std::string::size_type pos = std::string( buffer ).find_last_of( "\\/" );
-		return std::string( buffer ).substr( 0, pos);
-	}
-#elif defined(__unix__)
-	#include <unistd.h>
-	
-	std::string GetWorkingDir() {
-		char buffer[FILENAME_MAX];
-		getcwd(buffer, FILENAME_MAX);
-		std::string::size_type pos = std::string( buffer ).find_last_of( "\\/" );
-		return std::string( buffer ).substr( 0, pos);
-	}
-#endif
+#include <windows.h>
 
+std::string GetWorkingDir()
+{
+	char buffer[MAX_PATH];
+	GetModuleFileName(NULL, buffer, MAX_PATH);
+	std::string::size_type pos = std::string(buffer).find_last_of("\\/");
+	return std::string(buffer).substr(0, pos);
+}
+#elif defined(__unix__)
+#include <unistd.h>
+
+std::string GetWorkingDir()
+{
+	char buffer[FILENAME_MAX];
+	getcwd(buffer, FILENAME_MAX);
+	std::string::size_type pos = std::string(buffer).find_last_of("\\/");
+	return std::string(buffer).substr(0, pos);
+}
+#endif
 
 bool CheckDirExits(std::string folderPath)
 {
-	
+
 	bool exists = false;
 	struct stat info;
 
-	if( stat( folderPath.c_str(), &info ) != 0 ) // S_ISDIR() doesn't exist on my windows 
+	if (stat(folderPath.c_str(), &info) != 0) // S_ISDIR() doesn't exist on my windows
 		exists = false;
-	else if( info.st_mode & S_IFDIR )  
+	else if (info.st_mode & S_IFDIR)
 		exists = true;
 	else
 		exists = false;
@@ -57,16 +58,18 @@ bool CheckDirExits(std::string folderPath)
 	return exists;
 }
 
-
-inline bool CheckFileExists (const std::string& name) {
-    if (FILE *file = fopen(name.c_str(), "r")) {
-        fclose(file);
-        return true;
-    } else {
-        return false;
-    }   
+inline bool CheckFileExists(const std::string &name)
+{
+	if (FILE *file = fopen(name.c_str(), "r"))
+	{
+		fclose(file);
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }
-
 
 void CheckInputFile(std::string inputFile, std::string specsStr)
 {
@@ -74,7 +77,7 @@ void CheckInputFile(std::string inputFile, std::string specsStr)
 	std::cout << !CheckFileExists(inputFile) << std::endl;
 	if (inputFile.length() > 4)
 	{
-		if (inputFile.substr(inputFile.length()-4, 4).compare(".dat") != 0)
+		if (inputFile.substr(inputFile.length() - 4, 4).compare(".dat") != 0)
 		{
 			std::stringstream ss;
 			ss << "Invalid file data format for: " << specsStr.c_str();
@@ -95,7 +98,6 @@ void CheckInputFile(std::string inputFile, std::string specsStr)
 	}
 }
 
-
 std::string CorrectBackSlashes(std::string path)
 {
 	int pos_backslash = path.find("\\", 0);
@@ -104,46 +106,45 @@ std::string CorrectBackSlashes(std::string path)
 		path.replace(pos_backslash, 1, "/");
 		pos_backslash = path.find("\\", pos_backslash);
 	}
-	
+
 	return path;
 }
-
 
 std::string JoinPath(std::string basePath, std::string subdirName)
 {
 	// Declare variables
 	fs::path p1 = basePath.c_str();
-	
+
 	// Join paths
 	p1 /= subdirName.c_str();
 	std::string full_dir = CorrectBackSlashes(p1.u8string());
-	
+
 	return full_dir;
 }
 
-
 std::string JoinPaths(std::string basePath, std::vector<std::string> subDirs)
 {
-	for (int i=0; i<subDirs.size(); i++)
+	for (int i = 0; i < subDirs.size(); i++)
 	{
 		basePath = JoinPath(basePath, subDirs[i]);
 	}
-	
+
 	return basePath;
 }
-
 
 void WriteASCII(std::string filePath, arma::mat outVec, bool showColsNum)
 {
 	std::ofstream xpos;
-		xpos.open(filePath);
-		if (showColsNum)
-		{
-			for(int ii=0;ii<outVec.n_rows;ii++) xpos << std::setw(15) <<  ii;
-			xpos << std::endl;
-		}
-		for(int ii=0;ii<outVec.n_rows;ii++) xpos << std::setw(15) <<  outVec(ii,0);
+	xpos.open(filePath);
+	if (showColsNum)
+	{
+		for (int ii = 0; ii < outVec.n_rows; ii++)
+			xpos << std::setw(15) << ii;
 		xpos << std::endl;
+	}
+	for (int ii = 0; ii < outVec.n_rows; ii++)
+		xpos << std::setw(15) << outVec(ii, 0);
+	xpos << std::endl;
 	xpos.close();
 }
 
