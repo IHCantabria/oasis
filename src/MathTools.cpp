@@ -82,6 +82,54 @@ arma::mat linspace(double a, double b, int numPoints)
 	return vec;
 }
 
+double cubic_interp(double t0, double t1, double y0, double y1, double dy0, double dy1, double point_to_eval)
+{
+	arma::mat A= {
+		{pow(t0,3), pow(t0,2), t0, 1},
+		{pow(t1,3), pow(t1,2), t1, 1},
+		{3*pow(t0,2), 2*t0, 1, 0},
+		{3*pow(t1,2), 2*t1, 1, 0}
+
+	};
+	arma::vec B = {y0, y1, dy0, dy1};
+	 // Check singularity
+    double det_A = arma::det(A);
+    // std::cout << "In function cubic_interp:" << std::endl;
+    // std::cout << "  t0: " << t0 << std::endl;
+    // std::cout << "  t1: " << t1 << std::endl;
+    // std::cout << "  Determinante de A: " << det_A << std::endl;
+	// Solve system
+	arma::vec X; // solution {a3}, {a2}, {a1}, {a0}
+    if (fabs(det_A) < 1e-6) {
+        // std::cerr << "La matriz del sistema para hallar los tiempos de corte en el cambio de strain rate es singular o está mal condicionada." << std::endl;
+        // Singular Values Decomposition (SVD)
+		arma::mat U, V;
+		arma::vec s;
+		arma::svd(U, s, V, A); // Descomposición SVD de A
+		// Filtrar los valores singulares pequeños
+		arma::vec s_inv = s;
+		double tol = 1e-10; // Ajustar este valor según sea necesario
+		for (int i = 0; i < s.n_elem; i++) {
+			if (s(i) > tol) {
+				s_inv(i) = 1.0 / s(i);
+			} else {
+				s_inv(i) = 0.1;  // Ignorar valores singulares pequeños
+			}
+		}
+
+		// Calcular la solución X
+		X = V * arma::diagmat(s_inv) * U.t() * B;
+    }
+	else{
+		X = arma::solve(A, B); 
+	} 
+	
+	double eval = X[3]+X[2]*point_to_eval+X[1]*pow(point_to_eval,2)+X[0]*pow(point_to_eval,3);
+	// std::cout << "Strain at zero tieme crossing time t_k: " << eval << std::endl;
+	return eval;
+
+}
+
 double trapz(arma::mat y, double h)
 {
 	double int_value = 0.0;

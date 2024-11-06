@@ -10,6 +10,7 @@ arma::cube interp1(arma::vec x, arma::cube y, arma::vec xi);
 arma::cube interp2(arma::vec x, arma::vec y, arma::cube z, arma::vec xi, arma::vec yi);
 arma::mat linspace(double a, double b, int numPoints);
 arma::mat mod(arma::mat a, double x);
+double cubic_interp(double t0, double t1, double y0, double y1, double dy0, double dy1, double point_to_eval);
 double trapz(arma::mat y, double h);
 double trapzi(arma::mat t, arma::mat y);
 std::tuple<arma::vec, arma::vec> upcrossing(arma::vec t, arma::vec u);
