@@ -47,7 +47,9 @@ public:
 	
 	int num_time_steps = 0; // number of vector points to integrate. To avoid adding more terms.
 	double dt = 0.01;
-	double last_time = -10.0; //-10.0;
+	double last_time = -10.0;
+	double dt_print = 0.01;
+	double last_time_print = -10.0;
 	double tol_zero = 1e-9;
 	int num_buffer;
 	double flag_visc;
