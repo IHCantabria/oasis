@@ -1755,6 +1755,15 @@ void Simulation::Run()
                 pBodies[ii]->WriteOut(wallTime);
         }
 
+        for (int ii = 0; ii < numLines; ii = ii + 1)
+        {
+            if ((pLines[ii]->flag_visc==1)&&(pTimeSolver->t>=pLines[ii]->last_time+pLines[ii]->dt))
+            {
+                pLines[ii]->update_buffer(pTimeSolver->t);
+                pLines[ii]->last_time = pTimeSolver->t;
+            }
+        }
+
         if (pTimeSolver->t >= wallTimeHydro + hydroTimeStep)
         {
             // std::cout<< "In Simulation::Run --> Computing hydrodynamic forces... "<< std::endl;
