@@ -3,8 +3,8 @@
 
 #include <string>
 
-//Global version strings
+// Global version strings
 extern const std::string gVERSION;
 extern const std::string gVERSION_SHORT;
 
-#endif //VERSION_H
+#endif // VERSION_H
