@@ -21,48 +21,62 @@
 #include "ODE_solvers/ODE_solvers.hpp"
 #include "os_tools.hpp"
 
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////          MAIN           ///////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-int main (int argc, char* argv[]) 
+int main(int argc, char *argv[])
 {
-	std::cout << std::endl << "----------------------------------------------"  << std::endl; //////////////////////////////////////////
-	std::cout << "Starting OASIS: Offshore Advanced Simulation Software" << std::endl << std::endl; //////////////////////////////////////////
+	std::cout << std::endl
+			  << "----------------------------------------------" << std::endl;
+	std::cout << "OASIS: Offshore Advanced Simulation Software" << std::endl
+			  << std::endl;
 
 	// Declare variables
 	std::string project_path;
+
 	// Read input arguments
 	if (argc < 2)
 	{
-		printf("Not enought input arguments. First argument must be the project root path.");
+		std::cout << "Not enought input arguments. First argument must be the project root path." << std::endl;
 		return 1;
 	}
 	else
 	{
 		project_path = argv[1];
-		printf("PROJECT ROOT PATH: %s\n\n", project_path.c_str());
+		std::cout << "Simulation directory path:\n";
+		if (project_path.length() > 0)
+		{
+			std::cout << "  " << project_path << std::endl;
+		}
+		else
+		{
+			std::cout << "  /.  (pwd)" << std::endl;
+		}
 	}
-	
+
 	try
 	{
-		printf("Before initializing...\n");
-		Simulation* mySim = new Simulation(project_path, "ASCII");
-		printf("Before initializing...\n");
+		std::cout << std::endl
+				  << "Creating simulation..." << std::endl;
+		Simulation *mySim = new Simulation(project_path, "ASCII");
+		std::cout << std::endl
+				  << "Loading..." << std::endl;
 		mySim->LoadCase();
+		std::cout << std::endl
+				  << "Initializing..." << std::endl;
 		mySim->Initialize();
+		std::cout << std::endl
+				  << "Running..." << std::endl;
 		mySim->Run();
+		std::cout << std::endl
+				  << "Closing simulation..." << std::endl;
 		mySim->CloseCase();
 	}
-	catch(Exception& error)
+	catch (Exception &error)
 	{
 		error.PrintDebug();
 	}
-	
-	std::cout << "End of the program.\n"; //////////////////////////////////////////
-	std::cout << "----------------------------------------------\n\n"; //////////////////////////////////////////
+
+	std::cout << "\n";
+	std::cout << "End of OASIS.\n";
+	std::cout << "----------------------------------------------\n\n";
+
 	return 0;
 }

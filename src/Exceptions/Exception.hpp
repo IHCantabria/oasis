@@ -13,25 +13,22 @@ public:
 	void PrintDebug() const;
 };
 
-
-class IOError :  public Exception
+class IOError : public Exception
 {
 public:
 	IOError(std::string probString);
 };
 
-
-class NotImplementedError :  public Exception
+class NotImplementedError : public Exception
 {
 public:
 	NotImplementedError(std::string probString);
 };
 
-
-class ValueError :  public Exception
+class ValueError : public Exception
 {
 public:
 	ValueError(std::string probString);
 };
 
-#endif //exceptiondef_hpp__
+#endif // exceptiondef_hpp__

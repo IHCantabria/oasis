@@ -220,7 +220,6 @@ void Body::ReadPropertiesASCII(FILE *pFile)
     fgetpos(pFile, &carriage_init);
     fgets(buffer_line, sizeof(buffer_line), pFile);
     fsetpos(pFile, &carriage_init);
-    std::cout << buffer_line << std::endl;
     for (int ii = 0; ii < this->numBcps; ii++)
     {
         if (fscanf(pFile, "%d", &itemp) != 1)
@@ -247,7 +246,6 @@ void Body::ReadPropertiesASCII(FILE *pFile)
     fgetpos(pFile, &carriage_init);
     fgets(buffer_line, sizeof(buffer_line), pFile);
     fsetpos(pFile, &carriage_init);
-    std::cout << buffer_line << std::endl;
     for (int ii = 0; ii < this->numWindTurbs; ii++)
     {
         if (fscanf(pFile, "%d", &itemp) != 1)
@@ -431,9 +429,9 @@ void Body::ReadPropertiesASCII(FILE *pFile)
 
     if (flag_blocked == 2)
     {
-        std::cout << "    ----> Reading Body Imposed Movements..." << std::endl;
+        std::cout << "    --> Reading Body Imposed Movements..." << std::endl;
         ReadLockBodyMovements();
-        std::cout << "    ----> Body Imposed Movements Read" << std::endl;
+        std::cout << "    --> Body Imposed Movements Read" << std::endl;
     }
 
     // Generate object of hidrostatic mesh if needed

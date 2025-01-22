@@ -18,12 +18,13 @@ arma::mat HydroDatabase::CalculateHydrodynamicForces(double time)
 {
 	arma::mat F = arma::zeros(activeDofs, 1);
 
-	double rampa = std::min(1.0, time / 50.0); // duración de la rampa harcodeado a 10s!!!!
-
+	double rampa = std::min(1.0, time / 50.0); // TODO: the ramp time should not be hardcoded!
 	double yaw = pBodies[idBody]->pos(5, 0);
 
+	// std::cout << "--> Computing radiation forces..." << std::endl;
 	F = F + ComputeRadiationForces();
 
+	// std::cout << "--> Computing first order diffraction forces..." << std::endl;
 	if (pBodies[idBody]->firstOrderExcitationFlag == 1)
 	{
 		F = F + ComputeFirstWaveExcForce(time) * rampa;
@@ -34,6 +35,7 @@ arma::mat HydroDatabase::CalculateHydrodynamicForces(double time)
 		F = F + ComputeFirstWaveExcForce(time) * rampa;
 	}
 
+	// std::cout << "--> Computing second order diffraction forces..." << std::endl;
 	if (pBodies[idBody]->secondOrderExcitationFlag == 1)
 	{
 		F = F + ComputeSecondWaveExcForce(time) * rampa;
@@ -48,11 +50,11 @@ arma::mat HydroDatabase::CalculateHydrodynamicForces(double time)
 		F = F + ComputeMeanDrift() * rampa;
 	}
 
-	// Viscous drag forces
+	// std::cout << "--> Computing viscous drag forces..." << std::endl;
 	arma::mat vv = pBodies[idBody]->vel;
 	F = F - pBodies[idBody]->B_visc % vv - pBodies[idBody]->B_visc2 % vv % arma::abs(vv);
 
-	// Wind and current forces
+	// std::cout << "--> Computing wind and current forces..." << std::endl;
 	if (pMor->flag_wind)
 	{
 		F = F + pMor->ComputeWindForce(idBody, yaw, time);
@@ -318,6 +320,7 @@ HydroDatabase::HydroDatabase(int incId, int incIdBody, Body **incBody, Simulatio
 void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 {
 	// Read number of bodies
+	std::cout << "Loading hydrodynamic data from file: " << filePath << "...\n";
 	std::cout << "  Reading number of bodies...\n";
 	arma::mat num_bodies_mat;
 	num_bodies_mat.load(arma::hdf5_name(filePath, "num_bodies"));
@@ -334,7 +337,7 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 	std::stringstream frequencies_fn;
 	pFrequencies = new arma::vec;
 	frequencies_fn << "body_" << this->GetId() << "/frequencies";
-	pFrequencies->load(arma::hdf5_name(filePath, frequencies_fn.str()));
+	pFrequencies->load(arma::hdf5_name(filePath, frequencies_fn.str(), arma::hdf5_opts::trans));
 	numFrequencies = pFrequencies->n_rows;
 
 	// Read headings (radians)
@@ -342,7 +345,7 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 	std::stringstream headings_fn;
 	pHeadings = new arma::vec;
 	headings_fn << "body_" << this->GetId() << "/headings";
-	pHeadings->load(arma::hdf5_name(filePath, headings_fn.str()));
+	pHeadings->load(arma::hdf5_name(filePath, headings_fn.str(), arma::hdf5_opts::trans));
 	numHeadings = pHeadings->n_rows;
 
 	// Read hydrostatic stiffness
@@ -458,7 +461,7 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 	}
 	pWaveExcitingPha->load(arma::hdf5_name(filePath, wave_exciting_pha_fn.str()));
 
-	if (pBodies[idBody]->secondOrderExcitationFlag > 0 && pBodies[idBody]->secondOrderExcitationFlag < 4)
+	if (pBodies[idBody]->secondOrderExcitationFlag > 0)
 	{
 		// Read QTF data
 		std::cout << "  Reading QTF data...\n";
@@ -521,7 +524,9 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 	// Compute IRF function
 	std::cout << "  Computing IRF ...\n";
 	std::string HDBname = filePath.substr(filePath.find_last_of("/") + 1);
+	std::cout << "    assembling filename...\n";
 	HDBname = HDBname.substr(0, HDBname.length() - 6);
+	std::cout << "    assembling filename done!\n";
 	this->ComputeIRF(HDBname);
 
 	// Load Morison forces data
@@ -581,17 +586,17 @@ arma::mat HydroDatabase::ComputeFirstWaveExcForce(double t)
 		H_Pha_loc = H_Pha(arma::span::all, arma::span::all, arma::span(ii));
 
 		// Multiply the transfer functions with the wave amplitudes for the current wave piece
-		Cm = arma::sum(H_Mag_loc % pWave->amplitudes_piece(ind_piece(0)) %
-						   arma::cos(pWave->phases_piece(ind_piece(0)) +
+		Cm = arma::sum(H_Mag_loc % amplitudes_w(ind_piece(0)) %
+						   arma::cos(phases_w(ind_piece(0)) +
 									 H_Pha_loc +
-									 x * pWave->kx_piece +
-									 y * pWave->ky_piece),
+									 x * kx_w +
+									 y * ky_w),
 					   1);
-		Sm = arma::sum(H_Mag_loc % pWave->amplitudes_piece(ind_piece(0)) %
-						   arma::sin(pWave->phases_piece(ind_piece(0)) +
+		Sm = arma::sum(H_Mag_loc % amplitudes_w(ind_piece(0)) %
+						   arma::sin(phases_w(ind_piece(0)) +
 									 H_Pha_loc +
-									 x * pWave->kx_piece +
-									 y * pWave->ky_piece),
+									 x * kx_w +
+									 y * ky_w),
 					   1);
 
 		// Compute amplitude and phase of the excitation force for the current wave piece
@@ -599,22 +604,22 @@ arma::mat HydroDatabase::ComputeFirstWaveExcForce(double t)
 		PHIm = arma::atan2(Sm, Cm);
 
 		// Compute excitation force for the current wave piece
-		F_piece = arma::as_scalar(arma::sum(Am % arma::cos(t * pWave->ang_freqs_piece - PHIm), 0));
+		F_piece = arma::as_scalar(arma::sum(Am % arma::cos(t * ang_freqs_w - PHIm), 0));
 
 		if (flag_gap)
 		{
 			// Multiply the transfer functions with the wave amplitudes for the current wave piece
-			Cm = arma::sum(H_Mag_loc % pWave->amplitudes_piece(ind_piece(0) - 1) %
-							   arma::cos(pWave->phases_piece(ind_piece(0) - 1) +
+			Cm = arma::sum(H_Mag_loc % amplitudes_w(ind_piece(0) - 1) %
+							   arma::cos(phases_w(ind_piece(0) - 1) +
 										 H_Pha_loc +
-										 x * pWave->kx_piece +
-										 y * pWave->ky_piece),
+										 x * kx_w +
+										 y * ky_w),
 						   1);
-			Sm = arma::sum(H_Mag_loc % pWave->amplitudes_piece(ind_piece(0) - 1) %
-							   arma::sin(pWave->phases_piece(ind_piece(0) - 1) +
+			Sm = arma::sum(H_Mag_loc % amplitudes_w(ind_piece(0) - 1) %
+							   arma::sin(phases_w(ind_piece(0) - 1) +
 										 H_Pha_loc +
-										 x * pWave->kx_piece +
-										 y * pWave->ky_piece),
+										 x * kx_w +
+										 y * ky_w),
 						   1);
 
 			// Compute amplitude and phase of the excitation force for the current wave piece
@@ -622,7 +627,7 @@ arma::mat HydroDatabase::ComputeFirstWaveExcForce(double t)
 			PHIm = arma::atan2(Sm, Cm);
 
 			// Compute excitation force for the current wave piece
-			F_gap = arma::as_scalar(arma::sum(Am % arma::cos(t * pWave->ang_freqs_piece - PHIm), 0));
+			F_gap = arma::as_scalar(arma::sum(Am % arma::cos(t * ang_freqs_w - PHIm), 0));
 
 			// Store the excitation force mixing linearly the current and previous piece
 			// TODO: Mix pieces with a qubic function instead of linear
@@ -678,22 +683,32 @@ arma::mat HydroDatabase::ComputeSecondWaveExcForce(double t)
 	// Interpolate transfer functions to the body heading
 	arma::cube ***HDif = new arma::cube **[2];
 	arma::cube ***HSum = new arma::cube **[2];
-	for (int ii = 0; ii < 2; ii++)
+
+	// TODO: Remove this when the precomputed second order excitation forces are implemented
+	if (pBodies[idBody]->secondOrderExcitationFlag == 1)
 	{
-		HDif[ii] = new arma::cube *[activeDofs];
-		HSum[ii] = new arma::cube *[activeDofs];
-		for (int jj = 0; jj < activeDofs; jj++)
+		HDif = QtfDiff_w;
+		HSum = QtfSum_w;
+	}
+	else
+	{
+		for (int ii = 0; ii < 2; ii++)
 		{
-			HDif[ii][jj] = new arma::cube;
-			HSum[ii][jj] = new arma::cube;
+			HDif[ii] = new arma::cube *[activeDofs];
+			HSum[ii] = new arma::cube *[activeDofs];
+			for (int jj = 0; jj < activeDofs; jj++)
+			{
+				HDif[ii][jj] = new arma::cube;
+				HSum[ii][jj] = new arma::cube;
 
-			temp1 = *QtfDiff_w[ii][jj];
-			temp1 = interp1((*pHeadings) + yaw, permute(temp1, 312), pWave->headings_1D);
-			*HDif[ii][jj] = permute(temp1, 231);
+				temp1 = *QtfDiff_w[ii][jj];
+				temp1 = interp1((*pHeadings) + yaw, permute(temp1, 312), pWave->headings_1D);
+				*HDif[ii][jj] = permute(temp1, 231);
 
-			temp1 = *QtfSum_w[ii][jj];
-			temp1 = interp1((*pHeadings) + yaw, permute(temp1, 312), pWave->headings_1D);
-			*HSum[ii][jj] = permute(temp1, 231);
+				temp1 = *QtfSum_w[ii][jj];
+				temp1 = interp1((*pHeadings) + yaw, permute(temp1, 312), pWave->headings_1D);
+				*HSum[ii][jj] = permute(temp1, 231);
+			}
 		}
 	}
 
@@ -711,23 +726,23 @@ arma::mat HydroDatabase::ComputeSecondWaveExcForce(double t)
 
 		// Accumulate the real part of the difference QTF for the current piece and DOF
 		temp2 = (*HDif[0][ii]).slice(0);
-		temp3 = temp2 % ampP(ind_piece(0)) * arma::cos(wD * t + phD(ind_piece(0)) + kxD * x + kyD * y);
-		F_piece = F_piece + 0.5 * arma::as_scalar(arma::sum(arma::sum(temp3, 1), 0));
+		temp3 = temp2 % ampP(ind_piece(0)) % arma::cos(wD * t + phD(ind_piece(0)) + kxD * x + kyD * y);
+		F_piece = F_piece + 0.5 * arma::accu(temp3);
 
 		// Accumulate the imaginary part of the difference QTF for the current piece and DOF
 		temp2 = (*HDif[1][ii]).slice(0);
-		temp3 = temp2 % ampP(ind_piece(0)) * arma::sin(wD * t + phD(ind_piece(0)) + kxD * x + kyD * y);
-		F_piece = F_piece + 0.5 * arma::as_scalar(arma::sum(arma::sum(temp3, 1), 0));
+		temp3 = temp2 % ampP(ind_piece(0)) % arma::sin(wD * t + phD(ind_piece(0)) + kxD * x + kyD * y);
+		F_piece = F_piece + 0.5 * arma::accu(temp3);
 
 		// Accumulate the real part of the sum QTF for the current piece and DOF
 		temp2 = (*HSum[0][ii]).slice(0);
-		temp3 = temp2 % ampP(ind_piece(0)) * arma::cos(wS * t + phS(ind_piece(0)) + kxS * x + kyS * y);
-		F_piece = F_piece + 0.5 * arma::as_scalar(arma::sum(arma::sum(temp3, 1), 0));
+		temp3 = temp2 % ampP(ind_piece(0)) % arma::cos(wS * t + phS(ind_piece(0)) + kxS * x + kyS * y);
+		F_piece = F_piece + 0.5 * arma::accu(temp3);
 
 		// Accumulate the imaginary part of the sum QTF for the current piece and DOF
 		temp2 = (*HSum[1][ii]).slice(0);
-		temp3 = temp2 % ampP(ind_piece(0)) * arma::sin(wS * t + phS(ind_piece(0)) + kxS * x + kyS * y);
-		F_piece = F_piece + 0.5 * arma::as_scalar(arma::sum(arma::sum(temp3, 1), 0));
+		temp3 = temp2 % ampP(ind_piece(0)) % arma::sin(wS * t + phS(ind_piece(0)) + kxS * x + kyS * y);
+		F_piece = F_piece + 0.5 * arma::accu(temp3);
 
 		if (flag_gap)
 		{
@@ -736,23 +751,23 @@ arma::mat HydroDatabase::ComputeSecondWaveExcForce(double t)
 
 			// Accumulate the real part of the difference QTF for the current piece and DOF
 			temp2 = (*HDif[0][ii]).slice(0);
-			temp3 = temp2 % ampP(ind_piece(0) - 1) * arma::cos(wD * t + phD(ind_piece(0) - 1) + kxD * x + kyD * y);
-			F_gap = F_gap + 0.5 * arma::as_scalar(arma::sum(arma::sum(temp3, 1), 0));
+			temp3 = temp2 % ampP(ind_piece(0) - 1) % arma::cos(wD * t + phD(ind_piece(0) - 1) + kxD * x + kyD * y);
+			F_gap = F_gap + 0.5 * arma::accu(temp3);
 
 			// Accumulate the imaginary part of the difference QTF for the current piece and DOF
 			temp2 = (*HDif[1][ii]).slice(0);
-			temp3 = temp2 % ampP(ind_piece(0) - 1) * arma::sin(wD * t + phD(ind_piece(0) - 1) + kxD * x + kyD * y);
-			F_gap = F_gap + 0.5 * arma::as_scalar(arma::sum(arma::sum(temp3, 1), 0));
+			temp3 = temp2 % ampP(ind_piece(0) - 1) % arma::sin(wD * t + phD(ind_piece(0) - 1) + kxD * x + kyD * y);
+			F_gap = F_gap + 0.5 * arma::accu(temp3);
 
 			// Accumulate the real part of the sum QTF for the current piece and DOF
 			temp2 = (*HSum[0][ii]).slice(0);
-			temp3 = temp2 % ampP(ind_piece(0) - 1) * arma::cos(wS * t + phS(ind_piece(0) - 1) + kxS * x + kyS * y);
-			F_gap = F_gap + 0.5 * arma::as_scalar(arma::sum(arma::sum(temp3, 1), 0));
+			temp3 = temp2 % ampP(ind_piece(0) - 1) % arma::cos(wS * t + phS(ind_piece(0) - 1) + kxS * x + kyS * y);
+			F_gap = F_gap + 0.5 * arma::accu(temp3);
 
 			// Accumulate the imaginary part of the sum QTF for the current piece and DOF
 			temp2 = (*HSum[1][ii]).slice(0);
-			temp3 = temp2 % ampP(ind_piece(0) - 1) * arma::sin(wS * t + phS(ind_piece(0) - 1) + kxS * x + kyS * y);
-			F_gap = F_gap + 0.5 * arma::as_scalar(arma::sum(arma::sum(temp3, 1), 0));
+			temp3 = temp2 % ampP(ind_piece(0) - 1) % arma::sin(wS * t + phS(ind_piece(0) - 1) + kxS * x + kyS * y);
+			F_gap = F_gap + 0.5 * arma::accu(temp3);
 
 			// Store the excitation force mixing linearly the current and previous piece
 			// TODO: Mix pieces with a qubic function instead of linear
@@ -781,28 +796,48 @@ arma::mat HydroDatabase::ComputeSecondWaveExcForce(double t)
 
 void HydroDatabase::SetUp(void)
 {
+	// TODO: Implement a logger with different levels of verbosity
+	std::cout << "HydroDatabase::SetUp - At first" << std::endl;
 	// Load the wave pointer as a local variable
 	Wave *pWave = pSim->pWave;
 
+	std::cout << "HydroDatabase::SetUp - Convert from real/imag to mag/pha the first order transfer functions" << std::endl;
 	// Convert from real/imag to mag/pha the first order transfer functions
 	arma::cube WE_Real = (*pWaveExcitingMag) % arma::cos((*pWaveExcitingPha));
 	arma::cube WE_Imag = (*pWaveExcitingMag) % arma::sin((*pWaveExcitingPha));
 
-	// Check that the transfer functions frequencies cover the wave frequencies, return a warning if not
+	// Check that the transfer functions frequencies cover the wave frequencies, return a warning and crop frequencies outside if not
+	arma::uvec ind_wave_freqs = arma::regspace<arma::uvec>(0, pWave->num_comps_piece - 1);
 	if (((*pFrequencies).min() > (pWave->freqs_piece).min()) || ((*pFrequencies).max() < (pWave->freqs_piece).max()))
 	{
-		std::cout << "WARNING: The frequencies provided in the hydrodinamic data base do not cover properly the wave!" << std::endl;
+		std::cout << "    --> WARNING: The frequencies provided in the hydrodinamic data base do not cover properly the wave!" << std::endl;
+		ind_wave_freqs = arma::find((pWave->freqs_piece >= (*pFrequencies).min()) && (pWave->freqs_piece <= (*pFrequencies).max()));
+	}
+	numFrequencies_w = ind_wave_freqs.n_elem;
+	freqs_w = pWave->freqs_piece.elem(ind_wave_freqs);
+	ang_freqs_w = pWave->ang_freqs_piece.elem(ind_wave_freqs);
+	kx_w = pWave->kx_piece.rows(ind_wave_freqs);
+	ky_w = pWave->ky_piece.rows(ind_wave_freqs);
+	amplitudes_w = arma::field<arma::mat>(pWave->num_pieces);
+	phases_w = arma::field<arma::mat>(pWave->num_pieces);
+	for (int kk = 0; kk < pWave->num_pieces; kk++)
+	{
+		amplitudes_w(kk) = pWave->amplitudes_piece(kk).rows(ind_wave_freqs);
+		phases_w(kk) = pWave->phases_piece(kk).rows(ind_wave_freqs);
 	}
 
+	std::cout << "HydroDatabase::SetUp - Interpolate the first order transfer functions to the wave frequencies" << std::endl;
 	// Interpolate the first order transfer functions to the wave frequencies
-	WE_Real_w = interp1(*pFrequencies, permute(WE_Real, 231), pWave->freqs_piece);
-	WE_Imag_w = interp1(*pFrequencies, permute(WE_Imag, 231), pWave->freqs_piece);
+	WE_Real_w = interp1(*pFrequencies, permute(WE_Real, 231), freqs_w);
+	WE_Imag_w = interp1(*pFrequencies, permute(WE_Imag, 231), freqs_w);
 	WE_Real_w = permute(WE_Real_w, 213);
 	WE_Imag_w = permute(WE_Imag_w, 213);
 
 	// Preprocess for QTFs
+	// TODO: QTFs should only be interpolated if they will be used
 	if (pBodies[idBody]->secondOrderExcitationFlag > 0)
 	{
+		std::cout << "HydroDatabase::SetUp - Interpolate the second order transfer functions to the wave frequencies" << std::endl;
 		// Interpolate the second order transfer functions to the wave frequencies
 		arma::cube temp;
 		QtfDiff_w = new arma::cube **[2];
@@ -817,60 +852,69 @@ void HydroDatabase::SetUp(void)
 				QtfSum_w[ii][jj] = new arma::cube;
 
 				temp = *pQtfDiff[ii][jj];
-				*QtfDiff_w[ii][jj] = interp2(*pFrequencies, *pFrequencies, temp, pWave->freqs_piece, pWave->freqs_piece);
+				*QtfDiff_w[ii][jj] = interp2(*pFrequencies, *pFrequencies, temp, freqs_w, freqs_w);
 
 				temp = *pQtfSum[ii][jj];
-				*QtfSum_w[ii][jj] = interp2(*pFrequencies, *pFrequencies, temp, pWave->freqs_piece, pWave->freqs_piece);
+				*QtfSum_w[ii][jj] = interp2(*pFrequencies, *pFrequencies, temp, freqs_w, freqs_w);
 			}
 		}
 
+		std::cout << "HydroDatabase::SetUp - Define the matrices required for time domain QTF forces computation" << std::endl;
 		// Preprocess the matrices required for time domain QTF forces computation
 		ampP = arma::field<arma::mat>(pWave->num_pieces);
 		phS = arma::field<arma::mat>(pWave->num_pieces);
 		phD = arma::field<arma::mat>(pWave->num_pieces);
 
-		wS = arma::zeros(pWave->num_comps_piece, pWave->num_comps_piece);
-		kxS = arma::zeros(pWave->num_comps_piece, pWave->num_comps_piece);
-		kyS = arma::zeros(pWave->num_comps_piece, pWave->num_comps_piece);
-		wD = arma::zeros(pWave->num_comps_piece, pWave->num_comps_piece);
-		kxD = arma::zeros(pWave->num_comps_piece, pWave->num_comps_piece);
-		kyD = arma::zeros(pWave->num_comps_piece, pWave->num_comps_piece);
+		wS = arma::zeros(numFrequencies_w, numFrequencies_w);
+		kxS = arma::zeros(numFrequencies_w, numFrequencies_w);
+		kyS = arma::zeros(numFrequencies_w, numFrequencies_w);
+		wD = arma::zeros(numFrequencies_w, numFrequencies_w);
+		kxD = arma::zeros(numFrequencies_w, numFrequencies_w);
+		kyD = arma::zeros(numFrequencies_w, numFrequencies_w);
 
-		for (int ii = 0; ii < pWave->num_comps_piece; ii++)
+		std::cout << "HydroDatabase::SetUp - Preprocess the matrices required for time domain QTF forces computation (w, k)" << std::endl;
+		int i_wave, j_wave;
+		for (int ii = 0; ii < numFrequencies_w; ii++)
 		{
-			for (int jj = 0; jj < pWave->num_comps_piece; jj++)
+			i_wave = ind_wave_freqs(ii);
+			for (int jj = 0; jj < numFrequencies_w; jj++)
 			{
-				wS(ii, jj) = pWave->ang_freqs_piece(ii) + pWave->ang_freqs_piece(jj);
-				kxS(ii, jj) = pWave->kx_1D_piece(ii) + pWave->kx_1D_piece(jj);
-				kyS(ii, jj) = pWave->ky_1D_piece(ii) + pWave->ky_1D_piece(jj);
-				wD(ii, jj) = pWave->ang_freqs_piece(ii) - pWave->ang_freqs_piece(jj);
-				kxD(ii, jj) = pWave->kx_1D_piece(ii) - pWave->kx_1D_piece(jj);
-				kyD(ii, jj) = pWave->ky_1D_piece(ii) - pWave->ky_1D_piece(jj);
+				j_wave = ind_wave_freqs(jj);
+				wS(ii, jj) = ang_freqs_w(ii) + ang_freqs_w(jj);
+				kxS(ii, jj) = pWave->kx_1D_piece(i_wave) + pWave->kx_1D_piece(j_wave);
+				kyS(ii, jj) = pWave->ky_1D_piece(i_wave) + pWave->ky_1D_piece(j_wave);
+				wD(ii, jj) = ang_freqs_w(ii) - ang_freqs_w(jj);
+				kxD(ii, jj) = pWave->kx_1D_piece(i_wave) - pWave->kx_1D_piece(j_wave);
+				kyD(ii, jj) = pWave->ky_1D_piece(i_wave) - pWave->ky_1D_piece(j_wave);
 			}
 		}
 
+		std::cout << "HydroDatabase::SetUp - Preprocess the matrices required for time domain QTF forces computation (amp, pha)" << std::endl;
 		for (int kk = 0; kk < pWave->num_pieces; kk++)
 		{
-			ampP(kk) = arma::zeros(pWave->num_comps_piece, pWave->num_comps_piece);
-			phS(kk) = arma::zeros(pWave->num_comps_piece, pWave->num_comps_piece);
-			phD(kk) = arma::zeros(pWave->num_comps_piece, pWave->num_comps_piece);
-			for (int ii = 0; ii < pWave->num_comps_piece; ii++)
+			ampP(kk) = arma::zeros(numFrequencies_w, numFrequencies_w);
+			phS(kk) = arma::zeros(numFrequencies_w, numFrequencies_w);
+			phD(kk) = arma::zeros(numFrequencies_w, numFrequencies_w);
+			for (int ii = 0; ii < numFrequencies_w; ii++)
 			{
-				for (int jj = 0; jj < pWave->num_comps_piece; jj++)
+				i_wave = ind_wave_freqs(ii);
+				for (int jj = 0; jj < numFrequencies_w; jj++)
 				{
-					ampP(kk)(ii, jj) = pWave->amplitudes_1D_piece(kk)(ii) * pWave->amplitudes_1D_piece(kk)(jj);
-					phS(kk)(ii, jj) = pWave->phases_1D_piece(kk)(ii) + pWave->phases_1D_piece(kk)(jj);
-					phD(kk)(ii, jj) = pWave->phases_1D_piece(kk)(ii) - pWave->phases_1D_piece(kk)(jj);
+					j_wave = ind_wave_freqs(jj);
+					ampP(kk)(ii, jj) = pWave->amplitudes_1D_piece(kk)(i_wave) * pWave->amplitudes_1D_piece(kk)(j_wave);
+					phS(kk)(ii, jj) = pWave->phases_1D_piece(kk)(i_wave) + pWave->phases_1D_piece(kk)(j_wave);
+					phD(kk)(ii, jj) = pWave->phases_1D_piece(kk)(i_wave) - pWave->phases_1D_piece(kk)(j_wave);
 				}
 			}
 		}
 
+		std::cout << "HydroDatabase::SetUp - Compute mean drift force" << std::endl;
 		// Compute mean drift force
 		// TODO: Review this!
-		arma::cube temp_mD = interp2(*pFrequencies, *pHeadings, permute(*pMeanDrift, 231), pWave->freqs_piece, pWave->headings_piece);
+		arma::cube temp_mD = interp2(*pFrequencies, *pHeadings, permute(*pMeanDrift, 231), freqs_w, pWave->headings_piece);
 		for (int ii = 0; ii < activeDofs; ii++)
 		{
-			temp_mD.slice(ii) = temp_mD.slice(ii) % pWave->amplitudes_piece(0) % pWave->amplitudes_piece(0);
+			temp_mD.slice(ii) = temp_mD.slice(ii) % amplitudes_w(0) % amplitudes_w(0);
 		}
 		temp_mD = permute(temp_mD, 312);
 		F_meanDrift = arma::sum(arma::sum(temp_mD, 1), 2);
@@ -882,9 +926,19 @@ void HydroDatabase::SetUp(void)
 		}
 	}
 
-	// std::cout << "Calculate hyrodynamic forces at time 0.0...\n";
-	pBodies[idBody]->Fb = CalculateHydrodynamicForces(0.0);
+	std::cout << "HydroDatabase::SetUp - Set up the hydrodynamic forces at time zero" << std::endl;
+	// Set up the hydrodynamic forces at time zero
+	if (arma::accu(pWave->amplitudes) > 0)
+	{
 
+		pBodies[idBody]->Fb = CalculateHydrodynamicForces(0.0);
+	}
+	else
+	{
+		pBodies[idBody]->Fb = arma::zeros(activeDofs, 1);
+	}
+
+	std::cout << "HydroDatabase::SetUp - Precompute hydrodynamic forces time series" << std::endl;
 	if (pBodies[idBody]->firstOrderExcitationFlag == 1)
 	{
 		// TODO: Precompute first order forces
@@ -905,30 +959,16 @@ void HydroDatabase::SetUp(void)
 					  << std::endl;
 		}
 	}
+
+	std::cout << "HydroDatabase::SetUp - At end" << std::endl;
 }
 
 arma::mat HydroDatabase::ComputeMeanDrift(void)
 {
 
-	// // Compute mean drift force
-	// Wave* pWave = pSim->pWave;
-	// double yaw = pBodies[idBody]->pos(5,0);
-	// // HARCODEO !!!!!!!!!!!! ------------------------------------------------------------ Implementar opcion de mean drift con y sin instant position
-	// if(pBodies[idBody]->secondOrderExcitationFlag<5)
-	// {
-	// 	yaw = 0;
-	// }
-	// arma::cube temp_mD = interp2(*pFrequencies, *pHeadings+yaw, permute(*pMeanDrift,231), pWave->freqs, pWave->headings);
-	// for (int ii=0; ii<activeDofs; ii++)
-	// {
-	// 	temp_mD.slice(ii) = temp_mD.slice(ii)%pWave->amplitudes%pWave->amplitudes;
-	// }
-	// temp_mD = permute(temp_mD,312);
-	// arma::mat F = arma::sum(arma::sum(temp_mD,1),2);
-	// double Fx = arma::as_scalar(F(0,0)); double Fy = arma::as_scalar(F(1,0));
-	// F(0,0) = Fx*cos(yaw)-Fy*sin(yaw); F(1,0) = Fx*sin(yaw)+Fy*cos(yaw);
-	// pBodies[idBody]->excitationForces_2 = F;
+	// Compute mean drift force
 
+	// TODO: Implement meandrift with instant position
 	arma::mat F = F_meanDrift;
 
 	return F;

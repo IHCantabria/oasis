@@ -30,11 +30,12 @@ public:
     arma::vec ang_freqs;
     int num_headings;
     arma::vec headings;
-    arma::vec S_w;
-    arma::vec g_theta;
+    arma::vec spectral_density;
+    arma::vec directional_spreading;
 
     arma::mat amplitudes;
     arma::mat phases;
+    arma::mat original_phases;
 
     arma::vec t_FS, eta_FS;
 
@@ -54,12 +55,18 @@ public:
 
     // Variables for irregular waves
     int specType_flag;
+    int readPhases_flag;
     double gamma;
     double s;
     double rel_tol;
     double factor;
+    double zero_order_moment;
+    double first_order_moment;
+    double second_order_moment;
     std::string waveDatabaseName;
     std::string file_path;
+    std::string wavePhasesFileName;
+    std::string filePhases_path;
     FILE *pfile_SPEC;
     FILE *pfile_TIME;
 
@@ -111,6 +118,7 @@ public:
     arma::vec GetFreeSurface(double time, arma::vec x, arma::vec y);
     arma::vec GetPressure(double time, arma::vec x, arma::vec y, arma::vec z);
     void SetSinglePiece(void);
+    void SetZeroHeight(void);
     void WriteOut(std::string path);
 };
 
@@ -126,9 +134,9 @@ class IrregularWave : public Wave
 public:
     IrregularWave(Simulation *pSimInc, double H, double T, double D) : Wave(pSimInc, H, T, D){};
     void GetWaveSpectrum(void);
-    arma::vec GetCheckedFreeSurface(arma::mat amplitudes, int num_points, double time);
-    void ReadWaveSpectrumHDF5(void);
-    void ReadWaveSpectrumASCII(void);
+    void GetCheckedFreeSurface(void);
+    void ReadWaveTimeSeries(void);
+    void ReadWavePSD(void);
     void GetJonswapSpectrum(void);
     arma::vec GetJonswapSpectrum(arma::vec freqs, double height, double period, double gamma);
     void GetSpreadingFunction(void);
@@ -140,6 +148,8 @@ public:
     void GetPiecesNumber(void);
     void GetPiecesWaveLengths(void);
     void CutPiecesSpectrumZeros(void);
+    void GetPiecesTimeIntervals(void);
+    void GetPiecesSpectra(void);
 };
 
 #endif // wavedef_hpp__
