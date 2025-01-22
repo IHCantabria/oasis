@@ -557,8 +557,8 @@ arma::mat HydroDatabase::ComputeFirstWaveExcForce(double t)
 	}
 
 	// Interpolate transfer functions to the body heading
-	arma::cube H_Real = interp1((*pHeadings) + yaw, WE_Real_w, pWave->headings_piece);
-	arma::cube H_Imag = interp1((*pHeadings) + yaw, WE_Imag_w, pWave->headings_piece);
+	arma::cube H_Real = interp1(wrapToPi((*pHeadings) + yaw), WE_Real_w, wrapToPi(pWave->headings_piece));
+	arma::cube H_Imag = interp1(wrapToPi((*pHeadings) + yaw), WE_Imag_w, wrapToPi(pWave->headings_piece));
 
 	// Convert interpolated transfer functions to magnitude and phase
 	arma::cube H_Mag = arma::sqrt(arma::pow(H_Real, 2) + arma::pow(H_Imag, 2));
