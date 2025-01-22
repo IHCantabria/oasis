@@ -1,4 +1,3 @@
-
 #include <iostream>
 #include <fstream>
 #include <limits>
@@ -11,198 +10,189 @@
 #include "ODE_solvers.hpp"
 #include "../Simulations/Simulation.hpp"
 
-BDF::BDF(double t_u, double tmax_u, double dt_out_u, arma::mat y_u, Simulation *pIncSim)
+BDF2::BDF2(double t_u, double tmax_u, double dt_out_u, arma::mat y_u, Simulation *pIncSim)
 {
+	// ***BDF2 constructor***
+	// Set the simulation pointer
 	pSim = pIncSim;
-
+	// Set the initial time, maximum time, output time step and state vector
 	t = t_u;
 	tmax = tmax_u;
 	dt_out = dt_out_u;
 	y = y_u;
-
-	h_0 = dt_ini;
-	h_1 = dt_ini;
-	h_2 = dt_ini;
+	// Initiallize the variables with the last three time steps
+	h_0 = dt_ini; h_1 = dt_ini; h_2 = dt_ini;
+	// Compute the maximum time step
 	dt_max = std::min(0.5 * dt_out, dt_max);
-
+	// Compute the system size
 	nSistema = y_u.n_rows;
-	y_0 = y;
-	y_1 = y;
-	y_2 = y;
+	// Initialize the variables for the last three states
+	y_0 = y; y_1 = y; y_2 = y;
+	// Initialize the required vectors and matrices
 	yprime = arma::zeros(size(y));
-	this->F = arma::zeros(size(y));
+	F = arma::zeros(size(y));
 	LTE = arma::zeros(size(y));
 	EWT = arma::zeros(size(y));
 	I = arma::eye(nSistema, nSistema);
 	J = arma::zeros(nSistema, nSistema);
 }
 
-arma::mat BDF::fun(double tt, arma::mat yy)
+arma::mat BDF2::fun(double tt, arma::mat yy)
 {
+	// ***Interfaze method to the simulation method responsible for the state derivarive evaluation***
 	return pSim->CalculateSystemDynamics(tt, yy);
 }
 
-void BDF::jac(double tt, arma::mat yy)
+void BDF2::jac(double tt, arma::mat yy)
 {
-
-	// std::cout << std::endl << " JACOBEAN : START" << std::endl;
-
+	// ***Compute the jacobian matrix of the function that returns the state derivative***
 	yprime = fun(tt, yy);
 	for (int ii = 0; ii < nSistema; ii = ii + 1)
 	{
 		J.col(ii) = 1e12 * (fun(tt, yy + 1e-12 * I.col(ii)) - yprime);
 	}
-
-	// std::cout << "              Determinant      : " << arma::det(J) << std::endl;
-	// std::cout << "              Condition Number : " << arma::cond(J) << std::endl;
-	// std::cout << "          : FINISH" << std::endl << std::endl;
 }
 
-void BDF::Initialize()
+void BDF2::Initialize()
 {
-	F(0) = 2 * atol;
+	// ***Initialize the BDF2 solver with one iteration of a BDF1 scheme***
+	// Initiallize the function to minimize to a value larger than the tolerance, and the iteration counter
+	F(0) = 2 * atol; 
+	int nIter = 0;
+	// Nonlinear system iterative solver, checking for convergence
 	do
 	{
-		std::cout << "    Computing jac... " << std::endl;
+		// Compute the jacobian matrix
 		jac(t + h_0, y);
-		std::cout << "    ... done! " << std::endl;
+		// Increment the jacobian evaluation counter
+		iJ = iJ + 1;
+		// Compute the nonlinear system matrix
 		M = I - h_0 * J;
+		// Compute the nonlinear system vector
 		F = y - y_0 - h_0 * yprime;
-		std::cout << "    size dy: " << arma::size(dy) << std::endl;
-		std::cout << "    size M: " << arma::size(M) << std::endl;
-		std::cout << "    size F: " << arma::size(F) << std::endl;
+		// Solve for the state change vector
 		status = arma::solve(dy, M, F, arma::solve_opts::fast);
-		std::cout << "    After solver..." << std::endl;
+		// If the solver fails, solve the system using the slower method
 		if (!status)
 		{
 			dy = arma::solve(M, F);
 		}
+		// Update the state vector
 		y = y - dy;
-	} while ((arma::norm(F, "inf") > atol));
+		// Update the number of iterations
+		nIter = nIter + 1;
+	} while ((arma::norm(F, "inf") > atol) & (nIter < nIterMax));
+	// If the number of iterations is larger than the maximum, return an error
+	if (nIter >= nIterMax)
+	{
+		std::cout << "ERROR: Convergence Failed!" << std::endl;
+		throw std::exception();
+	}
+	// Otherwise, asign the state computed with the BDF1 scheme to the last state and update the solver time
 	y_0 = y;
 	t = t + h_0;
-
-	jac(t + h_0, y_0);
+	// Compute the jacobian matrix at the new state, so it can be reused in the next iterations
+	jac(t, y);
 }
 
-void BDF::step(void)
+void BDF2::step(void)
 {
-
-	int NN;
-	q = 0;
-	bool flag_nan = true;
-
+	// ***Perform a time step with the BDF2 scheme***
+	int NN; // Declare local maximum number of iterations
+	q = 0; // Initiallize jacobian recycling counter
+	bool flag_nan = true; // Declare NaN flag to true so the solver can try again with a smaller step size
+// Loop to try again with a smaller step size if NaN is detected
 LOOP:
-
+	// Compute the maximum number of iterations in terms of the number of times the jacobean matrix is recycled
 	if (q < 2)
 	{
-		// NN = 5*(q+1);
 		NN = 100;
 	}
 	else
 	{
 		NN = nIterMax;
 	}
-
+	// Initiallize the iteration counter 
 	k = 0;
+	// Estimate the newstate with an explicit Euler step and compute the function to minimize
 	y = y_0 + h_0 * (y_0 - y_1) / h_1;
 	F = BDF2_fun(t, y);
-
+	// Loop to solve the nonlinear system
 	do
 	{
+		// If the jacobean matrix was recycled twice, compute it again
 		if (q >= 2)
 		{
 			jac(t + h_0, y);
 			iJ = iJ + 1;
 			q = q + 1;
 		}
+		// Compute the nonlinear system matrix
 		M = (1.0 + h_0 / (h_1 + h_0)) * I - h_0 * J;
+		// Solve for the state change vector
 		status = arma::solve(dy, M, -F, arma::solve_opts::fast);
+		// If the solver fails, solve the system using the slower method
 		if (!status)
 		{
 			dy = arma::solve(M, -F);
 		}
-
-		// ARMIJO
-		double rho = 1.0; // paso inicial
-		//	double sigma = 1e-4;
-		//	double beta = 0.5;
-
-		//	arma::mat vectorPasoNuevo = BDF2_fun(t,y + pow(beta,10)*dy);
-		/*	if (arma::norm(vectorPasoNuevo,2) > arma::norm(F,2))
-			{
-				std::cout << "no es de descenso" << std::endl;
-				jac(t + h_0, y);
-				M = (1.0 + h_0/(h_1+h_0)) * I - h_0 * J;
-				status = arma::solve(dy,M,-F,arma::solve_opts::fast);
-				if (!status){
-					dy = arma::solve(M,-F);
-				}
-			} else {
-				std::cout << "es de descenso" << std::endl;
-			}
-
-			arma::mat vectorPasoNuevo = BDF2_fun(t,y + rho*dy);
-			while(arma::norm(vectorPasoNuevo,2) > ((1.0-sigma*rho) * arma::norm(F,2)) && rho>=pow(beta,10)) {
-				rho = beta * rho;
-				vectorPasoNuevo = BDF2_fun(t,y + rho*dy);
-				//std::cout << "rho " << rho << std::endl;
-			}
-		*/
+		// Compute the line-search step
+		// TODO: implement ARMIJO line search
+		double rho = 1.0;
+		// Update the state vector
 		y = y + rho * dy;
-
+		// Compute the function to minimize
 		F = BDF2_fun(t, y);
+		// Update the iteration counter
 		k = k + 1;
-
 	} while (((arma::norm(dy) > atol + rtol * arma::norm(y)) | (arma::norm(F) > atol)) & (k < NN));
-	// std::cout << "F" << F << std::endl;
-
+	// Check if the maximum number of iterations was reached
 	if (k >= NN)
 	{
-		// std::cout << std::endl << "ERROR: Convergence Failed! (test)" << std::endl;
-		// throw std::exception();
 		if (q < 2)
 		{
+			// If the jacobean matrix was not updated before, reduce the time step and try again
+			// TODO: review this (maybe h_0=dt_min?)
 			h_0 = std::max(pow(10.0, -2 * q) * h_0, dt_min);
 			jac(t + h_0, y_0 + h_0 * (y_0 - y_1) / h_1);
 			iJ = iJ + 1;
 			q = q + 1;
-			goto LOOP;
+goto LOOP;
 		}
 		else
 		{
-			std::cout << std::endl
-					  << "ERROR: Convergence Failed!" << std::endl;
+			// Otherwise, return an error
+			std::cout << "ERROR: Convergence Failed!" << std::endl;
 			throw std::exception();
 		}
 	}
-
+	
+	// Compute the error weighted tolerance
 	EWT = atol * arma::ones(size(y)) + rtol * arma::abs(y);
-	// EWT = atol  + rtol % arma::abs(y);
-
+	// Check for NaN values in the state vector
 	if (EWT.has_nan())
 	{
+		// If NaN is detected for the first time, try again with a smaller step size, otherwise return an error
 		if (flag_nan)
 		{
+			// update the NaN flag
 			flag_nan = false;
+			// reduce the time step
 			h_0 = dt_min;
+			// recomput the jacobean matrix
 			jac(t + h_0, y_0 + h_0 * (y_0 - y_1) / h_1);
 			iJ = iJ + 1;
-			std::cout << std::endl
-					  << " OJO QUE ESTO CASCA ..." << std::endl;
-			goto LOOP;
+			std::cout << "	WARNING: In BDF2, NaN detected! Trying again with smaller step size... " << std::endl;
+goto LOOP;
 		}
 		else
 		{
 			std::cout << std::endl
-					  << "ERROR: NaN Detected!" << std::endl;
+					  << "ERROR: NaN detected after trying again!" << std::endl;
 			throw std::exception();
 		}
 	}
-
-	// LTE = h_0*h_0*(h_0+h_1)*(y/(h_0*(h_0 + h_1)*(h_0 + h_1 + h_2)) - y_2/(h_2*(h_1 + h_2)*(h_0 + h_1 + h_2)) - y_0/(h_0*h_1*(h_1 + h_2)) + y_1/(h_1*h_2*(h_0 + h_1)));
-	// sigma = pow(0.5*arma::abs(EWT/LTE).min(),0.25);
-
+	// Compute the local truncation error comparing with a BDF1 scheme
 	arma::mat M1 = I - h_0 * J;
 	arma::mat F1 = y - y_0 - h_0 * fun(t + h_0, y);
 	status = arma::solve(LTE, M1, F1, arma::solve_opts::fast);
@@ -210,35 +200,34 @@ LOOP:
 	{
 		LTE = arma::solve(M1, F1);
 	}
-
-	sigma = pow(0.5 * arma::norm(EWT) / arma::norm(LTE), 0.25);
-
+	// Compute the adaptive time step multiplier
+	double sigma = pow(0.5 * arma::norm(EWT) / arma::norm(LTE), 0.25);
+	// If the error is too large, reduce the time step and try again
 	if (sigma < 0.9)
 	{
 		h_0 = h_0 * sigma;
-		goto LOOP;
+goto LOOP;
 	}
-
-	// std::cout << "   LTE = " << arma::norm(LTE) << std::endl;
-	// std::cout << "   h = " << h_0 << std::endl;
-
+	// Update the time, the last three states and time steps, and the next time step size
 	t = t + h_0;
-
+	// Update the last three states
+	y_2 = y_1;
+	y_1 = y_0;
+	y_0 = y;
+	// Update the last three time steps
 	h_2 = h_1;
 	h_1 = h_0;
+	// Compute the adaptive time step
 	h_0 = sigma * h_0;
 	h_0 = std::max(h_0, dt_min);
 	h_0 = std::min(h_0, dt_max);
 	h_0 = std::min(h_0, dt_out - std::fmod(t, dt_out) + dt_min);
-	h_0 = std::min(h_0, tmax - t + h_0);
-
-	y_2 = y_1;
-	y_1 = y_0;
-	y_0 = y;
+	h_0 = std::min(h_0, tmax - t + h_0);	
 }
 
-arma::mat BDF::BDF2_fun(double t, arma::mat y)
+arma::mat BDF2::BDF2_fun(double t, arma::mat y)
 {
+	//***Evaluate the nonlinear BDF2 scheme function***
 	F = (1.0 + h_0 / (h_1 + h_0)) * y - ((h_1 + h_0) / h_1) * y_0 + ((h_0 * h_0 / h_1) / (h_1 + h_0)) * y_1 - h_0 * fun(t + h_0, y);
 	return F;
 }

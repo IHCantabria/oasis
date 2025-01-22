@@ -6,6 +6,7 @@
 #include <string>
 #include <cstdio>
 #include "../BCPs/BCPs.hpp"
+#include "../Hydro/HydroDatabase.hpp"
 #include "../Hydro/HydroForce.hpp"
 #include "../WindTurbine/WindTurbine.hpp"
 #include "BodyMesh.hpp"
@@ -99,7 +100,7 @@ public:
 	FILE *pfile_WindTurb;
 
 	// Methods definition
-	Body(void){};
+	Body(void) {};
 	Body(int n, Simulation *pSim);							   // Inicializa un objeto de clase cuerpo dandole el indice
 	void ComputeBcpForces(void);							   // Calcula el efecto de las fuerzas sobre los BCPs sobre su CDG
 	void ComputeWindTurbForces(void);						   // Calcula el efecto de las fuerzas de las turbinas sobre su CDG

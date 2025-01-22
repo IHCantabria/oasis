@@ -606,7 +606,7 @@ void Simulation::Initialize()
     if (this->timeIntMethod == 1)
     {
         std::cout << "Initializing temporal solver..." << std::endl;
-        pTimeSolver = new BDF(start_time, this->simulationTime, this->maxTimeStep, y, this);
+        pTimeSolver = new BDF2(start_time, this->simulationTime, this->maxTimeStep, y, this);
         std::cout << "  Temporal solver constructor done!" << std::endl;
         std::cout << " y = " << y << std::endl;
         pTimeSolver->Initialize();
