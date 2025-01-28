@@ -605,15 +605,26 @@ void Simulation::Initialize()
     // Initialize Temporal Solver
     if (this->timeIntMethod == 1)
     {
-        std::cout << "Initializing temporal solver..." << std::endl;
-        pTimeSolver = new BDF2(start_time, this->simulationTime, this->maxTimeStep, y, this);
-        std::cout << "  Temporal solver constructor done!" << std::endl;
-        std::cout << " y = " << y << std::endl;
-        pTimeSolver->Initialize();
+        std::cout << "Initializing BDF2 temporal solver..." << std::endl;
+        // pTimeSolver = new BDF2(start_time, this->simulationTime, this->maxTimeStep, y, this);
+        pTimeSolver = new BDFN(2, start_time, this->simulationTime, this->maxTimeStep, y, this);
+        std::cout << "  BDF2 constructor done!" << std::endl;
+        pTimeSolver->init();
         pTimeSolver->atol = this->timeIntAbsTol;
         pTimeSolver->rtol = this->timeIntRelTol;
         pTimeSolver->nIterMax = this->maxIterStep;
-        std::cout << "  Temporal solver initiallized!" << std::endl;
+        std::cout << "  BDF2 initiallized!" << std::endl;
+    }
+    else if (this->timeIntMethod == 2)
+    {
+        std::cout << "Initializing BDF4 temporal solver..." << std::endl;
+        pTimeSolver = new BDFN(4, start_time, this->simulationTime, this->maxTimeStep, y, this);
+        std::cout << "  BDF4 constructor done!" << std::endl;
+        pTimeSolver->init();
+        pTimeSolver->atol = this->timeIntAbsTol;
+        pTimeSolver->rtol = this->timeIntRelTol;
+        pTimeSolver->nIterMax = this->maxIterStep;
+        std::cout << "  BDF4 initiallized!" << std::endl;
     }
 
     // Write initial condition to files
@@ -621,11 +632,11 @@ void Simulation::Initialize()
         this->pLines[ii]->WriteOut(start_time);
     for (int ii = 0; ii < this->numBodies; ii = ii + 1)
         this->pBodies[ii]->WriteOut(start_time);
-    std::cout << "Update system" << std::endl;
+    std::cout << "Updating system..." << std::endl;
 
     // Save first data
     this->UpdateSystem();
-    std::cout << "System updated!" << std::endl;
+    std::cout << "  System updated!" << std::endl;
 }
 
 void Simulation::LoadCase()
@@ -1734,6 +1745,7 @@ void Simulation::Run()
     double wallTimeControllerFAST = 0.0;
     double wallTimeSinking = 0.0;
     double wallTimeController = 0.0;
+    tstart = time(0);
 
     std::cout << "    t = " << wallTime << " s" << std::endl;
 
@@ -2181,10 +2193,16 @@ void Simulation::SetupCase()
         numAllLinesNodes += pLines[jj]->N;
         for (int kk = 0; kk < 2; kk++)
         {
-            if ((pLines[jj]->pLineBcps[kk]->GetType() == 3) && (pLines[jj]->pLineBcps[kk]->flag_counted == 0))
+            if (pLines[jj]->pLineBcps[kk]->GetType() == 3)
             {
-                pLines[jj]->pLineBcps[kk]->flag_counted = 1;
-                numUsedJointBCPs++;
+                if (pLines[jj]->pLineBcps[kk]->flag_counted == 0)
+                {
+                    pLines[jj]->pLineBcps[kk]->flag_counted = 1;
+                }
+                else
+                {
+                    numUsedJointBCPs++;
+                }
             }
         }
     }
@@ -2247,6 +2265,10 @@ void Simulation::SetupCase()
     pLinesCouplingMatrixInv = new arma::mat(numAllLinesNodes, numAllLinesNodes);
     pLinesCouplingMatrix_sp = new arma::sp_mat(numAllLinesNodes, numAllLinesNodes);
     ComputeLinesCouplingMatrix();
+    if (numLines > 0)
+    {
+        std::cout << "  --> ... done!" << std::endl;
+    }
     // TODO: 100 should be a parameter
     if (numAllLinesNodes < 100)
     {
@@ -2391,6 +2413,7 @@ void Simulation::ComputeLinesCouplingMatrix(void)
     {
         int numLineNodes_tmp = pLines[jj]->N;
 
+        std::cout << "    Assembling local mass matrix for line " << jj << std::endl;
         arma::mat LineMassMat_tmp = pLines[jj]->MM * pLines[jj]->dL;
         if (pLines[jj]->pLineBcps[0]->GetType() != 3)
         {
@@ -2405,6 +2428,7 @@ void Simulation::ComputeLinesCouplingMatrix(void)
 
         // Add the mass matrix to the global matrix in sparse or full format depending on the size
         // TODO: 100 should be a parameter
+        std::cout << "    Adding local mass matrix to the global matrix" << std::endl;
         if (numAllLinesNodes >= 100)
         {
             for (int irow = 0; irow < numLineNodes_tmp; irow++)
@@ -2643,6 +2667,7 @@ void Simulation::ComputeLinesEquilibrium(arma::mat x)
 {
     // Newton-Raphson method for lines equilibrium
     // TODO: Use a method implemented in a library instead or move this to MathTools
+    // TODO: Fix bug: this does not work for unsteady initial conditions (falling lines)
 
     // Parameters
     int maxIter = 150;

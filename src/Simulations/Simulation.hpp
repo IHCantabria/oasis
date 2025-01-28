@@ -14,7 +14,7 @@
 #include "../SeaFloor/SeaFloor.hpp"
 #include "../WindTurbine/WindTurbine.hpp"
 
-class BDF2;
+class ODE_solver;
 
 class Simulation
 {
@@ -58,7 +58,7 @@ public:
 
     // Declare time simulation attributes
     int numCallsSysFun = 0;
-    BDF2 *pTimeSolver;
+    ODE_solver *pTimeSolver;
     int timeBufferSize = 0;
     arma::mat timeBuffer = arma::zeros(1, timeBufferSize);
     int timeBufferCount = 0;
