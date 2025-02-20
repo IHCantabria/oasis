@@ -50,6 +50,8 @@ public:
     bool rotSimpFlag;
     double timeIntAbsTol;
     int timeIntMethod;
+    int timeIntOrder;
+    bool timeIntAdaptivity;
     double timeIntRelTol;
     double waterDensity;
     double waterDepth;

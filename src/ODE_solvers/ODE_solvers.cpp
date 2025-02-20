@@ -124,7 +124,7 @@ LOOP:
 	{
 		NN = nIterMax;
 	}
-	// Initiallize the iteration counter
+	// Initialize the iteration counter
 	k = 0;
 	// Estimate the newstate with an explicit Euler step and compute the function to minimize
 	y = y_0 + h_0 * (y_0 - y_1) / h_1;
@@ -137,7 +137,6 @@ LOOP:
 		{
 			jac(t + h_0, y);
 			iJ = iJ + 1;
-			q = q + 1;
 		}
 		// Compute the nonlinear system matrix
 		M = (1.0 + h_0 / (h_1 + h_0)) * I - h_0 * J;
@@ -240,7 +239,7 @@ LOOP:
 }
 
 // Methods for the BDFN class
-BDFN::BDFN(int N_u, double t_u, double tmax_u, double dt_out_u, arma::mat y_u, Simulation *pIncSim)
+BDFN::BDFN(int N_u, bool a_u, double t_u, double tmax_u, double dt_out_u, arma::mat y_u, Simulation *pIncSim)
 {
 	// ***BDFN constructor***
 	// Check for the order of the BDF scheme to be larger than 2
@@ -251,6 +250,8 @@ BDFN::BDFN(int N_u, double t_u, double tmax_u, double dt_out_u, arma::mat y_u, S
 	}
 	// Set the order of the BDF scheme
 	N = N_u;
+	// Set the adaptive time step flag
+	adaptivity = a_u;
 	// Set the simulation pointer
 	pSim = pIncSim;
 	// Set the initial time, maximum time, output time step and state vector
@@ -280,7 +281,7 @@ BDFN::BDFN(int N_u, double t_u, double tmax_u, double dt_out_u, arma::mat y_u, S
 
 arma::mat BDFN::fun(double tt, arma::mat yy)
 {
-	// ***Interfaze method to the simulation method responsible for the state derivarive evaluation***
+	// ***Interface method to the simulation method responsible for the state derivative evaluation***
 	return pSim->CalculateSystemDynamics(tt, yy);
 }
 
@@ -290,7 +291,7 @@ void BDFN::jac(double tt, arma::mat yy)
 	yprime = fun(tt, yy);
 	for (int ii = 0; ii < nSystem; ii = ii + 1)
 	{
-		Jfun.col(ii) = 1e12 * (fun(tt, yy + 1e-12 * I.col(ii)) - yprime);
+		Jfun.col(ii) = 1.0e12 * (fun(tt, yy + 1.0e-12 * I.col(ii)) - yprime);
 	}
 }
 
@@ -353,9 +354,8 @@ void BDFN::init()
 arma::mat BDFN::BDFN_fun(double t, arma::mat y)
 {
 	//***Evaluate the nonlinear BDFN scheme function***
-	double tmp_coef;
+	double tmp_coef = 0.0;
 	arma::mat FF = fun(t, y);
-	tmp_coef = 0.0;
 	for (int jj = 0; jj < N; jj = jj + 1)
 	{
 		tmp_coef = tmp_coef + 1.0 / (t - tau_i(jj));
@@ -383,10 +383,13 @@ void BDFN::step(void)
 	double tmp_coef;	  // Declare local variable for the temporal coefficient
 	q = 0;				  // Initialize jacobian recycling counter
 	bool flag_nan = true; // Declare NaN flag to true so the solver can try again with a smaller step size
+	// Estimate the newstate with an explicit Euler step and compute the function to minimize
+	arma::mat y_ini = y_i.col(N - 1) + dt * fun(t, y_i.col(N - 1));
+	arma::mat F_ini = BDFN_fun(t + dt, y_ini);
 // Loop to try again with a smaller step size if NaN is detected
 LOOP:
 	// Compute the maximum number of iterations in terms of the number of times the jacobean matrix is recycled
-	if (q < 2)
+	if (q <= 2)
 	{
 		NN = 100;
 	}
@@ -396,16 +399,15 @@ LOOP:
 	}
 	// Initialize the iteration counter
 	k = 0;
-	// Estimate the newstate with an explicit Euler step and compute the function to minimize
-	yprime = fun(t, y_i.col(N - 1)); // TODO: this call can be avoided
-	y = y_i.col(N - 1) + dt * yprime;
-	F = BDFN_fun(t + dt, y);
+	// Set the initial state and function to minimize as the initial estimate
+	y = y_ini;
+	F = F_ini;
 	dy = y;
 	// Loop to solve the nonlinear system
 	while ((arma::norm(F, "inf") > atol) & (k <= NN))
 	{
 		// If the jacobean matrix was recycled twice, compute it again
-		if (q >= 2)
+		if (q > 2)
 		{
 			jac(t + dt, y);
 			iJ = iJ + 1;
@@ -442,27 +444,54 @@ LOOP:
 		// Update the iteration counter
 		k = k + 1;
 	}
+
 	// Check if the maximum number of iterations was reached
 	if (k >= NN)
 	{
-		if (q < 2)
+		if (q <= 2)
 		{
-			// If the jacobean matrix was not updated before, reduce the time step and try again
-			if (dt > 100 * dt_min)
+			if (adaptivity)
 			{
-				dt = std::max(dt / 100, dt_min);
-				q = q + 1;
-				std::cout << "WARNING: In BDFN, Maximum number of iterations reached! Trying again with smaller step size... " << std::endl;
-				goto LOOP;
+				// If the jacobean matrix was not updated before, reduce the time step and try again
+				if (dt > 100 * dt_min)
+				{
+					dt = std::max(dt / 100, dt_min);
+					std::cout << "WARNING: In BDFN, Maximum number of iterations reached! Trying again with smaller step size... " << std::endl;
+				}
+				else
+				{
+					if (q < 2)
+					{
+						jac(t, y_i.col(N - 1));
+						iJ = iJ + 1;
+						q = 1;
+					}
+					dt = dt_min;
+					std::cout << "WARNING: In BDFN, Maximum number of iterations reached! " << std::endl;
+					std::cout << "         Trying again with minimum step size and Jacobean matrix recomputation... " << std::endl;
+				}
 			}
 			else
 			{
-				q = 2;
-				dt = dt_min;
-				std::cout << "WARNING: In BDFN, Maximum number of iterations reached! " << std::endl;
-				std::cout << "         Trying again with minimum step size and Jacobean matrix recomputation... " << std::endl;
-				goto LOOP;
+				// Otherwise, compute the jacobean matrix again and try again, first with the current time step and then with the minimum time step
+				if (q == 0)
+				{
+					jac(t, y_i.col(N - 1));
+					iJ = iJ + 1;
+					std::cout << "WARNING: In BDFN, Maximum number of iterations reached! Trying again with recomputed Jacobean matrix... " << std::endl;
+				}
+				else if (q == 1)
+				{
+					dt = dt_min;
+					std::cout << "WARNING: In BDFN, Maximum number of iterations reached! Trying again with minimum time step..." << std::endl;
+				}
+				else if (q == 2)
+				{
+					std::cout << "WARNING: In BDFN, Maximum number of iterations reached! Trying again recomputing the Jacobean matrix at every iteration..." << std::endl;
+				}
 			}
+			q = q + 1;
+			goto LOOP;
 		}
 		else
 		{
@@ -472,10 +501,8 @@ LOOP:
 		}
 	}
 
-	// Compute the error weighted tolerance
-	EWT = atol * arma::ones(size(y)) + rtol * arma::abs(y);
 	// Check for NaN values in the state vector
-	if (EWT.has_nan())
+	if (y.has_nan())
 	{
 		// If NaN is detected for the first time, try again with a smaller step size, otherwise return an error
 		if (flag_nan)
@@ -498,34 +525,46 @@ LOOP:
 			throw std::exception();
 		}
 	}
-	// Compute the local truncation error comparing with a BDF(N-1) scheme
-	LTE = arma::zeros(size(y));
-	arma::mat y_LTE = arma::join_horiz(arma::join_horiz(y_prev, y_i), y);
-	arma::vec tau_LTE = arma::join_vert(arma::join_vert(tau_prev * arma::ones(1), tau_i), (t + dt) * arma::ones(1));
-	for (int ii = 0; ii < N + 2; ii = ii + 1)
+
+	// If the solver uses adaptivity, compute the error weighted tolerance and the local truncation error
+	// and the adaptive time step multiplier, otherwise set the multiplier to 1.1 so the time step increases
+	// slowly from the initial value to the maximum value at the start of the simulation.
+	// TODO: sigma_min and sigma_max should be parameters
+	double sigma = 1.1;
+	if (adaptivity)
 	{
-		tmp_coef = 1.0;
-		for (int jj = 0; jj < N + 2; jj = jj + 1)
+		// Compute the error weighted tolerance
+		EWT = atol * arma::ones(size(y)) + rtol * arma::abs(y);
+		// Compute the local truncation error comparing with a BDF(N-1) scheme
+		LTE = arma::zeros(size(y));
+		arma::mat y_LTE = arma::join_horiz(arma::join_horiz(y_prev, y_i), y);
+		arma::vec tau_LTE = arma::join_vert(arma::join_vert(tau_prev * arma::ones(1), tau_i), (t + dt) * arma::ones(1));
+		for (int ii = 0; ii < N + 2; ii = ii + 1)
 		{
-			if (jj != ii)
+			tmp_coef = 1.0;
+			for (int jj = 0; jj < N + 2; jj = jj + 1)
 			{
-				tmp_coef = tmp_coef / (tau_LTE(ii) - tau_LTE(jj));
+				if (jj != ii)
+				{
+					tmp_coef = tmp_coef / (tau_LTE(ii) - tau_LTE(jj));
+				}
 			}
+			LTE = LTE + y_LTE.col(ii) * tmp_coef;
 		}
-		LTE = LTE + y_LTE.col(ii) * tmp_coef;
+		LTE = LTE * pow(dt, N + 1);
+		// Compute the adaptive time step multiplier
+		sigma = pow(0.5 * arma::norm(EWT) / arma::norm(LTE), 0.25);
+		// If the error is too large, reduce the time step and try again
+		if ((sigma < 0.9) & (dt > dt_min))
+		{
+			dt = std::max(dt * sigma, dt_min);
+			std::cout << "	WARNING: In BDFN, Error too large! Trying again with smaller step size... " << std::endl;
+			goto LOOP;
+		}
+		// Set an upper bound for sigma
+		sigma = std::min(sigma, 2.0);
 	}
-	LTE = LTE * pow(dt, N + 1);
-	// Compute the adaptive time step multiplier
-	double sigma = pow(0.5 * arma::norm(EWT) / arma::norm(LTE), 0.25);
-	// If the error is too large, reduce the time step and try again
-	if ((sigma < 0.9) & (dt > dt_min))
-	{
-		dt = std::max(dt * sigma, dt_min);
-		std::cout << "	WARNING: In BDFN, Error too large! Trying again with smaller step size... " << std::endl;
-		goto LOOP;
-	}
-	// Set an upper bound for sigma
-	sigma = std::min(sigma, 2.0);
+
 	// Update the time, the last three states and time steps, and the next time step size
 	t = t + dt;
 	// Update the last states and time steps in memory

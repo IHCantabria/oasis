@@ -173,7 +173,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
         pSinking[ii]->UpdateSinkingHydrostatics(time);
     }
 
-    // Compute hydrostatic and hidrodynamic forces
+    // Compute hydrostatic and hydrodynamic forces
     // std::cout << "Simulation::CalculateSystemDynamics - Compute hydrodynamic and hydrostatic forces" << std::endl;
     arma::mat Fb = arma::zeros(6 * numBodiesFree, 1);
     for (int ii = 0; ii < numBodiesFree; ii++)
@@ -406,7 +406,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
         pLines[ii]->acc = LinesAccelerations.rows(pLines[ii]->ind4CouplingMat);
     }
 
-    // Compute Winchies
+    // Compute Winches
     // std::cout << "Simulation::CalculateSystemDynamics - Compute Winchies" << std::endl;
     for (int ii = 0; ii < numWinches; ii = ii + 1)
     {
@@ -606,8 +606,7 @@ void Simulation::Initialize()
     if (this->timeIntMethod == 1)
     {
         std::cout << "Initializing BDF2 temporal solver..." << std::endl;
-        // pTimeSolver = new BDF2(start_time, this->simulationTime, this->maxTimeStep, y, this);
-        pTimeSolver = new BDFN(2, start_time, this->simulationTime, this->maxTimeStep, y, this);
+        pTimeSolver = new BDF2(start_time, this->simulationTime, this->maxTimeStep, y, this);
         std::cout << "  BDF2 constructor done!" << std::endl;
         pTimeSolver->init();
         pTimeSolver->atol = this->timeIntAbsTol;
@@ -617,14 +616,14 @@ void Simulation::Initialize()
     }
     else if (this->timeIntMethod == 2)
     {
-        std::cout << "Initializing BDF4 temporal solver..." << std::endl;
-        pTimeSolver = new BDFN(4, start_time, this->simulationTime, this->maxTimeStep, y, this);
-        std::cout << "  BDF4 constructor done!" << std::endl;
+        std::cout << "Initializing BDF" << timeIntOrder << " temporal solver..." << std::endl;
+        pTimeSolver = new BDFN(this->timeIntOrder, this->timeIntAdaptivity, start_time, this->simulationTime, this->maxTimeStep, y, this);
+        std::cout << "  BDF" << timeIntOrder << " constructor done!" << std::endl;
         pTimeSolver->init();
         pTimeSolver->atol = this->timeIntAbsTol;
         pTimeSolver->rtol = this->timeIntRelTol;
         pTimeSolver->nIterMax = this->maxIterStep;
-        std::cout << "  BDF4 initiallized!" << std::endl;
+        std::cout << "  BDF" << timeIntOrder << " initiallized!" << std::endl;
     }
 
     // Write initial condition to files
@@ -632,8 +631,8 @@ void Simulation::Initialize()
         this->pLines[ii]->WriteOut(start_time);
     for (int ii = 0; ii < this->numBodies; ii = ii + 1)
         this->pBodies[ii]->WriteOut(start_time);
-    std::cout << "Updating system..." << std::endl;
 
+    std::cout << "Updating system..." << std::endl;
     // Save first data
     this->UpdateSystem();
     std::cout << "  System updated!" << std::endl;
@@ -1355,8 +1354,11 @@ void Simulation::ReadPropertiesASCII()
     fscanf(file_pointer, "%lf %[^\n]\n", &controllerTimeStep, bufferLine);     // Time step for winches controller [s]
     fscanf(file_pointer, "%lf %[^\n]\n", &simulationTime, bufferLine);         // Total time of simulation [s]
     fscanf(file_pointer, "%d %[^\n]\n", &dummyBool, bufferLine);
-    rotSimpFlag = dummyBool;                                          // Flag to use simplification for rigid body rotation dynamics [0 No, 1 Yes]
-    fscanf(file_pointer, "%d %[^\n]\n", &timeIntMethod, bufferLine);  // Solver temporal [1: BDF1]
+    rotSimpFlag = dummyBool;                                         // Flag to use simplification for rigid body rotation dynamics [0 No, 1 Yes]
+    fscanf(file_pointer, "%d %[^\n]\n", &timeIntMethod, bufferLine); // Temporal integration alforithm [1: BDF1, 2: BDFN]
+    fscanf(file_pointer, "%d %[^\n]\n", &timeIntOrder, bufferLine);  // Order for temporal integration
+    fscanf(file_pointer, "%d %[^\n]\n", &dummyBool, bufferLine);
+    timeIntAdaptivity = dummyBool;                                    // Time step adaptivity [0 No, 1 Yes]
     fscanf(file_pointer, "%lf %[^\n]\n", &timeIntAbsTol, bufferLine); // Absolute tolerance for temporal integration.
     fscanf(file_pointer, "%lf %[^\n]\n", &timeIntRelTol, bufferLine); // Relative tolerance for temporal integration.
     fscanf(file_pointer, "%d %[^\n]\n", &maxIterStep, bufferLine);    // Maximum number of iterations for one step of temporal integration.
@@ -1746,6 +1748,7 @@ void Simulation::Run()
     double wallTimeSinking = 0.0;
     double wallTimeController = 0.0;
     tstart = time(0);
+    bool flag_debug_lines = true;
 
     std::cout << "    t = " << wallTime << " s" << std::endl;
 
@@ -1755,6 +1758,23 @@ void Simulation::Run()
     {
         // std::cout<< "In Simulation::Run --> step() "<< std::endl;
         pTimeSolver->step();
+
+        // Print lines in first time step for debugging
+        if (flag_debug_lines)
+        {
+            flag_debug_lines = false;
+            for (int ii = 0; ii < numLines; ii = ii + 1)
+            {
+                fprintf(pLines[ii]->pfile_line_debug, "s    x    y    z \n");
+                for (int jj = 0; jj < pLines[ii]->N; jj = jj + 1)
+                    fprintf(pLines[ii]->pfile_line_debug, "%f    %f    %f    %f \n",
+                            pLines[ii]->s(jj, 0),
+                            pLines[ii]->pos(jj, 0),
+                            pLines[ii]->pos(jj, 1),
+                            pLines[ii]->pos(jj, 2));
+                fclose(pLines[ii]->pfile_line_debug);
+            }
+        }
 
         if (pTimeSolver->t >= wallTime + writeTimeStep)
         {
@@ -1946,6 +1966,7 @@ void Simulation::SetupCase()
     }
     for (int ii = 0; ii < numBodies; ii++)
     {
+        std::cout << "    --> Body " << ii + 1 << " pos = " << pBodies[ii]->pos.t() << std::endl;
         for (int jj = 0; jj < pBodies[ii]->numBcps; jj++)
         {
             pBodies[ii]->pBodyBcps[jj] = pBcps[pBodies[ii]->pIndexBcps[jj]];
@@ -2670,7 +2691,7 @@ void Simulation::ComputeLinesEquilibrium(arma::mat x)
     // TODO: Fix bug: this does not work for unsteady initial conditions (falling lines)
 
     // Parameters
-    int maxIter = 150;
+    int maxIter = 1000;
     double tol = timeIntAbsTol;
     double tolrelativa = timeIntRelTol;
 
@@ -2721,8 +2742,10 @@ void Simulation::ComputeLinesEquilibrium(arma::mat x)
         fxsol = ComputeLinesForces(xsol); // Here the position of the Line objects is updated
 
         // Step 4: Update the stop criterion variables
-        cantidadAbs = arma::norm(dk, 2);
-        cantidadRel = cantidadAbs / arma::norm(x, 2);
+        // cantidadAbs = arma::norm(dk, 2);
+        // cantidadRel = cantidadAbs / arma::norm(x, 2);
+        cantidadAbs = arma::norm(dk, "inf");
+        cantidadRel = arma::norm(dk / x, "inf");
         iter = iter + 1;
 
         // Update the solution for next iteration

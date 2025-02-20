@@ -69,16 +69,6 @@ public:
 	// double atol = 1e-6;
 	// double rtol = 1e-3;
 	// int nIterMax = 10;
-	// // Number of jacobian evaluations
-	// int iJ = 0;
-	// // System size
-	// int nSystem;
-	// // Time, maximum time, output time step
-	// double t, tmax, dt_out;
-	// // State vector
-	// arma::mat y;
-	// // Simulation pointer
-	// Simulation *pSim;
 
 	// ***Declare constructor***
 	BDF2(double t_u, double tmax_u, double dt_out_u, arma::mat y_u, Simulation *pIncSim);
@@ -124,6 +114,8 @@ private:
 	bool status;
 	// Order of the BDF scheme
 	int N;
+	// Time adaptivity flag
+	bool adaptivity;
 
 public:
 	// ***Redeclare public attributes if needed***
@@ -134,19 +126,9 @@ public:
 	// double atol = 1e-6;
 	// double rtol = 1e-3;
 	// int nIterMax = 10;
-	// // Number of jacobian evaluations
-	// int iJ = 0;
-	// // System size
-	// int nSystem;
-	// // Time, maximum time, output time step
-	// double t, tmax, dt_out;
-	// // State vector
-	// arma::mat y;
-	// // Simulation pointer
-	// Simulation *pSim;
 
 	// ***Declare constructor***
-	BDFN(int N_u, double t_u, double tmax_u, double dt_out_u, arma::mat y_u, Simulation *pIncSim);
+	BDFN(int N_u, bool a_u, double t_u, double tmax_u, double dt_out_u, arma::mat y_u, Simulation *pIncSim);
 
 	// ***Declare methods***
 	// Evaluate the system dynamics function

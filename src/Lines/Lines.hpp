@@ -50,6 +50,8 @@ public:
 	FILE *pfile_zpos;
 	FILE *pfile_ten;
 	FILE *pfile_ten_line;
+	FILE *pfile_line_ini;
+	FILE *pfile_line_debug;
 
 	Line(int incId, double incG, double incRhoW, double incFondo);
 	int GetId();
