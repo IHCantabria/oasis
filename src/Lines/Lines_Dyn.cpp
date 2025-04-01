@@ -884,19 +884,23 @@ void Line::WriteOut(double t)
 {
 	int ii;
 
-	fprintf(pfile_xpos, "%f    ", t);
+	// set the format of the output
+	// char* format = "%f    ";
+	const char *format = "%.14f    ";
+
+	fprintf(pfile_xpos, format, t);
 	for (ii = 0; ii < this->N; ii = ii + 1)
-		fprintf(pfile_xpos, "%f    ", this->pos(ii, 0));
+		fprintf(pfile_xpos, format, this->pos(ii, 0));
 	fprintf(pfile_xpos, "\n");
 
-	fprintf(pfile_ypos, "%f    ", t);
+	fprintf(pfile_ypos, format, t);
 	for (ii = 0; ii < this->N; ii = ii + 1)
-		fprintf(pfile_ypos, "%f    ", this->pos(ii, 1));
+		fprintf(pfile_ypos, format, this->pos(ii, 1));
 	fprintf(pfile_ypos, "\n");
 
-	fprintf(pfile_zpos, "%f    ", t);
+	fprintf(pfile_zpos, format, t);
 	for (ii = 0; ii < this->N; ii = ii + 1)
-		fprintf(pfile_zpos, "%f    ", this->pos(ii, 2));
+		fprintf(pfile_zpos, format, this->pos(ii, 2));
 	fprintf(pfile_zpos, "\n");
 
 	fprintf(pfile_ten, "%f    %f    %f    %f    %f    %f    %f \n", t, ten_1(0, 0), ten_1(1, 0), ten_1(2, 0), ten_N(0, 0), ten_N(1, 0), ten_N(2, 0));

@@ -79,6 +79,7 @@ set(OASIS_HEADER_FILES
     "src/ODE_solvers/ODE_solvers.hpp"
     "src/SEM_math/quadrule.hpp"
     "src/Waves/Wave.hpp"
+    "src/Simulations/ISimulation.hpp"
     "src/Simulations/Simulation.hpp"
     "src/Spring/Spring.hpp"
     "src/Sinking/Sinking.hpp"

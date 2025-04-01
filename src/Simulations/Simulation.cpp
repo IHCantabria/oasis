@@ -617,13 +617,28 @@ void Simulation::Initialize()
     else if (this->timeIntMethod == 2)
     {
         std::cout << "Initializing BDF" << timeIntOrder << " temporal solver..." << std::endl;
-        pTimeSolver = new BDFN(this->timeIntOrder, this->timeIntAdaptivity, start_time, this->simulationTime, this->maxTimeStep, y, this);
+        pTimeSolver = new BDFN(this->timeIntOrder, this->timeIntAdaptivity, start_time, this->simulationTime, this->maxTimeStep, this->writeTimeStep, y, this);
         std::cout << "  BDF" << timeIntOrder << " constructor done!" << std::endl;
         pTimeSolver->init();
         pTimeSolver->atol = this->timeIntAbsTol;
         pTimeSolver->rtol = this->timeIntRelTol;
         pTimeSolver->nIterMax = this->maxIterStep;
         std::cout << "  BDF" << timeIntOrder << " initiallized!" << std::endl;
+    }
+    else if (this->timeIntMethod == 3)
+    {
+        std::cout << "Initializing ESDIRK temporal solver..." << std::endl;
+        pTimeSolver = new ESDIRK(this->timeIntAdaptivity, start_time, this->simulationTime, this->maxTimeStep, this->writeTimeStep, y, this);
+        std::cout << "  ESDIRK constructor done!" << std::endl;
+        pTimeSolver->atol = this->timeIntAbsTol;
+        pTimeSolver->rtol = this->timeIntRelTol;
+        pTimeSolver->nIterMax = this->maxIterStep;
+        std::cout << "  ESDIRK initiallized!" << std::endl;
+    }
+    else
+    {
+        std::cout << "ERROR: Time integration method not recognized!" << std::endl;
+        throw std::exception();
     }
 
     // Write initial condition to files
@@ -1748,13 +1763,13 @@ void Simulation::Run()
     double wallTimeSinking = 0.0;
     double wallTimeController = 0.0;
     tstart = time(0);
-    bool flag_debug_lines = true;
+    bool flag_debug_lines = false;
 
     std::cout << "    t = " << wallTime << " s" << std::endl;
 
     // TODO: Implement a logger with different levels of verbosity
     //  std::cout<< "In Simulation::Run --> Starting temporal integration loop "<< std::endl;
-    do
+    while (pTimeSolver->t < simulationTime - 2e-14)
     {
         // std::cout<< "In Simulation::Run --> step() "<< std::endl;
         pTimeSolver->step();
@@ -1776,15 +1791,15 @@ void Simulation::Run()
             }
         }
 
-        if (pTimeSolver->t >= wallTime + writeTimeStep)
+        if (pTimeSolver->t >= wallTime + writeTimeStep - 2e-14)
         {
             // std::cout<< "In Simulation::Run --> WriteOut() "<< std::endl;
-            wallTime = wallTime + writeTimeStep;
+            wallTime = writeTimeStep * round((wallTime + writeTimeStep) / writeTimeStep);
             std::cout << "    t = " << wallTime << " s" << std::endl;
             for (int ii = 0; ii < numLines; ii = ii + 1)
-                pLines[ii]->WriteOut(wallTime);
+                pLines[ii]->WriteOut(pTimeSolver->t);
             for (int ii = 0; ii < numBodies; ii = ii + 1)
-                pBodies[ii]->WriteOut(wallTime);
+                pBodies[ii]->WriteOut(pTimeSolver->t);
         }
 
         if (pTimeSolver->t >= wallTimeHydro + hydroTimeStep)
@@ -1856,8 +1871,7 @@ void Simulation::Run()
                 // std::cout << "In Simulation::Run --> ... done controlling winches!" << std::endl;
             }
         }
-
-    } while (pTimeSolver->t <= simulationTime);
+    }
 
     tend = time(0);
     double computational_time = difftime(tend, tstart);

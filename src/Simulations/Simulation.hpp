@@ -3,6 +3,7 @@
 #define simulationdef_hpp__
 
 #include <string>
+#include "ISimulation.hpp"
 #include "../Bodies/Bodies.hpp"
 #include "../BCPs/BCPs.hpp"
 #include "../BCPs/Winchies.hpp"
@@ -16,7 +17,7 @@
 
 class ODE_solver;
 
-class Simulation
+class Simulation : public ISimulation
 {
 private:
     int dataFormat;
