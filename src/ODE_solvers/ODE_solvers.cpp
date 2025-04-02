@@ -774,6 +774,7 @@ ESDIRK::ESDIRK(bool a_u, double t_u, double tmax_u, double dt_max_u, double dt_o
 	Jfun = arma::zeros(nSystem, nSystem);
 	// Initialize the required vectors and matrices
 	ys = arma::zeros(nSystem, s);
+	ys_prime = arma::zeros(nSystem, s);
 	ts = arma::zeros(s);
 	// Initialize time step size
 	if (adaptivity)
@@ -787,6 +788,14 @@ ESDIRK::ESDIRK(bool a_u, double t_u, double tmax_u, double dt_max_u, double dt_o
 	dt_old = dt;
 	// Compute the jacobi matrix at the initial state
 	jac(t, y);
+	// Print the butcher coefficients
+	std::cout << "ESDIRK coefficients: " << std::endl;
+	std::cout << "a: " << std::endl
+			  << a << std::endl;
+	std::cout << "b: " << std::endl
+			  << b << std::endl;
+	std::cout << "beta: " << std::endl
+			  << beta << std::endl;
 }
 
 void ESDIRK::init(void)
@@ -803,20 +812,21 @@ arma::mat ESDIRK::fun(double tt, arma::mat yy)
 void ESDIRK::jac(double tt, arma::mat yy)
 {
 	// ***Compute the jacobian matrix of the function that returns the state derivative***
-	arma::mat yprime = fun(tt, yy);
+	y_prime = fun(tt, yy);
 	for (int ii = 0; ii < nSystem; ii = ii + 1)
 	{
-		Jfun.col(ii) = 1e12 * (fun(tt, yy + 1e-12 * I.col(ii)) - yprime);
+		Jfun.col(ii) = 1e12 * (fun(tt, yy + 1e-12 * I.col(ii)) - y_prime);
 	}
 }
 
 arma::mat ESDIRK::ESDIRK_fun(double t_i, arma::mat y_i, int ii)
 {
 	//***Evaluate the nonlinear ESDIRK scheme function***
-	arma::mat FF = y_i - y - fun(t_i, y_i) * dt * a(ii, ii);
+	y_prime = fun(t_i, y_i);
+	arma::mat FF = y_i - y - dt * a(ii, ii) * y_prime;
 	for (int jj = 0; jj < ii; jj = jj + 1)
 	{
-		FF = FF - dt * a(ii, jj) * fun(ts(jj), ys.col(jj));
+		FF = FF - dt * a(ii, jj) * ys_prime.col(jj);
 	}
 	return FF;
 }
@@ -825,13 +835,14 @@ void ESDIRK::step(void)
 {
 	// ***Perform a time step with the ESDIRK scheme***
 	// Check if the jacobi matrix needs to be updated
-	bool jac_update = false;
-	if (nSteps > nStepsMax)
+	fprintf(stdout, "y = %.14f, y_prime = %.14f\n", y(0), y_prime(0));
+	bool jac_updated = false;
+	if ((nSteps > 10) || ((LTE / LTE_old) > 0.2))
 	{
 		jac(t, y);
 		iJ = iJ + 1;
 		nSteps = 0;
-		jac_update = true;
+		jac_updated = true;
 	}
 	else
 	{
@@ -839,39 +850,65 @@ void ESDIRK::step(void)
 	}
 	// Declare the stage state vector
 	arma::mat y_i;
+	// Declare the first stage state vector
+	ys.col(0) = y;
+	// Declare the first stage state derivative vector
+	ys_prime.col(0) = y_prime;
+	// If adaptivity is not used, make sure that the current time is a multiple of the time step
+	if (!adaptivity)
+	{
+		t = dt * round(t / dt);
+	}
+	// Declare the first stage time vector
+	ts(0) = t;
 LOOP:
 	// Loop over the stages
-	for (int ii = 0; ii < s; ii = ii + 1)
+	for (int ii = 1; ii < s; ii = ii + 1)
 	{
 		// Initialize the stage state vector
 		y_i = y;
+		// Define the time of the implicit stage
+		double t_i = t + beta(ii) * dt;
 		// Initialize the iteration counter
 		int k = 0;
 		// Initialize the stage state change vector
 		arma::mat dy = 2.0 * atol * arma::ones(size(y));
+		// Define the vector for the implicit stage for the current iteration
+		arma::mat FF = ESDIRK_fun(t_i, y_i, ii);
 		// Define the matrix for the implicit stage
-		arma::mat MM = I + dt * a(ii, ii) * Jfun;
+		arma::mat MM = I - dt * a(ii, ii) * Jfun;
 		// Iterative scheme to solve the stage
-		while ((arma::norm(dy, "inf") > atol) & (k <= nIterMax))
+		while (((arma::norm(dy, "inf") > atol) || (arma::norm(FF, "inf") > atol)) & (k <= nIterMax))
 		{
-			// Define the vector for the implicit stage for the current iteration
-			arma::mat VV = ESDIRK_fun(t + beta(ii) * dt, y_i, ii);
 			// Solve for the state change vector
-			status = arma::solve(dy, MM, VV, arma::solve_opts::fast);
+			status = arma::solve(dy, MM, -FF, arma::solve_opts::fast);
 			// If the fast solver fails, solve the system using the slower method
 			if (!status)
 			{
-				dy = arma::solve(MM, VV);
+				dy = arma::solve(MM, -FF);
 			}
-			// Update the state vector
-			y_i = y_i + dy;
+			// Compute the line-search step
+			double alpha = 1e-4;
+			double lambda = 0.9;
+			double rho_min = 1e-2;
+			double rho = 1.0;
+			arma::mat F_new = ESDIRK_fun(t_i, y_i + rho * dy, ii);
+			while ((arma::norm(F_new) > (1.0 - alpha) * arma::norm(FF)) & (rho > rho_min))
+			{
+				rho = rho * lambda;
+				F_new = ESDIRK_fun(t_i, y_i + rho * dy, ii);
+			}
+			// Update the stage state vector
+			y_i = y_i + rho * dy;
+			// Redefine the function to minimize
+			FF = F_new;
 			// Update the iteration counter
 			k = k + 1;
 		}
 		// Check if the convergence failed
 		if ((k >= nIterMax) || (y_i.has_nan()))
 		{
-			if (jac_update)
+			if (jac_updated)
 			{
 				std::cout << "ERROR: Convergence failed in ESDIRK!" << std::endl;
 				throw std::exception();
@@ -880,7 +917,7 @@ LOOP:
 			{
 				jac(t, y);
 				iJ = iJ + 1;
-				jac_update = true;
+				jac_updated = true;
 				nSteps = 0;
 				std::cout << "WARNING: In ESDIRK, Maximum number of iterations reached! Trying again with recomputed Jacobean matrix... " << std::endl;
 				goto LOOP;
@@ -888,25 +925,36 @@ LOOP:
 		}
 		// Save the stage state vector
 		ys.col(ii) = y_i;
+		// Save the stage state derivative vector
+		ys_prime.col(ii) = y_prime;
 		// Save the stage time vector
-		ts(ii) = t + beta(ii) * dt;
+		ts(ii) = t_i;
+		fprintf(stdout, "Stage %d: y_i = %.14f \n", ii + 1, y_i(0));
 	}
 	// Update the state vector
 	y = y_i;
-	// Update the time
-	t = t + dt;
 	if (adaptivity)
 	{
-		// Compute the embeded solution
-		yhat = arma::zeros(size(y));
-		for (int ii = 0; ii < s; ii = ii + 1)
-		{
-			yhat = yhat + ys.col(ii) * b(ii);
-		}
-		// Compute the LTE error
-		double LTE = arma::norm(yhat - y, "inf");
+		t = t + dt;
+	}
+	else
+	{
+		t = dt * round((t + dt) / dt);
+	}
+	// Compute the embeded solution
+	yhat = arma::zeros(size(y));
+	for (int ii = 0; ii < s; ii = ii + 1)
+	{
+		yhat = yhat + ys.col(ii) * b(ii);
+	}
+	// Compute the LTE error
+	LTE_old = LTE;
+	LTE = arma::norm(yhat - y);
+	// Update the time step size if adaptivity is used
+	if (adaptivity)
+	{
 		// Compute the EWT error
-		double EWT = atol + rtol * arma::norm(y, "inf");
+		double EWT = atol + rtol * arma::norm(y);
 		// Compute the adaptive time step multiplier
 		error_ratio_old = error_ratio;
 		error_ratio = LTE / EWT;
