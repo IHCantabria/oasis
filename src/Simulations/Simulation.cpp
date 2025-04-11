@@ -2408,7 +2408,7 @@ void Simulation::SetupCase()
         {
             if (pBodies[ii]->numWindTurbs > 0)
             {
-                // TODO: Here, it would be convenient to check that forthe different turbines
+                // TODO: Here, it would be convenient to check that for the different turbines
                 // the inertia of the HDB are at least very similar.
                 pBodies[ii]->inertia = pBodies[ii]->pBodyWindTurbs[0]->bodyInerMat;
                 for (int jj = 0; jj < pBodies[ii]->numWindTurbs; jj++)

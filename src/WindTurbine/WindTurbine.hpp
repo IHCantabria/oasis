@@ -51,11 +51,11 @@ public:
     {
         idWindTurbine = n + 1;
         pSim = pSimInp;
-    }                                      // Inicializa un objeto de clase turbina dandole el indice
-    void ReadPropertiesASCII(FILE *pFile); // Lee inputs de las turbinas
-    void Initialize(void);                 // Configura el objeto turbina
-    void Finalize(void);                   // Cierra el caso
-    void WriteOut(double t);               // Escribir datos a fichero
+    }
+    void ReadPropertiesASCII(FILE *pFile);
+    void Initialize(void);
+    void Finalize(void);
+    void WriteOut(double t);
 
     void ComputeForces(double time);
     void SetInputsFAST(void);
