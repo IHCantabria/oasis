@@ -20,7 +20,7 @@ private:
 public:
 	// General Management variables
 	int idBody;		  // Index of the current body of study
-	Body **pBodies;	  // Array de pointers a los cuerpos
+	Body **pBodies;	  // Array ob bodies pointers
 	Simulation *pSim; // Pointer to the simulation instance. It gives fast access to the necessary simulation variables
 	Morison *pMor;	  // Pointer to the Morison forces class
 
@@ -29,6 +29,8 @@ public:
 	double waveAmplitude = 0.0;
 	int numPeriodExc = 0;
 	int numHeadingExc = 0;
+	// Flag to indicate the hydro database type
+	int hydroDatabaseFlag = 0; // [0: EHYDB, 1: H5]
 
 	// Declare Hydrodynamic Storage Variables
 	arma::mat cog;					 // Position of the center of gravity for the hydrodynamic Radiation-Diffraction problem
@@ -52,13 +54,17 @@ public:
 	int numBodies;
 	int numFrequencies;
 	int numHeadings;
-	arma::cube ***pQtfDiff;		  // Matrix componets: [parts, dofs, freq1, freq2, headings] | The first two are pointers to cube variables and last three are arma::cube
-	arma::cube ***pQtfSum;		  // Matrix componets: [parts, dofs, freq1, freq2, headings] | The first two are pointers to cube variables and last three are arma::cube
+	arma::cube ***pQtfDiff;		  // Matrix components: [parts, dofs, freq1, freq2, headings] | The first two are pointers to cube variables and last three are arma::cube
+	arma::cube ***pQtfSum;		  // Matrix components: [parts, dofs, freq1, freq2, headings] | The first two are pointers to cube variables and last three are arma::cube
 	arma::cube *pWaveExcitingMag; // Matrix components: [dofs, freqs, headings];
 	arma::cube *pWaveExcitingPha; // Matrix components: [dofs, freqs, headings];
+	arma::cube *pWaveDiffMag;	  // Matrix components: [dofs, freqs, headings];
+	arma::cube *pWaveDiffPha;	  // Matrix components: [dofs, freqs, headings];
+	arma::cube *pWaveFKMag;		  // Matrix components: [dofs, freqs, headings];
+	arma::cube *pWaveFKPha;		  // Matrix components: [dofs, freqs, headings];
 
-	arma::cube ***QtfDiff_w;			 // Matrix componets after SetUp: [parts, dofs, freq1_w, freq2_w, headings] | The first two are pointers to cube variables and last three are arma::cube
-	arma::cube ***QtfSum_w;				 // Matrix componets after SetUp: [parts, dofs, freq1_w, freq2_w, headings] | The first two are pointers to cube variables and last three are arma::cube
+	arma::cube ***QtfDiff_w;			 // Matrix components after SetUp: [parts, dofs, freq1_w, freq2_w, headings] | The first two are pointers to cube variables and last three are arma::cube
+	arma::cube ***QtfSum_w;				 // Matrix components after SetUp: [parts, dofs, freq1_w, freq2_w, headings] | The first two are pointers to cube variables and last three are arma::cube
 	arma::cube WE_Real_w;				 // Matrix components after SetUp: [headings, freqs_w, dofs];
 	arma::cube WE_Imag_w;				 // Matrix components after SetUp: [headings, freqs_w, dofs];
 	int numFrequencies_w;				 // Number of frequencies in the wave spectrum inside the frequency range of hydrodynamic database coefficients
@@ -90,16 +96,18 @@ public:
 
 	// Class Constructors
 	HydroDatabase(int incId, int incIdBody, Body **incBodies, Simulation *pIncSim);
-	~HydroDatabase(){};
+	~HydroDatabase() {};
 
 	// Class Methods
 	arma::mat CalculateHydrostaticForces(double time);
 	arma::mat ComputeRadiationForces(void);
-	void ComputeIRF(std::string HDBname); // Calcula la impulse response function
-	arma::mat GetCog(void);				  // Interface method, it returns center of gravity
-	int GetNumBodies(void);				  // Returns the number of bodies in the database
-	int GetNumPointsIrf(void);			  // Interface mehtods, it returns the number of points of the IRF
-	arma::mat GetTotalMass(void);		  // Interface method, it returns the total mass matrix: StruturalMass+AddedMass+ViscousAddedMass
+	void ComputeIRF(std::string HDBname);				  // Compute the impulse response function
+	void ComputeAsymptoticAddedMass(std::string HDBname); // Compute the impulse response function
+	void ComputeTotalMass(void);						  // Compute the total mass matrix
+	arma::mat GetCog(void);								  // Interface method, it returns center of gravity
+	int GetNumBodies(void);								  // Returns the number of bodies in the database
+	int GetNumPointsIrf(void);							  // Interface methods, it returns the number of points of the IRF
+	arma::mat GetTotalMass(void);						  // Interface method, it returns the total mass matrix: StruturalMass+AddedMass+ViscousAddedMass
 	void UpdateStructuralMass(arma::mat newStructuralMass);
 	void UpdateTotalMass(void);
 	arma::mat ComputeFirstWaveExcForce(double t); // Interpolate First Order Wave Excitation forces using first order polynomial
@@ -111,6 +119,9 @@ public:
 	arma::mat GetInertiaMatrixInv(void);
 	void Print(void);
 	void SetUp(void);
+
+	void LoadHydroDataEHYDB(std::string file_path); // Loads the corresponding hydrodynamic data in EHYDB format
+	void LoadHydroDataH5(std::string file_path);	// Loads the corresponding hydrodynamic data in HDF5 format
 
 	// Declare inherited virutal methods
 	arma::mat CalculateHydrodynamicForces(double time);

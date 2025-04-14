@@ -5,6 +5,8 @@
 #include <string>
 #include <sstream>
 #include <chrono>
+#include "hdf5.h"
+#include "H5Cpp.h"
 #include "HydroDatabase.hpp"
 #include "../ODE_solvers/ODE_solvers.hpp"
 #include "../Simulations/Simulation.hpp"
@@ -202,6 +204,46 @@ void HydroDatabase::ComputeIRF(std::string HDBname)
 	}
 }
 
+void HydroDatabase::ComputeAsymptoticAddedMass(std::string HDBname)
+{
+	// Get the index for the lowest frequency
+	arma::uvec id_min_freq = arma::find((*pFrequencies) == (*pFrequencies).min());
+
+	// Allocate the asymptotic added mass matrix
+	pAddedMassLf = new arma::mat *[numBodies];
+	pAddedMassHf = new arma::mat *[numBodies];
+	for (int ib = 0; ib < numBodies; ib++)
+	{
+		pAddedMassLf[ib] = new arma::mat(6, 6, arma::fill::zeros);
+		pAddedMassHf[ib] = new arma::mat(6, 6, arma::fill::zeros);
+		for (int i = 0; i < 6; i++)
+		{
+			for (int j = 0; j < 6; j++)
+			{
+				// Calculate the asymptotic low frequency added mass as an approximation
+				// to the added mass at the lowest frequency
+				(*pAddedMassLf[ib])(i, j) = (*pAddedMass[ib])(i, j, id_min_freq(0));
+				// Calculate the asymptotic high frequency added mass as the integral of the IRF
+				(*pAddedMassHf[ib])(i, j) += trapzi(IRFTime, (*pIRF[ib]).subcube(0, i, j, numPointsIRF - 1, i, j));
+			}
+		}
+	}
+}
+
+void HydroDatabase::ComputeTotalMass(void)
+{
+	// Create total mass matrix and fill with structural data
+	std::cout << "  Creating total mass matrix...\n";
+	pTotalMass = new arma::mat(6, 6 * numBodies, arma::fill::zeros);
+	(*pTotalMass)(arma::span(0, 5), arma::span(6 * (pBodies[idBody]->hydroDatabaseIndex), 6 * (pBodies[idBody]->hydroDatabaseIndex + 1) - 1)) = (*pStructuralMass);
+	for (int ii = 0; ii < numBodies; ii++)
+	{
+		(*pTotalMass)(arma::span(0, 5), arma::span(6 * ii, 6 * (ii + 1) - 1)) += (*pAddedMassHf[ii]);
+	}
+	(*pTotalMass)(arma::span(0, 5), arma::span(6 * (pBodies[idBody]->hydroDatabaseIndex), 6 * (pBodies[idBody]->hydroDatabaseIndex + 1) - 1)) +=
+		(*pAddedMassHf[pBodies[idBody]->hydroDatabaseIndex]) % (arma::diagmat(pBodies[idBody]->A_visc));
+}
+
 arma::mat HydroDatabase::ComputeRadiationForces()
 {
 	// Allocate radiation force solution vector
@@ -319,6 +361,76 @@ HydroDatabase::HydroDatabase(int incId, int incIdBody, Body **incBody, Simulatio
 
 void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 {
+	// Check the end of the file name to determine the type of database
+	if (filePath.find(".ehydb") != std::string::npos)
+	{
+		hydroDatabaseFlag = 0;
+	}
+	else if (filePath.find(".hydb.h5") != std::string::npos)
+	{
+		hydroDatabaseFlag = 1;
+	}
+	else
+	{
+		std::cout << "ERROR: File name does not have a valid extension. \n";
+		std::cout << "       Valid extensions are: .hydb.h5 or .ehydb \n";
+		throw std::exception();
+	}
+
+	if (hydroDatabaseFlag == 0)
+	{
+		std::cout << "  Loading hydrodynamic data from file: " << filePath << "...\n";
+		LoadHydroDataEHYDB(filePath);
+	}
+	else if (hydroDatabaseFlag == 1)
+	{
+		std::cout << "  Loading hydrodynamic data from file: " << filePath << "...\n";
+		LoadHydroDataH5(filePath);
+	}
+
+	// Load the structural mass into the body
+	pBodies[idBody]->structuralMass = (*pStructuralMass)(0, 0);
+
+	// Generate starting pos time matrix
+	pTimeStartPos = new arma::cube(numBodies, 6, 6, arma::fill::zeros);
+
+	// Assemble the HDF name in order to save the IRF data
+	std::string HDBname = filePath.substr(filePath.find_last_of("/") + 1);
+	if (hydroDatabaseFlag == 0)
+	{
+		HDBname = HDBname.substr(0, HDBname.length() - 6);
+	}
+	else if (hydroDatabaseFlag == 1)
+	{
+		HDBname = HDBname.substr(0, HDBname.length() - 8);
+	}
+
+	// Compute IRF function
+	std::cout << "  Computing IRF ...\n";
+	this->ComputeIRF(HDBname);
+	std::cout << "  ... computing IRF done!\n";
+
+	// Compute Asymptotic added mass if it was not loaded from the file
+	if (hydroDatabaseFlag == 1)
+	{
+		std::cout << "  Computing asymptotic added mass...\n";
+		this->ComputeAsymptoticAddedMass(HDBname);
+		std::cout << "  ... computing asymptotic added mass done!\n";
+	}
+
+	// Compute total mass matrix
+	std::cout << "  Computing total mass matrix...\n";
+	this->ComputeTotalMass();
+	std::cout << "  ... computing total mass matrix done!\n";
+
+	// Load Morison forces data
+	std::cout << "  Reading Morison forces data ...\n";
+	pMor = new Morison(numBodies, pSim);
+	pMor->ReadMorisonData();
+}
+
+void HydroDatabase::LoadHydroDataEHYDB(std::string filePath)
+{
 	// Read number of bodies
 	std::cout << "Loading hydrodynamic data from file: " << filePath << "...\n";
 	std::cout << "  Reading number of bodies...\n";
@@ -362,14 +474,6 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 	structural_mass_fn << "body_" << this->GetId() << "/mass";
 	pStructuralMass->load(arma::hdf5_name(filePath, structural_mass_fn.str(), arma::hdf5_opts::trans));
 
-	// Load the structural mass intr
-	pBodies[idBody]->structuralMass = (*pStructuralMass)(0, 0);
-
-	// Create total mass matrix and fill with structural data
-	std::cout << "  Creating total mass matrix...\n";
-	pTotalMass = new arma::mat(6, 6 * numBodies, arma::fill::zeros);
-	(*pTotalMass)(arma::span(0, 5), arma::span(6 * (pBodies[idBody]->hydroDatabaseIndex), 6 * (pBodies[idBody]->hydroDatabaseIndex + 1) - 1)) = (*pStructuralMass);
-
 	// Read Added Mass
 	std::cout << "  Reading Added Mass...\n";
 	std::stringstream added_mass_fn;
@@ -392,12 +496,7 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 		added_mass_hf_fn.str("");
 		added_mass_hf_fn << "body_" << this->GetId() << "/added_mass_hf/body_" << ii;
 		pAddedMassHf[ii]->load(arma::hdf5_name(filePath, added_mass_hf_fn.str()));
-		std::cout << "    Applying matrix...\n";
-		std::cout << "    " << 6 * ii << " - " << 6 * (ii + 1) - 1 << "\n";
-		(*pTotalMass)(arma::span(0, 5), arma::span(6 * ii, 6 * (ii + 1) - 1)) += (*pAddedMassHf[ii]);
 	}
-	(*pTotalMass)(arma::span(0, 5), arma::span(6 * (pBodies[idBody]->hydroDatabaseIndex), 6 * (pBodies[idBody]->hydroDatabaseIndex + 1) - 1)) +=
-		(*pAddedMassHf[pBodies[idBody]->hydroDatabaseIndex]) % (arma::diagmat(pBodies[idBody]->A_visc));
 
 	// Read Low frequency asymptotic added mass
 	std::cout << "  Reading low frequency added mass...\n";
@@ -490,10 +589,10 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 			}
 		}
 
+		std::cout << "  Computing mean drift coefficients...\n";
 		pMeanDrift = new arma::cube(activeDofs, numFrequencies, numHeadings, arma::fill::zeros);
 		int my_count = 0;
 		double temp_value = 0.0;
-
 		for (int ii = 0; ii < activeDofs; ii++)
 		{
 			for (int jj = 0; jj < numFrequencies; jj++)
@@ -517,22 +616,380 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 		pMeanDrift->load(arma::hdf5_name(filePath, mean_drift_fn.str()));
 		std::chrono::steady_clock::time_point end_load = std::chrono::steady_clock::now();
 	}
+}
 
-	// Generate starting pos time matrix
-	pTimeStartPos = new arma::cube(numBodies, 6, 6, arma::fill::zeros);
+void HydroDatabase::LoadHydroDataH5(std::string filePath)
+{
+	// Declare local variables
+	int num_values;
 
-	// Compute IRF function
-	std::cout << "  Computing IRF ...\n";
-	std::string HDBname = filePath.substr(filePath.find_last_of("/") + 1);
-	std::cout << "    assembling filename...\n";
-	HDBname = HDBname.substr(0, HDBname.length() - 6);
-	std::cout << "    assembling filename done!\n";
-	this->ComputeIRF(HDBname);
+	// Open the HDF5 file
+	H5::H5File file(filePath, H5F_ACC_RDONLY);
 
-	// Load Morison forces data
-	std::cout << "  Reading Morison forces data ...\n";
-	pMor = new Morison(numBodies, pSim);
-	pMor->ReadMorisonData();
+	// TODO: Load cog
+	cog = arma::zeros(1, 3);
+
+	// Get the number of frequencies from the "frequencies" dataset which is a 1D array
+	H5::DataSet frequenciesDataset = file.openDataSet("/frequencies");
+	H5::DataSpace frequenciesSpace = frequenciesDataset.getSpace();
+	hsize_t numFrequencies_t;
+	frequenciesSpace.getSimpleExtentDims(&numFrequencies_t, NULL);
+	numFrequencies = numFrequencies_t;
+	std::cout << "Number of frequencies: " << numFrequencies << std::endl;
+	// Allocate memory for the frequencies buffer
+	double *buffer_frequencies = new double[numFrequencies];
+	// Read the frequencies data
+	frequenciesDataset.read(buffer_frequencies, H5::PredType::NATIVE_DOUBLE);
+	// Close the dataset
+	frequenciesDataset.close();
+	// Allocate memory for the frequencies array
+	pFrequencies = new arma::vec(numFrequencies);
+	// Copy the data from the buffer to the frequencies array
+	for (int i = 0; i < numFrequencies; i++)
+	{
+		(*pFrequencies)(i) = buffer_frequencies[i];
+	}
+	// Free the buffer memory
+	delete[] buffer_frequencies;
+
+	// Get the number of headings from the "headings" dataset which is a 1D array
+	H5::DataSet headingsDataset = file.openDataSet("/headings");
+	H5::DataSpace headingsSpace = headingsDataset.getSpace();
+	hsize_t numHeadings_t;
+	headingsSpace.getSimpleExtentDims(&numHeadings_t, NULL);
+	numHeadings = numHeadings_t;
+	std::cout << "Number of headings: " << numHeadings << std::endl;
+	// Allocate memory for the headings buffer
+	double *buffer_headings = new double[numHeadings];
+	// Read the headings data
+	headingsDataset.read(buffer_headings, H5::PredType::NATIVE_DOUBLE);
+	// Close the dataset
+	headingsDataset.close();
+	// Allocate memory for the headings array
+	pHeadings = new arma::vec(numHeadings);
+	// Copy the data from the buffer to the headings array
+	for (int i = 0; i < numHeadings; i++)
+	{
+		(*pHeadings)(i) = buffer_headings[i];
+	}
+	// Free the buffer memory
+	delete[] buffer_headings;
+
+	// Get the number of bodies as the number of groups in the "mesh" group
+	H5::Group meshGroup = file.openGroup("/mesh");
+	numBodies = meshGroup.getNumObjs();
+	std::cout << "Number of bodies: " << numBodies << std::endl;
+	// Close the group
+	meshGroup.close();
+
+	// Read the "added_mass" and "damping_rad" datasets which are 5D arrays [numBodies, numBodies, numFrequencies, 6, 6]
+	std::cout << "Reading added mass and damping radiation data...\n";
+	H5::DataSet addedMassDataset = file.openDataSet("/added_mass");
+	H5::DataSpace addedMassSpace = addedMassDataset.getSpace();
+	hsize_t dims_am[5];
+	addedMassSpace.getSimpleExtentDims(dims_am, NULL);
+	// Open the "damping_rad" dataset
+	H5::DataSet dampingRadDataset = file.openDataSet("/damping_rad");
+	H5::DataSpace dampingRadSpace = dampingRadDataset.getSpace();
+	hsize_t dims_dr[5];
+	dampingRadSpace.getSimpleExtentDims(dims_dr, NULL);
+	// Allocate memory for the added mass and damping radiation buffers [numBodies, numBodies, numFrequencies, 6, 6]
+	num_values = numBodies * numBodies * numFrequencies * 6 * 6;
+	double *buffer_added_mass = new double[num_values];
+	double *buffer_damping_rad = new double[num_values];
+	// Read the added mass and damping radiation data
+	addedMassDataset.read(buffer_added_mass, H5::PredType::NATIVE_DOUBLE, addedMassSpace, addedMassSpace);
+	dampingRadDataset.read(buffer_damping_rad, H5::PredType::NATIVE_DOUBLE, dampingRadSpace, dampingRadSpace);
+	// Close the datasets
+	addedMassDataset.close();
+	dampingRadDataset.close();
+	// Allocate memory for the added mass and damping radiation matrices
+	pAddedMass = new arma::cube *[numBodies];
+	pDampingRadiation = new arma::cube *[numBodies];
+	for (int i = 0; i < numBodies; i++)
+	{
+		pAddedMass[i] = new arma::cube;
+		pDampingRadiation[i] = new arma::cube;
+		pAddedMass[i]->set_size(6, 6, numFrequencies);
+		pDampingRadiation[i]->set_size(6, 6, numFrequencies);
+		for (int j = 0; j < numFrequencies; j++)
+		{
+			for (int k = 0; k < 6; k++)
+			{
+				for (int l = 0; l < 6; l++)
+				{
+					// Calculate the index for the 1D buffer [numBodies, numBodies, numFrequencies, 6, 6]
+					int index = i * numBodies * numFrequencies * 6 * 6 + idBody * numFrequencies * 6 * 6 + j * 6 * 6 + k * 6 + l;
+					// Copy data from buffer to arrays
+					(*pAddedMass[i])(k, l, j) = buffer_added_mass[index];
+					(*pDampingRadiation[i])(k, l, j) = buffer_damping_rad[index];
+				}
+			}
+		}
+	}
+	// Free the buffer memory
+	delete[] buffer_added_mass;
+	delete[] buffer_damping_rad;
+
+	// Read the "diffraction_force_mag", "diffraction_force_pha"
+	// "froude_krylov_force_mag", "froude_krylov_force_pha"
+	// "wave_exciting_mag" and "wave_exciting_pha"
+	// datasets which are 4D arrays [numHeadings, numBodies, numFrequencies, 6]
+	std::cout << "Reading diffraction force magnitude and phase data...\n";
+	// Open "diffraction_force_mag"
+	H5::DataSet diffractionForceMagDataset = file.openDataSet("/diffraction_force_mag");
+	H5::DataSpace diffractionForceMagSpace = diffractionForceMagDataset.getSpace();
+	hsize_t dims_dfm[4];
+	diffractionForceMagSpace.getSimpleExtentDims(dims_dfm, NULL);
+	// Open "diffraction_force_pha"
+	H5::DataSet diffractionForcePhaDataset = file.openDataSet("/diffraction_force_pha");
+	H5::DataSpace diffractionForcePhaSpace = diffractionForcePhaDataset.getSpace();
+	hsize_t dims_dfp[4];
+	diffractionForcePhaSpace.getSimpleExtentDims(dims_dfp, NULL);
+	// Open "froude_krylov_force_mag"
+	H5::DataSet froudeKrylovForceMagDataset = file.openDataSet("/froude_krylov_force_mag");
+	H5::DataSpace froudeKrylovForceMagSpace = froudeKrylovForceMagDataset.getSpace();
+	hsize_t dims_fkm[4];
+	froudeKrylovForceMagSpace.getSimpleExtentDims(dims_fkm, NULL);
+	// Open "froude_krylov_force_pha"
+	H5::DataSet froudeKrylovForcePhaDataset = file.openDataSet("/froude_krylov_force_pha");
+	H5::DataSpace froudeKrylovForcePhaSpace = froudeKrylovForcePhaDataset.getSpace();
+	hsize_t dims_fkp[4];
+	froudeKrylovForcePhaSpace.getSimpleExtentDims(dims_fkp, NULL);
+	// Open "wave_exciting_mag"
+	H5::DataSet waveExcitingMagDataset = file.openDataSet("/wave_exciting_mag");
+	H5::DataSpace waveExcitingMagSpace = waveExcitingMagDataset.getSpace();
+	hsize_t dims_wem[4];
+	waveExcitingMagSpace.getSimpleExtentDims(dims_wem, NULL);
+	// Open "wave_exciting_pha"
+	H5::DataSet waveExcitingPhaDataset = file.openDataSet("/wave_exciting_pha");
+	H5::DataSpace waveExcitingPhaSpace = waveExcitingPhaDataset.getSpace();
+	hsize_t dims_wep[4];
+	waveExcitingPhaSpace.getSimpleExtentDims(dims_wep, NULL);
+	// Allocate memory for the diffraction force magnitude buffer [numHeadings, numBodies, numFrequencies, 6]
+	num_values = numHeadings * numBodies * numFrequencies * 6;
+	double *buffer_diffraction_force_mag = new double[num_values];
+	double *buffer_diffraction_force_pha = new double[num_values];
+	double *buffer_froude_krylov_force_mag = new double[num_values];
+	double *buffer_froude_krylov_force_pha = new double[num_values];
+	double *buffer_wave_exciting_mag = new double[num_values];
+	double *buffer_wave_exciting_pha = new double[num_values];
+	// Read the excitation force data
+	diffractionForceMagDataset.read(buffer_diffraction_force_mag, H5::PredType::NATIVE_DOUBLE, diffractionForceMagSpace, diffractionForceMagSpace);
+	diffractionForcePhaDataset.read(buffer_diffraction_force_pha, H5::PredType::NATIVE_DOUBLE, diffractionForcePhaSpace, diffractionForcePhaSpace);
+	froudeKrylovForceMagDataset.read(buffer_froude_krylov_force_mag, H5::PredType::NATIVE_DOUBLE, froudeKrylovForceMagSpace, froudeKrylovForceMagSpace);
+	froudeKrylovForcePhaDataset.read(buffer_froude_krylov_force_pha, H5::PredType::NATIVE_DOUBLE, froudeKrylovForcePhaSpace, froudeKrylovForcePhaSpace);
+	waveExcitingMagDataset.read(buffer_wave_exciting_mag, H5::PredType::NATIVE_DOUBLE, waveExcitingMagSpace, waveExcitingMagSpace);
+	waveExcitingPhaDataset.read(buffer_wave_exciting_pha, H5::PredType::NATIVE_DOUBLE, waveExcitingPhaSpace, waveExcitingPhaSpace);
+	// Close the datasets
+	diffractionForceMagDataset.close();
+	diffractionForcePhaDataset.close();
+	froudeKrylovForceMagDataset.close();
+	froudeKrylovForcePhaDataset.close();
+	waveExcitingMagDataset.close();
+	waveExcitingPhaDataset.close();
+	// Allocate memory for the diffraction force magnitude cube
+	pWaveDiffMag = new arma::cube;
+	pWaveDiffPha = new arma::cube;
+	pWaveFKMag = new arma::cube;
+	pWaveFKPha = new arma::cube;
+	pWaveExcitingMag = new arma::cube;
+	pWaveExcitingPha = new arma::cube;
+	pWaveDiffMag->set_size(6, numFrequencies, numHeadings);
+	pWaveDiffPha->set_size(6, numFrequencies, numHeadings);
+	pWaveFKMag->set_size(6, numFrequencies, numHeadings);
+	pWaveFKPha->set_size(6, numFrequencies, numHeadings);
+	pWaveExcitingMag->set_size(6, numFrequencies, numHeadings);
+	pWaveExcitingPha->set_size(6, numFrequencies, numHeadings);
+	for (int i = 0; i < numHeadings; i++)
+	{
+		for (int j = 0; j < numFrequencies; j++)
+		{
+			for (int k = 0; k < 6; k++)
+			{
+				// Calculate the index for the 1D buffer [numHeadings, numBodies, numFrequencies, 6]
+				int index = i * numBodies * numFrequencies * 6 + idBody * numFrequencies * 6 + j * 6 + k;
+				// Copy data from buffer to arrays
+				(*pWaveDiffMag)(k, j, i) = buffer_diffraction_force_mag[index];
+				(*pWaveDiffPha)(k, j, i) = buffer_diffraction_force_pha[index];
+				(*pWaveFKMag)(k, j, i) = buffer_froude_krylov_force_mag[index];
+				(*pWaveFKPha)(k, j, i) = buffer_froude_krylov_force_pha[index];
+				(*pWaveExcitingMag)(k, j, i) = buffer_wave_exciting_mag[index];
+				(*pWaveExcitingPha)(k, j, i) = buffer_wave_exciting_pha[index];
+			}
+		}
+	}
+	// Free the buffer memory
+	delete[] buffer_diffraction_force_mag;
+	delete[] buffer_diffraction_force_pha;
+	delete[] buffer_froude_krylov_force_mag;
+	delete[] buffer_froude_krylov_force_pha;
+	delete[] buffer_wave_exciting_mag;
+	delete[] buffer_wave_exciting_pha;
+
+	// Read the "hydstiffness" and "mass" datasets which are 3D arrays [numBodies, 6, 6]
+	std::cout << "Reading hydrostatic stiffness and mass data...\n";
+	// Open "hydstiffness"
+	H5::DataSet hydrostaticStiffnessDataset = file.openDataSet("/hydstiffness");
+	H5::DataSpace hydrostaticStiffnessSpace = hydrostaticStiffnessDataset.getSpace();
+	hsize_t dims_hs[3];
+	hydrostaticStiffnessSpace.getSimpleExtentDims(dims_hs, NULL);
+	// Open "mass"
+	H5::DataSet massDataset = file.openDataSet("/mass");
+	H5::DataSpace massSpace = massDataset.getSpace();
+	hsize_t dims_m[3];
+	massSpace.getSimpleExtentDims(dims_m, NULL);
+	// Allocate memory for the hydrostatic stiffness buffer [numBodies, 6, 6]
+	num_values = numBodies * 6 * 6;
+	double *buffer_hydrostatic_stiffness = new double[num_values];
+	double *buffer_mass = new double[num_values];
+	// Read the hydrostatic stiffness and mass data
+	hydrostaticStiffnessDataset.read(buffer_hydrostatic_stiffness, H5::PredType::NATIVE_DOUBLE, hydrostaticStiffnessSpace, hydrostaticStiffnessSpace);
+	massDataset.read(buffer_mass, H5::PredType::NATIVE_DOUBLE, massSpace, massSpace);
+	// Close the datasets
+	hydrostaticStiffnessDataset.close();
+	massDataset.close();
+	// Allocate memory for the hydrostatic stiffness and mass matrix
+	pHydrostaticStiffness = new arma::mat;
+	pStructuralMass = new arma::mat;
+	pHydrostaticStiffness->set_size(6, 6);
+	pStructuralMass->set_size(6, 6);
+	for (int i = 0; i < 6; i++)
+	{
+		for (int j = 0; j < 6; j++)
+		{
+			// Calculate the index for the 1D buffer [numBodies, 6, 6]
+			int ind = idBody * 6 * 6 + i * 6 + j;
+			// Copy data from buffer to arrays
+			(*pHydrostaticStiffness)(i, j) = buffer_hydrostatic_stiffness[ind];
+			(*pStructuralMass)(i, j) = buffer_mass[ind];
+		}
+	}
+	// Free the buffer memory
+	delete[] buffer_hydrostatic_stiffness;
+	delete[] buffer_mass;
+
+	// Read "qtf_diff_mag", "qtf_diff_pha", "qtf_sum_mag" and "qtf_sum_pha"
+	// datasets which are 6D arrays [numBodies, numHeadings, numHeadings, numFrequencies, numFrequencies, 6]
+	std::cout << "Reading QTF data...\n";
+	// Open "qtf_diff_mag"
+	H5::DataSet qtfDiffMagDataset = file.openDataSet("/qtf_diff_mag");
+	H5::DataSpace qtfDiffMagSpace = qtfDiffMagDataset.getSpace();
+	hsize_t dims_qdfm[6];
+	qtfDiffMagSpace.getSimpleExtentDims(dims_qdfm, NULL);
+	// Open "qtf_diff_pha"
+	H5::DataSet qtfDiffPhaDataset = file.openDataSet("/qtf_diff_pha");
+	H5::DataSpace qtfDiffPhaSpace = qtfDiffPhaDataset.getSpace();
+	hsize_t dims_qdfp[6];
+	qtfDiffPhaSpace.getSimpleExtentDims(dims_qdfp, NULL);
+	// Open "qtf_sum_mag"
+	H5::DataSet qtfSumMagDataset = file.openDataSet("/qtf_sum_mag");
+	H5::DataSpace qtfSumMagSpace = qtfSumMagDataset.getSpace();
+	hsize_t dims_qsm[6];
+	qtfSumMagSpace.getSimpleExtentDims(dims_qsm, NULL);
+	// Open "qtf_sum_pha"
+	H5::DataSet qtfSumPhaDataset = file.openDataSet("/qtf_sum_pha");
+	H5::DataSpace qtfSumPhaSpace = qtfSumPhaDataset.getSpace();
+	hsize_t dims_qsp[6];
+	qtfSumPhaSpace.getSimpleExtentDims(dims_qsp, NULL);
+	// Allocate memory for the QTF buffers [numBodies, numHeadings, numHeadings, numFrequencies, numFrequencies, 6]
+	num_values = numBodies * numHeadings * numHeadings * numFrequencies * numFrequencies * 6;
+	double *buffer_qtf_diff_mag = new double[num_values];
+	double *buffer_qtf_diff_pha = new double[num_values];
+	double *buffer_qtf_sum_mag = new double[num_values];
+	double *buffer_qtf_sum_pha = new double[num_values];
+	// Read the QTF data
+	qtfDiffMagDataset.read(buffer_qtf_diff_mag, H5::PredType::NATIVE_DOUBLE, qtfDiffMagSpace, qtfDiffMagSpace);
+	qtfDiffPhaDataset.read(buffer_qtf_diff_pha, H5::PredType::NATIVE_DOUBLE, qtfDiffPhaSpace, qtfDiffPhaSpace);
+	qtfSumMagDataset.read(buffer_qtf_sum_mag, H5::PredType::NATIVE_DOUBLE, qtfSumMagSpace, qtfSumMagSpace);
+	qtfSumPhaDataset.read(buffer_qtf_sum_pha, H5::PredType::NATIVE_DOUBLE, qtfSumPhaSpace, qtfSumPhaSpace);
+	// Close the datasets
+	qtfDiffMagDataset.close();
+	qtfDiffPhaDataset.close();
+	qtfSumMagDataset.close();
+	qtfSumPhaDataset.close();
+	// Allocate memory for the QTF cubes
+	pQtfDiff = new arma::cube **[2]; // 2 for real and imaginary
+	pQtfSum = new arma::cube **[2];	 // 2 for real and imaginary
+	for (int ipart = 0; ipart < 2; ipart++)
+	{
+		pQtfDiff[ipart] = new arma::cube *[6];
+		pQtfSum[ipart] = new arma::cube *[6];
+		for (int idof = 0; idof < 6; idof++)
+		{
+			pQtfDiff[ipart][idof] = new arma::cube;
+			pQtfSum[ipart][idof] = new arma::cube;
+			pQtfDiff[ipart][idof]->set_size(numFrequencies, numFrequencies, numHeadings);
+			pQtfSum[ipart][idof]->set_size(numFrequencies, numFrequencies, numHeadings);
+			for (int if1 = 0; if1 < numFrequencies; if1++)
+			{
+				for (int if2 = 0; if2 < numFrequencies; if2++)
+				{
+					for (int ih = 0; ih < numHeadings; ih++)
+					{
+						// Calculate the index for the 1D buffer [numBodies, numHeadings, numHeadings, numFrequencies, numFrequencies, 6]
+						int ind = idBody * numHeadings * numHeadings * numFrequencies * numFrequencies * 6 +
+								  ih * numHeadings * numFrequencies * numFrequencies * 6 +
+								  ih * numFrequencies * numFrequencies * 6 +
+								  if1 * numFrequencies * 6 + if2 * 6 + idof;
+						// Copy data from buffer to arrays
+						// For the first part (real), use cos(phase)
+						// For the second part (imaginary), use sin(phase)
+						if (ipart == 0)
+						{
+							(*pQtfDiff[ipart][idof])(if1, if2, ih) = buffer_qtf_diff_mag[ind] * cos(buffer_qtf_diff_pha[ind]);
+							(*pQtfSum[ipart][idof])(if1, if2, ih) = buffer_qtf_sum_mag[ind] * cos(buffer_qtf_sum_pha[ind]);
+						}
+						else
+						{
+							(*pQtfDiff[ipart][idof])(if1, if2, ih) = buffer_qtf_diff_mag[ind] * sin(buffer_qtf_diff_pha[ind]);
+							(*pQtfSum[ipart][idof])(if1, if2, ih) = buffer_qtf_sum_mag[ind] * sin(buffer_qtf_sum_pha[ind]);
+						}
+					}
+				}
+			}
+		}
+	}
+	// Free the buffer memory
+	delete[] buffer_qtf_diff_mag;
+	delete[] buffer_qtf_diff_pha;
+	delete[] buffer_qtf_sum_mag;
+	delete[] buffer_qtf_sum_pha;
+
+	// Read "mean_drift_mag" as 4D array [numHeadings, numBodies, numFrequencies, 6]
+	std::cout << "Reading mean drift data...\n";
+	H5::DataSet meanDriftMagDataset = file.openDataSet("/mean_drift_mag");
+	H5::DataSpace meanDriftMagSpace = meanDriftMagDataset.getSpace();
+	hsize_t dims_mdm[4];
+	meanDriftMagSpace.getSimpleExtentDims(dims_mdm, NULL);
+	// Allocate memory for the mean drift magnitude buffer [numHeadings, numBodies, numFrequencies, 6]
+	num_values = numHeadings * numBodies * numFrequencies * 6;
+	double *buffer_mean_drift_mag = new double[num_values];
+	// Read the mean drift magnitude data
+	meanDriftMagDataset.read(buffer_mean_drift_mag, H5::PredType::NATIVE_DOUBLE, meanDriftMagSpace, meanDriftMagSpace);
+	// Close the dataset
+	meanDriftMagDataset.close();
+	// Allocate memory for the mean drift cube
+	pMeanDrift = new arma::cube(activeDofs, numFrequencies, numHeadings, arma::fill::zeros);
+	for (int ihd = 0; ihd < numHeadings; ihd++)
+	{
+		for (int ifr = 0; ifr < numFrequencies; ifr++)
+		{
+			for (int idof = 0; idof < activeDofs; idof++)
+			{
+				// Calculate the index for the 1D buffer [numHeadings, numBodies, numFrequencies, 6]
+				int ind = ihd * numBodies * numFrequencies * 6 +
+						  idBody * numFrequencies * 6 + ifr * 6 + idof;
+				// Copy data from buffer to arrays
+				(*pMeanDrift)(idof, ifr, ihd) = buffer_mean_drift_mag[ind];
+			}
+		}
+	}
+	// Free the buffer memory
+	delete[] buffer_mean_drift_mag;
+
+	// Close the file
+	file.close();
 }
 
 arma::mat HydroDatabase::ComputeFirstWaveExcForce(double t)

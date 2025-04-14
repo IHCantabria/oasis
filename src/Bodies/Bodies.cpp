@@ -35,59 +35,14 @@ void Body::ComputeBcpForces(void)
     double rx, ry, rz, Mx, My, Mz;
 
     for (int ii = 0; ii < numBcps; ii++)
-    { // Bucle sobre los BCPs
+    {
 
         posG_temp = pBodyBcps[ii]->posWrtCdgGlobal; // Guardo en variable temporal la posicion global del BCP
         ForceBCP_temp = pBodyBcps[ii]->forceBcp;    // Guardo en variable temporal las fuerzas y momentos sobre el BCP
 
-        F_M = arma::zeros(3, 1);                       // Inicio a cero al fuerza en el cdg causada por el momento sobre el BCP
-        M_norm = arma::norm(ForceBCP_temp.rows(3, 5)); // Calculo la norma del momento sobre el BCP
-
-        // Si hay momento en el BCP, calculo la fuerza que produce sobre le cdg
-        if (M_norm > 1e-8)
-        {
-
-            // Datos necesarios usados a continuación
-            rx = posG_temp(0, 0);
-            ry = posG_temp(1, 0);
-            rz = posG_temp(2, 0);
-            Mx = ForceBCP_temp(3, 0);
-            My = ForceBCP_temp(4, 0);
-            Mz = ForceBCP_temp(5, 0);
-
-            det = My * ry * ry + Mx * rx * ry + Mz * ry * rz;
-
-            if (det > 1e-8)
-            {
-                // Inversa de la matriz del sistema para resover la ecuacion M = rxF, donde F es desconocido
-                //[           Mz*rx, rx*ry, My*ry + Mz*rz]
-                //[           Mz*ry,  ry^2,        -Mx*ry]
-                //[ - Mx*rx - My*ry, ry*rz,        -Mx*rz] / (My*ry^2 + Mx*rx*ry + Mz*ry*rz)
-                arma::mat matrix = arma::zeros(3, 3);
-                matrix(0, 0) = Mz * rx;
-                matrix(0, 1) = rx * ry;
-                matrix(0, 2) = My * ry + Mz * rz;
-                matrix(1, 0) = Mz * ry;
-                matrix(1, 1) = ry * ry;
-                matrix(1, 2) = -Mx * ry;
-                matrix(2, 0) = -Mx * rx - My * ry;
-                matrix(2, 1) = rx * rz;
-                matrix(2, 2) = -Mx * rz;
-                matrix = matrix / det;
-
-                // Vector del sistema para resover la ecuacion M = rxF, donde F es desconocido (M - Mt)
-                arma::mat vector = ForceBCP_temp.rows(3, 5) - arma::dot(posG_temp, ForceBCP_temp.rows(3, 5)) / arma::dot(posG_temp, posG_temp);
-                vector(1, 0) = 0.0;
-
-                // Obtengo la fuerza en el cdg causada por el momento en el bcp, ya en global,
-                // por que tanto el brazo posG, como la fuerza ForceBCP, estan en global.
-                F_M = matrix * vector;
-            }
-        }
-
         M_F = arma::cross(posG_temp, ForceBCP_temp.rows(0, 2)); // Momento sobre el cdg causado por la fuerza en el bcp, en global
 
-        bcpForces.rows(0, 2) = bcpForces.rows(0, 2) + ForceBCP_temp.rows(0, 2) + F_M;                // Acumulo la fuerza total sobre el cdg en global.
+        bcpForces.rows(0, 2) = bcpForces.rows(0, 2) + ForceBCP_temp.rows(0, 2);                      // Acumulo la fuerza total sobre el cdg en global.
         bcpForces.rows(3, 5) = bcpForces.rows(3, 5) + rotMat.t() * (ForceBCP_temp.rows(3, 5) + M_F); // Acumulo el momento total sobre el cdg en local.
     }
 
@@ -114,7 +69,6 @@ int Body::GetId(void)
     return id;
 }
 
-//
 void Body::LoadHydrodynamicDatabase(Body **hydroDatabaseBodies)
 {
     std::cout << "--> Reading Hydrodynamics Properties (HDF5 format)" << std::endl;
@@ -165,7 +119,7 @@ void Body::LoadHydrodynamicDatabase(Body **hydroDatabaseBodies)
     std::cout << "----> Hydrodynamic Properties Read" << std::endl;
 }
 
-// Leer datos de los cuerpos
+// Read body properties from the input file
 void Body::ReadPropertiesASCII(FILE *pFile)
 {
     // Declare variables

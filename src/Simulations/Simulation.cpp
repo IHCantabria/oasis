@@ -1036,7 +1036,9 @@ void Simulation::ReadBodiesASCII()
             // Fill system matrix
             a1 = arma::span(db_shift + body_shift, db_shift + body_shift + 5);
             a2 = arma::span(db_shift, db_shift + 6 * check_hydro_bodies_id[pos_database][0] - 1);
+            std::cout << "  ... Filling system matrix for body: " << ii + 1 << std::endl;
             (*pSystemMatrix)(a1, a2) += pBodies[ii]->pHydro->GetTotalMass();
+            std::cout << "  ... done!" << std::endl;
             pBodies[ii]->sysMatSpan1 = a1;
             pBodies[ii]->sysMatSpan2 = a2;
             pBodies[ii]->sysMatInd1 = arma::regspace<arma::uvec>(db_shift + body_shift, db_shift + body_shift + 5);
@@ -1992,9 +1994,9 @@ void Simulation::SetupCase()
             if (pBodies[ii]->pIndexWindTurbs[jj] + 1 > numWindTurbines)
             {
                 std::stringstream ss;
-                ss << "BCP index: " << pBodies[ii]->pIndexWindTurbs[jj] << " in Body: " << pBodies[ii]->GetId()
-                   << " is out of range when compare with the Number of BCPs(" << numBcps << ") defined in"
-                   << " datosBCPs.dat";
+                ss << "Wind Turbine index: " << pBodies[ii]->pIndexWindTurbs[jj] << " in Body: " << pBodies[ii]->GetId()
+                   << " is out of range when compare with the Number of Wind Turbines (" << numWindTurbines << ") defined in"
+                   << " datosWindTurbines.dat";
                 throw ValueError(ss.str());
             }
         }

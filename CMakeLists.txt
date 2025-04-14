@@ -100,6 +100,7 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME}
   -lpthread
   -lstdc++fs
   -lhdf5
+  -lhdf5_cpp
   -lsuperlu
   -lopenblas
   -laerodynlib
