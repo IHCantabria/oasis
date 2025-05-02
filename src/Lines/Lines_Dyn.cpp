@@ -58,7 +58,7 @@ void Line::ReadPropertiesASCII(FILE *pFilePointer)
 			if (fscanf(pFilePointer, "%lf", &dtemp) != 1)
 			{
 				std::stringstream ss;
-				ss << "An error ocurred when trying to read the strain data for line: " << this->GetId() << "\n";
+				ss << "An error occurred when trying to read the strain data for line: " << this->GetId() << "\n";
 				throw ValueError(ss.str());
 			}
 			strain_data(ii, 0) = dtemp;
@@ -69,7 +69,7 @@ void Line::ReadPropertiesASCII(FILE *pFilePointer)
 			if (fscanf(pFilePointer, "%lf", &dtemp) != 1)
 			{
 				std::stringstream ss;
-				ss << "An error ocurred when trying to read the stress data for line: " << this->GetId() << "\n";
+				ss << "An error occurred when trying to read the stress data for line: " << this->GetId() << "\n";
 				throw ValueError(ss.str());
 			}
 			stress_data(ii, 0) = dtemp;

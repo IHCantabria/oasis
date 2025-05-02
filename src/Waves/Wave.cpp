@@ -999,8 +999,6 @@ void IrregularWave::CutPiecesSpectrumZeros(void)
 
 	// Find the indices of the frequencies with amplitudes greater than factor*amplitudes_max_mean
 	arma::vec amplitudes_max_freqs = arma::max(amplitudes_max, 1);
-	std::cout << "size(amplitudes_max): " << amplitudes_max.n_rows << " x " << amplitudes_max.n_cols << std::endl;
-	std::cout << "size(amplitudes_max_freqs): " << amplitudes_max_freqs.n_elem << std::endl;
 	arma::uvec ind_rows = arma::find(amplitudes_max_freqs >= factor * amplitudes_max_mean);
 	arma::uvec ind_cols;
 

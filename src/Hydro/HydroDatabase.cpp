@@ -24,7 +24,10 @@ arma::mat HydroDatabase::CalculateHydrodynamicForces(double time)
 	double yaw = pBodies[idBody]->pos(5, 0);
 
 	// std::cout << "--> Computing radiation forces..." << std::endl;
-	F = F + ComputeRadiationForces();
+	if (pBodies[idBody]->radiationFlag == 1)
+	{
+		F = F + ComputeRadiationForces();
+	}
 
 	// std::cout << "--> Computing first order diffraction forces..." << std::endl;
 	if (pBodies[idBody]->firstOrderExcitationFlag == 1)
@@ -73,7 +76,7 @@ arma::mat HydroDatabase::CalculateHydrostaticForces(double time)
 {
 
 	arma::mat hydrostatic_force;
-	if (pBodies[idBody]->flag_hidrostatics == 0)
+	if (pBodies[idBody]->flag_hydrostatics == 0)
 	{
 
 		// Linear hydrostatic forces
@@ -86,7 +89,7 @@ arma::mat HydroDatabase::CalculateHydrostaticForces(double time)
 			hydrostatic_force.rows(3, 5) = hydrostatic_force.rows(3, 5) + arma::cross(pBodies[idBody]->pos_filling_cog, pBodies[idBody]->rotMat.t() * Fg);
 		}
 	}
-	else if (pBodies[idBody]->flag_hidrostatics > 0)
+	else if (pBodies[idBody]->flag_hydrostatics > 0)
 	{
 
 		// Non-linear hydrostatic forces
@@ -225,6 +228,7 @@ void HydroDatabase::ComputeAsymptoticAddedMass(std::string HDBname)
 				(*pAddedMassLf[ib])(i, j) = (*pAddedMass[ib])(i, j, id_min_freq(0));
 				// Calculate the asymptotic high frequency added mass as the integral of the IRF
 				(*pAddedMassHf[ib])(i, j) += trapzi(IRFTime, (*pIRF[ib]).subcube(0, i, j, numPointsIRF - 1, i, j));
+				// TODO: REVIEW THIS!!!!!!!!!!!!!
 			}
 		}
 	}
@@ -438,6 +442,14 @@ void HydroDatabase::LoadHydroDataEHYDB(std::string filePath)
 	num_bodies_mat.load(arma::hdf5_name(filePath, "num_bodies"));
 	numBodies = num_bodies_mat(0);
 
+	// Check if the number of bodies is correct
+	if ((numBodies != pSim->numBodies) && (numBodies > 1))
+	{
+		std::stringstream ss;
+		ss << " The number of bodies in datosBodies.dat does not match the number of bodies in the multibody hydrodatabase." << std::endl;
+		throw IOError(ss.str());
+	}
+
 	// Read position of the center of gravity
 	std::cout << "  Reading position of the center of gravity...\n";
 	std::stringstream cog_fn;
@@ -537,7 +549,7 @@ void HydroDatabase::LoadHydroDataEHYDB(std::string filePath)
 	// Read Wave exciting data
 	std::cout << "  Reading wave exciting data...\n";
 	std::stringstream wave_exciting_mag_fn;
-	if (pBodies[idBody]->flag_hidrostatics == 2)
+	if (pBodies[idBody]->flag_hydrostatics == 2)
 	{
 		wave_exciting_mag_fn << "body_" << this->GetId() << "/wave_diffraction_mag";
 	}
@@ -550,7 +562,7 @@ void HydroDatabase::LoadHydroDataEHYDB(std::string filePath)
 
 	std::stringstream wave_exciting_pha_fn;
 	pWaveExcitingPha = new arma::cube;
-	if (pBodies[idBody]->flag_hidrostatics == 2)
+	if (pBodies[idBody]->flag_hydrostatics == 2)
 	{
 		wave_exciting_pha_fn << "body_" << this->GetId() << "/wave_diffraction_pha";
 	}
@@ -678,6 +690,12 @@ void HydroDatabase::LoadHydroDataH5(std::string filePath)
 	// Get the number of bodies as the number of groups in the "mesh" group
 	H5::Group meshGroup = file.openGroup("/mesh");
 	numBodies = meshGroup.getNumObjs();
+	if ((numBodies != pSim->numBodies) && (numBodies > 1))
+	{
+		std::stringstream ss;
+		ss << " The number of bodies in datosBodies.dat does not match the number of bodies in the multibody hydrodatabase." << std::endl;
+		throw IOError(ss.str());
+	}
 	std::cout << "Number of bodies: " << numBodies << std::endl;
 	// Close the group
 	meshGroup.close();
@@ -871,122 +889,158 @@ void HydroDatabase::LoadHydroDataH5(std::string filePath)
 
 	// Read "qtf_diff_mag", "qtf_diff_pha", "qtf_sum_mag" and "qtf_sum_pha"
 	// datasets which are 6D arrays [numBodies, numHeadings, numHeadings, numFrequencies, numFrequencies, 6]
-	std::cout << "Reading QTF data...\n";
-	// Open "qtf_diff_mag"
-	H5::DataSet qtfDiffMagDataset = file.openDataSet("/qtf_diff_mag");
-	H5::DataSpace qtfDiffMagSpace = qtfDiffMagDataset.getSpace();
-	hsize_t dims_qdfm[6];
-	qtfDiffMagSpace.getSimpleExtentDims(dims_qdfm, NULL);
-	// Open "qtf_diff_pha"
-	H5::DataSet qtfDiffPhaDataset = file.openDataSet("/qtf_diff_pha");
-	H5::DataSpace qtfDiffPhaSpace = qtfDiffPhaDataset.getSpace();
-	hsize_t dims_qdfp[6];
-	qtfDiffPhaSpace.getSimpleExtentDims(dims_qdfp, NULL);
-	// Open "qtf_sum_mag"
-	H5::DataSet qtfSumMagDataset = file.openDataSet("/qtf_sum_mag");
-	H5::DataSpace qtfSumMagSpace = qtfSumMagDataset.getSpace();
-	hsize_t dims_qsm[6];
-	qtfSumMagSpace.getSimpleExtentDims(dims_qsm, NULL);
-	// Open "qtf_sum_pha"
-	H5::DataSet qtfSumPhaDataset = file.openDataSet("/qtf_sum_pha");
-	H5::DataSpace qtfSumPhaSpace = qtfSumPhaDataset.getSpace();
-	hsize_t dims_qsp[6];
-	qtfSumPhaSpace.getSimpleExtentDims(dims_qsp, NULL);
-	// Allocate memory for the QTF buffers [numBodies, numHeadings, numHeadings, numFrequencies, numFrequencies, 6]
-	num_values = numBodies * numHeadings * numHeadings * numFrequencies * numFrequencies * 6;
-	double *buffer_qtf_diff_mag = new double[num_values];
-	double *buffer_qtf_diff_pha = new double[num_values];
-	double *buffer_qtf_sum_mag = new double[num_values];
-	double *buffer_qtf_sum_pha = new double[num_values];
-	// Read the QTF data
-	qtfDiffMagDataset.read(buffer_qtf_diff_mag, H5::PredType::NATIVE_DOUBLE, qtfDiffMagSpace, qtfDiffMagSpace);
-	qtfDiffPhaDataset.read(buffer_qtf_diff_pha, H5::PredType::NATIVE_DOUBLE, qtfDiffPhaSpace, qtfDiffPhaSpace);
-	qtfSumMagDataset.read(buffer_qtf_sum_mag, H5::PredType::NATIVE_DOUBLE, qtfSumMagSpace, qtfSumMagSpace);
-	qtfSumPhaDataset.read(buffer_qtf_sum_pha, H5::PredType::NATIVE_DOUBLE, qtfSumPhaSpace, qtfSumPhaSpace);
-	// Close the datasets
-	qtfDiffMagDataset.close();
-	qtfDiffPhaDataset.close();
-	qtfSumMagDataset.close();
-	qtfSumPhaDataset.close();
-	// Allocate memory for the QTF cubes
-	pQtfDiff = new arma::cube **[2]; // 2 for real and imaginary
-	pQtfSum = new arma::cube **[2];	 // 2 for real and imaginary
-	for (int ipart = 0; ipart < 2; ipart++)
+	// Check for existence of QTF data
+	if (file.nameExists("/qtf_diff_mag") == 0)
 	{
-		pQtfDiff[ipart] = new arma::cube *[6];
-		pQtfSum[ipart] = new arma::cube *[6];
-		for (int idof = 0; idof < 6; idof++)
+		// TODO: Review 2nd order excitation flag usage
+		if (pBodies[idBody]->secondOrderExcitationFlag > 0)
 		{
-			pQtfDiff[ipart][idof] = new arma::cube;
-			pQtfSum[ipart][idof] = new arma::cube;
-			pQtfDiff[ipart][idof]->set_size(numFrequencies, numFrequencies, numHeadings);
-			pQtfSum[ipart][idof]->set_size(numFrequencies, numFrequencies, numHeadings);
-			for (int if1 = 0; if1 < numFrequencies; if1++)
+			std::stringstream ss;
+			ss << "QTF data not found in file." << std::endl;
+			throw IOError(ss.str());
+		}
+		else
+		{
+			std::cout << "WARNING: QTF data not found in file. \n";
+		}
+	}
+	else
+	{
+		std::cout << "Reading QTF data...\n";
+		// Open "qtf_diff_mag"
+		H5::DataSet qtfDiffMagDataset = file.openDataSet("/qtf_diff_mag");
+		H5::DataSpace qtfDiffMagSpace = qtfDiffMagDataset.getSpace();
+		hsize_t dims_qdfm[6];
+		qtfDiffMagSpace.getSimpleExtentDims(dims_qdfm, NULL);
+		// Open "qtf_diff_pha"
+		H5::DataSet qtfDiffPhaDataset = file.openDataSet("/qtf_diff_pha");
+		H5::DataSpace qtfDiffPhaSpace = qtfDiffPhaDataset.getSpace();
+		hsize_t dims_qdfp[6];
+		qtfDiffPhaSpace.getSimpleExtentDims(dims_qdfp, NULL);
+		// Open "qtf_sum_mag"
+		H5::DataSet qtfSumMagDataset = file.openDataSet("/qtf_sum_mag");
+		H5::DataSpace qtfSumMagSpace = qtfSumMagDataset.getSpace();
+		hsize_t dims_qsm[6];
+		qtfSumMagSpace.getSimpleExtentDims(dims_qsm, NULL);
+		// Open "qtf_sum_pha"
+		H5::DataSet qtfSumPhaDataset = file.openDataSet("/qtf_sum_pha");
+		H5::DataSpace qtfSumPhaSpace = qtfSumPhaDataset.getSpace();
+		hsize_t dims_qsp[6];
+		qtfSumPhaSpace.getSimpleExtentDims(dims_qsp, NULL);
+		// Allocate memory for the QTF buffers [numBodies, numHeadings, numHeadings, numFrequencies, numFrequencies, 6]
+		num_values = numBodies * numHeadings * numHeadings * numFrequencies * numFrequencies * 6;
+		double *buffer_qtf_diff_mag = new double[num_values];
+		double *buffer_qtf_diff_pha = new double[num_values];
+		double *buffer_qtf_sum_mag = new double[num_values];
+		double *buffer_qtf_sum_pha = new double[num_values];
+		// Read the QTF data
+		qtfDiffMagDataset.read(buffer_qtf_diff_mag, H5::PredType::NATIVE_DOUBLE, qtfDiffMagSpace, qtfDiffMagSpace);
+		qtfDiffPhaDataset.read(buffer_qtf_diff_pha, H5::PredType::NATIVE_DOUBLE, qtfDiffPhaSpace, qtfDiffPhaSpace);
+		qtfSumMagDataset.read(buffer_qtf_sum_mag, H5::PredType::NATIVE_DOUBLE, qtfSumMagSpace, qtfSumMagSpace);
+		qtfSumPhaDataset.read(buffer_qtf_sum_pha, H5::PredType::NATIVE_DOUBLE, qtfSumPhaSpace, qtfSumPhaSpace);
+		// Close the datasets
+		qtfDiffMagDataset.close();
+		qtfDiffPhaDataset.close();
+		qtfSumMagDataset.close();
+		qtfSumPhaDataset.close();
+		// Allocate memory for the QTF cubes
+		pQtfDiff = new arma::cube **[2]; // 2 for real and imaginary
+		pQtfSum = new arma::cube **[2];	 // 2 for real and imaginary
+		for (int ipart = 0; ipart < 2; ipart++)
+		{
+			pQtfDiff[ipart] = new arma::cube *[6];
+			pQtfSum[ipart] = new arma::cube *[6];
+			for (int idof = 0; idof < 6; idof++)
 			{
-				for (int if2 = 0; if2 < numFrequencies; if2++)
+				pQtfDiff[ipart][idof] = new arma::cube;
+				pQtfSum[ipart][idof] = new arma::cube;
+				pQtfDiff[ipart][idof]->set_size(numFrequencies, numFrequencies, numHeadings);
+				pQtfSum[ipart][idof]->set_size(numFrequencies, numFrequencies, numHeadings);
+				for (int if1 = 0; if1 < numFrequencies; if1++)
 				{
-					for (int ih = 0; ih < numHeadings; ih++)
+					for (int if2 = 0; if2 < numFrequencies; if2++)
 					{
-						// Calculate the index for the 1D buffer [numBodies, numHeadings, numHeadings, numFrequencies, numFrequencies, 6]
-						int ind = idBody * numHeadings * numHeadings * numFrequencies * numFrequencies * 6 +
-								  ih * numHeadings * numFrequencies * numFrequencies * 6 +
-								  ih * numFrequencies * numFrequencies * 6 +
-								  if1 * numFrequencies * 6 + if2 * 6 + idof;
-						// Copy data from buffer to arrays
-						// For the first part (real), use cos(phase)
-						// For the second part (imaginary), use sin(phase)
-						if (ipart == 0)
+						for (int ih = 0; ih < numHeadings; ih++)
 						{
-							(*pQtfDiff[ipart][idof])(if1, if2, ih) = buffer_qtf_diff_mag[ind] * cos(buffer_qtf_diff_pha[ind]);
-							(*pQtfSum[ipart][idof])(if1, if2, ih) = buffer_qtf_sum_mag[ind] * cos(buffer_qtf_sum_pha[ind]);
-						}
-						else
-						{
-							(*pQtfDiff[ipart][idof])(if1, if2, ih) = buffer_qtf_diff_mag[ind] * sin(buffer_qtf_diff_pha[ind]);
-							(*pQtfSum[ipart][idof])(if1, if2, ih) = buffer_qtf_sum_mag[ind] * sin(buffer_qtf_sum_pha[ind]);
+							// Calculate the index for the 1D buffer [numBodies, numHeadings, numHeadings, numFrequencies, numFrequencies, 6]
+							int ind = idBody * numHeadings * numHeadings * numFrequencies * numFrequencies * 6 +
+									  ih * numHeadings * numFrequencies * numFrequencies * 6 +
+									  ih * numFrequencies * numFrequencies * 6 +
+									  if1 * numFrequencies * 6 + if2 * 6 + idof;
+							// Copy data from buffer to arrays
+							// For the first part (real), use cos(phase)
+							// For the second part (imaginary), use sin(phase)
+							if (ipart == 0)
+							{
+								(*pQtfDiff[ipart][idof])(if1, if2, ih) = buffer_qtf_diff_mag[ind] * cos(buffer_qtf_diff_pha[ind]);
+								(*pQtfSum[ipart][idof])(if1, if2, ih) = buffer_qtf_sum_mag[ind] * cos(buffer_qtf_sum_pha[ind]);
+							}
+							else
+							{
+								(*pQtfDiff[ipart][idof])(if1, if2, ih) = buffer_qtf_diff_mag[ind] * sin(buffer_qtf_diff_pha[ind]);
+								(*pQtfSum[ipart][idof])(if1, if2, ih) = buffer_qtf_sum_mag[ind] * sin(buffer_qtf_sum_pha[ind]);
+							}
 						}
 					}
 				}
 			}
 		}
+		// Free the buffer memory
+		delete[] buffer_qtf_diff_mag;
+		delete[] buffer_qtf_diff_pha;
+		delete[] buffer_qtf_sum_mag;
+		delete[] buffer_qtf_sum_pha;
 	}
-	// Free the buffer memory
-	delete[] buffer_qtf_diff_mag;
-	delete[] buffer_qtf_diff_pha;
-	delete[] buffer_qtf_sum_mag;
-	delete[] buffer_qtf_sum_pha;
 
 	// Read "mean_drift_mag" as 4D array [numHeadings, numBodies, numFrequencies, 6]
-	std::cout << "Reading mean drift data...\n";
-	H5::DataSet meanDriftMagDataset = file.openDataSet("/mean_drift_mag");
-	H5::DataSpace meanDriftMagSpace = meanDriftMagDataset.getSpace();
-	hsize_t dims_mdm[4];
-	meanDriftMagSpace.getSimpleExtentDims(dims_mdm, NULL);
-	// Allocate memory for the mean drift magnitude buffer [numHeadings, numBodies, numFrequencies, 6]
-	num_values = numHeadings * numBodies * numFrequencies * 6;
-	double *buffer_mean_drift_mag = new double[num_values];
-	// Read the mean drift magnitude data
-	meanDriftMagDataset.read(buffer_mean_drift_mag, H5::PredType::NATIVE_DOUBLE, meanDriftMagSpace, meanDriftMagSpace);
-	// Close the dataset
-	meanDriftMagDataset.close();
-	// Allocate memory for the mean drift cube
-	pMeanDrift = new arma::cube(activeDofs, numFrequencies, numHeadings, arma::fill::zeros);
-	for (int ihd = 0; ihd < numHeadings; ihd++)
+	// Check for existence of mean drift data
+	if (file.nameExists("/mean_drift_mag") == 0)
 	{
-		for (int ifr = 0; ifr < numFrequencies; ifr++)
+		// TODO: Review 2nd order excitation flag usage
+		if (pBodies[idBody]->secondOrderExcitationFlag > 0)
 		{
-			for (int idof = 0; idof < activeDofs; idof++)
-			{
-				// Calculate the index for the 1D buffer [numHeadings, numBodies, numFrequencies, 6]
-				int ind = ihd * numBodies * numFrequencies * 6 +
-						  idBody * numFrequencies * 6 + ifr * 6 + idof;
-				// Copy data from buffer to arrays
-				(*pMeanDrift)(idof, ifr, ihd) = buffer_mean_drift_mag[ind];
-			}
+			std::stringstream ss;
+			ss << "Mean drift data not found in file." << std::endl;
+			throw IOError(ss.str());
+		}
+		else
+		{
+			std::cout << "WARNING: Mean drift data not found in file. \n";
 		}
 	}
-	// Free the buffer memory
-	delete[] buffer_mean_drift_mag;
+	else
+	{
+		std::cout << "Reading mean drift data...\n";
+		H5::DataSet meanDriftMagDataset = file.openDataSet("/mean_drift_mag");
+		H5::DataSpace meanDriftMagSpace = meanDriftMagDataset.getSpace();
+		hsize_t dims_mdm[4];
+		meanDriftMagSpace.getSimpleExtentDims(dims_mdm, NULL);
+		// Allocate memory for the mean drift magnitude buffer [numHeadings, numBodies, numFrequencies, 6]
+		num_values = numHeadings * numBodies * numFrequencies * 6;
+		double *buffer_mean_drift_mag = new double[num_values];
+		// Read the mean drift magnitude data
+		meanDriftMagDataset.read(buffer_mean_drift_mag, H5::PredType::NATIVE_DOUBLE, meanDriftMagSpace, meanDriftMagSpace);
+		// Close the dataset
+		meanDriftMagDataset.close();
+		// Allocate memory for the mean drift cube
+		pMeanDrift = new arma::cube(activeDofs, numFrequencies, numHeadings, arma::fill::zeros);
+		for (int ihd = 0; ihd < numHeadings; ihd++)
+		{
+			for (int ifr = 0; ifr < numFrequencies; ifr++)
+			{
+				for (int idof = 0; idof < activeDofs; idof++)
+				{
+					// Calculate the index for the 1D buffer [numHeadings, numBodies, numFrequencies, 6]
+					int ind = ihd * numBodies * numFrequencies * 6 +
+							  idBody * numFrequencies * 6 + ifr * 6 + idof;
+					// Copy data from buffer to arrays
+					(*pMeanDrift)(idof, ifr, ihd) = buffer_mean_drift_mag[ind];
+				}
+			}
+		}
+		// Free the buffer memory
+		delete[] buffer_mean_drift_mag;
+	}
 
 	// Close the file
 	file.close();
@@ -1541,13 +1595,13 @@ arma::mat HydroDatabase::CalculateHydrostaticPressure(double t)
 	arma::mat pressure;
 	arma::mat z = pBodies[idBody]->pNLHSMesh->nodes.col(2);
 
-	if (pBodies[idBody]->flag_hidrostatics == 1)
+	if (pBodies[idBody]->flag_hydrostatics == 1)
 	{
 
 		// Non-linear hydrostatic forces without wave
 		pressure = -z * pSim->gravity * pSim->waterDensity;
 	}
-	else if (pBodies[idBody]->flag_hidrostatics == 2)
+	else if (pBodies[idBody]->flag_hydrostatics == 2)
 	{
 
 		// Non-linear hydrostatic forces with wave

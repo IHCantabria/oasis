@@ -42,25 +42,25 @@ void WinchieController::ReadPropertiesASCII(FILE *pFile)
 	if (fscanf(pFile, "%lf", &Ac) != 1)
 	{
 		std::stringstream ss;
-		ss << "An error ocurred when trying to read the controller state-space model parameters \n";
+		ss << "An error occurred when trying to read the controller state-space model parameters \n";
 		throw ValueError(ss.str());
 	}
 	if (fscanf(pFile, "%lf", &Bc) != 1)
 	{
 		std::stringstream ss;
-		ss << "An error ocurred when trying to read the controller state-space model parameters \n";
+		ss << "An error occurred when trying to read the controller state-space model parameters \n";
 		throw ValueError(ss.str());
 	}
 	if (fscanf(pFile, "%lf", &Cc) != 1)
 	{
 		std::stringstream ss;
-		ss << "An error ocurred when trying to read the controller state-space model parameters \n";
+		ss << "An error occurred when trying to read the controller state-space model parameters \n";
 		throw ValueError(ss.str());
 	}
 	if (fscanf(pFile, "%lf", &Dc) != 1)
 	{
 		std::stringstream ss;
-		ss << "An error ocurred when trying to read the controller state-space model parameters \n";
+		ss << "An error occurred when trying to read the controller state-space model parameters \n";
 		throw ValueError(ss.str());
 	}
 	fscanf(pFile, "%[^\n]\n", buffer_line);
@@ -70,7 +70,7 @@ void WinchieController::ReadPropertiesASCII(FILE *pFile)
 		if (fscanf(pFile, "%lf", &dtemp) != 1)
 		{
 			std::stringstream ss;
-			ss << "An error ocurred when trying to read the lead controller gains \n";
+			ss << "An error occurred when trying to read the lead controller gains \n";
 			throw ValueError(ss.str());
 		}
 		Kc(ii, 0) = dtemp;
@@ -82,7 +82,7 @@ void WinchieController::ReadPropertiesASCII(FILE *pFile)
 		if (fscanf(pFile, "%lf", &dtemp) != 1)
 		{
 			std::stringstream ss;
-			ss << "An error ocurred when trying to read the integral time gains \n";
+			ss << "An error occurred when trying to read the integral time gains \n";
 			throw ValueError(ss.str());
 		}
 		Ki(ii, 0) = dtemp;
@@ -92,25 +92,25 @@ void WinchieController::ReadPropertiesASCII(FILE *pFile)
 	if (fscanf(pFile, "%lf", &Af) != 1)
 	{
 		std::stringstream ss;
-		ss << "An error ocurred when trying to read the filter state-space model parameters \n";
+		ss << "An error occurred when trying to read the filter state-space model parameters \n";
 		throw ValueError(ss.str());
 	}
 	if (fscanf(pFile, "%lf", &Bf) != 1)
 	{
 		std::stringstream ss;
-		ss << "An error ocurred when trying to read the filter state-space model parameters \n";
+		ss << "An error occurred when trying to read the filter state-space model parameters \n";
 		throw ValueError(ss.str());
 	}
 	if (fscanf(pFile, "%lf", &Cf) != 1)
 	{
 		std::stringstream ss;
-		ss << "An error ocurred when trying to read the filter state-space model parameters \n";
+		ss << "An error occurred when trying to read the filter state-space model parameters \n";
 		throw ValueError(ss.str());
 	}
 	if (fscanf(pFile, "%lf", &Df) != 1)
 	{
 		std::stringstream ss;
-		ss << "An error ocurred when trying to read the filter state-space model parameters \n";
+		ss << "An error occurred when trying to read the filter state-space model parameters \n";
 		throw ValueError(ss.str());
 	}
 	fscanf(pFile, "%[^\n]\n", buffer_line);
@@ -127,25 +127,25 @@ void WinchieController::ReadPropertiesASCII(FILE *pFile)
 		if (fscanf(pFile, "%lf", &Ar) != 1)
 		{
 			std::stringstream ss;
-			ss << "An error ocurred when trying to read the reference state-space model parameters \n";
+			ss << "An error occurred when trying to read the reference state-space model parameters \n";
 			throw ValueError(ss.str());
 		}
 		if (fscanf(pFile, "%lf", &Br) != 1)
 		{
 			std::stringstream ss;
-			ss << "An error ocurred when trying to read the reference state-space model parameters \n";
+			ss << "An error occurred when trying to read the reference state-space model parameters \n";
 			throw ValueError(ss.str());
 		}
 		if (fscanf(pFile, "%lf", &Cr) != 1)
 		{
 			std::stringstream ss;
-			ss << "An error ocurred when trying to read the reference state-space model parameters \n";
+			ss << "An error occurred when trying to read the reference state-space model parameters \n";
 			throw ValueError(ss.str());
 		}
 		if (fscanf(pFile, "%lf", &Dr) != 1)
 		{
 			std::stringstream ss;
-			ss << "An error ocurred when trying to read the reference state-space model parameters \n";
+			ss << "An error occurred when trying to read the reference state-space model parameters \n";
 			throw ValueError(ss.str());
 		}
 		fscanf(pFile, "%[^\n]\n", buffer_line);
@@ -155,7 +155,7 @@ void WinchieController::ReadPropertiesASCII(FILE *pFile)
 			if (fscanf(pFile, "%lf", &dtemp) != 1)
 			{
 				std::stringstream ss;
-				ss << "An error ocurred when trying to read the vector of reference positions \n";
+				ss << "An error occurred when trying to read the vector of reference positions \n";
 				throw ValueError(ss.str());
 			}
 			ur(ii, 0) = dtemp;
@@ -190,7 +190,7 @@ void WinchieController::ReadPropertiesASCII(FILE *pFile)
 			if (fscanf(pFile, "%lf", &dtemp) != 1)
 			{
 				std::stringstream ss;
-				ss << "An error ocurred when trying to read the times for reference positions \n";
+				ss << "An error occurred when trying to read the times for reference positions \n";
 				throw ValueError(ss.str());
 			}
 			t_ref(ii, 0) = dtemp;
@@ -201,7 +201,7 @@ void WinchieController::ReadPropertiesASCII(FILE *pFile)
 			if (fscanf(pFile, "%lf", &dtemp) != 1)
 			{
 				std::stringstream ss;
-				ss << "An error ocurred when trying to read the x for reference positions \n";
+				ss << "An error occurred when trying to read the x for reference positions \n";
 				throw ValueError(ss.str());
 			}
 			x_ref(ii, 0) = dtemp;
@@ -212,7 +212,7 @@ void WinchieController::ReadPropertiesASCII(FILE *pFile)
 			if (fscanf(pFile, "%lf", &dtemp) != 1)
 			{
 				std::stringstream ss;
-				ss << "An error ocurred when trying to read the y for reference positions \n";
+				ss << "An error occurred when trying to read the y for reference positions \n";
 				throw ValueError(ss.str());
 			}
 			y_ref(ii, 0) = dtemp;
@@ -223,7 +223,7 @@ void WinchieController::ReadPropertiesASCII(FILE *pFile)
 			if (fscanf(pFile, "%lf", &dtemp) != 1)
 			{
 				std::stringstream ss;
-				ss << "An error ocurred when trying to read the yaw for reference positions \n";
+				ss << "An error occurred when trying to read the yaw for reference positions \n";
 				throw ValueError(ss.str());
 			}
 			yaw_ref(ii, 0) = dtemp;
@@ -259,7 +259,7 @@ void WinchieController::ReadPropertiesASCII(FILE *pFile)
 		{
 			std::cout << "itemp2 = " << itemp2 << std::endl;
 			std::stringstream ss;
-			ss << "An error ocurred when trying to read the indices of lines for positive X force \n";
+			ss << "An error occurred when trying to read the indices of lines for positive X force \n";
 			throw ValueError(ss.str());
 		}
 		ind_x_pos(ii) = itemp2 - 1;
@@ -270,7 +270,7 @@ void WinchieController::ReadPropertiesASCII(FILE *pFile)
 		if (fscanf(pFile, "%lf", &dtemp) != 1)
 		{
 			std::stringstream ss;
-			ss << "An error ocurred when trying to read the coefficients of lines for positive X force \n";
+			ss << "An error occurred when trying to read the coefficients of lines for positive X force \n";
 			throw ValueError(ss.str());
 		}
 		coef_x_pos(ii) = dtemp;
@@ -285,7 +285,7 @@ void WinchieController::ReadPropertiesASCII(FILE *pFile)
 		if (fscanf(pFile, "%d", &itemp2) != 1)
 		{
 			std::stringstream ss;
-			ss << "An error ocurred when trying to read the indices of lines for negative X force \n";
+			ss << "An error occurred when trying to read the indices of lines for negative X force \n";
 			throw ValueError(ss.str());
 		}
 		ind_x_neg(ii) = itemp2 - 1;
@@ -296,7 +296,7 @@ void WinchieController::ReadPropertiesASCII(FILE *pFile)
 		if (fscanf(pFile, "%lf", &dtemp) != 1)
 		{
 			std::stringstream ss;
-			ss << "An error ocurred when trying to read the coefficients of lines for negative X force \n";
+			ss << "An error occurred when trying to read the coefficients of lines for negative X force \n";
 			throw ValueError(ss.str());
 		}
 		coef_x_neg(ii) = dtemp;
@@ -311,7 +311,7 @@ void WinchieController::ReadPropertiesASCII(FILE *pFile)
 		if (fscanf(pFile, "%d", &itemp2) != 1)
 		{
 			std::stringstream ss;
-			ss << "An error ocurred when trying to read the indices of lines for positive Y force \n";
+			ss << "An error occurred when trying to read the indices of lines for positive Y force \n";
 			throw ValueError(ss.str());
 		}
 		ind_y_pos(ii) = itemp2 - 1;
@@ -322,7 +322,7 @@ void WinchieController::ReadPropertiesASCII(FILE *pFile)
 		if (fscanf(pFile, "%lf", &dtemp) != 1)
 		{
 			std::stringstream ss;
-			ss << "An error ocurred when trying to read the coefficients of lines for positive Y force \n";
+			ss << "An error occurred when trying to read the coefficients of lines for positive Y force \n";
 			throw ValueError(ss.str());
 		}
 		coef_y_pos(ii) = dtemp;
@@ -337,7 +337,7 @@ void WinchieController::ReadPropertiesASCII(FILE *pFile)
 		if (fscanf(pFile, "%d", &itemp2) != 1)
 		{
 			std::stringstream ss;
-			ss << "An error ocurred when trying to read the indices of lines for negative Y force \n";
+			ss << "An error occurred when trying to read the indices of lines for negative Y force \n";
 			throw ValueError(ss.str());
 		}
 		ind_y_neg(ii) = itemp2 - 1;
@@ -348,7 +348,7 @@ void WinchieController::ReadPropertiesASCII(FILE *pFile)
 		if (fscanf(pFile, "%lf", &dtemp) != 1)
 		{
 			std::stringstream ss;
-			ss << "An error ocurred when trying to read the coefficients of lines for negative Y force \n";
+			ss << "An error occurred when trying to read the coefficients of lines for negative Y force \n";
 			throw ValueError(ss.str());
 		}
 		coef_y_neg(ii) = dtemp;
@@ -363,7 +363,7 @@ void WinchieController::ReadPropertiesASCII(FILE *pFile)
 		if (fscanf(pFile, "%d", &itemp2) != 1)
 		{
 			std::stringstream ss;
-			ss << "An error ocurred when trying to read the indices of lines for positive YAW force \n";
+			ss << "An error occurred when trying to read the indices of lines for positive YAW force \n";
 			throw ValueError(ss.str());
 		}
 		ind_g_pos(ii) = itemp2 - 1;
@@ -374,7 +374,7 @@ void WinchieController::ReadPropertiesASCII(FILE *pFile)
 		if (fscanf(pFile, "%lf", &dtemp) != 1)
 		{
 			std::stringstream ss;
-			ss << "An error ocurred when trying to read the coefficients of lines for positive YAW force \n";
+			ss << "An error occurred when trying to read the coefficients of lines for positive YAW force \n";
 			throw ValueError(ss.str());
 		}
 		coef_g_pos(ii) = dtemp;
@@ -389,7 +389,7 @@ void WinchieController::ReadPropertiesASCII(FILE *pFile)
 		if (fscanf(pFile, "%d", &itemp2) != 1)
 		{
 			std::stringstream ss;
-			ss << "An error ocurred when trying to read the indices of lines for negative YAW force \n";
+			ss << "An error occurred when trying to read the indices of lines for negative YAW force \n";
 			throw ValueError(ss.str());
 		}
 		ind_g_neg(ii) = itemp2 - 1;
@@ -400,7 +400,7 @@ void WinchieController::ReadPropertiesASCII(FILE *pFile)
 		if (fscanf(pFile, "%lf", &dtemp) != 1)
 		{
 			std::stringstream ss;
-			ss << "An error ocurred when trying to read the coefficients of lines for negative YAW force \n";
+			ss << "An error occurred when trying to read the coefficients of lines for negative YAW force \n";
 			throw ValueError(ss.str());
 		}
 		coef_g_neg(ii) = dtemp;

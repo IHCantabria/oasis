@@ -53,7 +53,7 @@ void WindTurbine::ReadPropertiesASCII(FILE *pFile)
     if (fscanf(pFile, "%s %[^\n]\n", cADFileName, buffer_line) != 2)
     {
         std::stringstream ss;
-        ss << "An error ocurred when trying to read the AeroDyn input file name in Turbine: " << idWindTurbine << "\n";
+        ss << "An error occurred when trying to read the AeroDyn input file name in Turbine: " << idWindTurbine << "\n";
         throw ValueError(ss.str());
     }
     std::string ADFileName = JoinPath(pSim->inputFolderPath, cADFileName);
@@ -65,7 +65,7 @@ void WindTurbine::ReadPropertiesASCII(FILE *pFile)
     if (fscanf(pFile, "%s %[^\n]\n", cIWFileName, buffer_line) != 2)
     {
         std::stringstream ss;
-        ss << "An error ocurred when trying to read the InflowWind input file name in Turbine: " << idWindTurbine << "\n";
+        ss << "An error occurred when trying to read the InflowWind input file name in Turbine: " << idWindTurbine << "\n";
         throw ValueError(ss.str());
     }
     std::string IWFileName = JoinPath(pSim->inputFolderPath, cIWFileName);
@@ -77,7 +77,7 @@ void WindTurbine::ReadPropertiesASCII(FILE *pFile)
     if (fscanf(pFile, "%s %[^\n]\n", cSDFileName, buffer_line) != 2)
     {
         std::stringstream ss;
-        ss << "An error ocurred when trying to read the ServoDyn input file name in Turbine: " << idWindTurbine << "\n";
+        ss << "An error occurred when trying to read the ServoDyn input file name in Turbine: " << idWindTurbine << "\n";
         throw ValueError(ss.str());
     }
     std::string SDFileName = JoinPath(pSim->inputFolderPath, cSDFileName);
@@ -89,7 +89,7 @@ void WindTurbine::ReadPropertiesASCII(FILE *pFile)
     if (fscanf(pFile, "%s %[^\n]\n", cEDFileName, buffer_line) != 2)
     {
         std::stringstream ss;
-        ss << "An error ocurred when trying to read the ElastoDyn input file name in Turbine: " << idWindTurbine << "\n";
+        ss << "An error occurred when trying to read the ElastoDyn input file name in Turbine: " << idWindTurbine << "\n";
         throw ValueError(ss.str());
     }
     std::string EDFileName = JoinPath(pSim->inputFolderPath, cEDFileName);

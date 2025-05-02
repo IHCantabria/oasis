@@ -31,15 +31,16 @@ public:
 	int hydroDatabaseIndex;		   // Index of the body in the associated hydrodynamic database, if any
 	std::string hydroDatabaseName; // Stores the hydrodynamic database name
 	int flag_blocked;
-	int flag_hidrostatics;
-	std::string hydrostaticMeshName;	   // Stores the hidrostatics mesh filename
+	int flag_hydrostatics;
+	std::string hydrostaticMeshName;	   // Stores the hydrostatics mesh filename
+	int radiationFlag;					   // flag for radiation force
 	int firstOrderExcitationFlag;		   // flag for first order excitation force
 	int secondOrderExcitationFlag;		   // flag for second order excitation force
 	arma::mat A_visc = arma::zeros(6, 1);  // viscous added mass coefficients
 	arma::mat B_visc = arma::zeros(6, 1);  // viscous linear damping coefficients
 	arma::mat B_visc2 = arma::zeros(6, 1); // viscous cuadratic damping coefficients
 
-	// Total hidrodynamic force
+	// Total hydrodynamic force
 	arma::mat Fb = arma::zeros(6, 1);
 
 	Simulation *pSim;						   // Pointer to simulation instance
@@ -76,7 +77,8 @@ public:
 	arma::mat rotMat_dot2 = arma::eye(3, 3);		  // Segunda erivada temporal de la matriz de rotacion del cuerpo
 	arma::mat vel = arma::zeros(6, 1);				  // Body velocity w.r.t the global reference system
 	arma::mat velBuffer;							  // Velocity Buffer (global coords) in order to store the body velocities and calculate Duhamel's integral term
-	arma::mat windTurbForces = arma::zeros(6, 1);	  // Fuerzas que los BCPs ejercen sobre el cuerpo, en la referencia del CDG
+	arma::mat windTurbForces = arma::zeros(6, 1);	  // Forces acting on the body due to the wind turbines
+	arma::mat owcForces = arma::zeros(6, 1);		  // Forces acting on the body due to the OWCs
 
 	std::string movementsFileName;			 // Stores the movements file name
 	std::string movementsTimeSeriesFileName; // Stores the movements time series file name
