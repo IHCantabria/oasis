@@ -56,6 +56,7 @@ arma::mat HydroDatabase::CalculateHydrodynamicForces(double time)
 	}
 
 	// std::cout << "--> Computing viscous drag forces..." << std::endl;
+	// TODO: Consider moving all fast computing components to the Hydrostatic forces class
 	arma::mat vv = pBodies[idBody]->vel;
 	F = F - pBodies[idBody]->B_visc % vv - pBodies[idBody]->B_visc2 % vv % arma::abs(vv);
 

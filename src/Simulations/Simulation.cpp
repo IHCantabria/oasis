@@ -53,6 +53,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
             this->pBodiesFree[ii]->pos(itemp, 0) = y(ini);
             ini = ini + 1;
         }
+        // std::cout << "Simulation::CalculateSystemDynamics - Body " << this->pBodiesFree[ii]->GetId() + 1 << " pos: " << this->pBodiesFree[ii]->pos.t() << std::endl;
     }
     for (int ii = 0; ii < numLines; ii++)
     {
@@ -81,6 +82,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
             this->pBodiesFree[ii]->vel(itemp, 0) = y(ini);
             ini = ini + 1;
         }
+        // std::cout << "Simulation::CalculateSystemDynamics - Body " << this->pBodiesFree[ii]->GetId() + 1 << " vel: " << this->pBodiesFree[ii]->vel.t() << std::endl;
     }
     for (int ii = 0; ii < numLines; ii++)
     {
@@ -103,10 +105,26 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     // Load variables from first order systems
     for (int ii = 0; ii < numOWCs; ii++)
     {
-        if (this->pOWCs[ii]->turbine_type == 0)
+        if (this->pOWCs[ii]->turbine_type >= 0)
         {
             pOWCs[ii]->rel_pressure = arma::as_scalar(y.row(ini));
             ini = ini + 1;
+        }
+        if (this->pOWCs[ii]->turbine_type > 0)
+        {
+            int turb_valve_type = this->pOWCs[ii]->pOWCTurbine->pOWCTurbineType->valve_type;
+            if (turb_valve_type == 0 || turb_valve_type == 1)
+            {
+                pOWCs[ii]->pOWCTurbine->angular_velocity = arma::as_scalar(y.row(ini));
+                ini = ini + 1;
+            }
+            else if (turb_valve_type == 2 || turb_valve_type == 3)
+            {
+                pOWCs[ii]->pOWCTurbine->gap_rel_pressure = arma::as_scalar(y.row(ini));
+                ini = ini + 1;
+                pOWCs[ii]->pOWCTurbine->angular_velocity = arma::as_scalar(y.row(ini));
+                ini = ini + 1;
+            }
         }
     }
 
@@ -200,7 +218,11 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     // std::cout << "Simulation::CalculateSystemDynamics - Compute hydrodynamic and hydrostatic forces" << std::endl;
     for (int ii = 0; ii < numBodiesFree; ii++)
     {
-        Fb(arma::span(6 * ii, 6 * (ii + 1) - 1), 0) = pBodiesFree[ii]->Fb + pBodiesFree[ii]->pHydro->CalculateHydrostaticForces(time);
+        arma::mat tmp_hs = pBodiesFree[ii]->pHydro->CalculateHydrostaticForces(time);
+        arma::mat tmp_hd = pBodiesFree[ii]->Fb;
+        Fb(arma::span(6 * ii, 6 * (ii + 1) - 1), 0) = tmp_hs + tmp_hd;
+        // std::cout << "Simulation::CalculateSystemDynamics - body " << pBodiesFree[ii]->GetId() + 1 << " hydrostatic forces: " << tmp_hs.t() << std::endl;
+        // std::cout << "Simulation::CalculateSystemDynamics - body " << pBodiesFree[ii]->GetId() + 1 << " hydrodynamic forces: " << tmp_hd.t() << std::endl;
     }
     if (Fb.has_nan() | Fb.has_inf())
     {
@@ -250,6 +272,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     for (int ii = 0; ii < numBodiesFree; ii++)
     {
         Fb(arma::span(6 * ii, 6 * (ii + 1) - 1), 0) = Fb(arma::span(6 * ii, 6 * (ii + 1) - 1), 0) + pBodiesFree[ii]->owcForces;
+        // std::cout << "Simulation::CalculateSystemDynamics - body " << pBodiesFree[ii]->GetId() + 1 << " OWC forces: " << pBodiesFree[ii]->owcForces.t() << std::endl;
     }
 
     // Compute also everything for locked bodies so it can be displayed on the output files
@@ -527,10 +550,26 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     // Return variable derivatives from first order systems
     for (int ii = 0; ii < numOWCs; ii++)
     {
-        if (this->pOWCs[ii]->turbine_type == 0)
+        if (this->pOWCs[ii]->turbine_type >= 0)
         {
             yprime.row(ini) = pOWCs[ii]->rel_pressure_dot;
             ini = ini + 1;
+        }
+        if (this->pOWCs[ii]->turbine_type > 0)
+        {
+            int turb_valve_type = this->pOWCs[ii]->pOWCTurbine->pOWCTurbineType->valve_type;
+            if (turb_valve_type == 0 || turb_valve_type == 1)
+            {
+                yprime.row(ini) = pOWCs[ii]->pOWCTurbine->angular_acceleration;
+                ini = ini + 1;
+            }
+            else if (turb_valve_type == 2 || turb_valve_type == 3)
+            {
+                yprime.row(ini) = pOWCs[ii]->pOWCTurbine->gap_rel_pressure_dot;
+                ini = ini + 1;
+                yprime.row(ini) = pOWCs[ii]->pOWCTurbine->angular_acceleration;
+                ini = ini + 1;
+            }
         }
     }
 
@@ -610,15 +649,26 @@ void Simulation::Initialize()
     // Add DOFs of OWCs
     for (int ii = 0; ii < this->numOWCs; ii++)
     {
-        if (this->pOWCs[ii]->turbine_type == 0)
+        if (this->pOWCs[ii]->turbine_type >= 0)
         {
-            numSystem = numSystem + 1;
+            numSystem = numSystem + 1; // Chamber relative pressure
         }
         if (this->pOWCs[ii]->turbine_type > 0)
         {
-            std::stringstream ss;
-            ss << "Turbines are not implemented yet for OWCs! \n";
-            throw ValueError(ss.str());
+            int valve_type = this->pOWCs[ii]->pOWCTurbine->pOWCTurbineType->valve_type;
+            if (valve_type == 0 || valve_type == 1) // Cases with no throttle valve
+            {
+                numSystem = numSystem + 1; // Turbine angular velocity
+            }
+            else if (valve_type == 2 || valve_type == 3) // Cases with throttle valve
+            {
+                numSystem = numSystem + 2; // Turbine angular velocity and gap relative pressure
+            }
+            else
+            {
+                std::cout << "ERROR: OWC Turbine valve type not implemented!" << std::endl;
+                throw std::exception();
+            }
         }
     }
 
@@ -667,10 +717,26 @@ void Simulation::Initialize()
         for (int ii = 0; ii < this->numOWCs; ii = ii + 1)
         {
             std::cout << "  ... Including OWC: " << ii + 1 << std::endl;
-            if (this->pOWCs[ii]->turbine_type == 0)
+            if (this->pOWCs[ii]->turbine_type >= 0)
             {
                 y(2 * numSystem2 + ini) = this->pOWCs[ii]->rel_pressure;
                 ini = ini + 1;
+            }
+            if (this->pOWCs[ii]->turbine_type > 0)
+            {
+                int valve_type = this->pOWCs[ii]->pOWCTurbine->pOWCTurbineType->valve_type;
+                if (valve_type == 0 || valve_type == 1) // Cases with no throttle valve
+                {
+                    y(2 * numSystem2 + ini) = this->pOWCs[ii]->pOWCTurbine->angular_velocity;
+                    ini = ini + 1;
+                }
+                else if (valve_type == 2 || valve_type == 3) // Cases with throttle valve
+                {
+                    y(2 * numSystem2 + ini) = this->pOWCs[ii]->pOWCTurbine->gap_rel_pressure;
+                    ini = ini + 1;
+                    y(2 * numSystem2 + ini) = this->pOWCs[ii]->pOWCTurbine->angular_velocity;
+                    ini = ini + 1;
+                }
             }
         }
     }
@@ -1462,7 +1528,8 @@ void Simulation::ReadPropertiesASCII()
     fscanf(file_pointer, "%lf %[^\n]\n", &fastControllerTimeStep, bufferLine); // Time step for FAST wind turbines controller update [s]
     fscanf(file_pointer, "%lf %[^\n]\n", &timeIRF, bufferLine);                // IRF time [s]
     fscanf(file_pointer, "%lf %[^\n]\n", &sinkingTimeStep, bufferLine);        // Time step for synking hydrodinamic data bases update [s]
-    fscanf(file_pointer, "%lf %[^\n]\n", &controllerTimeStep, bufferLine);     // Time step for winches controller [s]
+    fscanf(file_pointer, "%lf %[^\n]\n", &winchesContTimeStep, bufferLine);    // Time step for winches controller [s]
+    fscanf(file_pointer, "%lf %[^\n]\n", &owcsContTimeStep, bufferLine);       // Time step for OWCS controller [s]
     fscanf(file_pointer, "%lf %[^\n]\n", &simulationTime, bufferLine);         // Total time of simulation [s]
     fscanf(file_pointer, "%d %[^\n]\n", &dummyBool, bufferLine);
     rotSimpFlag = dummyBool;                                         // Flag to use simplification for rigid body rotation dynamics [0 No, 1 Yes]
@@ -1853,6 +1920,36 @@ void Simulation::ReadOWCs(void)
 
 void Simulation::ReadOWCsASCII(void)
 {
+    std::cout << "--> Reading OWCs Turbines Properties (ASCII format)" << std::endl;
+    // Declare local variables
+    char bufferLineT[1000];
+    // Open file
+    std::string file_pathT = JoinPath(inputFolderPath, "dataOWCTurbines.dat");
+    FILE *pFileT = fopen(file_pathT.c_str(), "r");
+    if (pFileT == NULL)
+    {
+        std::cout << "    --> WARNING: dataOWCTurbines.dat was not found! Setting numOWCs = 0!" << std::endl;
+        numOWCTurbines = 0;
+    }
+    else
+    {
+        // Read total number of owcs
+        fscanf(pFileT, "%d %[^\n]\n", &numOWCTurbines, bufferLineT);
+        if (numOWCTurbines > 0)
+        {
+            // Initiallice OWC array
+            pOWCTurbines = new OWCTurbineType *[numOWCTurbines];
+            for (int ii = 0; ii < numOWCTurbines; ii++)
+            {
+                pOWCTurbines[ii] = new OWCTurbineType(ii, this);
+                pOWCTurbines[ii]->Initialize(pFileT);
+            }
+        }
+        // Close file
+        fclose(pFileT);
+    }
+    std::cout << "--> OWCs Turbines Properties Read" << std::endl;
+
     std::cout << "--> Reading OWCs Properties (ASCII format)" << std::endl;
     // Declare local variables
     char bufferLine[1000];
@@ -1904,7 +2001,8 @@ void Simulation::Run()
     double wallTimeFAST = 0.0;
     double wallTimeControllerFAST = 0.0;
     double wallTimeSinking = 0.0;
-    double wallTimeController = 0.0;
+    double wallTimeControllerWinches = 0.0;
+    double wallTimeControllerOWCs = 0.0;
     tstart = time(0);
     bool flag_debug_lines = true;
 
@@ -1986,6 +2084,22 @@ void Simulation::Run()
             }
         }
 
+        if (numOWCs > 0)
+        {
+            if (pTimeSolver->t >= wallTimeControllerOWCs + owcsContTimeStep)
+            {
+                // std::cout << "In Simulation::Run --> Controlling OWCs... " << std::endl;
+                wallTimeControllerOWCs += owcsContTimeStep;
+                for (int ii = 0; ii < numOWCs; ii = ii + 1)
+                {
+                    if (pOWCs[ii]->turbine_type > 0)
+                    {
+                        pOWCs[ii]->pOWCTurbine->ComputeGenTorque();
+                    }
+                }
+            }
+        }
+
         if (numSinking > 0)
         {
             if (pTimeSolver->t >= wallTimeSinking + sinkingTimeStep)
@@ -2007,12 +2121,12 @@ void Simulation::Run()
 
         if (numWinches > 0)
         {
-            if (pTimeSolver->t >= wallTimeController + controllerTimeStep)
+            if (pTimeSolver->t >= wallTimeControllerWinches + winchesContTimeStep)
             {
                 // std::cout << "In Simulation::Run --> Controlling winches... " << std::endl;
-                wallTimeController += controllerTimeStep;
-                WinchesController.controlWinchies(wallTimeController);
-                WinchesController.WriteOut(wallTimeController);
+                wallTimeControllerWinches += winchesContTimeStep;
+                WinchesController.controlWinchies(wallTimeControllerWinches);
+                WinchesController.WriteOut(wallTimeControllerWinches);
                 // std::cout << "In Simulation::Run --> ... done controlling winches!" << std::endl;
             }
         }

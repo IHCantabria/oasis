@@ -46,7 +46,8 @@ public:
     double fastControllerTimeStep;
     double timeIRF;
     double sinkingTimeStep;
-    double controllerTimeStep;
+    double winchesContTimeStep;
+    double owcsContTimeStep;
     int numSystem;
     int numSystem2;
     double simulationTime;
@@ -106,6 +107,7 @@ public:
     Flat **pFlat;
     WindTurbine **pWindTurbines;
     OWC **pOWCs;
+    OWCTurbineType **pOWCTurbines;
     int numAnchorBcps = 0;
     int numBcps = 0;
     int numBodies = 0;
@@ -126,6 +128,7 @@ public:
     int numFlat = 0;
     int numWindTurbines = 0;
     int numOWCs = 0;
+    int numOWCTurbines = 0;
 
     // Declare constructors
     Simulation(std::string projectPath, std::string incDataFormat);
