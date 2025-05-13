@@ -168,7 +168,7 @@ LOOP:
 			jac(t + h_0, y_0 + h_0 * (y_0 - y_1) / h_1);
 			iJ = iJ + 1;
 			q = q + 1;
-			std::cout << "WARNING: In BDF2, Maximum number of iterations reached! Trying again with smaller step size... " << std::endl;
+			// std::cout << "WARNING: In BDF2, Maximum number of iterations reached! Trying again with smaller step size... " << std::endl;
 			goto LOOP;
 		}
 		else
