@@ -8,9 +8,7 @@ mkdir bin
 
 # rm -rf build
 # cmake -B./build/ -H./
-
 # cmake -DCMAKE_BUILD_TYPE=Debug -B./build/ -H./
-
 cmake -DCMAKE_BUILD_TYPE=Release -B./build/ -H./
 
 cmake --build ./build

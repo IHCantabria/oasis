@@ -71,6 +71,13 @@ void BodyMesh::ReadPropertiesASCII(void)
     std::tie(iniNodes, ind) = unique_rows(tmp_nodes);
     iniNumNodes = iniNodes.n_rows;
 
+    // If iniNodes contains values larger than 1000, convert from millimeters to meters and display a warning
+    if (arma::abs(iniNodes).max() > 1000.0)
+    {
+        std::cout << "   WARNING: it seems that the mesh is defined in millimeters. Converting to meters..." << std::endl;
+        iniNodes = iniNodes / 1000.0;
+    }
+
     // Rearrange elems index
     iniElems = indMat(ind, tmp_elems);
 }
@@ -102,15 +109,16 @@ void BodyMesh::CutMesh(double time)
 
     // Sorting elements
     arma::uvec verticesUW;
-    arma::vec eta;
+    arma::vec eta_tmp;
     if (pBody->flag_hydrostatics == 1)
     {
+        eta_tmp = arma::zeros<arma::vec>(numVertices);
         verticesUW = (transNodes.submat(0, 2, numVertices - 1, 2) <= 0);
     }
     else if (pBody->flag_hydrostatics == 2)
     {
-        eta = pSim->pWave->GetFreeSurface(time, transNodes.col(0), transNodes.col(1));
-        verticesUW = (transNodes.submat(0, 2, numVertices - 1, 2)) <= eta.subvec(0, numVertices - 1);
+        eta_tmp = pSim->pWave->GetFreeSurface(time, transNodes.col(0), transNodes.col(1));
+        verticesUW = (transNodes.submat(0, 2, numVertices - 1, 2)) <= eta_tmp.subvec(0, numVertices - 1);
     }
 
     // Element status and UW index
@@ -139,6 +147,7 @@ void BodyMesh::CutMesh(double time)
 
     // Including elements with 3 vertices submerged
     nodes = transNodes.rows(nodesUW);
+    eta = eta_tmp.rows(nodesUW);
     normals = transNormals.rows(ind3);
     elems = indMat(indMap, auxNodes);
     jacobians = iniJacobians(ind3);
@@ -171,9 +180,9 @@ void BodyMesh::CutMesh(double time)
             // Sorting vertices by height wrt free surface
             tmpElems = iniElems(ielem, arma::span(0, 2));
             icol = {2};
-            sortInd = arma::sort_index(transNodes.submat(tmpElems, icol) - eta(tmpElems));
+            sortInd = arma::sort_index(transNodes.submat(tmpElems, icol) - eta_tmp(tmpElems));
             incNodes = transNodes.rows(tmpElems(sortInd));
-            incEta = eta.rows(tmpElems(sortInd));
+            incEta = eta_tmp.rows(tmpElems(sortInd));
         }
 
         // --------------------- Cutting element with two vertices underewater ---------------------
@@ -270,6 +279,14 @@ void BodyMesh::CutMesh(double time)
 
         // Copy elem info
         nodes = arma::join_vert(nodes, outNodes);
+        if (pBody->flag_hydrostatics == 1)
+        {
+            eta = arma::join_vert(eta, arma::zeros<arma::vec>(11));
+        }
+        else if (pBody->flag_hydrostatics == 2)
+        {
+            eta = arma::join_vert(eta, pSim->pWave->GetFreeSurface(time, outNodes.col(0), outNodes.col(1)));
+        }
         normals = arma::join_vert(normals, tmpNormal, tmpNormal);
         auxVec1 = {2, 0, 1, 10, 4, 5, 8};
         auxVec2 = {0, 2, 3, 10, 6, 7, 9};
@@ -293,9 +310,9 @@ void BodyMesh::CutMesh(double time)
             // Sorting vertices by height wrt free surface
             tmpElems = iniElems(ielem, arma::span(0, 2));
             icol = {2};
-            sortInd = arma::sort_index(transNodes.submat(tmpElems, icol) - eta(tmpElems));
+            sortInd = arma::sort_index(transNodes.submat(tmpElems, icol) - eta_tmp(tmpElems));
             incNodes = transNodes.rows(tmpElems(sortInd));
-            incEta = eta.rows(tmpElems(sortInd));
+            incEta = eta_tmp.rows(tmpElems(sortInd));
         }
 
         // --------------------- Cutting element with one vertex underewater ---------------------
@@ -381,6 +398,14 @@ void BodyMesh::CutMesh(double time)
 
         // Copy elem info
         nodes = arma::join_vert(nodes, outNodes);
+        if (pBody->flag_hydrostatics == 1)
+        {
+            eta = arma::join_vert(eta, arma::zeros<arma::vec>(7));
+        }
+        else if (pBody->flag_hydrostatics == 2)
+        {
+            eta = arma::join_vert(eta, pSim->pWave->GetFreeSurface(time, outNodes.col(0), outNodes.col(1)));
+        }
         normals = arma::join_vert(normals, tmpNormal);
         auxVec = {0, 1, 2, 3, 4, 5, 6};
         elems = arma::join_vert(elems, numNodes + auxVec);

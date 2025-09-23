@@ -29,6 +29,7 @@ public:
 	arma::mat iniNormals, normals;	   // Initial and final normal vectors to each element
 	arma::vec iniJacobians, jacobians; // Initial and final jacobians of the transformations associated to each element
 	arma::mat weightsJacNormal;		   // Normal vectors times touching element's jacobian and corresponding weights
+	arma::vec eta;					   // Wave elevation at each node
 
 	Body *pBody;			  // Pointer to the body linked to this mesh
 	Simulation *pSim;		  // Pointer to simulation instance
@@ -51,7 +52,7 @@ private:
 	int typeMesh = 1;
 
 public:
-	BodyTri2DMesh(int incId, std::string incMeshFileName, Body *incpBody) : BodyMesh(incId, incMeshFileName, incpBody){};
+	BodyTri2DMesh(int incId, std::string incMeshFileName, Body *incpBody) : BodyMesh(incId, incMeshFileName, incpBody) {};
 	int GetType(void);
 	void Preprocess(void);
 };

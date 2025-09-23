@@ -838,6 +838,13 @@ void HydroDatabase::LoadHydroDataH5(std::string filePath)
 			}
 		}
 	}
+	// Change pWaveExciting to pWaveDiff if FK forces are computed as nonlinear forces
+	// TODO: This should be done in a more consistent way with the ehydb format
+	if (pBodies[idBody]->flag_hydrostatics == 2)
+	{
+		pWaveExcitingMag = pWaveDiffMag;
+		pWaveExcitingPha = pWaveDiffPha;
+	}
 	// Free the buffer memory
 	delete[] buffer_diffraction_force_mag;
 	delete[] buffer_diffraction_force_pha;
@@ -1608,7 +1615,8 @@ arma::mat HydroDatabase::CalculateHydrostaticPressure(double t)
 		// Non-linear hydrostatic forces with wave
 		arma::mat x = pBodies[idBody]->pNLHSMesh->nodes.col(0);
 		arma::mat y = pBodies[idBody]->pNLHSMesh->nodes.col(1);
-		pressure = pSim->pWave->GetPressure(t, x, y, z);
+		arma::vec eta = pBodies[idBody]->pNLHSMesh->eta;
+		pressure = pSim->pWave->GetPressure(t, x, y, z, eta);
 	}
 
 	return pressure;
