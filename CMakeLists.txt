@@ -93,10 +93,26 @@ set(OASIS_FILES ${OASIS_SOURCE_FILES} ${OASIS_HEADER_FILES})
 ADD_DEFINITIONS(-DARMA_DONT_USE_WRAPPER -DARMA_USE_HDF5 -DARMA_USE_SUPERLU)
 # Add the version_file to the project build or it won't compile.
 ADD_EXECUTABLE(${PROJECT_NAME} ${OASIS_FILES} ${version_file})
+# ---- Optimization flags per target ----
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
+target_compile_options(${PROJECT_NAME} PRIVATE
+  $<$<AND:$<CONFIG:Release>,$<CXX_COMPILER_ID:GNU,Clang>>:-O3 -march=native -ffast-math>
+  $<$<AND:$<CONFIG:Release>,$<CXX_COMPILER_ID:MSVC>>:/O2 /fp:fast>
+)
+# Optional: OpenMP
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+  TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX)
+endif()
+# Optional: LTO
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
 # Target to the include directories
 TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${EXTERNAL_LIBS_INCLUDE_PATH})
 # Target to the link libraries
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} 
+  PRIVATE
   -lgfortran
   -lquadmath
   -lpthread

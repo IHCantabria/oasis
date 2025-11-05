@@ -65,8 +65,12 @@ public:
 
 	arma::cube ***QtfDiff_w;			 // Matrix components after SetUp: [parts, dofs, freq1_w, freq2_w, headings] | The first two are pointers to cube variables and last three are arma::cube
 	arma::cube ***QtfSum_w;				 // Matrix components after SetUp: [parts, dofs, freq1_w, freq2_w, headings] | The first two are pointers to cube variables and last three are arma::cube
+	arma::mat ***QtfDiff_wt;			 // Matrix components after SetUp: [parts, dofs, freq1_w, freq2_w] (heading_w) | The first two are pointers to mat variables and last two are arma::mat
+	arma::mat ***QtfSum_wt;		         // Matrix components after SetUp: [parts, dofs, freq1_w, freq2_w] (heading_w) | The first two are pointers to mat variables and last two are arma::mat
 	arma::cube WE_Real_w;				 // Matrix components after SetUp: [headings, freqs_w, dofs];
 	arma::cube WE_Imag_w;				 // Matrix components after SetUp: [headings, freqs_w, dofs];
+	arma::cube WE_Real_wt;				 // Matrix components after SetUp: [headings_w, freqs_w, dofs];
+	arma::cube WE_Imag_wt;				 // Matrix components after SetUp: [headings_w, freqs_w, dofs];
 	int numFrequencies_w;				 // Number of frequencies in the wave spectrum inside the frequency range of hydrodynamic database coefficients
 	arma::vec freqs_w;					 // Wave frequencies vector: [1, numFrequencies_w] (Hz)
 	arma::vec ang_freqs_w;				 // Wave angular frequencies vector: [1, numFrequencies_w] (rad/s)

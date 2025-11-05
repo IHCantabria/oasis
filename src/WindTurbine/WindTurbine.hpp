@@ -41,6 +41,7 @@ public:
     double yaw = 0.0;
     double yaw_ini = 0.0;
     double yawSpeed = 0.0;
+    bool isRotorBlocked = false;
 
     arma::mat forceBodyCOG = arma::zeros(6, 1);
     double airTrq = 0.0;

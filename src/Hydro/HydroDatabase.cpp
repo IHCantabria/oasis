@@ -573,7 +573,7 @@ void HydroDatabase::LoadHydroDataEHYDB(std::string filePath)
 	}
 	pWaveExcitingPha->load(arma::hdf5_name(filePath, wave_exciting_pha_fn.str()));
 
-	if (pBodies[idBody]->secondOrderExcitationFlag > 0)
+	if (pBodies[idBody]->secondOrderExcitationFlag > 0 && pBodies[idBody]->secondOrderExcitationFlag < 4)
 	{
 		// Read QTF data
 		std::cout << "  Reading QTF data...\n";
@@ -914,90 +914,93 @@ void HydroDatabase::LoadHydroDataH5(std::string filePath)
 	}
 	else
 	{
-		std::cout << "Reading QTF data...\n";
-		// Open "qtf_diff_mag"
-		H5::DataSet qtfDiffMagDataset = file.openDataSet("/qtf_diff_mag");
-		H5::DataSpace qtfDiffMagSpace = qtfDiffMagDataset.getSpace();
-		hsize_t dims_qdfm[6];
-		qtfDiffMagSpace.getSimpleExtentDims(dims_qdfm, NULL);
-		// Open "qtf_diff_pha"
-		H5::DataSet qtfDiffPhaDataset = file.openDataSet("/qtf_diff_pha");
-		H5::DataSpace qtfDiffPhaSpace = qtfDiffPhaDataset.getSpace();
-		hsize_t dims_qdfp[6];
-		qtfDiffPhaSpace.getSimpleExtentDims(dims_qdfp, NULL);
-		// Open "qtf_sum_mag"
-		H5::DataSet qtfSumMagDataset = file.openDataSet("/qtf_sum_mag");
-		H5::DataSpace qtfSumMagSpace = qtfSumMagDataset.getSpace();
-		hsize_t dims_qsm[6];
-		qtfSumMagSpace.getSimpleExtentDims(dims_qsm, NULL);
-		// Open "qtf_sum_pha"
-		H5::DataSet qtfSumPhaDataset = file.openDataSet("/qtf_sum_pha");
-		H5::DataSpace qtfSumPhaSpace = qtfSumPhaDataset.getSpace();
-		hsize_t dims_qsp[6];
-		qtfSumPhaSpace.getSimpleExtentDims(dims_qsp, NULL);
-		// Allocate memory for the QTF buffers [numBodies, numHeadings, numHeadings, numFrequencies, numFrequencies, 6]
-		num_values = numBodies * numHeadings * numHeadings * numFrequencies * numFrequencies * 6;
-		double *buffer_qtf_diff_mag = new double[num_values];
-		double *buffer_qtf_diff_pha = new double[num_values];
-		double *buffer_qtf_sum_mag = new double[num_values];
-		double *buffer_qtf_sum_pha = new double[num_values];
-		// Read the QTF data
-		qtfDiffMagDataset.read(buffer_qtf_diff_mag, H5::PredType::NATIVE_DOUBLE, qtfDiffMagSpace, qtfDiffMagSpace);
-		qtfDiffPhaDataset.read(buffer_qtf_diff_pha, H5::PredType::NATIVE_DOUBLE, qtfDiffPhaSpace, qtfDiffPhaSpace);
-		qtfSumMagDataset.read(buffer_qtf_sum_mag, H5::PredType::NATIVE_DOUBLE, qtfSumMagSpace, qtfSumMagSpace);
-		qtfSumPhaDataset.read(buffer_qtf_sum_pha, H5::PredType::NATIVE_DOUBLE, qtfSumPhaSpace, qtfSumPhaSpace);
-		// Close the datasets
-		qtfDiffMagDataset.close();
-		qtfDiffPhaDataset.close();
-		qtfSumMagDataset.close();
-		qtfSumPhaDataset.close();
-		// Allocate memory for the QTF cubes
-		pQtfDiff = new arma::cube **[2]; // 2 for real and imaginary
-		pQtfSum = new arma::cube **[2];	 // 2 for real and imaginary
-		for (int ipart = 0; ipart < 2; ipart++)
+		if (pBodies[idBody]->secondOrderExcitationFlag > 0 && pBodies[idBody]->secondOrderExcitationFlag < 0)
 		{
-			pQtfDiff[ipart] = new arma::cube *[6];
-			pQtfSum[ipart] = new arma::cube *[6];
-			for (int idof = 0; idof < 6; idof++)
+			std::cout << "Reading QTF data...\n";
+			// Open "qtf_diff_mag"
+			H5::DataSet qtfDiffMagDataset = file.openDataSet("/qtf_diff_mag");
+			H5::DataSpace qtfDiffMagSpace = qtfDiffMagDataset.getSpace();
+			hsize_t dims_qdfm[6];
+			qtfDiffMagSpace.getSimpleExtentDims(dims_qdfm, NULL);
+			// Open "qtf_diff_pha"
+			H5::DataSet qtfDiffPhaDataset = file.openDataSet("/qtf_diff_pha");
+			H5::DataSpace qtfDiffPhaSpace = qtfDiffPhaDataset.getSpace();
+			hsize_t dims_qdfp[6];
+			qtfDiffPhaSpace.getSimpleExtentDims(dims_qdfp, NULL);
+			// Open "qtf_sum_mag"
+			H5::DataSet qtfSumMagDataset = file.openDataSet("/qtf_sum_mag");
+			H5::DataSpace qtfSumMagSpace = qtfSumMagDataset.getSpace();
+			hsize_t dims_qsm[6];
+			qtfSumMagSpace.getSimpleExtentDims(dims_qsm, NULL);
+			// Open "qtf_sum_pha"
+			H5::DataSet qtfSumPhaDataset = file.openDataSet("/qtf_sum_pha");
+			H5::DataSpace qtfSumPhaSpace = qtfSumPhaDataset.getSpace();
+			hsize_t dims_qsp[6];
+			qtfSumPhaSpace.getSimpleExtentDims(dims_qsp, NULL);
+			// Allocate memory for the QTF buffers [numBodies, numHeadings, numHeadings, numFrequencies, numFrequencies, 6]
+			num_values = numBodies * numHeadings * numHeadings * numFrequencies * numFrequencies * 6;
+			double *buffer_qtf_diff_mag = new double[num_values];
+			double *buffer_qtf_diff_pha = new double[num_values];
+			double *buffer_qtf_sum_mag = new double[num_values];
+			double *buffer_qtf_sum_pha = new double[num_values];
+			// Read the QTF data
+			qtfDiffMagDataset.read(buffer_qtf_diff_mag, H5::PredType::NATIVE_DOUBLE, qtfDiffMagSpace, qtfDiffMagSpace);
+			qtfDiffPhaDataset.read(buffer_qtf_diff_pha, H5::PredType::NATIVE_DOUBLE, qtfDiffPhaSpace, qtfDiffPhaSpace);
+			qtfSumMagDataset.read(buffer_qtf_sum_mag, H5::PredType::NATIVE_DOUBLE, qtfSumMagSpace, qtfSumMagSpace);
+			qtfSumPhaDataset.read(buffer_qtf_sum_pha, H5::PredType::NATIVE_DOUBLE, qtfSumPhaSpace, qtfSumPhaSpace);
+			// Close the datasets
+			qtfDiffMagDataset.close();
+			qtfDiffPhaDataset.close();
+			qtfSumMagDataset.close();
+			qtfSumPhaDataset.close();
+			// Allocate memory for the QTF cubes
+			pQtfDiff = new arma::cube **[2]; // 2 for real and imaginary
+			pQtfSum = new arma::cube **[2];	 // 2 for real and imaginary
+			for (int ipart = 0; ipart < 2; ipart++)
 			{
-				pQtfDiff[ipart][idof] = new arma::cube;
-				pQtfSum[ipart][idof] = new arma::cube;
-				pQtfDiff[ipart][idof]->set_size(numFrequencies, numFrequencies, numHeadings);
-				pQtfSum[ipart][idof]->set_size(numFrequencies, numFrequencies, numHeadings);
-				for (int if1 = 0; if1 < numFrequencies; if1++)
+				pQtfDiff[ipart] = new arma::cube *[6];
+				pQtfSum[ipart] = new arma::cube *[6];
+				for (int idof = 0; idof < 6; idof++)
 				{
-					for (int if2 = 0; if2 < numFrequencies; if2++)
+					pQtfDiff[ipart][idof] = new arma::cube;
+					pQtfSum[ipart][idof] = new arma::cube;
+					pQtfDiff[ipart][idof]->set_size(numFrequencies, numFrequencies, numHeadings);
+					pQtfSum[ipart][idof]->set_size(numFrequencies, numFrequencies, numHeadings);
+					for (int if1 = 0; if1 < numFrequencies; if1++)
 					{
-						for (int ih = 0; ih < numHeadings; ih++)
+						for (int if2 = 0; if2 < numFrequencies; if2++)
 						{
-							// Calculate the index for the 1D buffer [numBodies, numHeadings, numHeadings, numFrequencies, numFrequencies, 6]
-							int ind = idBody * numHeadings * numHeadings * numFrequencies * numFrequencies * 6 +
-									  ih * numHeadings * numFrequencies * numFrequencies * 6 +
-									  ih * numFrequencies * numFrequencies * 6 +
-									  if1 * numFrequencies * 6 + if2 * 6 + idof;
-							// Copy data from buffer to arrays
-							// For the first part (real), use cos(phase)
-							// For the second part (imaginary), use sin(phase)
-							if (ipart == 0)
+							for (int ih = 0; ih < numHeadings; ih++)
 							{
-								(*pQtfDiff[ipart][idof])(if1, if2, ih) = buffer_qtf_diff_mag[ind] * cos(buffer_qtf_diff_pha[ind]);
-								(*pQtfSum[ipart][idof])(if1, if2, ih) = buffer_qtf_sum_mag[ind] * cos(buffer_qtf_sum_pha[ind]);
-							}
-							else
-							{
-								(*pQtfDiff[ipart][idof])(if1, if2, ih) = buffer_qtf_diff_mag[ind] * sin(buffer_qtf_diff_pha[ind]);
-								(*pQtfSum[ipart][idof])(if1, if2, ih) = buffer_qtf_sum_mag[ind] * sin(buffer_qtf_sum_pha[ind]);
+								// Calculate the index for the 1D buffer [numBodies, numHeadings, numHeadings, numFrequencies, numFrequencies, 6]
+								int ind = idBody * numHeadings * numHeadings * numFrequencies * numFrequencies * 6 +
+										  ih * numHeadings * numFrequencies * numFrequencies * 6 +
+										  ih * numFrequencies * numFrequencies * 6 +
+										  if1 * numFrequencies * 6 + if2 * 6 + idof;
+								// Copy data from buffer to arrays
+								// For the first part (real), use cos(phase)
+								// For the second part (imaginary), use sin(phase)
+								if (ipart == 0)
+								{
+									(*pQtfDiff[ipart][idof])(if1, if2, ih) = buffer_qtf_diff_mag[ind] * cos(buffer_qtf_diff_pha[ind]);
+									(*pQtfSum[ipart][idof])(if1, if2, ih) = buffer_qtf_sum_mag[ind] * cos(buffer_qtf_sum_pha[ind]);
+								}
+								else
+								{
+									(*pQtfDiff[ipart][idof])(if1, if2, ih) = buffer_qtf_diff_mag[ind] * sin(buffer_qtf_diff_pha[ind]);
+									(*pQtfSum[ipart][idof])(if1, if2, ih) = buffer_qtf_sum_mag[ind] * sin(buffer_qtf_sum_pha[ind]);
+								}
 							}
 						}
 					}
 				}
 			}
+			// Free the buffer memory
+			delete[] buffer_qtf_diff_mag;
+			delete[] buffer_qtf_diff_pha;
+			delete[] buffer_qtf_sum_mag;
+			delete[] buffer_qtf_sum_pha;
 		}
-		// Free the buffer memory
-		delete[] buffer_qtf_diff_mag;
-		delete[] buffer_qtf_diff_pha;
-		delete[] buffer_qtf_sum_mag;
-		delete[] buffer_qtf_sum_pha;
 	}
 
 	// Read "mean_drift_mag" as 4D array [numHeadings, numBodies, numFrequencies, 6]
@@ -1005,7 +1008,7 @@ void HydroDatabase::LoadHydroDataH5(std::string filePath)
 	if (file.nameExists("/mean_drift_mag") == 0)
 	{
 		// TODO: Review 2nd order excitation flag usage
-		if (pBodies[idBody]->secondOrderExcitationFlag > 0)
+		if (pBodies[idBody]->secondOrderExcitationFlag == 4)
 		{
 			std::stringstream ss;
 			ss << "Mean drift data not found in file." << std::endl;
@@ -1076,12 +1079,13 @@ arma::mat HydroDatabase::ComputeFirstWaveExcForce(double t)
 	}
 
 	// Interpolate transfer functions to the body heading
-	arma::cube H_Real = interp1(wrapToPi((*pHeadings) + yaw), WE_Real_w, wrapToPi(pWave->headings_piece));
-	arma::cube H_Imag = interp1(wrapToPi((*pHeadings) + yaw), WE_Imag_w, wrapToPi(pWave->headings_piece));
+	// TODO: Implement different levels of instant position (none, xy, xy+yaw)
+	// WE_Real_wt = interp1(wrapToPi((*pHeadings) + yaw), WE_Real_w, wrapToPi(pWave->headings_piece));
+	// WE_Imag_wt = interp1(wrapToPi((*pHeadings) + yaw), WE_Imag_w, wrapToPi(pWave->headings_piece));
 
 	// Convert interpolated transfer functions to magnitude and phase
-	arma::cube H_Mag = arma::sqrt(arma::pow(H_Real, 2) + arma::pow(H_Imag, 2));
-	arma::cube H_Pha = arma::atan2(H_Imag, H_Real);
+	arma::cube H_Mag = arma::sqrt(arma::pow(WE_Real_wt, 2) + arma::pow(WE_Imag_wt, 2));
+	arma::cube H_Pha = arma::atan2(WE_Imag_wt, WE_Real_wt);
 
 	// Permute the transfer functions to the correct order (frequencies, headings, dofs)
 	H_Mag = permute(H_Mag, 213);
@@ -1206,40 +1210,41 @@ arma::mat HydroDatabase::ComputeSecondWaveExcForce(double t)
 	}
 
 	// Declare local variables
-	arma::cube temp1;
-	arma::mat temp2, temp3;
+	arma::cube temp_cube;
+	arma::mat temp_mat_1, temp_mat_2;
 	double F_piece, F_gap;
 
 	// Interpolate transfer functions to the body heading
-	arma::cube ***HDif = new arma::cube **[2];
-	arma::cube ***HSum = new arma::cube **[2];
+	arma::mat ***HDif = new arma::mat **[2];
+	// arma::mat ***HSum = new arma::mat **[2];
 
 	// TODO: Remove this when the precomputed second order excitation forces are implemented
 	if (pBodies[idBody]->secondOrderExcitationFlag == 1)
 	{
-		HDif = QtfDiff_w;
-		HSum = QtfSum_w;
+		HDif = QtfDiff_wt;
+		// HSum = QtfSum_wt;
 	}
 	else
 	{
-		for (int ii = 0; ii < 2; ii++)
-		{
-			HDif[ii] = new arma::cube *[activeDofs];
-			HSum[ii] = new arma::cube *[activeDofs];
-			for (int jj = 0; jj < activeDofs; jj++)
-			{
-				HDif[ii][jj] = new arma::cube;
-				HSum[ii][jj] = new arma::cube;
+		HDif = QtfDiff_wt;
+		// HSum = QtfSum_wt;
 
-				temp1 = *QtfDiff_w[ii][jj];
-				temp1 = interp1((*pHeadings) + yaw, permute(temp1, 312), pWave->headings_1D);
-				*HDif[ii][jj] = permute(temp1, 231);
-
-				temp1 = *QtfSum_w[ii][jj];
-				temp1 = interp1((*pHeadings) + yaw, permute(temp1, 312), pWave->headings_1D);
-				*HSum[ii][jj] = permute(temp1, 231);
-			}
-		}
+		// TODO: Implement different levels of instant position (none, xy, xy+yaw)
+		// TODO: Review this interpolation
+		// for (int ii = 0; ii < 2; ii++)
+		// {
+		// 	HDif[ii] = new arma::mat *[activeDofs];
+		// 	HSum[ii] = new arma::mat *[activeDofs];
+		// 	for (int jj = 0; jj < activeDofs; jj++)
+		// 	{
+		// 		HDif[ii][jj] = new arma::mat;
+		// 		HSum[ii][jj] = new arma::mat;
+		// 		temp_cube = *QtfDiff_w[ii][jj];
+		// 		*HDif[ii][jj] = interp1((*pHeadings) + yaw, permute(temp_cube, 312), pWave->heading);
+		// 		temp_cube = *QtfSum_w[ii][jj];
+		// 		*HSum[ii][jj] = interp1((*pHeadings) + yaw, permute(temp_cube, 312), pWave->heading);
+		// 	}
+		// }
 	}
 
 	// Extract the index of the required wave piece
@@ -1265,50 +1270,46 @@ arma::mat HydroDatabase::ComputeSecondWaveExcForce(double t)
 		// Initialize the excitation force for the current DOF
 		F_piece = 0.0;
 
+		// Argument for dif term
+		temp_mat_1 = wD * t - phD(ind_piece) - kxD * x - kyD * y;
 		// Accumulate the real part of the difference QTF for the current piece and DOF
-		temp2 = (*HDif[0][ii]).slice(0);
-		temp3 = temp2 % ampP(ind_piece) % arma::cos(wD * t + phD(ind_piece) + kxD * x + kyD * y);
-		F_piece = F_piece + 0.5 * arma::accu(temp3);
-
+		temp_mat_2 = (*HDif[0][ii]) % ampP(ind_piece) % arma::cos(temp_mat_1);
+		F_piece = F_piece + 0.5 * arma::accu(temp_mat_2);
 		// Accumulate the imaginary part of the difference QTF for the current piece and DOF
-		temp2 = (*HDif[1][ii]).slice(0);
-		temp3 = temp2 % ampP(ind_piece) % arma::sin(wD * t + phD(ind_piece) + kxD * x + kyD * y);
-		F_piece = F_piece + 0.5 * arma::accu(temp3);
+		temp_mat_2 = (*HDif[1][ii]) % ampP(ind_piece) % arma::sin(temp_mat_1);
+		F_piece = F_piece + 0.5 * arma::accu(temp_mat_2);
 
-		// Accumulate the real part of the sum QTF for the current piece and DOF
-		temp2 = (*HSum[0][ii]).slice(0);
-		temp3 = temp2 % ampP(ind_piece) % arma::cos(wS * t + phS(ind_piece) + kxS * x + kyS * y);
-		F_piece = F_piece + 0.5 * arma::accu(temp3);
-
-		// Accumulate the imaginary part of the sum QTF for the current piece and DOF
-		temp2 = (*HSum[1][ii]).slice(0);
-		temp3 = temp2 % ampP(ind_piece) % arma::sin(wS * t + phS(ind_piece) + kxS * x + kyS * y);
-		F_piece = F_piece + 0.5 * arma::accu(temp3);
+		// // Argument for sum term
+		// temp_mat_1 = phS(ind_piece) + kxS * x + kyS * y - wS * t;
+		// // Accumulate the real part of the sum QTF for the current piece and DOF
+		// temp_mat_2 = (*HSum[0][ii]) % ampP(ind_piece) % arma::cos(temp_mat_1);
+		// F_piece = F_piece + arma::accu(temp_mat_2);
+		// // Accumulate the imaginary part of the sum QTF for the current piece and DOF
+		// temp_mat_2 = (*HSum[1][ii]) % ampP(ind_piece) % arma::sin(temp_mat_1);
+		// F_piece = F_piece - arma::accu(temp_mat_2);
 
 		if (flag_gap)
 		{
 			// Compute excitation force for the current wave piece
 			F_gap = 0.0;
 
+			// Argument for dif term
+			temp_mat_1 = wD * t - phD(ind_piece - 1) - kxD * x - kyD * y;
 			// Accumulate the real part of the difference QTF for the current piece and DOF
-			temp2 = (*HDif[0][ii]).slice(0);
-			temp3 = temp2 % ampP(ind_piece - 1) % arma::cos(wD * t + phD(ind_piece - 1) + kxD * x + kyD * y);
-			F_gap = F_gap + 0.5 * arma::accu(temp3);
-
+			temp_mat_2 = (*HDif[0][ii]) % ampP(ind_piece - 1) % arma::cos(temp_mat_1);
+			F_gap = F_gap + 0.5 * arma::accu(temp_mat_2);
 			// Accumulate the imaginary part of the difference QTF for the current piece and DOF
-			temp2 = (*HDif[1][ii]).slice(0);
-			temp3 = temp2 % ampP(ind_piece - 1) % arma::sin(wD * t + phD(ind_piece - 1) + kxD * x + kyD * y);
-			F_gap = F_gap + 0.5 * arma::accu(temp3);
+			temp_mat_2 = (*HDif[1][ii]) % ampP(ind_piece - 1) % arma::sin(temp_mat_1);
+			F_gap = F_gap + 0.5 * arma::accu(temp_mat_2);
 
-			// Accumulate the real part of the sum QTF for the current piece and DOF
-			temp2 = (*HSum[0][ii]).slice(0);
-			temp3 = temp2 % ampP(ind_piece - 1) % arma::cos(wS * t + phS(ind_piece - 1) + kxS * x + kyS * y);
-			F_gap = F_gap + 0.5 * arma::accu(temp3);
-
-			// Accumulate the imaginary part of the sum QTF for the current piece and DOF
-			temp2 = (*HSum[1][ii]).slice(0);
-			temp3 = temp2 % ampP(ind_piece - 1) % arma::sin(wS * t + phS(ind_piece - 1) + kxS * x + kyS * y);
-			F_gap = F_gap + 0.5 * arma::accu(temp3);
+			// // Argument for sum term
+			// temp_mat_1 = phS(ind_piece - 1) + kxS * x + kyS * y - wS * t;
+			// // Accumulate the real part of the sum QTF for the current piece and DOF
+			// temp_mat_2 = (*HSum[0][ii]) % ampP(ind_piece - 1) % arma::cos(temp_mat_1);
+			// F_gap = F_gap + arma::accu(temp_mat_2);
+			// // Accumulate the imaginary part of the sum QTF for the current piece and DOF
+			// temp_mat_2 = (*HSum[1][ii]) % ampP(ind_piece - 1) % arma::sin(temp_mat_1);
+			// F_gap = F_gap - arma::accu(temp_mat_2);
 
 			// Store the excitation force mixing linearly the current and previous piece
 			// TODO: Mix pieces with a qubic function instead of linear
@@ -1323,10 +1324,11 @@ arma::mat HydroDatabase::ComputeSecondWaveExcForce(double t)
 	}
 
 	// Rotate the excitation force to the fixed frame
-	double Fx = arma::as_scalar(Fe(0, 0));
-	double Fy = arma::as_scalar(Fe(1, 0));
-	Fe(0, 0) = Fx * cos(yaw) - Fy * sin(yaw);
-	Fe(1, 0) = Fx * sin(yaw) + Fy * cos(yaw);
+	// TODO: This should only be done if yaw instant position is used
+	// double Fx = arma::as_scalar(Fe(0, 0));
+	// double Fy = arma::as_scalar(Fe(1, 0));
+	// Fe(0, 0) = Fx * cos(yaw) - Fy * sin(yaw);
+	// Fe(1, 0) = Fx * sin(yaw) + Fy * cos(yaw);
 
 	// Store the excitation force in the body variable for plotting
 	pBodies[idBody]->excitationForces_2 = Fe;
@@ -1374,9 +1376,13 @@ void HydroDatabase::SetUp(void)
 	WE_Real_w = permute(WE_Real_w, 213);
 	WE_Imag_w = permute(WE_Imag_w, 213);
 
+	// Interpolate the first order transfer functions to the wave headings
+	WE_Real_wt = interp1(wrapToPi((*pHeadings)), WE_Real_w, wrapToPi(pWave->headings_piece));
+	WE_Imag_wt = interp1(wrapToPi((*pHeadings)), WE_Imag_w, wrapToPi(pWave->headings_piece));
+
 	// Preprocess for QTFs
 	// TODO: QTFs should only be interpolated if they will be used
-	if (pBodies[idBody]->secondOrderExcitationFlag > 0)
+	if (pBodies[idBody]->secondOrderExcitationFlag > 0 && pBodies[idBody]->secondOrderExcitationFlag < 4)
 	{
 		std::cout << "HydroDatabase::SetUp - Interpolate the second order transfer functions to the wave frequencies" << std::endl;
 		// Interpolate the second order transfer functions to the wave frequencies
@@ -1399,6 +1405,27 @@ void HydroDatabase::SetUp(void)
 				*QtfSum_w[ii][jj] = interp2(*pFrequencies, *pFrequencies, temp, freqs_w, freqs_w);
 			}
 		}
+
+		// Interpolate the second order transfer functions to the wave headings
+		QtfDiff_wt = new arma::mat **[2];
+		QtfSum_wt = new arma::mat **[2];
+		for (int ii = 0; ii < 2; ii++)
+		{
+			QtfDiff_wt[ii] = new arma::mat *[activeDofs];
+			QtfSum_wt[ii] = new arma::mat *[activeDofs];
+			for (int jj = 0; jj < activeDofs; jj++)
+			{
+				QtfDiff_wt[ii][jj] = new arma::mat;
+				QtfSum_wt[ii][jj] = new arma::mat;
+
+				temp = *QtfDiff_w[ii][jj];
+				*QtfDiff_wt[ii][jj] = interp1(*pHeadings, permute(temp, 312), pWave->heading);
+
+				temp = *QtfSum_w[ii][jj];
+				*QtfSum_wt[ii][jj] = interp1(*pHeadings, permute(temp, 312), pWave->heading);
+			}
+		}
+
 
 		std::cout << "HydroDatabase::SetUp - Define the matrices required for time domain QTF forces computation" << std::endl;
 		// Preprocess the matrices required for time domain QTF forces computation
@@ -1448,7 +1475,10 @@ void HydroDatabase::SetUp(void)
 				}
 			}
 		}
+	}
 
+	if (pBodies[idBody]->secondOrderExcitationFlag > 2)
+	{
 		std::cout << "HydroDatabase::SetUp - Compute mean drift force" << std::endl;
 		// Compute mean drift force
 		// TODO: Review this!
@@ -1615,8 +1645,7 @@ arma::mat HydroDatabase::CalculateHydrostaticPressure(double t)
 		// Non-linear hydrostatic forces with wave
 		arma::mat x = pBodies[idBody]->pNLHSMesh->nodes.col(0);
 		arma::mat y = pBodies[idBody]->pNLHSMesh->nodes.col(1);
-		arma::vec eta = pBodies[idBody]->pNLHSMesh->eta;
-		pressure = pSim->pWave->GetPressure(t, x, y, z, eta);
+		pressure = pSim->pWave->GetPressure(t, x, y, z);
 	}
 
 	return pressure;

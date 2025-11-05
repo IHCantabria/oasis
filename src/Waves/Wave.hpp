@@ -53,6 +53,14 @@ public:
     arma::vec kx_1D;
     arma::vec ky_1D;
 
+    // Variables for vectorised matrices
+    arma::vec A;
+	arma::vec P;
+	arma::vec KX;
+	arma::vec KY;
+	arma::vec K;
+	arma::vec W;
+
     // Variables for irregular waves
     int specType_flag;
     int readPhases_flag;
@@ -116,7 +124,8 @@ public:
     void GetFreeSurface(void);
     arma::vec GetFreeSurface(arma::mat amplitudes, arma::mat phases, int num_points);
     arma::vec GetFreeSurface(double time, arma::vec x, arma::vec y);
-    arma::vec GetPressure(double time, arma::vec x, arma::vec y, arma::vec z, arma::vec eta);
+    arma::vec GetPressure(double time, arma::vec x, arma::vec y, arma::vec z);
+    void VectoriseComponentsMatrices(void);
     void SetSinglePiece(void);
     void SetZeroHeight(void);
     void WriteOut(std::string path);

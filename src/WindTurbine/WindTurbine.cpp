@@ -160,6 +160,10 @@ void WindTurbine::Initialize(void)
     yaw = FSTW_InitInput.turbIniYaw;
     yaw_ini = yaw;
     YCMode = FSTW_InitInput.YCMode;
+    if (FSTW_InitInput.isFixed_GenDOF > 0)
+    {
+        isRotorBlocked = true;
+    }
     std::cout << "        --> ... done!" << std::endl;
 
     if (YCMode > 0)
@@ -270,7 +274,14 @@ void WindTurbine::ComputeRotorAcc(void)
 {
     // std::cout << "    WindTurbine::ComputeRotorAcc" << std::endl;
 
-    rotAcc = (airTrq - genTrq) / rotIner;
+    if (isRotorBlocked)
+    {
+        rotAcc = 0.0;
+    }
+    else
+    {
+        rotAcc = (airTrq - genTrq) / rotIner;
+    }
     // std::cout << "WindTurbine::ComputeRotorAcc - airTrq = " << airTrq << std::endl;
     // std::cout << "WindTurbine::ComputeRotorAcc - genTrq = " << genTrq << std::endl;
 }

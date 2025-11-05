@@ -158,6 +158,37 @@ arma::mat mod(arma::mat a, double x)
 	return a - arma::floor(a / x) * x;
 }
 
+arma::vec interp1(arma::vec x, arma::mat y, double xi)
+{
+
+	// TODO: Review this function
+
+	// Check that the number of columns in y is the same as in x
+	if (y.n_rows != x.n_rows)
+	{
+		std::stringstream ss;
+		ss << "Error in interp1: number of rows in y must be equal to x length. \n";
+		throw ValueError(ss.str());
+	}
+
+	// Convert xi to vec
+	arma::vec xi_vec = arma::ones(1)*xi;
+
+	// Initiallize the output vector
+	arma::vec yi = arma::zeros(y.n_cols);
+
+	arma::vec temp_input, temp_output;
+
+	for (int ii = 0; ii < y.n_cols; ii++)
+	{
+		temp_input = y(arma::span::all, arma::span(ii));
+		arma::interp1(x, temp_input, xi_vec, temp_output, "linear", 0);
+		yi(ii) = temp_output(0);
+	}
+
+	return yi;
+}
+
 arma::mat interp1(arma::vec x, arma::mat y, arma::vec xi)
 {
 
@@ -179,6 +210,38 @@ arma::mat interp1(arma::vec x, arma::mat y, arma::vec xi)
 		temp_input = y(arma::span::all, arma::span(ii));
 		arma::interp1(x, temp_input, xi, temp_output, "linear", 0);
 		yi(arma::span::all, arma::span(ii)) = temp_output;
+	}
+
+	return yi;
+}
+
+arma::mat interp1(arma::vec x, arma::cube y, double xi)
+{
+
+	// Check that the number of rows in y is the same as in x
+	if (y.n_rows != x.n_rows)
+	{
+		std::stringstream ss;
+		ss << "Error in interp1: number of rows in y must be equal to x length. \n";
+		throw ValueError(ss.str());
+	}
+
+	// Convert xi to vec
+	arma::vec xi_vec = arma::ones(1)*xi;
+
+	// Initiallize the output vector
+	arma::mat yi = arma::zeros(y.n_cols, y.n_slices);
+
+	arma::vec temp_input, temp_output;
+
+	for (int ii = 0; ii < y.n_cols; ii++)
+	{
+		for (int jj = 0; jj < y.n_slices; jj++)
+		{
+			temp_input = y(arma::span::all, arma::span(ii), arma::span(jj));
+			arma::interp1(x, temp_input, xi_vec, temp_output, "linear", 0);
+			yi(arma::span(ii), arma::span(jj)) = temp_output(0);
+		}
 	}
 
 	return yi;
