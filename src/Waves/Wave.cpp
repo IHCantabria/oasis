@@ -1050,12 +1050,13 @@ void IrregularWave::CutPiecesSpectrumZeros(void)
 	// Find the indices of the frequencies with amplitudes greater than factor*amplitudes_max_mean
 	arma::vec amplitudes_max_freqs = arma::max(amplitudes_max, 1);
 	arma::uvec ind_rows = arma::find(amplitudes_max_freqs >= factor * amplitudes_max_mean);
+	arma::uvec ind_cols;
 
 	// If applicable, find the indices of the headings with amplitudes greater than factor*amplitudes_max_mean
 	if (num_headings_piece > 1)
 	{
 		arma::vec amplitudes_max_headings = arma::max(amplitudes_max, 0);
-		arma::uvec ind_cols = arma::find(amplitudes_max_headings >= factor * amplitudes_max_mean);
+		ind_cols = arma::find(amplitudes_max_headings >= factor * amplitudes_max_mean);
 		// Make sure to include the 0 and 360 degrees headings
 		ind_cols = arma::join_vert(ind_cols, arma::zeros<arma::uvec>(1));
 		ind_cols = arma::join_vert(ind_cols, arma::ones<arma::uvec>(1) * (num_headings_piece - 1));
@@ -1075,7 +1076,7 @@ void IrregularWave::CutPiecesSpectrumZeros(void)
 	}
 	else
 	{
-		arma::uvec ind_cols = arma::ones<arma::uvec>(1);
+		ind_cols = arma::ones<arma::uvec>(1);
 	}
 
 	// Crop the spectrum to avoid zeros

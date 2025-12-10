@@ -2042,14 +2042,14 @@ void Simulation::Run()
             flag_debug_lines = false;
             for (int ii = 0; ii < numLines; ii = ii + 1)
             {
-                fprintf(pLines[ii]->pfile_line_debug, "s    x    y    z \n");
+                fprintf(pLines[ii]->pfile_debug, "s    x    y    z \n");
                 for (int jj = 0; jj < pLines[ii]->N; jj = jj + 1)
-                    fprintf(pLines[ii]->pfile_line_debug, "%f    %f    %f    %f \n",
+                    fprintf(pLines[ii]->pfile_debug, "%f    %f    %f    %f \n",
                             pLines[ii]->s(jj, 0),
                             pLines[ii]->pos(jj, 0),
                             pLines[ii]->pos(jj, 1),
                             pLines[ii]->pos(jj, 2));
-                fclose(pLines[ii]->pfile_line_debug);
+                fclose(pLines[ii]->pfile_debug);
             }
         }
 

@@ -26,10 +26,10 @@ public:
 	arma::mat strain_data, stress_data;
 	arma::mat ten_1 = arma::zeros(3, 1), ten_N = arma::zeros(3, 1);
 	arma::mat pos_1 = arma::zeros(3, 1), pos_N = arma::zeros(3, 1);
-	arma::mat a_1 = arma::zeros(4, 1); // Variables para almacenar los coeficientes polinomicos del coeficiente de friccion
-	arma::mat a_2 = arma::zeros(4, 1); // Variables para almacenar los coeficientes polinomicos del coeficiente de friccion
-	arma::mat elastic_coef = arma::zeros(3, 1); // Elastic coefficients third degree polynomial, no constant term.
-	arma::mat visc_loading_coef = arma::zeros(3, 1); // Viscoelastic loading coefficients third degree polynomial, no constant term.
+	arma::mat a_1 = arma::zeros(4, 1);				   // Variables para almacenar los coeficientes polinomicos del coeficiente de friccion
+	arma::mat a_2 = arma::zeros(4, 1);				   // Variables para almacenar los coeficientes polinomicos del coeficiente de friccion
+	arma::mat elastic_coef = arma::zeros(3, 1);		   // Elastic coefficients third degree polynomial, no constant term.
+	arma::mat visc_loading_coef = arma::zeros(3, 1);   // Viscoelastic loading coefficients third degree polynomial, no constant term.
 	arma::mat visc_unloading_coef = arma::zeros(3, 1); // Viscoelastic unloading coefficients third degree polynomial, no constant term.
 	arma::mat pos, vel, acc, F, s, xc, zc, dxcds, dzcds, Te, roots, weights, isSlip, posFriccion;
 	arma::mat C, D, MassMatrix, MM, StiffMatrix, MSMatrix, MassMatrix_diag;
@@ -44,7 +44,6 @@ public:
 	int indexSeaFloor;
 	SeaFloor *pLineSeaFloor;
 
-	
 	int num_time_steps = 0; // number of vector points to integrate. To avoid adding more terms.
 	double last_time = -10.0;
 	// TODO: investigate the effect of dt and tol_zero
@@ -95,7 +94,6 @@ public:
 	void SEM_computeF(double time);
 	void initiallize_strain_memory(void);
 	void smooth_tension(void);
-
 };
 
 #endif

@@ -1120,14 +1120,14 @@ arma::mat HydroDatabase::ComputeFirstWaveExcForce(double t)
 		H_Pha_loc = H_Pha(arma::span::all, arma::span::all, arma::span(ii));
 
 		// Multiply the transfer functions with the wave amplitudes for the current wave piece
-		Cm = arma::sum(H_Mag_loc % amplitudes_w(ind_piece(0)) %
-						   arma::cos(phases_w(ind_piece(0)) +
+		Cm = arma::sum(H_Mag_loc % amplitudes_w(ind_piece) %
+						   arma::cos(phases_w(ind_piece) +
 									 H_Pha_loc +
 									 x * kx_w +
 									 y * ky_w),
 					   1);
-		Sm = arma::sum(H_Mag_loc % amplitudes_w(ind_piece(0)) %
-						   arma::sin(phases_w(ind_piece(0)) +
+		Sm = arma::sum(H_Mag_loc % amplitudes_w(ind_piece) %
+						   arma::sin(phases_w(ind_piece) +
 									 H_Pha_loc +
 									 x * kx_w +
 									 y * ky_w),
@@ -1143,14 +1143,14 @@ arma::mat HydroDatabase::ComputeFirstWaveExcForce(double t)
 		if (flag_gap)
 		{
 			// Multiply the transfer functions with the wave amplitudes for the current wave piece
-			Cm = arma::sum(H_Mag_loc % amplitudes_w(ind_piece(0) - 1) %
-							   arma::cos(phases_w(ind_piece(0) - 1) +
+			Cm = arma::sum(H_Mag_loc % amplitudes_w(ind_piece - 1) %
+							   arma::cos(phases_w(ind_piece - 1) +
 										 H_Pha_loc +
 										 x * kx_w +
 										 y * ky_w),
 						   1);
-			Sm = arma::sum(H_Mag_loc % amplitudes_w(ind_piece(0) - 1) %
-							   arma::sin(phases_w(ind_piece(0) - 1) +
+			Sm = arma::sum(H_Mag_loc % amplitudes_w(ind_piece - 1) %
+							   arma::sin(phases_w(ind_piece - 1) +
 										 H_Pha_loc +
 										 x * kx_w +
 										 y * ky_w),
