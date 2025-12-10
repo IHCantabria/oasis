@@ -25,10 +25,6 @@ private:
     bool status;
 
 public:
-    // Declare file system attributes
-    std::string inputFolderPath;
-    std::string projectFolderPath;
-    std::string outputFolderPath;
 
     // Declare IO attributes
     bool useWinches = false;
@@ -52,6 +48,7 @@ public:
     double timeIntAbsTol;
     int timeIntMethod;
     int timeIntOrder;
+    int timeIntJacNumStepsMax;
     bool timeIntAdaptivity;
     double timeIntRelTol;
     double waterDensity;

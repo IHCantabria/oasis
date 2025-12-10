@@ -10,9 +10,10 @@
 #include <armadillo>
 #include "ODE_solvers.hpp"
 #include "../Simulations/ISimulation.hpp"
+#include "../os_tools.hpp"
 
 // Methods for the BDF2 class
-BDF2::BDF2(double t_u, double tmax_u, double dt_out_u, arma::mat y_u, ISimulation *pIncSim)
+BDF2::BDF2(double t_u, double tmax_u, double dt_max_u, double dt_out_u, arma::mat y_u, ISimulation *pIncSim)
 {
 	// ***BDF2 constructor***
 	// Set the simulation pointer
@@ -22,12 +23,12 @@ BDF2::BDF2(double t_u, double tmax_u, double dt_out_u, arma::mat y_u, ISimulatio
 	tmax = tmax_u;
 	dt_out = dt_out_u;
 	y = y_u;
-	// Initiallize the variables with the last three time steps
+	// Initialize the variables with the last three time steps
 	h_0 = dt_ini;
 	h_1 = dt_ini;
 	h_2 = dt_ini;
 	// Compute the maximum time step
-	dt_max = std::min(dt_out, dt_max);
+	dt_max = std::min(dt_out, dt_max_u);
 	// Compute the system size
 	nSystem = y_u.n_rows;
 	// Initialize the variables for the last three states
@@ -41,11 +42,25 @@ BDF2::BDF2(double t_u, double tmax_u, double dt_out_u, arma::mat y_u, ISimulatio
 	EWT = arma::zeros(size(y));
 	I = arma::eye(nSystem, nSystem);
 	J = arma::zeros(nSystem, nSystem);
+
+	// Set the debug flag
+	debug_flag = true;
+	if (debug_flag)
+	{
+		std::cout << "DEBUG: BDF2 debug file opened!" << std::endl;
+		// Open the debug file
+		char buffer[50];
+		int nn = sprintf(buffer, "time_adaptivity_debug.txt");
+		std::string file_path = JoinPath(pSim->outputFolderPath, buffer);
+		pfile = fopen(file_path.c_str(), "w");
+		// Print the header
+		fprintf(pfile, "t    dt    EWT    LTE    rho    rejected\n");
+	}
 }
 
 arma::mat BDF2::fun(double tt, arma::mat yy)
 {
-	// ***Interfaze method to the simulation method responsible for the state derivarive evaluation***
+	// ***Interface method to the simulation method responsible for the state derivarive evaluation***
 	return pSim->CalculateSystemDynamics(tt, yy);
 }
 
@@ -62,7 +77,7 @@ void BDF2::jac(double tt, arma::mat yy)
 void BDF2::init()
 {
 	// ***Initialize the BDF2 solver with one iteration of a BDF1 scheme***
-	// Initiallize the function to minimize to a value larger than the tolerance, and the iteration counter
+	// Initialize the function to minimize to a value larger than the tolerance, and the iteration counter
 	F(0) = 2 * atol;
 	int nIter = 0;
 	// Nonlinear system iterative solver, checking for convergence
@@ -101,6 +116,16 @@ void BDF2::init()
 	jac(t, y);
 }
 
+void BDF2::finalize(void)
+{
+	if (debug_flag)
+	{
+		std::cout << "DEBUG: BDF2 debug file closed!" << std::endl;
+		fclose(pfile);
+	}
+	nNewtonIterAvg = nNewtonIter / nNewton;
+}
+
 arma::mat BDF2::BDF2_fun(double t, arma::mat y)
 {
 	//***Evaluate the nonlinear BDF2 scheme function***
@@ -112,7 +137,7 @@ void BDF2::step(void)
 {
 	// ***Perform a time step with the BDF2 scheme***
 	int NN;				  // Declare local maximum number of iterations
-	q = 0;				  // Initiallize jacobian recycling counter
+	q = 0;				  // Initialize jacobian recycling counter
 	bool flag_nan = true; // Declare NaN flag to true so the solver can try again with a smaller step size
 // Loop to try again with a smaller step size if NaN is detected
 LOOP:
@@ -130,6 +155,8 @@ LOOP:
 	// Estimate the newstate with an explicit Euler step and compute the function to minimize
 	y = y_0 + h_0 * (y_0 - y_1) / h_1;
 	F = BDF2_fun(t + h_0, y);
+	// Update the number of times the newton method is used
+	nNewton = nNewton + 1;
 	// Loop to solve the nonlinear system
 	do
 	{
@@ -158,6 +185,8 @@ LOOP:
 		// Update the iteration counter
 		k = k + 1;
 	} while (((arma::norm(dy) > atol + rtol * arma::norm(y)) | (arma::norm(F) > atol)) & (k < NN));
+	// Update the number of newton iterations
+	nNewtonIter = nNewtonIter + k;
 	// Check if the maximum number of iterations was reached
 	if (k >= NN)
 	{
@@ -179,9 +208,11 @@ LOOP:
 			throw std::exception();
 		}
 	}
-
+	// Set the tolerance values for the error weighted tolerance
+	double atol_EWT = 1e-6;
+	double rtol_EWT = 1e-3;
 	// Compute the error weighted tolerance
-	EWT = atol * arma::ones(size(y)) + rtol * arma::abs(y);
+	EWT = atol_EWT * arma::ones(size(y)) + rtol_EWT * arma::abs(y);
 	// Check for NaN values in the state vector
 	if (EWT.has_nan())
 	{
@@ -215,13 +246,26 @@ LOOP:
 	}
 	// Compute the adaptive time step multiplier
 	double sigma = pow(0.5 * arma::norm(EWT) / arma::norm(LTE), 0.25);
+	if (debug_flag)
+	{
+		// Print the debug information to the file
+		fprintf(pfile, "%e    ", t);
+		fprintf(pfile, "%e    ", h_0);
+		fprintf(pfile, "%e    ", arma::norm(EWT));
+		fprintf(pfile, "%e    ", arma::norm(LTE));
+		fprintf(pfile, "%e    ", sigma);
+	}
 	// If the error is too large, reduce the time step and try again
 	if ((sigma < 0.9) & (h_0 > dt_min))
 	{
+		if (debug_flag)
+			fprintf(pfile, "%d\n", 1);
 		h_0 = h_0 * sigma;
 		std::cout << "	WARNING: In BDF2, Error too large! Trying again with smaller step size... " << std::endl;
 		goto LOOP;
 	}
+	if (debug_flag)
+		fprintf(pfile, "%d\n", 0);
 	// Update the time, the last three states and time steps, and the next time step size
 	t = t + h_0;
 	// Update the last three states
@@ -235,12 +279,13 @@ LOOP:
 	h_0 = sigma * h_0;
 	h_0 = std::max(h_0, dt_min);
 	h_0 = std::min(h_0, dt_max);
-	h_0 = std::min(h_0, dt_out - std::fmod(t, dt_out) + dt_min);
+	if (!debug_flag)
+		h_0 = std::min(h_0, dt_out - std::fmod(t, dt_out) + dt_min);
 	h_0 = std::min(h_0, tmax - t + h_0);
 }
 
 // Methods for the BDFN class
-BDFN::BDFN(int N_u, bool a_u, double t_u, double tmax_u, double dt_max_u, double dt_out_u, arma::mat y_u, ISimulation *pIncSim)
+BDFN::BDFN(int N_u, int a_u, double t_u, double tmax_u, double dt_max_u, double dt_out_u, arma::mat y_u, ISimulation *pIncSim)
 {
 	// ***BDFN constructor***
 	// Check for the order of the BDF scheme to be larger than 2
@@ -279,7 +324,14 @@ BDFN::BDFN(int N_u, bool a_u, double t_u, double tmax_u, double dt_max_u, double
 	// Set the order of the BDF scheme
 	N = N_u;
 	// Set the adaptive time step flag
-	adaptivity = a_u;
+	if (a_u == 0)
+	{
+		adaptivity = false;
+	}
+	else
+	{
+		adaptivity = true;
+	}
 	// Set the simulation pointer
 	pSim = pIncSim;
 	// Set the initial time, maximum time, output time step and state vector
@@ -475,6 +527,16 @@ void BDFN::init()
 	jac(t, y);
 }
 
+void BDFN::finalize(void)
+{
+	// if (debug_flag)
+	// {
+	// 	std::cout << "DEBUG: BDFN debug file closed!" << std::endl;
+	// 	fclose(pfile);
+	// }
+	nNewtonIterAvg = nNewtonIter / nNewton;
+}
+
 arma::mat BDFN::BDFN_fun(double t, arma::mat y)
 {
 	//***Evaluate the nonlinear BDFN scheme function***
@@ -552,6 +614,8 @@ LOOP:
 	y = y_ini;
 	F = F_ini;
 	dy = y;
+	// Update the number of times the newton method is used
+	nNewton = nNewton + 1;
 	// Loop to solve the nonlinear system
 	// while ((arma::norm(F, "inf") > atol) & (k <= NN))
 	// while (((arma::norm(dy, "inf") > atol + rtol * arma::norm(y, "inf")) | (arma::norm(F, "inf") > atol)) & (k <= NN))
@@ -602,7 +666,8 @@ LOOP:
 		// Update the iteration counter
 		k = k + 1;
 	}
-
+	// Update the number of newton iterations
+	nNewtonIter = nNewtonIter + k;
 	// Check if the maximum number of iterations was reached
 	if (k >= NN)
 	{
@@ -755,7 +820,7 @@ LOOP:
 }
 
 // Methods for the ESDIRK class
-ESDIRK::ESDIRK(bool a_u, double t_u, double tmax_u, double dt_max_u, double dt_out_u, arma::mat y_u, ISimulation *pIncSim)
+ESDIRK::ESDIRK(bool a_u, double t_u, double tmax_u, double dt_max_u, double dt_out_u, int nStepsMax_u, arma::mat y_u, ISimulation *pIncSim)
 {
 	// ***ESDIRK constructor***
 	// Set the simulation pointer
@@ -765,8 +830,45 @@ ESDIRK::ESDIRK(bool a_u, double t_u, double tmax_u, double dt_max_u, double dt_o
 	tmax = tmax_u;
 	dt_out = dt_out_u;
 	y = y_u;
-	adaptivity = a_u;
 	dt_max = dt_max_u;
+	nStepsMax = nStepsMax_u;
+	adaptivity = a_u;
+	// Define the ESDIRK coefficients
+	s = 6;
+	beta = {
+		0.0,
+		1.0 / 2.0,
+		83.0 / 250.0,
+		31.0 / 50.0,
+		17.0 / 20.0,
+		1.0};
+	a = arma::zeros<arma::mat>(6, 6);
+	a(1, 0) = 1.0 / 4.0;
+	a(1, 1) = 1.0 / 4.0;
+	a(2, 0) = 8611.0 / 62500.0;
+	a(2, 1) = -1743.0 / 31250.0;
+	a(2, 2) = 1.0 / 4.0;
+	a(3, 0) = 5012029.0 / 34652500.0;
+	a(3, 1) = -654441.0 / 2922500.0;
+	a(3, 2) = 174375.0 / 388108.0;
+	a(3, 3) = 1.0 / 4.0;
+	a(4, 0) = 15267082809.0 / 155376265600.0;
+	a(4, 1) = -71443401.0 / 120774400.0;
+	a(4, 2) = 730878875.0 / 902184768.0;
+	a(4, 3) = 2285395.0 / 8070912.0;
+	a(4, 4) = 1.0 / 4.0;
+	a(5, 0) = 82889.0 / 524892.0;
+	a(5, 2) = 15625.0 / 83664.0;
+	a(5, 3) = 69875.0 / 102672.0;
+	a(5, 4) = -2260.0 / 8211.0;
+	a(5, 5) = 1.0 / 4.0;
+	b = {
+		4586570599.0 / 29645900160.0,
+		0.0,
+		178811875.0 / 945068544.0,
+		814220225.0 / 1159782912.0,
+		-3700637.0 / 11593932.0,
+		61727.0 / 225920.0};
 	// Compute the system size
 	nSystem = y_u.n_rows;
 	// Initialize identity matrix and jacobian matrix
@@ -786,21 +888,67 @@ ESDIRK::ESDIRK(bool a_u, double t_u, double tmax_u, double dt_max_u, double dt_o
 		dt = dt_max;
 	}
 	dt_old = dt;
+	dt_old2 = dt;
 	// Compute the jacobi matrix at the initial state
 	jac(t, y);
-	// Print the butcher coefficients
-	std::cout << "ESDIRK coefficients: " << std::endl;
-	std::cout << "a: " << std::endl
-			  << a << std::endl;
-	std::cout << "b: " << std::endl
-			  << b << std::endl;
-	std::cout << "beta: " << std::endl
-			  << beta << std::endl;
+
+	// Set the debug flag
+	debug_flag = true;
+	if (debug_flag)
+	{
+		std::cout << "DEBUG: ESDIRK debug file opened!" << std::endl;
+		// Open the debug file
+		char buffer[50];
+		int nn = sprintf(buffer, "time_adaptivity_debug.txt");
+		std::string file_path = JoinPath(pSim->outputFolderPath, buffer);
+		pfile = fopen(file_path.c_str(), "w");
+		// Print the header
+		fprintf(pfile, "t    dt    EWT    LTE    rho    rejected\n");
+	}
+
+	if (adaptivity)
+	{
+		char buffer1[50];
+		char bufferLine[1000];
+		int nn1 = sprintf(buffer1, "ESDIRK_adaptive_time_step_data.dat");
+		std::string file_path1 = JoinPath(pSim->inputFolderPath, buffer1);
+		FILE *pfile1 = fopen(file_path1.c_str(), "r");
+		if (pfile1 == NULL)
+		{
+			std::cout << "WARNING: ESDIRK time step adaptive data file not found!" << std::endl;
+			std::cout << "         Using default values instead" << std::endl;
+			adaptivity_type = 2;
+			adaptivity_smooth_flag = 2;
+			adaptivity_smooth_param = 2.0;
+			LTE_norm_type = 2;
+			rho_min = 2.0 / 3.0;
+		}
+		else
+		{
+			fscanf(pfile1, "%d %[^\n]\n", &adaptivity_type, bufferLine);
+			fscanf(pfile1, "%d %[^\n]\n", &adaptivity_smooth_flag, bufferLine);
+			fscanf(pfile1, "%lf %[^\n]\n", &adaptivity_smooth_param, bufferLine);
+			fscanf(pfile1, "%d %[^\n]\n", &LTE_norm_type, bufferLine);
+			fscanf(pfile1, "%lf %[^\n]\n", &rho_min, bufferLine);
+			// close the file
+			fclose(pfile1);
+		}
+	}
 }
 
 void ESDIRK::init(void)
 {
 	std::cout << "WARNING: Initialization of ESDIRK not needed!" << std::endl;
+}
+
+void ESDIRK::finalize(void)
+{
+	if (debug_flag)
+	{
+		std::cout << "DEBUG: ESDIRK debug file closed!" << std::endl;
+		fclose(pfile);
+	}
+	nNewtonIterAvg = nNewtonIter / nNewton;
 }
 
 arma::mat ESDIRK::fun(double tt, arma::mat yy)
@@ -817,6 +965,7 @@ void ESDIRK::jac(double tt, arma::mat yy)
 	{
 		Jfun.col(ii) = 1e12 * (fun(tt, yy + 1e-12 * I.col(ii)) - y_prime);
 	}
+	iJ = iJ + 1;
 }
 
 arma::mat ESDIRK::ESDIRK_fun(double t_i, arma::mat y_i, int ii)
@@ -835,19 +984,15 @@ void ESDIRK::step(void)
 {
 	// ***Perform a time step with the ESDIRK scheme***
 	// Check if the jacobi matrix needs to be updated
-	fprintf(stdout, "y = %.14f, y_prime = %.14f\n", y(0), y_prime(0));
 	bool jac_updated = false;
-	if ((nSteps > 10) || ((LTE / LTE_old) > 0.2))
+	bool dt_reduced = false;
+	if ((nSteps > nStepsMax) & (nStepsMax >= 0))
 	{
 		jac(t, y);
-		iJ = iJ + 1;
 		nSteps = 0;
 		jac_updated = true;
 	}
-	else
-	{
-		nSteps = nSteps + 1;
-	}
+	nSteps = nSteps + 1;
 	// Declare the stage state vector
 	arma::mat y_i;
 	// Declare the first stage state vector
@@ -877,6 +1022,8 @@ LOOP:
 		arma::mat FF = ESDIRK_fun(t_i, y_i, ii);
 		// Define the matrix for the implicit stage
 		arma::mat MM = I - dt * a(ii, ii) * Jfun;
+		// Update the number of times using the Newton method
+		nNewton = nNewton + 1;
 		// Iterative scheme to solve the stage
 		while (((arma::norm(dy, "inf") > atol) || (arma::norm(FF, "inf") > atol)) & (k <= nIterMax))
 		{
@@ -898,25 +1045,47 @@ LOOP:
 				rho = rho * lambda;
 				F_new = ESDIRK_fun(t_i, y_i + rho * dy, ii);
 			}
+			// Update the state change vector
+			dy = rho * dy;
 			// Update the stage state vector
-			y_i = y_i + rho * dy;
+			y_i = y_i + dy;
 			// Redefine the function to minimize
 			FF = F_new;
 			// Update the iteration counter
 			k = k + 1;
 		}
+		// Update the number of iterations
+		nNewtonIter = nNewtonIter + k;
 		// Check if the convergence failed
 		if ((k >= nIterMax) || (y_i.has_nan()))
 		{
 			if (jac_updated)
 			{
-				std::cout << "ERROR: Convergence failed in ESDIRK!" << std::endl;
-				throw std::exception();
+				if (adaptivity)
+				{
+					if (dt_reduced)
+					{
+						std::cout << "ERROR: Convergence failed in ESDIRK!" << std::endl;
+						throw std::exception();
+					}
+					else
+					{
+						dt = dt_ini;
+						dt_reduced = true;
+						std::cout << "WARNING: In ESDIRK, Maximum number of iterations reached! Trying again with minimum step size... " << std::endl;
+						goto LOOP;
+					}
+				}
+				else
+				{
+					std::cout << "ERROR: Convergence failed in ESDIRK!" << std::endl;
+					throw std::exception();
+				}
 			}
 			else
 			{
+				nConvergenceFailed = nConvergenceFailed + 1;
 				jac(t, y);
-				iJ = iJ + 1;
 				jac_updated = true;
 				nSteps = 0;
 				std::cout << "WARNING: In ESDIRK, Maximum number of iterations reached! Trying again with recomputed Jacobean matrix... " << std::endl;
@@ -929,43 +1098,226 @@ LOOP:
 		ys_prime.col(ii) = y_prime;
 		// Save the stage time vector
 		ts(ii) = t_i;
-		fprintf(stdout, "Stage %d: y_i = %.14f \n", ii + 1, y_i(0));
 	}
-	// Update the state vector
-	y = y_i;
+	if (debug_flag)
+	{
+		fprintf(pfile, "%e    ", t);
+		if (dt_truncated_flag)
+		{
+			fprintf(pfile, "%e    ", dt_truncated);
+		}
+		else
+		{
+			fprintf(pfile, "%e    ", dt);
+		}
+	}
+	// Check if the time step size was too large
 	if (adaptivity)
 	{
-		t = t + dt;
+		compute_dt();
+
+		if (debug_flag)
+		{
+			fprintf(pfile, "%e    ", EWT);
+			if (dt_truncated_flag)
+			{
+				fprintf(pfile, "%e    ", LTE_truncated);
+			}
+			else
+			{
+				fprintf(pfile, "%e    ", LTE);
+			}
+			fprintf(pfile, "%e    ", rho);
+		}
+		// Check if the error is too large to reject the time step
+		if ((rho < rho_min) & (dt > dt_min))
+		{
+			set_dt();
+			if (debug_flag)
+			{
+				fprintf(pfile, "%d\n", 1);
+			}
+			goto LOOP;
+		}
+		else
+		{
+			if (debug_flag)
+			{
+				fprintf(pfile, "%d\n", 0);
+			}
+		}
 	}
 	else
 	{
+		if (debug_flag)
+		{
+			fprintf(pfile, "%e    ", 0.0);
+			fprintf(pfile, "%e    ", 0.0);
+			fprintf(pfile, "%e    ", 1.0);
+			fprintf(pfile, "%d\n", 0);
+		}
+	}
+	// Update the time
+	if (adaptivity)
+	{
+		// Update the time with the current time step size
+		t = t + dt;
+		// Update the time step size for the next iteration
+		if (!dt_truncated_flag)
+		{
+			dt_old2 = dt_old;
+			dt_old = dt;
+		}
+		set_dt();
+	}
+	else
+	{
+		// Update the time with the current time step size and round it
+		// to the nearest multiple of the time step size to avoid floating point errors
 		t = dt * round((t + dt) / dt);
 	}
+	// Update the state vector
+	y = y_i;
+}
+
+void ESDIRK::set_dt(void)
+{
+	// ***Computes and sets the next time step size***
+	if (dt_truncated_flag)
+	{
+		dt = dt_truncated;
+		LTE = LTE_truncated;
+		dt_truncated_flag = false;
+	}
+	else
+	{
+		// Compute the time step size based on the multiplier
+		dt = dt * rho;
+
+		// Set the minimum and maximum time step sizes, making sure that the time step size does not exceed the maximum time
+		dt = std::min(dt, tmax - t + 1e-12);
+		dt = std::min(dt, dt_max);
+		dt = std::max(dt, dt_min);
+
+		// Truncate the time step size to the output time step size
+		if ((std::fmod(t, dt_out) > 1e-12) && (!debug_flag))
+		{
+			double tmp_dt_out = dt_out * std::ceil(t / dt_out) - t;
+			if ((dt > tmp_dt_out) && (tmp_dt_out >= dt_min))
+			{
+				dt_truncated_flag = true;
+				dt_truncated = dt;
+				LTE_truncated = LTE;
+				dt = tmp_dt_out;
+			}
+		}
+	}
+}
+
+void ESDIRK::compute_dt(void)
+{
+	// ***Compute LTE, EWT, error ratio and time step multiplier***
+
+	// Set the tolerance values for the error weighted tolerance
+	double atol_EWT = 1e-6;
+	double rtol_EWT = 1e-3;
+
 	// Compute the embeded solution
 	yhat = arma::zeros(size(y));
 	for (int ii = 0; ii < s; ii = ii + 1)
 	{
 		yhat = yhat + ys.col(ii) * b(ii);
 	}
-	// Compute the LTE error
-	LTE_old = LTE;
-	LTE = arma::norm(yhat - y);
-	// Update the time step size if adaptivity is used
-	if (adaptivity)
+
+	// Compute the error weighted tolerance
+	error_ratio_old2 = error_ratio_old;
+	error_ratio_old = error_ratio;
+	arma::mat error_LTE = y - yhat;
+	arma::mat error_EWT = atol_EWT * arma::ones(size(y)) + rtol_EWT * arma::abs(y);
+	if (LTE_norm_type == 1)
 	{
-		// Compute the EWT error
-		double EWT = atol + rtol * arma::norm(y);
-		// Compute the adaptive time step multiplier
-		error_ratio_old = error_ratio;
+		LTE = arma::norm(error_LTE, 1);
+		EWT = arma::norm(error_EWT, 1);
 		error_ratio = LTE / EWT;
-		// Compute rho
-		double rho = pow(dt / dt_old, -1.0 / 4.0) * pow(error_ratio * error_ratio_old, -1.0 / 12.0);
-		// Update the time step size
-		dt_old = dt;
-		dt = (1.0 + 2.0 * std::atan((rho - 1.0) / 2.0)) * dt;
-		dt = std::max(dt, dt_min);
-		dt = std::min(dt, dt_max);
-		dt = std::min(dt, dt_out - std::fmod(t, dt_out) + 1e-15);
-		dt = std::min(dt, tmax - t + 1e-15);
+	}
+	else if (LTE_norm_type == 2)
+	{
+		LTE = arma::norm(error_LTE, 2);
+		EWT = arma::norm(error_EWT, 2);
+		error_ratio = LTE / EWT;
+	}
+	else if (LTE_norm_type == 3)
+	{
+		LTE = arma::norm(error_LTE, "inf");
+		EWT = arma::norm(error_EWT, "inf");
+		error_ratio = LTE / EWT;
+	}
+	else if (LTE_norm_type == 4)
+	{
+		error_ratio = 0.0;
+		LTE = 0.0;
+		EWT = 0.0;
+		for (int ii = 0; ii < nSystem; ii = ii + 1)
+		{
+			double tmp_LTE = arma::as_scalar(error_LTE(ii));
+			double tmp_EWT = arma::as_scalar(error_EWT(ii));
+			LTE = LTE + pow(tmp_LTE, 2);
+			EWT = EWT + pow(tmp_EWT, 2);
+			error_ratio = error_ratio + pow(tmp_LTE / tmp_EWT, 2);
+		}
+		error_ratio = sqrt(error_ratio / nSystem);
+		LTE = sqrt(LTE / nSystem);
+		EWT = sqrt(EWT / nSystem);
+	}
+	else
+	{
+		std::cout << "ERROR: Invalid LTE norm type!" << std::endl;
+		throw std::exception();
+	}
+
+	// Define the time step size multiplier limits
+	double rho_min = 1.0e-1;
+	double rho_max = 1.0e+1;
+
+	// Compute the time step multiplier
+	if (abs(error_ratio) < 1e-12)
+	{
+		rho = rho_max;
+	}
+	else
+	{
+		if (adaptivity_type == 1)
+		{
+			rho = pow(error_ratio, -1.0 / 3.0);
+		}
+		else if (adaptivity_type == 2)
+		{
+			rho = pow(dt_old / dt, 1.0 / 4.0) *
+				  pow(error_ratio, -1.0 / 12.0) *
+				  pow(error_ratio_old, -1.0 / 12.0);
+		}
+		else if (adaptivity_type == 3)
+		{
+			rho = pow(dt_old / dt, 3.0 / 8.0) *
+				  pow(dt_old2 / dt_old, 1.0 / 8.0) *
+				  pow(error_ratio, -1.0 / 24.0) *
+				  pow(error_ratio_old, -1.0 / 12.0) *
+				  pow(error_ratio_old2, -1.0 / 12.0);
+		}
+	}
+
+	if (adaptivity_smooth_flag == 1)
+	{
+		rho = std::max(rho, rho_min);
+		rho = std::min(rho, rho_max);
+	}
+	else if (adaptivity_smooth_flag == 2)
+	{
+		rho = (1.0 + adaptivity_smooth_param * atan((rho - 1.0) / adaptivity_smooth_param));
+	}
+	else
+	{
+		std::cout << "ERROR: Invalid adaptivity smooth flag!" << std::endl;
+		throw std::exception();
 	}
 }

@@ -352,6 +352,8 @@ void Line::SEM_computeF(void)
 		t.row(k) = drds.row(k) / norm_drds(k);
 		FF.row(k) = T(k) * t.row(k);
 
+		// TODO: review this division by norm_drds(k), ff should be multiplied by norm_drds(k) later?
+		//       are all the external forces written per unit length?
 		fg = (rho0 - rhoW * A) * g / norm_drds(k);
 		ff.row(k) = -fg * e_z;
 
@@ -557,6 +559,7 @@ void Line::SEM_computeF(void)
 				}
 			}
 		}
+		ff.row(k) = ff.row(k) * norm_drds(k);
 	}
 
 	// F = 0.5 * dL * (MassMatrix_sp * ff) - (MSMatrix_sp * FF);

@@ -23,16 +23,32 @@ public:
 	int iJ = 0;
 	// System size
 	int nSystem;
+	// Number of times using the Newton method
+	double nNewton = 0;
+	// Number of newton iterations
+	double nNewtonIter = 0;
+	// Average Newton iterations per try
+	double nNewtonIterAvg = 0.0;
+	// Number of times convergence failed
+	int nConvergenceFailed = 0;
 	// Time, maximum time, output time step
 	double t, tmax, dt_out;
 	// State vector
 	arma::mat y;
 	// Simulation pointer
 	ISimulation *pSim;
+
+	// File pointer for the debugging output
+	FILE *pfile;
+	// Debug flag
+	bool debug_flag;
+
 	// Evaluate the system dynamics function
 	virtual arma::mat fun(double t, arma::mat y) = 0;
 	// Initialize the solver
 	virtual void init(void) = 0;
+	// Finalize the solver
+	virtual void finalize(void) = 0;
 	// Perform a time step
 	virtual void step(void) = 0;
 	// Compute the jacobian matrix
@@ -72,13 +88,15 @@ public:
 	// int nIterMax = 10;
 
 	// ***Declare constructor***
-	BDF2(double t_u, double tmax_u, double dt_out_u, arma::mat y_u, ISimulation *pIncSim);
+	BDF2(double t_u, double tmax_u, double dt_max_u, double dt_out_u, arma::mat y_u, ISimulation *pIncSim);
 
 	// ***Declare methods***
 	// Evaluate the system dynamics function
 	arma::mat fun(double, arma::mat);
 	// Initialize the solver
 	void init(void);
+	// Finalize the solver
+	void finalize(void);
 	// Perform a time step
 	void step(void);
 	// Compute the jacobian matrix
@@ -135,13 +153,15 @@ public:
 	// int nIterMax = 10;
 
 	// ***Declare constructor***
-	BDFN(int N_u, bool a_u, double t_u, double tmax_u, double dt_max_u, double dt_out_u, arma::mat y_u, ISimulation *pIncSim);
+	BDFN(int N_u, int a_u, double t_u, double tmax_u, double dt_max_u, double dt_out_u, arma::mat y_u, ISimulation *pIncSim);
 
 	// ***Declare methods***
 	// Evaluate the system dynamics function
 	arma::mat fun(double, arma::mat);
 	// Initialize the solver
 	void init(void);
+	// Finalize the solver
+	void finalize(void);
 	// Perform a time step
 	void step(void);
 	// Compute the jacobian matrix
@@ -171,30 +191,43 @@ private:
 	// Time at each stage
 	arma::vec ts;
 	// Butcher coefficients for the ESDIRK scheme
-	int s = 6;
-	arma::vec beta = {0.0, 1.0 / 2.0, 83.0 / 250.0, 31.0 / 50.0, 17.0 / 20.0, 1.0};
-	arma::mat a = {
-		{0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-		{1.0 / 4.0, 1.0 / 4.0, 0.0, 0.0, 0.0, 0.0},
-		{8611.0 / 62500.0, -1743.0 / 31250.0, 1.0 / 4.0, 0.0, 0.0, 0.0},
-		{5012029.0 / 34652500.0, -654441.0 / 2911500.0, 174375.0 / 388108.0, 1.0 / 4.0, 0.0, 0.0},
-		{15267082809.0 / 155376265600.0, -71443401.0 / 120774400.0, 730878875.0 / 902184768.0, 2285395.0 / 8070912.0, 1.0 / 4.0, 0.0},
-		{82889.0 / 524892.0, 0.0, 15625.0 / 83664.0, 69875.0 / 102672.0, -2260.0 / 8211.0, 1.0 / 4.0}};
-	arma::vec b = {4586570599.0 / 29645900160.0, 0.0, 178811875.0 / 945068544.0, 814220225.0 / 1159782912.0, -3700637.0 / 11593932.0, 61727.0 / 225920.0};
+	int s;
+	arma::vec beta;
+	arma::mat a;
+	arma::vec b;
 	// Solver status
+
 	bool status;
 	// Time steps counter
 	int nSteps = 0;
+	int nStepsMax;
+	// Adaptivity type
+	int adaptivity_type;			// 1: Basic, 2: Noventa 2018, 3: Ranocha 2024
+	int adaptivity_smooth_flag;		// Multiplier smoothing [1: Min-Max, 2: atan]
+	double adaptivity_smooth_param; // Smoothing parameter
+	int LTE_norm_type;				// 1: L1, 2: L2, 3: Linf, 4: RMS
+	double rho_min;					// Minimum multiplier to accept a time step
 	// Error ratios
 	double error_ratio = 1.0;
-	double error_ratio_old;
-	// Previous time step
+	double error_ratio_old = 1.0;
+	double error_ratio_old2;
+	// Previous time steps
 	double dt_old;
+	double dt_old2;
+	// Flag for truncated dt for writing output
+	bool dt_truncated_flag = false;
+	// Time step before truncation
+	double dt_truncated;
+	// LTE before truncation
+	double LTE_truncated;
 	// Time adaptivity flag
 	bool adaptivity;
+	// Error Weighted Tolerance
+	double EWT;
 	// Local Truncation Error
-	double LTE = 1.0;
-	double LTE_old = 1.0;
+	double LTE;
+	// Time step multiplier
+	double rho;
 
 public:
 	// ***Redeclare public attributes if needed***
@@ -207,19 +240,25 @@ public:
 	// int nIterMax = 10;
 
 	// ***Declare constructor***
-	ESDIRK(bool a_u, double t_u, double tmax_u, double dt_max_u, double dt_out_u, arma::mat y_u, ISimulation *pIncSim);
+	ESDIRK(bool a_u, double t_u, double tmax_u, double dt_max_u, double dt_out_u, int nStepsMax_u, arma::mat y_u, ISimulation *pIncSim);
 
 	// ***Declare methods***
 	// Evaluate the system dynamics function
 	arma::mat fun(double, arma::mat);
 	// Initialize the solver
 	void init(void);
+	// Finalize the solver
+	void finalize(void);
 	// Perform a time step
 	void step(void);
 	// Compute the jacobian matrix
 	void jac(double tt, arma::mat yy);
 	// Evaluate the nonlinear ESDIRK scheme function
 	arma::mat ESDIRK_fun(double t_i, arma::mat y_i, int ii);
+	// Computes and sets the next time step size
+	void set_dt(void);
+	// Compute LTE, EWT, error ratio and time step multiplier
+	void compute_dt(void);
 };
 
 #endif

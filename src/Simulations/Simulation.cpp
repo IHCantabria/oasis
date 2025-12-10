@@ -606,7 +606,7 @@ void Simulation::Initialize()
     if (this->timeIntMethod == 1)
     {
         std::cout << "Initializing BDF2 temporal solver..." << std::endl;
-        pTimeSolver = new BDF2(start_time, this->simulationTime, this->maxTimeStep, y, this);
+        pTimeSolver = new BDF2(start_time, this->simulationTime, this->maxTimeStep, this->writeTimeStep, y, this);
         std::cout << "  BDF2 constructor done!" << std::endl;
         pTimeSolver->init();
         pTimeSolver->atol = this->timeIntAbsTol;
@@ -628,7 +628,7 @@ void Simulation::Initialize()
     else if (this->timeIntMethod == 3)
     {
         std::cout << "Initializing ESDIRK temporal solver..." << std::endl;
-        pTimeSolver = new ESDIRK(this->timeIntAdaptivity, start_time, this->simulationTime, this->maxTimeStep, this->writeTimeStep, y, this);
+        pTimeSolver = new ESDIRK(this->timeIntAdaptivity, start_time, this->simulationTime, this->maxTimeStep, this->writeTimeStep, this->timeIntJacNumStepsMax, y, this);
         std::cout << "  ESDIRK constructor done!" << std::endl;
         pTimeSolver->atol = this->timeIntAbsTol;
         pTimeSolver->rtol = this->timeIntRelTol;
@@ -1373,10 +1373,11 @@ void Simulation::ReadPropertiesASCII()
     fscanf(file_pointer, "%d %[^\n]\n", &timeIntMethod, bufferLine); // Temporal integration alforithm [1: BDF1, 2: BDFN]
     fscanf(file_pointer, "%d %[^\n]\n", &timeIntOrder, bufferLine);  // Order for temporal integration
     fscanf(file_pointer, "%d %[^\n]\n", &dummyBool, bufferLine);
-    timeIntAdaptivity = dummyBool;                                    // Time step adaptivity [0 No, 1 Yes]
-    fscanf(file_pointer, "%lf %[^\n]\n", &timeIntAbsTol, bufferLine); // Absolute tolerance for temporal integration.
-    fscanf(file_pointer, "%lf %[^\n]\n", &timeIntRelTol, bufferLine); // Relative tolerance for temporal integration.
-    fscanf(file_pointer, "%d %[^\n]\n", &maxIterStep, bufferLine);    // Maximum number of iterations for one step of temporal integration.
+    timeIntAdaptivity = dummyBool;                                           // Time step adaptivity [0 No, 1 Yes]
+    fscanf(file_pointer, "%d %[^\n]\n", &timeIntJacNumStepsMax, bufferLine); // Maximum number of steps for temporal integration Jacobian re-computation.
+    fscanf(file_pointer, "%lf %[^\n]\n", &timeIntAbsTol, bufferLine);        // Absolute tolerance for temporal integration.
+    fscanf(file_pointer, "%lf %[^\n]\n", &timeIntRelTol, bufferLine);        // Relative tolerance for temporal integration.
+    fscanf(file_pointer, "%d %[^\n]\n", &maxIterStep, bufferLine);           // Maximum number of iterations for one step of temporal integration.
     fscanf(file_pointer, "%d %[^\n]\n", &dummyBool, bufferLine);
     readEquilibrium = dummyBool; // Read Equilibrio.dat? [0 No, 1 Yes]
     fscanf(file_pointer, "%d %[^\n]\n", &dummyBool, bufferLine);
@@ -1791,7 +1792,7 @@ void Simulation::Run()
             }
         }
 
-        if (pTimeSolver->t >= wallTime + writeTimeStep - 2e-14)
+        if (pTimeSolver->t >= wallTime + writeTimeStep - 1e-12)
         {
             // std::cout<< "In Simulation::Run --> WriteOut() "<< std::endl;
             wallTime = writeTimeStep * round((wallTime + writeTimeStep) / writeTimeStep);
@@ -1872,7 +1873,7 @@ void Simulation::Run()
             }
         }
     }
-
+    pTimeSolver->finalize();
     tend = time(0);
     double computational_time = difftime(tend, tstart);
     if (computational_time < 60)
@@ -1890,6 +1891,8 @@ void Simulation::Run()
     std::cout << "    Total function calls: " << numCallsSysFun << std::endl;
     std::cout << "    Total jac calls: " << pTimeSolver->iJ << std::endl
               << std::endl;
+    std::cout << "    Average Newton iterations: " << pTimeSolver->nNewtonIterAvg << std::endl;
+    std::cout << "    Number of times convergence failed: " << pTimeSolver->nConvergenceFailed << std::endl;
 
     if (writeEquilibrium == 1)
     {
