@@ -781,7 +781,7 @@ void Simulation::Initialize()
     if (this->timeIntMethod == 1)
     {
         std::cout << "Initializing BDF2 temporal solver..." << std::endl;
-        pTimeSolver = new BDF2(start_time, this->simulationTime, this->maxTimeStep, y, this);
+        pTimeSolver = new BDF2(start_time, this->simulationTime, this->maxTimeStep, this->writeTimeStep, y, this);
         std::cout << "  BDF2 constructor done!" << std::endl;
         pTimeSolver->init();
         pTimeSolver->atol = this->timeIntAbsTol;
@@ -792,13 +792,28 @@ void Simulation::Initialize()
     else if (this->timeIntMethod == 2)
     {
         std::cout << "Initializing BDF" << timeIntOrder << " temporal solver..." << std::endl;
-        pTimeSolver = new BDFN(this->timeIntOrder, this->timeIntAdaptivity, start_time, this->simulationTime, this->maxTimeStep, y, this);
+        pTimeSolver = new BDFN(this->timeIntOrder, this->timeIntAdaptivity, start_time, this->simulationTime, this->maxTimeStep, this->writeTimeStep, y, this);
         std::cout << "  BDF" << timeIntOrder << " constructor done!" << std::endl;
         pTimeSolver->init();
         pTimeSolver->atol = this->timeIntAbsTol;
         pTimeSolver->rtol = this->timeIntRelTol;
         pTimeSolver->nIterMax = this->maxIterStep;
         std::cout << "  BDF" << timeIntOrder << " initiallized!" << std::endl;
+    }
+    else if (this->timeIntMethod == 3)
+    {
+        std::cout << "Initializing ESDIRK temporal solver..." << std::endl;
+        pTimeSolver = new ESDIRK(this->timeIntAdaptivity, start_time, this->simulationTime, this->maxTimeStep, this->writeTimeStep, this->timeIntJacNumStepsMax, y, this);
+        std::cout << "  ESDIRK constructor done!" << std::endl;
+        pTimeSolver->atol = this->timeIntAbsTol;
+        pTimeSolver->rtol = this->timeIntRelTol;
+        pTimeSolver->nIterMax = this->maxIterStep;
+        std::cout << "  ESDIRK initiallized!" << std::endl;
+    }
+    else
+    {
+        std::cout << "ERROR: Time integration method not recognized!" << std::endl;
+        throw std::exception();
     }
 
     // Write initial condition to files
@@ -1541,10 +1556,11 @@ void Simulation::ReadPropertiesASCII()
     fscanf(file_pointer, "%d %[^\n]\n", &timeIntMethod, bufferLine); // Temporal integration alforithm [1: BDF1, 2: BDFN]
     fscanf(file_pointer, "%d %[^\n]\n", &timeIntOrder, bufferLine);  // Order for temporal integration
     fscanf(file_pointer, "%d %[^\n]\n", &dummyBool, bufferLine);
-    timeIntAdaptivity = dummyBool;                                    // Time step adaptivity [0 No, 1 Yes]
-    fscanf(file_pointer, "%lf %[^\n]\n", &timeIntAbsTol, bufferLine); // Absolute tolerance for temporal integration.
-    fscanf(file_pointer, "%lf %[^\n]\n", &timeIntRelTol, bufferLine); // Relative tolerance for temporal integration.
-    fscanf(file_pointer, "%d %[^\n]\n", &maxIterStep, bufferLine);    // Maximum number of iterations for one step of temporal integration.
+    timeIntAdaptivity = dummyBool;                                           // Time step adaptivity [0 No, 1 Yes]
+    fscanf(file_pointer, "%d %[^\n]\n", &timeIntJacNumStepsMax, bufferLine); // Maximum number of steps for temporal integration Jacobian re-computation.
+    fscanf(file_pointer, "%lf %[^\n]\n", &timeIntAbsTol, bufferLine);        // Absolute tolerance for temporal integration.
+    fscanf(file_pointer, "%lf %[^\n]\n", &timeIntRelTol, bufferLine);        // Relative tolerance for temporal integration.
+    fscanf(file_pointer, "%d %[^\n]\n", &maxIterStep, bufferLine);           // Maximum number of iterations for one step of temporal integration.
     fscanf(file_pointer, "%d %[^\n]\n", &dummyBool, bufferLine);
     readEquilibrium = dummyBool; // Read Equilibrio.dat? [0 No, 1 Yes]
     fscanf(file_pointer, "%d %[^\n]\n", &dummyBool, bufferLine);
@@ -2009,13 +2025,13 @@ void Simulation::Run()
     double wallTimeControllerWinches = 0.0;
     double wallTimeControllerOWCs = 0.0;
     tstart = time(0);
-    bool flag_debug_lines = true;
+    bool flag_debug_lines = false;
 
     std::cout << "    t = " << wallTime << " s" << std::endl;
 
     // TODO: Implement a logger with different levels of verbosity
     //  std::cout<< "In Simulation::Run --> Starting temporal integration loop "<< std::endl;
-    do
+    while (pTimeSolver->t < simulationTime - 2e-14)
     {
         // std::cout<< "In Simulation::Run --> step() "<< std::endl;
         pTimeSolver->step();
@@ -2037,17 +2053,17 @@ void Simulation::Run()
             }
         }
 
-        if (pTimeSolver->t >= wallTime + writeTimeStep)
+        if (pTimeSolver->t >= wallTime + writeTimeStep - 1e-12)
         {
             // std::cout<< "In Simulation::Run --> WriteOut() "<< std::endl;
-            wallTime = wallTime + writeTimeStep;
+            wallTime = writeTimeStep * round((wallTime + writeTimeStep) / writeTimeStep);
             std::cout << "    t = " << wallTime << " s" << std::endl;
             for (int ii = 0; ii < numLines; ii = ii + 1)
-                pLines[ii]->WriteOut(wallTime);
+                pLines[ii]->WriteOut(pTimeSolver->t);
             for (int ii = 0; ii < numBodies; ii = ii + 1)
-                pBodies[ii]->WriteOut(wallTime);
+                pBodies[ii]->WriteOut(pTimeSolver->t);
             for (int ii = 0; ii < numOWCs; ii = ii + 1)
-                pOWCs[ii]->WriteOut(wallTime);
+                pOWCs[ii]->WriteOut(pTimeSolver->t);
         }
 
         if (pTimeSolver->t >= wallTimeHydro + hydroTimeStep)
@@ -2139,9 +2155,8 @@ void Simulation::Run()
                 // std::cout << "In Simulation::Run --> ... done controlling winches!" << std::endl;
             }
         }
-
-    } while (pTimeSolver->t <= simulationTime);
-
+    }
+    pTimeSolver->finalize();
     tend = time(0);
     double computational_time = difftime(tend, tstart);
     if (computational_time < 60)
@@ -2159,6 +2174,8 @@ void Simulation::Run()
     std::cout << "    Total function calls: " << numCallsSysFun << std::endl;
     std::cout << "    Total jac calls: " << pTimeSolver->iJ << std::endl
               << std::endl;
+    std::cout << "    Average Newton iterations: " << pTimeSolver->nNewtonIterAvg << std::endl;
+    std::cout << "    Number of times convergence failed: " << pTimeSolver->nConvergenceFailed << std::endl;
 
     if (writeEquilibrium == 1)
     {
