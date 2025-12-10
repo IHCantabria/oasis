@@ -58,7 +58,7 @@ void Line::ReadPropertiesASCII(FILE *pFilePointer)
 			if (fscanf(pFilePointer, "%lf", &dtemp) != 1)
 			{
 				std::stringstream ss;
-				ss << "An error ocurred when trying to read the strain data for line: " << this->GetId() << "\n";
+				ss << "An error occurred when trying to read the strain data for line: " << this->GetId() << "\n";
 				throw ValueError(ss.str());
 			}
 			strain_data(ii, 0) = dtemp;
@@ -69,7 +69,7 @@ void Line::ReadPropertiesASCII(FILE *pFilePointer)
 			if (fscanf(pFilePointer, "%lf", &dtemp) != 1)
 			{
 				std::stringstream ss;
-				ss << "An error ocurred when trying to read the stress data for line: " << this->GetId() << "\n";
+				ss << "An error occurred when trying to read the stress data for line: " << this->GetId() << "\n";
 				throw ValueError(ss.str());
 			}
 			stress_data(ii, 0) = dtemp;
@@ -844,25 +844,31 @@ void Line::initLine(void)
 
 void Line::OpenOutputFilesASCII(std::string path)
 {
-	char buffer1[50], buffer2[50], buffer3[50], buffer4[50], buffer5[50];
+	char buffer1[50], buffer2[50], buffer3[50], buffer4[50], buffer5[50], buffer6[50], buffer7[50];
 
 	int nn1 = sprintf(buffer1, "NodePosX_%d.txt", GetId());
 	int nn2 = sprintf(buffer2, "NodePosY_%d.txt", GetId());
 	int nn3 = sprintf(buffer3, "NodePosZ_%d.txt", GetId());
 	int nn4 = sprintf(buffer4, "EndsTen_%d.txt", GetId());
 	int nn5 = sprintf(buffer5, "LineTen_%d.txt", GetId());
+	int nn6 = sprintf(buffer6, "LineIni_%d.txt", GetId());
+	int nn7 = sprintf(buffer7, "LineDebug_%d.txt", GetId());
 
 	std::string file_path1 = JoinPath(path, buffer1);
 	std::string file_path2 = JoinPath(path, buffer2);
 	std::string file_path3 = JoinPath(path, buffer3);
 	std::string file_path4 = JoinPath(path, buffer4);
 	std::string file_path5 = JoinPath(path, buffer5);
+	std::string file_path6 = JoinPath(path, buffer6);
+	std::string file_path7 = JoinPath(path, buffer7);
 
 	pfile_xpos = fopen(file_path1.c_str(), "w");
 	pfile_ypos = fopen(file_path2.c_str(), "w");
 	pfile_zpos = fopen(file_path3.c_str(), "w");
 	pfile_ten = fopen(file_path4.c_str(), "w");
 	pfile_ten_line = fopen(file_path5.c_str(), "w");
+	pfile_line_ini = fopen(file_path6.c_str(), "w");
+	pfile_line_debug = fopen(file_path7.c_str(), "w");
 }
 
 void Line::CloseOutputFilesASCII(void)
@@ -895,12 +901,19 @@ void Line::WriteOut(double t)
 
 	fprintf(pfile_ten, "%f    %f    %f    %f    %f    %f    %f \n", t, ten_1(0, 0), ten_1(1, 0), ten_1(2, 0), ten_N(0, 0), ten_N(1, 0), ten_N(2, 0));
 
+	// TODO: 0.0 should be start_time
 	if (t == 0.0)
 	{
 		fprintf(pfile_ten_line, "%f    ", t);
 		for (ii = 0; ii < this->N; ii = ii + 1)
 			fprintf(pfile_ten_line, "%f    ", this->s(ii, 0));
 		fprintf(pfile_ten_line, "\n");
+		// print initial line state in an specific file
+		// print header
+		fprintf(pfile_line_ini, "s    x    y    z    ten \n");
+		for (ii = 0; ii < this->N; ii = ii + 1)
+			fprintf(pfile_line_ini, "%f    %f    %f    %f    %f \n", this->s(ii, 0), this->pos(ii, 0), this->pos(ii, 1), this->pos(ii, 2), this->T(ii, 0));
+		fclose(pfile_line_ini);
 	}
 	fprintf(pfile_ten_line, "%f    ", t);
 	for (ii = 0; ii < this->N; ii = ii + 1)

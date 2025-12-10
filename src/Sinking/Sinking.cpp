@@ -38,7 +38,7 @@ void Sinking::ReadPropertiesASCII(FILE *pFile, std::string inputFolderPath)
 		if (fscanf(pFile, "%lf", &dtemp) != 1)
 		{
 			std::stringstream ss;
-			ss << "An error ocurred when trying to read the reference mass matrix of sinking body: " << indBody << "\n";
+			ss << "An error occurred when trying to read the reference mass matrix of sinking body: " << indBody << "\n";
 			throw ValueError(ss.str());
 		}
 		bodyReferenceMassMat(ii, ii) = dtemp;
@@ -52,7 +52,7 @@ void Sinking::ReadPropertiesASCII(FILE *pFile, std::string inputFolderPath)
 	{
 		std::cout << "Hey 1" << std::endl;
 		std::stringstream ss;
-		ss << "An error ocurred when trying to read the number of HDBs of sinking body: " << indBody << "\n";
+		ss << "An error occurred when trying to read the number of HDBs of sinking body: " << indBody << "\n";
 		throw ValueError(ss.str());
 	}
 
@@ -70,7 +70,7 @@ void Sinking::ReadPropertiesASCII(FILE *pFile, std::string inputFolderPath)
 		if (fscanf(pFile, "%lf", &dtemp) != 1)
 		{
 			std::stringstream ss;
-			ss << "An error ocurred when trying to read the load status of sinking body: " << indBody << "\n";
+			ss << "An error occurred when trying to read the load status of sinking body: " << indBody << "\n";
 			throw ValueError(ss.str());
 		}
 		InterpMasses(ii, 0) = dtemp;
@@ -86,7 +86,7 @@ void Sinking::ReadPropertiesASCII(FILE *pFile, std::string inputFolderPath)
 		if (fscanf(pFile, "%s %[^\n]\n", cHydroDatabaseName, buffer_line) != 2)
 		{
 			std::stringstream ss;
-			ss << "An error ocurred when trying to read the file name of HDBs of sinking body: " << indBody << "\n";
+			ss << "An error occurred when trying to read the file name of HDBs of sinking body: " << indBody << "\n";
 			throw ValueError(ss.str());
 		}
 		file_path = JoinPath(inputFolderPath, cHydroDatabaseName);
@@ -99,7 +99,7 @@ void Sinking::ReadPropertiesASCII(FILE *pFile, std::string inputFolderPath)
 	if (fscanf(pFile, "%d %[^\n]\n", &numGroups, buffer_line) != 2)
 	{
 		std::stringstream ss;
-		ss << "An error ocurred when trying to read the number of groups times of sinking body: " << indBody << "\n";
+		ss << "An error occurred when trying to read the number of groups times of sinking body: " << indBody << "\n";
 		throw ValueError(ss.str());
 	}
 
@@ -125,7 +125,7 @@ void Sinking::ReadPropertiesASCII(FILE *pFile, std::string inputFolderPath)
 		if (fscanf(pFile, "%d %[^\n]\n", &itemp, buffer_line) != 2)
 		{
 			std::stringstream ss;
-			ss << "An error ocurred when trying to read the number of group polygon points: " << indBody << "\n";
+			ss << "An error occurred when trying to read the number of group polygon points: " << indBody << "\n";
 			throw ValueError(ss.str());
 		}
 		if (itemp < 1)
@@ -141,7 +141,7 @@ void Sinking::ReadPropertiesASCII(FILE *pFile, std::string inputFolderPath)
 			if (fscanf(pFile, "%lf", &dtemp) != 1)
 			{
 				std::stringstream ss;
-				ss << "An error ocurred when trying to read the group polygon X coordinates: " << indBody << "\n";
+				ss << "An error occurred when trying to read the group polygon X coordinates: " << indBody << "\n";
 				throw ValueError(ss.str());
 			}
 			mtemp(jj, 0) = dtemp;
@@ -153,7 +153,7 @@ void Sinking::ReadPropertiesASCII(FILE *pFile, std::string inputFolderPath)
 			if (fscanf(pFile, "%lf", &dtemp) != 1)
 			{
 				std::stringstream ss;
-				ss << "An error ocurred when trying to read the group polygon Y coordinates: " << indBody << "\n";
+				ss << "An error occurred when trying to read the group polygon Y coordinates: " << indBody << "\n";
 				throw ValueError(ss.str());
 			}
 			mtemp(jj, 1) = dtemp;
@@ -180,7 +180,7 @@ void Sinking::ReadPropertiesASCII(FILE *pFile, std::string inputFolderPath)
 		if (fscanf(pFile, "%lf %[^\n]\n", &dtemp, buffer_line) != 2)
 		{
 			std::stringstream ss;
-			ss << "An error ocurred when trying to read the group floor Z coordinate: " << indBody << "\n";
+			ss << "An error occurred when trying to read the group floor Z coordinate: " << indBody << "\n";
 			throw ValueError(ss.str());
 		}
 		groupsCenters(ii, 2) = dtemp;
@@ -193,7 +193,7 @@ void Sinking::ReadPropertiesASCII(FILE *pFile, std::string inputFolderPath)
 		if (fscanf(pFile, "%d %[^\n]\n", &itemp, buffer_line) != 2)
 		{
 			std::stringstream ss;
-			ss << "An error ocurred when trying to read the number of filling times: " << indBody << "\n";
+			ss << "An error occurred when trying to read the number of filling times: " << indBody << "\n";
 			throw ValueError(ss.str());
 		}
 		if (itemp < 1)
@@ -209,7 +209,7 @@ void Sinking::ReadPropertiesASCII(FILE *pFile, std::string inputFolderPath)
 			if (fscanf(pFile, "%lf", &dtemp) != 1)
 			{
 				std::stringstream ss;
-				ss << "An error ocurred when trying to read the group filling times: " << indBody << "\n";
+				ss << "An error occurred when trying to read the group filling times: " << indBody << "\n";
 				throw ValueError(ss.str());
 			}
 			mtemp(jj, 0) = dtemp;
@@ -223,7 +223,7 @@ void Sinking::ReadPropertiesASCII(FILE *pFile, std::string inputFolderPath)
 			if (fscanf(pFile, "%lf", &dtemp) != 1)
 			{
 				std::stringstream ss;
-				ss << "An error ocurred when trying to read the group filling states: " << indBody << "\n";
+				ss << "An error occurred when trying to read the group filling states: " << indBody << "\n";
 				throw ValueError(ss.str());
 			}
 			mtemp(jj, 0) = dtemp;

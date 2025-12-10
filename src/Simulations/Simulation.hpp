@@ -13,8 +13,9 @@
 #include "../Sinking/Sinking.hpp"
 #include "../SeaFloor/SeaFloor.hpp"
 #include "../WindTurbine/WindTurbine.hpp"
+#include "../OWC/OWC.hpp"
 
-class BDF;
+class ODE_solver;
 
 class Simulation
 {
@@ -33,6 +34,9 @@ public:
     bool useWinches = false;
 
     // Declare simulation properties attributes
+    double airAtmPresDensity;
+    double airAtmPres;
+    double airAdiabaticDilation;
     double gravity;
     int maxIterStep;
     double writeTimeStep;
@@ -42,7 +46,8 @@ public:
     double fastControllerTimeStep;
     double timeIRF;
     double sinkingTimeStep;
-    double controllerTimeStep;
+    double winchesContTimeStep;
+    double owcsContTimeStep;
     int numSystem;
     int numSystem2;
     double simulationTime;
@@ -50,6 +55,8 @@ public:
     bool rotSimpFlag;
     double timeIntAbsTol;
     int timeIntMethod;
+    int timeIntOrder;
+    bool timeIntAdaptivity;
     double timeIntRelTol;
     double waterDensity;
     double waterDepth;
@@ -58,7 +65,7 @@ public:
 
     // Declare time simulation attributes
     int numCallsSysFun = 0;
-    BDF *pTimeSolver;
+    ODE_solver *pTimeSolver;
     int timeBufferSize = 0;
     arma::mat timeBuffer = arma::zeros(1, timeBufferSize);
     int timeBufferCount = 0;
@@ -99,13 +106,16 @@ public:
     Inclined **pInclined;
     Flat **pFlat;
     WindTurbine **pWindTurbines;
+    OWC **pOWCs;
+    OWCTurbineType **pOWCTurbines;
     int numAnchorBcps = 0;
     int numBcps = 0;
     int numBodies = 0;
     int numBodiesFree = 0;
     int numBodiesLock = 0;
+    int numDofBodiesFree = 0;
     int numBodyBcps = 0;
-    int numDofTotal = 0;
+    int numDofLinesTotal = 0;
     int numFairBcps = 0;
     int numJointBcps = 0;
     int numLines = 0;
@@ -117,6 +127,8 @@ public:
     int numInclined = 0;
     int numFlat = 0;
     int numWindTurbines = 0;
+    int numOWCs = 0;
+    int numOWCTurbines = 0;
 
     // Declare constructors
     Simulation(std::string projectPath, std::string incDataFormat);
@@ -134,6 +146,7 @@ public:
     void (Simulation::*pReadSinking)(void);
     void (Simulation::*pReadSeaFloor)(void);
     void (Simulation::*pReadWindTurbines)(void);
+    void (Simulation::*pReadOWCs)(void);
     void PrintSetup(void);
     void ReadBcps(void);
     void ReadBcpsASCII(void);
@@ -165,6 +178,9 @@ public:
     void ReadWindTurbines(void);
     void ReadWindTurbinesASCII(void);
     void ReadWindTurbinesHDF5(void);
+    void ReadOWCs(void);
+    void ReadOWCsASCII(void);
+    void ReadOWCsHDF5(void);
 
     // Declare general purpose class methods
     arma::mat CalculateSystemDynamics(double time, arma::mat y);

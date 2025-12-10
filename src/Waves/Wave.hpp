@@ -53,6 +53,14 @@ public:
     arma::vec kx_1D;
     arma::vec ky_1D;
 
+    // Variables for vectorised matrices
+    arma::vec A;
+	arma::vec P;
+	arma::vec KX;
+	arma::vec KY;
+	arma::vec K;
+	arma::vec W;
+
     // Variables for irregular waves
     int specType_flag;
     int readPhases_flag;
@@ -117,6 +125,7 @@ public:
     arma::vec GetFreeSurface(arma::mat amplitudes, arma::mat phases, int num_points);
     arma::vec GetFreeSurface(double time, arma::vec x, arma::vec y);
     arma::vec GetPressure(double time, arma::vec x, arma::vec y, arma::vec z);
+    void VectoriseComponentsMatrices(void);
     void SetSinglePiece(void);
     void SetZeroHeight(void);
     void WriteOut(std::string path);
@@ -125,14 +134,14 @@ public:
 class RegularWave : public Wave
 {
 public:
-    RegularWave(Simulation *pSimInc, double H, double T, double D) : Wave(pSimInc, H, T, D){};
+    RegularWave(Simulation *pSimInc, double H, double T, double D) : Wave(pSimInc, H, T, D) {};
     void GetWaveSpectrum(void);
 };
 
 class IrregularWave : public Wave
 {
 public:
-    IrregularWave(Simulation *pSimInc, double H, double T, double D) : Wave(pSimInc, H, T, D){};
+    IrregularWave(Simulation *pSimInc, double H, double T, double D) : Wave(pSimInc, H, T, D) {};
     void GetWaveSpectrum(void);
     void GetCheckedFreeSurface(void);
     void ReadWaveTimeSeries(void);

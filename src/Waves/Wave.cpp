@@ -14,6 +14,12 @@ Wave::Wave(Simulation *pSimInc, double H, double T, double D)
 	height = H;
 	period = T;
 	heading = D * arma::datum::pi / 180.0;
+	heading = std::fmod(heading + arma::datum::pi, 2.0 * arma::datum::pi);
+	if (heading < 0)
+	{
+		heading += 2.0 * arma::datum::pi;
+	}
+	heading -= arma::datum::pi;
 	pSim = pSimInc;
 	simulationTime = pSim->simulationTime;
 	gravity = pSim->gravity;
@@ -226,31 +232,68 @@ arma::vec Wave::GetFreeSurface(double time, arma::vec x, arma::vec y)
 
 arma::vec Wave::GetPressure(double time, arma::vec x, arma::vec y, arma::vec z)
 {
-	// TODO: Implement a logger with different levels of verbosity
-	// std::cout << "    --> Getting Pressure " << std::endl;
+	// std::cout << "    --> Computing Pressure..." << std::endl;
+	// std::cout << "      --> num_points = " << x.n_elem << std::endl;
+	// std::cout << "      --> num_freqs = " << num_comps << std::endl;
+	// std::cout << "      --> num_headings = " << num_headings << std::endl;
 
-	arma::vec dPhidt, dPhidx, dPhidy, dPhidz, pressure;
-	arma::vec A = amplitudes, W = ang_freqs;
-	double H = waterDepth;
-	arma::mat onesNp = arma::ones(size(x.t()));
-	arma::mat aux = phases * onesNp + kx * x.t() + ky * y.t() - time * ang_freqs * onesNp;
+	// arma::mat onesNp = arma::ones(size(x.t()));
+	// arma::mat eta_term = (A * onesNp) % arma::cos(KX * x.t() + KY * y.t() - time * W * onesNp + P * onesNp);
+	// arma::mat coef = arma::cosh(K * z.t()) + arma::sinh(K * z.t()) % arma::tanh(K * waterDepth * onesNp);
+	// arma::vec dynamic_term = ((eta_term % coef).t() * arma::ones(size(A)));
+	// arma::vec eta = (eta_term.t() * arma::ones(size(A)));
+	arma::vec time_arg = P - time * W;
+	arma::mat eta_term = KX * x.t();
+	eta_term += KY * y.t();
+	eta_term.each_col() += time_arg;
+	eta_term = arma::cos(eta_term);
+	arma::vec eta = (A.t() * eta_term).t();
+	// std::cout << "      --> Computed free surface!" << std::endl;
 
-	dPhidt = arma::sum(-((A % arma::pow(W, 2)) * onesNp) % arma::cos(aux) % arma::cosh(k * (H * onesNp + z.t())) /
-					   ((k % arma::sinh(H * k)) * onesNp))
-				 .t();
-	dPhidx = arma::sum(((A % kx % W) * onesNp) % arma::cos(aux) % arma::cosh(k * (H * onesNp + z.t())) /
-					   ((k % arma::sinh(H * k)) * onesNp))
-				 .t();
-	dPhidy = arma::sum(((A % ky % W) * onesNp) % arma::cos(aux) % arma::cosh(k * (H * onesNp + z.t())) /
-					   ((k % arma::sinh(H * k)) * onesNp))
-				 .t();
-	dPhidz = arma::sum(((A % W) * onesNp % arma::sin(aux)) % arma::sinh(k * (H * onesNp + z.t())) /
-					   (arma::sinh(H * k) * onesNp))
-				 .t();
+	arma::vec tkw = arma::tanh(K * waterDepth);
+	arma::mat tmp = K * z.t();
+	arma::mat coef = arma::cosh(tmp);
+	tmp = arma::sinh(tmp);
+	tmp.each_col() %= tkw;
+	coef += tmp;
+	tmp.reset();
+	eta_term.each_col() %= A;
+	arma::vec dynamic_term = arma::sum(eta_term % coef, 0).t();
+	// std::cout << "      --> Computed dynamic term!" << std::endl;
 
-	pressure = -pSim->waterDensity * (pSim->gravity * z + dPhidt + 0.5 * (dPhidx % dPhidx + dPhidy % dPhidy + dPhidz % dPhidz));
+	arma::uvec ind_z_pos = arma::find(z > 0);
+	if (ind_z_pos.n_elem > 0)
+	{
+		dynamic_term(ind_z_pos) = eta(ind_z_pos);
+	}
+	// std::cout << "      --> Corrected points over MWL!" << std::endl;
+
+	// arma::vec dynamic_term = eta;
+
+	arma::uvec ind_z_eme = arma::find(z > eta);
+	if (ind_z_eme.n_elem > 0)
+	{
+		dynamic_term(ind_z_eme) = z(ind_z_eme);
+	}
+	// std::cout << "      --> Corrected points over free surface!" << std::endl;
+
+	arma::vec pressure = pSim->waterDensity * pSim->gravity * (dynamic_term - z);
+	// std::cout << "      --> Pressure computed!" << std::endl;
+
+	// std::cout << "    --> ... done!" << std::endl;
 
 	return pressure;
+}
+
+void Wave::VectoriseComponentsMatrices(void)
+{
+	A = arma::vectorise(amplitudes);
+	P = arma::vectorise(phases);
+	KX = arma::vectorise(kx);
+	KY = arma::vectorise(ky);
+	K = arma::repmat(k, num_headings, 1);
+	W = arma::repmat(ang_freqs, num_headings, 1);
+	// std::cout << "      --> Vectorized wave terms!" << std::endl;
 }
 
 void Wave::SetSinglePiece(void)
@@ -346,6 +389,7 @@ void RegularWave::GetWaveSpectrum(void)
 	phases_1D = phases;
 	GetWaveLengths();
 	SetSinglePiece();
+	VectoriseComponentsMatrices();
 }
 
 void IrregularWave::GetWaveSpectrum(void)
@@ -491,8 +535,12 @@ void IrregularWave::GetWaveSpectrum(void)
 	}
 
 	// Cut the zeros from the wave spectra
-	CutPiecesSpectrumZeros();
+	if (piecewise_flag == 1)
+	{
+		CutPiecesSpectrumZeros();
+	}
 	CutSpectrumZeros();
+	VectoriseComponentsMatrices();
 }
 
 void IrregularWave::GetJonswapSpectrum(void)
@@ -690,7 +738,8 @@ void IrregularWave::CutSpectrumZeros(void)
 
 	int number_components_original = this->num_comps * this->num_headings;
 
-	arma::uvec ind_rows = arma::find(spectral_density >= factor * arma::as_scalar(arma::mean(spectral_density)));
+	double min_period = 1.0; // Minimum period to consider a wave component [s]
+	arma::uvec ind_rows = arma::find((spectral_density >= factor * arma::as_scalar(arma::mean(spectral_density))) && (periods >= min_period));
 	arma::uvec ind_cols = arma::find(directional_spreading >= factor * arma::as_scalar(arma::mean(directional_spreading)));
 
 	num_comps = ind_rows.n_elem;
@@ -760,6 +809,7 @@ void IrregularWave::ReadWaveTimeSeries(void)
 
 	// Postprocess the time and eta vectors
 	simulationTime = time.max() - time(0, 0);
+	// double time_ini = arma::as_scalar(time(0, 0)); // TODO: Include wave offset wrt wind
 	dt = arma::as_scalar(time(1, 0) - time(0, 0));
 	num_points = nn;
 	num_comps = floor(num_points / 2.0) + 1;
@@ -772,6 +822,7 @@ void IrregularWave::ReadWaveTimeSeries(void)
 
 	arma::cx_vec yf = arma::fft(eta) / num_points;
 	phases = arma::atan2(arma::imag(yf.rows(0, num_comps - 1)), arma::real(yf.rows(0, num_comps - 1)));
+	// phases = phases + ang_freqs * time_ini;  // TODO: Include wave offset wrt wind
 	arma::vec psd = arma::pow(arma::abs(yf.rows(0, num_comps - 1)), 2) / df;
 	psd.rows(1, num_comps - 1) = 2.0 * psd.rows(1, num_comps - 1);
 	psd(0, 0) = 0.0;
@@ -789,7 +840,6 @@ void IrregularWave::ReadWaveTimeSeries(void)
 	// TODO: Check how doing this here affects the piecewise computation
 	GetWaveLengths();
 	GetFreeSurface();
-	CutSpectrumZeros();
 
 	std::cout << "    --> ...done!" << std::endl;
 }
@@ -999,8 +1049,6 @@ void IrregularWave::CutPiecesSpectrumZeros(void)
 
 	// Find the indices of the frequencies with amplitudes greater than factor*amplitudes_max_mean
 	arma::vec amplitudes_max_freqs = arma::max(amplitudes_max, 1);
-	std::cout << "size(amplitudes_max): " << amplitudes_max.n_rows << " x " << amplitudes_max.n_cols << std::endl;
-	std::cout << "size(amplitudes_max_freqs): " << amplitudes_max_freqs.n_elem << std::endl;
 	arma::uvec ind_rows = arma::find(amplitudes_max_freqs >= factor * amplitudes_max_mean);
 
 	// If applicable, find the indices of the headings with amplitudes greater than factor*amplitudes_max_mean

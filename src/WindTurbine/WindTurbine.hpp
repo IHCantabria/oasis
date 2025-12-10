@@ -41,6 +41,7 @@ public:
     double yaw = 0.0;
     double yaw_ini = 0.0;
     double yawSpeed = 0.0;
+    bool isRotorBlocked = false;
 
     arma::mat forceBodyCOG = arma::zeros(6, 1);
     double airTrq = 0.0;
@@ -51,11 +52,11 @@ public:
     {
         idWindTurbine = n + 1;
         pSim = pSimInp;
-    }                                      // Inicializa un objeto de clase turbina dandole el indice
-    void ReadPropertiesASCII(FILE *pFile); // Lee inputs de las turbinas
-    void Initialize(void);                 // Configura el objeto turbina
-    void Finalize(void);                   // Cierra el caso
-    void WriteOut(double t);               // Escribir datos a fichero
+    }
+    void ReadPropertiesASCII(FILE *pFile);
+    void Initialize(void);
+    void Finalize(void);
+    void WriteOut(double t);
 
     void ComputeForces(double time);
     void SetInputsFAST(void);

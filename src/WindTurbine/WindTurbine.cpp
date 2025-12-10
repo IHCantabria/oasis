@@ -53,7 +53,7 @@ void WindTurbine::ReadPropertiesASCII(FILE *pFile)
     if (fscanf(pFile, "%s %[^\n]\n", cADFileName, buffer_line) != 2)
     {
         std::stringstream ss;
-        ss << "An error ocurred when trying to read the AeroDyn input file name in Turbine: " << idWindTurbine << "\n";
+        ss << "An error occurred when trying to read the AeroDyn input file name in Turbine: " << idWindTurbine << "\n";
         throw ValueError(ss.str());
     }
     std::string ADFileName = JoinPath(pSim->inputFolderPath, cADFileName);
@@ -65,7 +65,7 @@ void WindTurbine::ReadPropertiesASCII(FILE *pFile)
     if (fscanf(pFile, "%s %[^\n]\n", cIWFileName, buffer_line) != 2)
     {
         std::stringstream ss;
-        ss << "An error ocurred when trying to read the InflowWind input file name in Turbine: " << idWindTurbine << "\n";
+        ss << "An error occurred when trying to read the InflowWind input file name in Turbine: " << idWindTurbine << "\n";
         throw ValueError(ss.str());
     }
     std::string IWFileName = JoinPath(pSim->inputFolderPath, cIWFileName);
@@ -77,7 +77,7 @@ void WindTurbine::ReadPropertiesASCII(FILE *pFile)
     if (fscanf(pFile, "%s %[^\n]\n", cSDFileName, buffer_line) != 2)
     {
         std::stringstream ss;
-        ss << "An error ocurred when trying to read the ServoDyn input file name in Turbine: " << idWindTurbine << "\n";
+        ss << "An error occurred when trying to read the ServoDyn input file name in Turbine: " << idWindTurbine << "\n";
         throw ValueError(ss.str());
     }
     std::string SDFileName = JoinPath(pSim->inputFolderPath, cSDFileName);
@@ -89,7 +89,7 @@ void WindTurbine::ReadPropertiesASCII(FILE *pFile)
     if (fscanf(pFile, "%s %[^\n]\n", cEDFileName, buffer_line) != 2)
     {
         std::stringstream ss;
-        ss << "An error ocurred when trying to read the ElastoDyn input file name in Turbine: " << idWindTurbine << "\n";
+        ss << "An error occurred when trying to read the ElastoDyn input file name in Turbine: " << idWindTurbine << "\n";
         throw ValueError(ss.str());
     }
     std::string EDFileName = JoinPath(pSim->inputFolderPath, cEDFileName);
@@ -112,34 +112,59 @@ void WindTurbine::Initialize(void)
     FSTW_InitInput.Tmax = pSim->simulationTime;
     FSTW_InitInput.TimeInterval = pSim->fastTimeStep;
     FSTW_InitInput.TimeInterval_SrvD = pSim->fastControllerTimeStep;
+    // Set motion position input [1: Platform, 2: Hub]
+    // Only platform is implemented
+    // TODO: Implement hub motion option
+    FSTW_InitInput.flag_input_pos = 1;
 
-    std::cout << "        --> FSTW_Init" << std::endl;
-    FSTW_Init(&idWindTurbine, InputFileName_AD, InputFileName_IW, InputFileName_SD, InputFileName_ED, OutputPathName, &FSTW_InitInput, &FSTW_Input, &FSTW_Output, &ErrStat, ErrMsg);
+    std::cout << "        --> FSTW_Init..." << std::endl;
+    FSTW_Init(&idWindTurbine,
+              InputFileName_AD,
+              InputFileName_IW,
+              InputFileName_SD,
+              InputFileName_ED,
+              OutputPathName,
+              &FSTW_InitInput,
+              &FSTW_Input,
+              &FSTW_Output,
+              &ErrStat,
+              ErrMsg);
     CheckError();
+    std::cout << "        --> ... done!" << std::endl;
 
+    std::cout << "        --> Compute inertia matrices" << std::endl;
     rotIner = FSTW_InitInput.rotorInertia;
     for (int ii = 0; ii < 6; ii++)
     {
         for (int jj = 0; jj < 6; jj++)
         {
-            bodyInerMat(ii, jj) = FSTW_InitInput.platInerMat[ii][jj];
-            towrInerMat(ii, jj) = FSTW_InitInput.towrInerMat[ii][jj];
-            turbInerMat(ii, jj) = FSTW_InitInput.turbInerMat[ii][jj];
+            this->bodyInerMat(ii, jj) = FSTW_InitInput.platInerMat[ii][jj];
+            this->towrInerMat(ii, jj) = FSTW_InitInput.towrInerMat[ii][jj];
+            this->turbInerMat(ii, jj) = FSTW_InitInput.turbInerMat[ii][jj];
         }
     }
+    std::cout << "        --> ... done!" << std::endl;
 
+    std::cout << "        --> Save inertia matrices" << std::endl;
     char buffer1[50], buffer2[50], buffer3[50];
     int nn1 = sprintf(buffer1, "FASTurbW_%d_bodyInerMat.dat", idWindTurbine);
     int nn2 = sprintf(buffer2, "FASTurbW_%d_towrInerMat.dat", idWindTurbine);
     int nn3 = sprintf(buffer3, "FASTurbW_%d_turbInerMat.dat", idWindTurbine);
-    bodyInerMat.save(JoinPath(OutputPath, buffer1), arma::raw_ascii);
-    towrInerMat.save(JoinPath(OutputPath, buffer2), arma::raw_ascii);
-    turbInerMat.save(JoinPath(OutputPath, buffer3), arma::raw_ascii);
+    this->bodyInerMat.save(JoinPath(OutputPath, buffer1), arma::raw_ascii);
+    this->towrInerMat.save(JoinPath(OutputPath, buffer2), arma::raw_ascii);
+    this->turbInerMat.save(JoinPath(OutputPath, buffer3), arma::raw_ascii);
+    std::cout << "        --> ... done!" << std::endl;
 
+    std::cout << "        --> Get initial conditions" << std::endl;
     rotSpeed = FSTW_InitInput.turbIniRotSpeed;
     yaw = FSTW_InitInput.turbIniYaw;
     yaw_ini = yaw;
     YCMode = FSTW_InitInput.YCMode;
+    if (FSTW_InitInput.isFixed_GenDOF > 0)
+    {
+        isRotorBlocked = true;
+    }
+    std::cout << "        --> ... done!" << std::endl;
 
     if (YCMode > 0)
     {
@@ -149,10 +174,16 @@ void WindTurbine::Initialize(void)
     }
 
     // Calculate turbine at time 0.0...
+    std::cout << "        --> Calculate turbine at time 0.0..." << std::endl;
     SetInputsFAST();
+    std::cout << "            --> SetInputsFAST... done!" << std::endl;
     ComputeForces(0.0);
+    std::cout << "            --> ComputeForces... done!" << std::endl;
     ComputeControler(0.0);
+    std::cout << "            --> ComputeControler... done!" << std::endl;
     WriteOut(0.0);
+    std::cout << "            --> WriteOut... done!" << std::endl;
+    std::cout << "        --> ... done!" << std::endl;
 }
 
 void WindTurbine::Finalize(void)
@@ -165,6 +196,8 @@ void WindTurbine::Finalize(void)
 void WindTurbine::ComputeForces(double time)
 {
     // std::cout << "    WindTurbine::ComputeForces" << std::endl;
+    FSTW_CalcWind(&time, &ErrStat, ErrMsg);
+    CheckError();
     FSTW_CalcForces(&time, &ErrStat, ErrMsg);
     CheckError();
 
@@ -198,8 +231,16 @@ void WindTurbine::SetInputsFAST(void)
     FSTW_Input.plat_vel[4] = pBody->vel(4, 0);
     FSTW_Input.plat_vel[5] = pBody->vel(5, 0);
 
+    FSTW_Input.plat_acc[0] = pBody->acc(0, 0);
+    FSTW_Input.plat_acc[1] = pBody->acc(1, 0);
+    FSTW_Input.plat_acc[2] = pBody->acc(2, 0);
+    FSTW_Input.plat_acc[3] = pBody->acc(3, 0);
+    FSTW_Input.plat_acc[4] = pBody->acc(4, 0);
+    FSTW_Input.plat_acc[5] = pBody->acc(5, 0);
+
     FSTW_Input.RotPos[0] = rotPos;
     FSTW_Input.RotSpeed[0] = rotSpeed;
+
     if (YCMode > 0)
     {
         FSTW_Input.Yaw[0] = yaw;
@@ -233,7 +274,14 @@ void WindTurbine::ComputeRotorAcc(void)
 {
     // std::cout << "    WindTurbine::ComputeRotorAcc" << std::endl;
 
-    rotAcc = (airTrq - genTrq) / rotIner;
+    if (isRotorBlocked)
+    {
+        rotAcc = 0.0;
+    }
+    else
+    {
+        rotAcc = (airTrq - genTrq) / rotIner;
+    }
     // std::cout << "WindTurbine::ComputeRotorAcc - airTrq = " << airTrq << std::endl;
     // std::cout << "WindTurbine::ComputeRotorAcc - genTrq = " << genTrq << std::endl;
 }

@@ -40,13 +40,20 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     // std::cout << "Simulation::CalculateSystemDynamics - At first" << std::endl;
     arma::mat yprime = arma::zeros(size(y));
     int i0;
+    int ini;
     // Copy info from y to the objects.
-    // std::cout << "Simulation::CalculateSystemDynamics - Before copy y to objects" << std::endl;
-    int ini = 0;
+    // std::cout << "Simulation::CalculateSystemDynamics - Copy info from y to objects" << std::endl;
+    ini = 0;
+    // Load variables from second order systems
     for (int ii = 0; ii < numBodiesFree; ii++)
     {
-        pBodiesFree[ii]->pos = y.rows(ini, ini + 5);
-        ini = ini + 6;
+        for (int jj = 0; jj < this->pBodiesFree[ii]->numDofs; jj = jj + 1)
+        {
+            int itemp = this->pBodiesFree[ii]->pDofs[jj];
+            this->pBodiesFree[ii]->pos(itemp, 0) = y(ini);
+            ini = ini + 1;
+        }
+        // std::cout << "Simulation::CalculateSystemDynamics - Body " << this->pBodiesFree[ii]->GetId() + 1 << " pos: " << this->pBodiesFree[ii]->pos.t() << std::endl;
     }
     for (int ii = 0; ii < numLines; ii++)
     {
@@ -66,10 +73,16 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
         pWindTurbines[ii]->rotPos = arma::as_scalar(y.row(ini));
         ini = ini + 1;
     }
+    // Load variable derivatives from second order systems
     for (int ii = 0; ii < numBodiesFree; ii++)
     {
-        pBodiesFree[ii]->vel = y.rows(ini, ini + 5);
-        ini = ini + 6;
+        for (int jj = 0; jj < this->pBodiesFree[ii]->numDofs; jj = jj + 1)
+        {
+            int itemp = this->pBodiesFree[ii]->pDofs[jj];
+            this->pBodiesFree[ii]->vel(itemp, 0) = y(ini);
+            ini = ini + 1;
+        }
+        // std::cout << "Simulation::CalculateSystemDynamics - Body " << this->pBodiesFree[ii]->GetId() + 1 << " vel: " << this->pBodiesFree[ii]->vel.t() << std::endl;
     }
     for (int ii = 0; ii < numLines; ii++)
     {
@@ -88,6 +101,31 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     {
         pWindTurbines[ii]->rotSpeed = arma::as_scalar(y.row(ini));
         ini = ini + 1;
+    }
+    // Load variables from first order systems
+    for (int ii = 0; ii < numOWCs; ii++)
+    {
+        if (this->pOWCs[ii]->turbine_type >= 0)
+        {
+            pOWCs[ii]->rel_pressure = arma::as_scalar(y.row(ini));
+            ini = ini + 1;
+        }
+        if (this->pOWCs[ii]->turbine_type > 0)
+        {
+            int turb_valve_type = this->pOWCs[ii]->pOWCTurbine->pOWCTurbineType->valve_type;
+            if (turb_valve_type == 0 || turb_valve_type == 1)
+            {
+                pOWCs[ii]->pOWCTurbine->angular_velocity = arma::as_scalar(y.row(ini));
+                ini = ini + 1;
+            }
+            else if (turb_valve_type == 2 || turb_valve_type == 3)
+            {
+                pOWCs[ii]->pOWCTurbine->gap_rel_pressure = arma::as_scalar(y.row(ini));
+                ini = ini + 1;
+                pOWCs[ii]->pOWCTurbine->angular_velocity = arma::as_scalar(y.row(ini));
+                ini = ini + 1;
+            }
+        }
     }
 
     for (int ii = 0; ii < numBodiesLock; ii++)
@@ -173,12 +211,22 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
         pSinking[ii]->UpdateSinkingHydrostatics(time);
     }
 
-    // Compute hydrostatic and hidrodynamic forces
-    // std::cout << "Simulation::CalculateSystemDynamics - Compute hydrodynamic and hydrostatic forces" << std::endl;
+    // Initialize forces vector
     arma::mat Fb = arma::zeros(6 * numBodiesFree, 1);
+
+    // Compute hydrostatic and hydrodynamic forces
+    // std::cout << "Simulation::CalculateSystemDynamics - Compute hydrodynamic and hydrostatic forces" << std::endl;
     for (int ii = 0; ii < numBodiesFree; ii++)
     {
-        Fb(arma::span(6 * ii, 6 * (ii + 1) - 1), 0) = pBodiesFree[ii]->Fb + pBodiesFree[ii]->pHydro->CalculateHydrostaticForces(time);
+        arma::mat tmp_hs = arma::zeros(6, 1);
+        if (pBodies[ii]->flag_hydrostatics == 0)
+        {
+            tmp_hs = pBodiesFree[ii]->pHydro->CalculateHydrostaticForces(time);
+        }
+        arma::mat tmp_hd = pBodiesFree[ii]->Fb;
+        Fb(arma::span(6 * ii, 6 * (ii + 1) - 1), 0) = tmp_hs + tmp_hd;
+        // std::cout << "Simulation::CalculateSystemDynamics - body " << pBodiesFree[ii]->GetId() + 1 << " hydrostatic forces: " << tmp_hs.t() << std::endl;
+        // std::cout << "Simulation::CalculateSystemDynamics - body " << pBodiesFree[ii]->GetId() + 1 << " hydrodynamic forces: " << tmp_hd.t() << std::endl;
     }
     if (Fb.has_nan() | Fb.has_inf())
     {
@@ -215,6 +263,22 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
         throw std::exception();
     }
 
+    // Compute OWCs dynamics
+    // std::cout << "Simulation::CalculateSystemDynamics - Compute OWC dynamics" << std::endl;
+    for (int ii = 0; ii < numBodiesFree; ii++)
+    {
+        pBodiesFree[ii]->owcForces = arma::zeros(6, 1);
+    }
+    for (int ii = 0; ii < numOWCs; ii++)
+    {
+        pOWCs[ii]->ComputeForces(time);
+    }
+    for (int ii = 0; ii < numBodiesFree; ii++)
+    {
+        Fb(arma::span(6 * ii, 6 * (ii + 1) - 1), 0) = Fb(arma::span(6 * ii, 6 * (ii + 1) - 1), 0) + pBodiesFree[ii]->owcForces;
+        // std::cout << "Simulation::CalculateSystemDynamics - body " << pBodiesFree[ii]->GetId() + 1 << " OWC forces: " << pBodiesFree[ii]->owcForces.t() << std::endl;
+    }
+
     // Compute also everything for locked bodies so it can be displayed on the output files
     arma::mat dummy;
     for (int ii = 0; ii < numBodiesLock; ii++)
@@ -225,6 +289,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     }
 
     // Compute body acceleration
+    // TODO: Regarding OWCs, this could be more efficient if we remove unused DOFs from system matrix
     // std::cout << "Simulation::CalculateSystemDynamics - Compute Bodies accelerations" << std::endl;
     arma::mat accB;
     if (numBodiesFree > 0)
@@ -406,7 +471,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
         pLines[ii]->acc = LinesAccelerations.rows(pLines[ii]->ind4CouplingMat);
     }
 
-    // Compute Winchies
+    // Compute Winches
     // std::cout << "Simulation::CalculateSystemDynamics - Compute Winchies" << std::endl;
     for (int ii = 0; ii < numWinches; ii = ii + 1)
     {
@@ -428,12 +493,17 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     }
 
     // Copy info from the objects to yprime
-    // std::cout << "Simulation::CalculateSystemDynamics - Copy info to yprime" << std::endl;
+    // std::cout << "Simulation::CalculateSystemDynamics - Copy info from objects to yprime" << std::endl;
     ini = 0;
+    // Return variable derivatives from second order systems
     for (int ii = 0; ii < numBodiesFree; ii = ii + 1)
     {
-        yprime.rows(ini, ini + 5) = pBodiesFree[ii]->vel;
-        ini = ini + 6;
+        for (int jj = 0; jj < this->pBodiesFree[ii]->numDofs; jj = jj + 1)
+        {
+            int itemp = this->pBodiesFree[ii]->pDofs[jj];
+            yprime(ini) = this->pBodiesFree[ii]->vel(itemp, 0);
+            ini = ini + 1;
+        }
     }
     for (int ii = 0; ii < numLines; ii = ii + 1)
     {
@@ -453,10 +523,15 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
         yprime.row(ini) = pWindTurbines[ii]->rotSpeed;
         ini = ini + 1;
     }
+    // Return variable second derivatives from second order systems
     for (int ii = 0; ii < numBodiesFree; ii = ii + 1)
     {
-        yprime.rows(ini, ini + 5) = pBodiesFree[ii]->acc;
-        ini = ini + 6;
+        for (int jj = 0; jj < this->pBodiesFree[ii]->numDofs; jj = jj + 1)
+        {
+            int itemp = this->pBodiesFree[ii]->pDofs[jj];
+            yprime(ini) = this->pBodiesFree[ii]->acc(itemp, 0);
+            ini = ini + 1;
+        }
     }
     for (int ii = 0; ii < numLines; ii = ii + 1)
     {
@@ -475,6 +550,31 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     {
         yprime.row(ini) = pWindTurbines[ii]->rotAcc;
         ini = ini + 1;
+    }
+    // Return variable derivatives from first order systems
+    for (int ii = 0; ii < numOWCs; ii++)
+    {
+        if (this->pOWCs[ii]->turbine_type >= 0)
+        {
+            yprime.row(ini) = pOWCs[ii]->rel_pressure_dot;
+            ini = ini + 1;
+        }
+        if (this->pOWCs[ii]->turbine_type > 0)
+        {
+            int turb_valve_type = this->pOWCs[ii]->pOWCTurbine->pOWCTurbineType->valve_type;
+            if (turb_valve_type == 0 || turb_valve_type == 1)
+            {
+                yprime.row(ini) = pOWCs[ii]->pOWCTurbine->angular_acceleration;
+                ini = ini + 1;
+            }
+            else if (turb_valve_type == 2 || turb_valve_type == 3)
+            {
+                yprime.row(ini) = pOWCs[ii]->pOWCTurbine->gap_rel_pressure_dot;
+                ini = ini + 1;
+                yprime.row(ini) = pOWCs[ii]->pOWCTurbine->angular_acceleration;
+                ini = ini + 1;
+            }
+        }
     }
 
     // Check if yprime has a NaN
@@ -525,13 +625,58 @@ void Simulation::Initialize()
 
     // Initialize system vector
     std::cout << "Num. Bodies Free: " << this->numBodiesFree << std::endl;
-    std::cout << "Num. Mooring DOFs Total: " << this->numDofTotal << std::endl;
+    std::cout << "Num. Mooring DOFs Total: " << this->numDofLinesTotal << std::endl;
     std::cout << "Num. Winchies: " << this->numWinches << std::endl;
     std::cout << "Num. Wind Turbines: " << this->numWindTurbines << std::endl;
-    numSystem2 = 3 * this->numDofTotal + 6 * this->numBodiesFree + this->numWinches + this->numWindTurbines;
+    std::cout << "Num. OWCs: " << this->numOWCs << std::endl;
+
+    // Get the number of DOFs of second order systems
+    numSystem2 = 0;
+    // Add DOFs of free bodies
+    numDofBodiesFree = 0;
+    for (int ii = 0; ii < this->numBodiesFree; ii++)
+    {
+        numDofBodiesFree = numDofBodiesFree + this->pBodiesFree[ii]->numDofs;
+    }
+    numSystem2 = numSystem2 + numDofBodiesFree;
+    // Add DOFs of lines
+    numSystem2 = numSystem2 + 3 * this->numDofLinesTotal;
+    // Add DOFs of winches
+    numSystem2 = numSystem2 + this->numWinches;
+    // Add DOFs of wind turbines
+    numSystem2 = numSystem2 + this->numWindTurbines;
+
+    // Compute the total number of DOFs for the second order system multiplying by 2
     numSystem = 2 * numSystem2;
 
-    printf("System size: %d\n", numSystem);
+    // Add DOFs of first order systems at the end of the system vector
+    // Add DOFs of OWCs
+    for (int ii = 0; ii < this->numOWCs; ii++)
+    {
+        if (this->pOWCs[ii]->turbine_type >= 0)
+        {
+            numSystem = numSystem + 1; // Chamber relative pressure
+        }
+        if (this->pOWCs[ii]->turbine_type > 0)
+        {
+            int valve_type = this->pOWCs[ii]->pOWCTurbine->pOWCTurbineType->valve_type;
+            if (valve_type == 0 || valve_type == 1) // Cases with no throttle valve
+            {
+                numSystem = numSystem + 1; // Turbine angular velocity
+            }
+            else if (valve_type == 2 || valve_type == 3) // Cases with throttle valve
+            {
+                numSystem = numSystem + 2; // Turbine angular velocity and gap relative pressure
+            }
+            else
+            {
+                std::cout << "ERROR: OWC Turbine valve type not implemented!" << std::endl;
+                throw std::exception();
+            }
+        }
+    }
+
+    std::cout << "System size: " << numSystem << std::endl;
 
     arma::mat y = arma::zeros(numSystem, 1);
     arma::mat yprime = arma::zeros(numSystem, 1);
@@ -544,8 +689,12 @@ void Simulation::Initialize()
         for (int ii = 0; ii < this->numBodiesFree; ii = ii + 1)
         {
             std::cout << "  ... Including Body: " << ii + 1 << std::endl;
-            y.rows(ini, ini + 5) = this->pBodiesFree[ii]->pos;
-            ini = ini + 6;
+            for (int jj = 0; jj < this->pBodiesFree[ii]->numDofs; jj = jj + 1)
+            {
+                int itemp = this->pBodiesFree[ii]->pDofs[jj];
+                y(ini) = this->pBodiesFree[ii]->pos(itemp, 0);
+                ini = ini + 1;
+            }
         }
         for (int ii = 0; ii < this->numLines; ii = ii + 1)
         {
@@ -567,6 +716,32 @@ void Simulation::Initialize()
             y(ini) = this->pWindTurbines[ii]->rotPos;
             y(numSystem2 + ini) = this->pWindTurbines[ii]->rotSpeed;
             ini = ini + 1;
+        }
+        ini = 0;
+        for (int ii = 0; ii < this->numOWCs; ii = ii + 1)
+        {
+            std::cout << "  ... Including OWC: " << ii + 1 << std::endl;
+            if (this->pOWCs[ii]->turbine_type >= 0)
+            {
+                y(2 * numSystem2 + ini) = this->pOWCs[ii]->rel_pressure;
+                ini = ini + 1;
+            }
+            if (this->pOWCs[ii]->turbine_type > 0)
+            {
+                int valve_type = this->pOWCs[ii]->pOWCTurbine->pOWCTurbineType->valve_type;
+                if (valve_type == 0 || valve_type == 1) // Cases with no throttle valve
+                {
+                    y(2 * numSystem2 + ini) = this->pOWCs[ii]->pOWCTurbine->angular_velocity;
+                    ini = ini + 1;
+                }
+                else if (valve_type == 2 || valve_type == 3) // Cases with throttle valve
+                {
+                    y(2 * numSystem2 + ini) = this->pOWCs[ii]->pOWCTurbine->gap_rel_pressure;
+                    ini = ini + 1;
+                    y(2 * numSystem2 + ini) = this->pOWCs[ii]->pOWCTurbine->angular_velocity;
+                    ini = ini + 1;
+                }
+            }
         }
     }
     else
@@ -605,15 +780,25 @@ void Simulation::Initialize()
     // Initialize Temporal Solver
     if (this->timeIntMethod == 1)
     {
-        std::cout << "Initializing temporal solver..." << std::endl;
-        pTimeSolver = new BDF(start_time, this->simulationTime, this->maxTimeStep, y, this);
-        std::cout << "  Temporal solver constructor done!" << std::endl;
-        std::cout << " y = " << y << std::endl;
-        pTimeSolver->Initialize();
+        std::cout << "Initializing BDF2 temporal solver..." << std::endl;
+        pTimeSolver = new BDF2(start_time, this->simulationTime, this->maxTimeStep, y, this);
+        std::cout << "  BDF2 constructor done!" << std::endl;
+        pTimeSolver->init();
         pTimeSolver->atol = this->timeIntAbsTol;
         pTimeSolver->rtol = this->timeIntRelTol;
         pTimeSolver->nIterMax = this->maxIterStep;
-        std::cout << "  Temporal solver initiallized!" << std::endl;
+        std::cout << "  BDF2 initiallized!" << std::endl;
+    }
+    else if (this->timeIntMethod == 2)
+    {
+        std::cout << "Initializing BDF" << timeIntOrder << " temporal solver..." << std::endl;
+        pTimeSolver = new BDFN(this->timeIntOrder, this->timeIntAdaptivity, start_time, this->simulationTime, this->maxTimeStep, y, this);
+        std::cout << "  BDF" << timeIntOrder << " constructor done!" << std::endl;
+        pTimeSolver->init();
+        pTimeSolver->atol = this->timeIntAbsTol;
+        pTimeSolver->rtol = this->timeIntRelTol;
+        pTimeSolver->nIterMax = this->maxIterStep;
+        std::cout << "  BDF" << timeIntOrder << " initiallized!" << std::endl;
     }
 
     // Write initial condition to files
@@ -621,11 +806,11 @@ void Simulation::Initialize()
         this->pLines[ii]->WriteOut(start_time);
     for (int ii = 0; ii < this->numBodies; ii = ii + 1)
         this->pBodies[ii]->WriteOut(start_time);
-    std::cout << "Update system" << std::endl;
 
+    std::cout << "Updating system..." << std::endl;
     // Save first data
     this->UpdateSystem();
-    std::cout << "System updated!" << std::endl;
+    std::cout << "  System updated!" << std::endl;
 }
 
 void Simulation::LoadCase()
@@ -637,6 +822,7 @@ void Simulation::LoadCase()
     this->ReadProperties();
 
     // Read Components Data
+    // TODO: For unnecessary components, if the file is not found, it should not throw an error
     this->ReadWaves();
     this->ReadBodies();
     this->ReadLines();
@@ -649,6 +835,7 @@ void Simulation::LoadCase()
     this->ReadSinking();
     this->ReadSeaFloor();
     this->ReadWindTurbines();
+    this->ReadOWCs();
 
     // Setup case
     this->SetupCase();
@@ -1027,7 +1214,9 @@ void Simulation::ReadBodiesASCII()
             // Fill system matrix
             a1 = arma::span(db_shift + body_shift, db_shift + body_shift + 5);
             a2 = arma::span(db_shift, db_shift + 6 * check_hydro_bodies_id[pos_database][0] - 1);
+            std::cout << "  ... Filling system matrix for body: " << ii + 1 << std::endl;
             (*pSystemMatrix)(a1, a2) += pBodies[ii]->pHydro->GetTotalMass();
+            std::cout << "  ... done!" << std::endl;
             pBodies[ii]->sysMatSpan1 = a1;
             pBodies[ii]->sysMatSpan2 = a2;
             pBodies[ii]->sysMatInd1 = arma::regspace<arma::uvec>(db_shift + body_shift, db_shift + body_shift + 5);
@@ -1059,7 +1248,6 @@ void Simulation::ReadBodiesASCII()
                 *pSystemMatrixFL = (*pSystemMatrix)(sysMatIndFree, sysMatIndLock);
             }
         }
-
         // Invert system matrix
         std::cout << "Inverting system matrix...\n";
         *pSystemMatrixInv = arma::solve(*pSystemMatrix, eye(size(*pSystemMatrix)));
@@ -1334,6 +1522,9 @@ void Simulation::ReadPropertiesASCII()
     // Read data
     fscanf(file_pointer, "%lf %[^\n]\n", &gravity, bufferLine);                // Gravity acceleration [m/s^2]
     fscanf(file_pointer, "%lf %[^\n]\n", &waterDensity, bufferLine);           // Water density [kg/m^3]
+    fscanf(file_pointer, "%lf %[^\n]\n", &airAtmPresDensity, bufferLine);      // Air density at atmospheric pressure [kg/m^3]
+    fscanf(file_pointer, "%lf %[^\n]\n", &airAtmPres, bufferLine);             // Atmospheric pressure [Pa]
+    fscanf(file_pointer, "%lf %[^\n]\n", &airAdiabaticDilation, bufferLine);   // Air adiabatic dilation [-]
     fscanf(file_pointer, "%lf %[^\n]\n", &waterDepth, bufferLine);             // Seabed vertical coordinate [m]
     fscanf(file_pointer, "%lf %[^\n]\n", &writeTimeStep, bufferLine);          // Output time step [s]
     fscanf(file_pointer, "%lf %[^\n]\n", &maxTimeStep, bufferLine);            // Maximum time step for time integration [s]
@@ -1342,11 +1533,15 @@ void Simulation::ReadPropertiesASCII()
     fscanf(file_pointer, "%lf %[^\n]\n", &fastControllerTimeStep, bufferLine); // Time step for FAST wind turbines controller update [s]
     fscanf(file_pointer, "%lf %[^\n]\n", &timeIRF, bufferLine);                // IRF time [s]
     fscanf(file_pointer, "%lf %[^\n]\n", &sinkingTimeStep, bufferLine);        // Time step for synking hydrodinamic data bases update [s]
-    fscanf(file_pointer, "%lf %[^\n]\n", &controllerTimeStep, bufferLine);     // Time step for winches controller [s]
+    fscanf(file_pointer, "%lf %[^\n]\n", &winchesContTimeStep, bufferLine);    // Time step for winches controller [s]
+    fscanf(file_pointer, "%lf %[^\n]\n", &owcsContTimeStep, bufferLine);       // Time step for OWCS controller [s]
     fscanf(file_pointer, "%lf %[^\n]\n", &simulationTime, bufferLine);         // Total time of simulation [s]
     fscanf(file_pointer, "%d %[^\n]\n", &dummyBool, bufferLine);
-    rotSimpFlag = dummyBool;                                          // Flag to use simplification for rigid body rotation dynamics [0 No, 1 Yes]
-    fscanf(file_pointer, "%d %[^\n]\n", &timeIntMethod, bufferLine);  // Solver temporal [1: BDF1]
+    rotSimpFlag = dummyBool;                                         // Flag to use simplification for rigid body rotation dynamics [0 No, 1 Yes]
+    fscanf(file_pointer, "%d %[^\n]\n", &timeIntMethod, bufferLine); // Temporal integration alforithm [1: BDF1, 2: BDFN]
+    fscanf(file_pointer, "%d %[^\n]\n", &timeIntOrder, bufferLine);  // Order for temporal integration
+    fscanf(file_pointer, "%d %[^\n]\n", &dummyBool, bufferLine);
+    timeIntAdaptivity = dummyBool;                                    // Time step adaptivity [0 No, 1 Yes]
     fscanf(file_pointer, "%lf %[^\n]\n", &timeIntAbsTol, bufferLine); // Absolute tolerance for temporal integration.
     fscanf(file_pointer, "%lf %[^\n]\n", &timeIntRelTol, bufferLine); // Relative tolerance for temporal integration.
     fscanf(file_pointer, "%d %[^\n]\n", &maxIterStep, bufferLine);    // Maximum number of iterations for one step of temporal integration.
@@ -1723,6 +1918,83 @@ void Simulation::ReadWindTurbinesHDF5(void)
     std::cout << "--> Wind Turbines Properties Read" << std::endl;
 }
 
+void Simulation::ReadOWCs(void)
+{
+    (this->*pReadOWCs)();
+}
+
+void Simulation::ReadOWCsASCII(void)
+{
+    std::cout << "--> Reading OWCs Turbines Properties (ASCII format)" << std::endl;
+    // Declare local variables
+    char bufferLineT[1000];
+    // Open file
+    std::string file_pathT = JoinPath(inputFolderPath, "dataOWCTurbines.dat");
+    FILE *pFileT = fopen(file_pathT.c_str(), "r");
+    if (pFileT == NULL)
+    {
+        std::cout << "    --> WARNING: dataOWCTurbines.dat was not found! Setting numOWCs = 0!" << std::endl;
+        numOWCTurbines = 0;
+    }
+    else
+    {
+        // Read total number of owcs
+        fscanf(pFileT, "%d %[^\n]\n", &numOWCTurbines, bufferLineT);
+        if (numOWCTurbines > 0)
+        {
+            // Initiallice OWC array
+            pOWCTurbines = new OWCTurbineType *[numOWCTurbines];
+            for (int ii = 0; ii < numOWCTurbines; ii++)
+            {
+                pOWCTurbines[ii] = new OWCTurbineType(ii, this);
+                pOWCTurbines[ii]->Initialize(pFileT);
+            }
+        }
+        // Close file
+        fclose(pFileT);
+    }
+    std::cout << "--> OWCs Turbines Properties Read" << std::endl;
+
+    std::cout << "--> Reading OWCs Properties (ASCII format)" << std::endl;
+    // Declare local variables
+    char bufferLine[1000];
+    // Open file
+    std::string file_path = JoinPath(inputFolderPath, "dataOWCs.dat");
+    FILE *pFile = fopen(file_path.c_str(), "r");
+    if (pFile == NULL)
+    {
+        std::cout << "    --> WARNING: dataOWCs.dat was not found! Setting numOWCs = 0!" << std::endl;
+        numOWCs = 0;
+    }
+    else
+    {
+        // Read total number of owcs
+        fscanf(pFile, "%d %[^\n]\n", &numOWCs, bufferLine);
+        if (numOWCs > 0)
+        {
+            // Initiallice OWC array
+            pOWCs = new OWC *[numOWCs];
+            for (int ii = 0; ii < numOWCs; ii++)
+            {
+                pOWCs[ii] = new OWC(ii, this);
+                pOWCs[ii]->Initialize(pFile);
+            }
+        }
+        // Close file
+        fclose(pFile);
+    }
+    std::cout << "--> OWCs Properties Read" << std::endl;
+}
+
+void Simulation::ReadOWCsHDF5(void)
+{
+    std::cout << "--> Reading OWCs (HDF5 format)" << std::endl;
+    std::stringstream ss;
+    ss << "Method ReadOWCsHDF5 in class Simulation not implemented yet.";
+    throw NotImplementedError(ss.str());
+    std::cout << "--> OWCs Properties Read" << std::endl;
+}
+
 void Simulation::Run()
 {
     std::cout << "--> Starting Simulation Run..." << std::endl;
@@ -1734,7 +2006,10 @@ void Simulation::Run()
     double wallTimeFAST = 0.0;
     double wallTimeControllerFAST = 0.0;
     double wallTimeSinking = 0.0;
-    double wallTimeController = 0.0;
+    double wallTimeControllerWinches = 0.0;
+    double wallTimeControllerOWCs = 0.0;
+    tstart = time(0);
+    bool flag_debug_lines = true;
 
     std::cout << "    t = " << wallTime << " s" << std::endl;
 
@@ -1745,6 +2020,23 @@ void Simulation::Run()
         // std::cout<< "In Simulation::Run --> step() "<< std::endl;
         pTimeSolver->step();
 
+        // Print lines in first time step for debugging
+        if (flag_debug_lines)
+        {
+            flag_debug_lines = false;
+            for (int ii = 0; ii < numLines; ii = ii + 1)
+            {
+                fprintf(pLines[ii]->pfile_line_debug, "s    x    y    z \n");
+                for (int jj = 0; jj < pLines[ii]->N; jj = jj + 1)
+                    fprintf(pLines[ii]->pfile_line_debug, "%f    %f    %f    %f \n",
+                            pLines[ii]->s(jj, 0),
+                            pLines[ii]->pos(jj, 0),
+                            pLines[ii]->pos(jj, 1),
+                            pLines[ii]->pos(jj, 2));
+                fclose(pLines[ii]->pfile_line_debug);
+            }
+        }
+
         if (pTimeSolver->t >= wallTime + writeTimeStep)
         {
             // std::cout<< "In Simulation::Run --> WriteOut() "<< std::endl;
@@ -1754,6 +2046,8 @@ void Simulation::Run()
                 pLines[ii]->WriteOut(wallTime);
             for (int ii = 0; ii < numBodies; ii = ii + 1)
                 pBodies[ii]->WriteOut(wallTime);
+            for (int ii = 0; ii < numOWCs; ii = ii + 1)
+                pOWCs[ii]->WriteOut(wallTime);
         }
 
         if (pTimeSolver->t >= wallTimeHydro + hydroTimeStep)
@@ -1767,6 +2061,10 @@ void Simulation::Run()
             for (int ii = 0; ii < numBodies; ii = ii + 1)
             {
                 pBodies[ii]->Fb = pBodies[ii]->pHydro->CalculateHydrodynamicForces(wallTimeHydro);
+                if (pBodies[ii]->flag_hydrostatics > 0)
+                {
+                    pBodies[ii]->Fb += pBodies[ii]->pHydro->CalculateHydrostaticForces(wallTimeHydro);
+                }
             }
         }
 
@@ -1795,6 +2093,22 @@ void Simulation::Run()
             }
         }
 
+        if (numOWCs > 0)
+        {
+            if (pTimeSolver->t >= wallTimeControllerOWCs + owcsContTimeStep)
+            {
+                // std::cout << "In Simulation::Run --> Controlling OWCs... " << std::endl;
+                wallTimeControllerOWCs += owcsContTimeStep;
+                for (int ii = 0; ii < numOWCs; ii = ii + 1)
+                {
+                    if (pOWCs[ii]->turbine_type > 0)
+                    {
+                        pOWCs[ii]->pOWCTurbine->ComputeGenTorque();
+                    }
+                }
+            }
+        }
+
         if (numSinking > 0)
         {
             if (pTimeSolver->t >= wallTimeSinking + sinkingTimeStep)
@@ -1816,12 +2130,12 @@ void Simulation::Run()
 
         if (numWinches > 0)
         {
-            if (pTimeSolver->t >= wallTimeController + controllerTimeStep)
+            if (pTimeSolver->t >= wallTimeControllerWinches + winchesContTimeStep)
             {
                 // std::cout << "In Simulation::Run --> Controlling winches... " << std::endl;
-                wallTimeController += controllerTimeStep;
-                WinchesController.controlWinchies(wallTimeController);
-                WinchesController.WriteOut(wallTimeController);
+                wallTimeControllerWinches += winchesContTimeStep;
+                WinchesController.controlWinchies(wallTimeControllerWinches);
+                WinchesController.WriteOut(wallTimeControllerWinches);
                 // std::cout << "In Simulation::Run --> ... done controlling winches!" << std::endl;
             }
         }
@@ -1935,6 +2249,7 @@ void Simulation::SetupCase()
     }
     for (int ii = 0; ii < numBodies; ii++)
     {
+        std::cout << "    --> Body " << ii + 1 << " pos = " << pBodies[ii]->pos.t() << std::endl;
         for (int jj = 0; jj < pBodies[ii]->numBcps; jj++)
         {
             pBodies[ii]->pBodyBcps[jj] = pBcps[pBodies[ii]->pIndexBcps[jj]];
@@ -1960,9 +2275,9 @@ void Simulation::SetupCase()
             if (pBodies[ii]->pIndexWindTurbs[jj] + 1 > numWindTurbines)
             {
                 std::stringstream ss;
-                ss << "BCP index: " << pBodies[ii]->pIndexWindTurbs[jj] << " in Body: " << pBodies[ii]->GetId()
-                   << " is out of range when compare with the Number of BCPs(" << numBcps << ") defined in"
-                   << " datosBCPs.dat";
+                ss << "Wind Turbine index: " << pBodies[ii]->pIndexWindTurbs[jj] << " in Body: " << pBodies[ii]->GetId()
+                   << " is out of range when compare with the Number of Wind Turbines (" << numWindTurbines << ") defined in"
+                   << " datosWindTurbines.dat";
                 throw ValueError(ss.str());
             }
         }
@@ -2104,25 +2419,25 @@ void Simulation::SetupCase()
 
         if (pLines[ii]->pLineBcps[0]->GetType() != 3 && pLines[ii]->pLineBcps[1]->GetType() != 3)
         {
-            numDofTotal += (pLines[ii]->N - 2);
+            numDofLinesTotal += (pLines[ii]->N - 2);
             pLines[ii]->first_node = 1;
             pLines[ii]->last_node = pLines[ii]->N - 1;
         }
         else if (pLines[ii]->pLineBcps[0]->GetType() == 3 && pLines[ii]->pLineBcps[1]->GetType() == 3)
         {
-            numDofTotal += pLines[ii]->N;
+            numDofLinesTotal += pLines[ii]->N;
             pLines[ii]->first_node = 0;
             pLines[ii]->last_node = pLines[ii]->N;
         }
         else if (pLines[ii]->pLineBcps[0]->GetType() == 3 && pLines[ii]->pLineBcps[1]->GetType() != 3)
         {
-            numDofTotal += (pLines[ii]->N - 1);
+            numDofLinesTotal += (pLines[ii]->N - 1);
             pLines[ii]->first_node = 0;
             pLines[ii]->last_node = pLines[ii]->N - 1;
         }
         else if (pLines[ii]->pLineBcps[0]->GetType() != 3 && pLines[ii]->pLineBcps[1]->GetType() == 3)
         {
-            numDofTotal += (pLines[ii]->N - 1);
+            numDofLinesTotal += (pLines[ii]->N - 1);
             pLines[ii]->first_node = 1;
             pLines[ii]->last_node = pLines[ii]->N;
         }
@@ -2182,10 +2497,16 @@ void Simulation::SetupCase()
         numAllLinesNodes += pLines[jj]->N;
         for (int kk = 0; kk < 2; kk++)
         {
-            if ((pLines[jj]->pLineBcps[kk]->GetType() == 3) && (pLines[jj]->pLineBcps[kk]->flag_counted == 0))
+            if (pLines[jj]->pLineBcps[kk]->GetType() == 3)
             {
-                pLines[jj]->pLineBcps[kk]->flag_counted = 1;
-                numUsedJointBCPs++;
+                if (pLines[jj]->pLineBcps[kk]->flag_counted == 0)
+                {
+                    pLines[jj]->pLineBcps[kk]->flag_counted = 1;
+                }
+                else
+                {
+                    numUsedJointBCPs++;
+                }
             }
         }
     }
@@ -2248,6 +2569,10 @@ void Simulation::SetupCase()
     pLinesCouplingMatrixInv = new arma::mat(numAllLinesNodes, numAllLinesNodes);
     pLinesCouplingMatrix_sp = new arma::sp_mat(numAllLinesNodes, numAllLinesNodes);
     ComputeLinesCouplingMatrix();
+    if (numLines > 0)
+    {
+        std::cout << "  --> ... done!" << std::endl;
+    }
     // TODO: 100 should be a parameter
     if (numAllLinesNodes < 100)
     {
@@ -2366,7 +2691,7 @@ void Simulation::SetupCase()
         {
             if (pBodies[ii]->numWindTurbs > 0)
             {
-                // TODO: Here, it would be convenient to check that forthe different turbines
+                // TODO: Here, it would be convenient to check that for the different turbines
                 // the inertia of the HDB are at least very similar.
                 pBodies[ii]->inertia = pBodies[ii]->pBodyWindTurbs[0]->bodyInerMat;
                 for (int jj = 0; jj < pBodies[ii]->numWindTurbs; jj++)
@@ -2392,6 +2717,7 @@ void Simulation::ComputeLinesCouplingMatrix(void)
     {
         int numLineNodes_tmp = pLines[jj]->N;
 
+        std::cout << "    Assembling local mass matrix for line " << jj << std::endl;
         arma::mat LineMassMat_tmp = pLines[jj]->MM * pLines[jj]->dL;
         if (pLines[jj]->pLineBcps[0]->GetType() != 3)
         {
@@ -2406,6 +2732,7 @@ void Simulation::ComputeLinesCouplingMatrix(void)
 
         // Add the mass matrix to the global matrix in sparse or full format depending on the size
         // TODO: 100 should be a parameter
+        std::cout << "    Adding local mass matrix to the global matrix" << std::endl;
         if (numAllLinesNodes >= 100)
         {
             for (int irow = 0; irow < numLineNodes_tmp; irow++)
@@ -2462,6 +2789,7 @@ Simulation::Simulation(std::string incProjectPath, std::string incDataFormat)
         pReadWinches = &Simulation::ReadWinchesASCII;
         pReadSeaFloor = &Simulation::ReadSeaFloorASCII;
         pReadWindTurbines = &Simulation::ReadWindTurbinesASCII;
+        pReadOWCs = &Simulation::ReadOWCsASCII;
     }
     else if (!incDataFormat.compare("HDF5"))
     {
@@ -2478,8 +2806,8 @@ Simulation::Simulation(std::string incProjectPath, std::string incDataFormat)
         pReadSprings = &Simulation::ReadSpringsHDF5;
         pReadWinches = &Simulation::ReadWinchesHDF5;
         pReadSeaFloor = &Simulation::ReadSeaFloorHDF5;
-
         pReadWindTurbines = &Simulation::ReadWindTurbinesHDF5;
+        pReadOWCs = &Simulation::ReadOWCsHDF5;
     }
     else
     {
@@ -2644,9 +2972,10 @@ void Simulation::ComputeLinesEquilibrium(arma::mat x)
 {
     // Newton-Raphson method for lines equilibrium
     // TODO: Use a method implemented in a library instead or move this to MathTools
+    // TODO: Fix bug: this does not work for unsteady initial conditions (falling lines)
 
     // Parameters
-    int maxIter = 150;
+    int maxIter = 1000;
     double tol = timeIntAbsTol;
     double tolrelativa = timeIntRelTol;
 
@@ -2697,8 +3026,10 @@ void Simulation::ComputeLinesEquilibrium(arma::mat x)
         fxsol = ComputeLinesForces(xsol); // Here the position of the Line objects is updated
 
         // Step 4: Update the stop criterion variables
-        cantidadAbs = arma::norm(dk, 2);
-        cantidadRel = cantidadAbs / arma::norm(x, 2);
+        // cantidadAbs = arma::norm(dk, 2);
+        // cantidadRel = cantidadAbs / arma::norm(x, 2);
+        cantidadAbs = arma::norm(dk, "inf");
+        cantidadRel = arma::norm(dk / x, "inf");
         iter = iter + 1;
 
         // Update the solution for next iteration

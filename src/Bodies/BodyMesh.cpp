@@ -71,8 +71,18 @@ void BodyMesh::ReadPropertiesASCII(void)
     std::tie(iniNodes, ind) = unique_rows(tmp_nodes);
     iniNumNodes = iniNodes.n_rows;
 
+    // If iniNodes contains values larger than 1000, convert from millimeters to meters and display a warning
+    if (arma::abs(iniNodes).max() > 1000.0)
+    {
+        std::cout << "   WARNING: it seems that the mesh is defined in millimeters. Converting to meters..." << std::endl;
+        iniNodes = iniNodes / 1000.0;
+    }
+
     // Rearrange elems index
     iniElems = indMat(ind, tmp_elems);
+
+    std::cout << "  --> num_nodes = " << iniNumNodes << std::endl;
+    std::cout << "  --> num_elems = " << iniNumElems << std::endl;
 }
 
 void BodyMesh::TransformMesh(void)
@@ -103,11 +113,11 @@ void BodyMesh::CutMesh(double time)
     // Sorting elements
     arma::uvec verticesUW;
     arma::vec eta;
-    if (pBody->flag_hidrostatics == 1)
+    if (pBody->flag_hydrostatics == 1)
     {
         verticesUW = (transNodes.submat(0, 2, numVertices - 1, 2) <= 0);
     }
-    else if (pBody->flag_hidrostatics == 2)
+    else if (pBody->flag_hydrostatics == 2)
     {
         eta = pSim->pWave->GetFreeSurface(time, transNodes.col(0), transNodes.col(1));
         verticesUW = (transNodes.submat(0, 2, numVertices - 1, 2)) <= eta.subvec(0, numVertices - 1);
@@ -125,11 +135,11 @@ void BodyMesh::CutMesh(double time)
     // Completely submerged elements and their nodes
     arma::uvec nodesUW, indMap;
     arma::umat auxNodes = iniElems.rows(ind3);
-    if (pBody->flag_hidrostatics == 1)
+    if (pBody->flag_hydrostatics == 1)
     {
         nodesUW = arma::find(transNodes.col(2) <= 0);
     }
-    else if (pBody->flag_hidrostatics == 2)
+    else if (pBody->flag_hydrostatics == 2)
     {
         nodesUW = unique(arma::vectorise(auxNodes.t()));
     }
@@ -161,12 +171,12 @@ void BodyMesh::CutMesh(double time)
     for (int ielem : ind2)
     {
 
-        if (pBody->flag_hidrostatics == 1)
+        if (pBody->flag_hydrostatics == 1)
         {
             // Sorting vertices by height
             incNodes = sort_rows(transNodes.rows(iniElems(ielem, arma::span(0, 2))), 2);
         }
-        else if (pBody->flag_hidrostatics == 2)
+        else if (pBody->flag_hydrostatics == 2)
         {
             // Sorting vertices by height wrt free surface
             tmpElems = iniElems(ielem, arma::span(0, 2));
@@ -176,7 +186,7 @@ void BodyMesh::CutMesh(double time)
             incEta = eta.rows(tmpElems(sortInd));
         }
 
-        // --------------------- Cutting element with two vertices underewater ---------------------
+        // --------------------- Cutting element with two vertices underwater ---------------------
 
         // Initial vertex nodes
         p_1 = incNodes.row(0);
@@ -184,7 +194,7 @@ void BodyMesh::CutMesh(double time)
         p_3 = incNodes.row(2);
 
         // Triangle cut
-        if (pBody->flag_hidrostatics == 1)
+        if (pBody->flag_hydrostatics == 1)
         {
             w_1 = p_3 - p_1;
             w_2 = p_3 - p_2;
@@ -195,9 +205,9 @@ void BodyMesh::CutMesh(double time)
             q_4.subvec(0, 1) = p_1.subvec(0, 1) + mu_1 * w_1.subvec(0, 1);
             q_4(2) = 0;
         }
-        else if (pBody->flag_hidrostatics == 2)
+        else if (pBody->flag_hydrostatics == 2)
         {
-            // Vectices proyections on Free Surface
+            // Vertices projections on Free Surface
             pi_1 = {p_1(0), p_1(1), incEta(0)};
             pi_2 = {p_2(0), p_2(1), incEta(1)};
             pi_3 = {p_3(0), p_3(1), incEta(2)};
@@ -283,12 +293,12 @@ void BodyMesh::CutMesh(double time)
     for (int ielem : ind1)
     {
 
-        if (pBody->flag_hidrostatics == 1)
+        if (pBody->flag_hydrostatics == 1)
         {
             // Sorting vertices by height
             incNodes = sort_rows(transNodes.rows(iniElems(ielem, arma::span(0, 2))), 2);
         }
-        else if (pBody->flag_hidrostatics == 2)
+        else if (pBody->flag_hydrostatics == 2)
         {
             // Sorting vertices by height wrt free surface
             tmpElems = iniElems(ielem, arma::span(0, 2));
@@ -306,7 +316,7 @@ void BodyMesh::CutMesh(double time)
         p_3 = incNodes.row(2);
 
         // Triangle cut
-        if (pBody->flag_hidrostatics == 1)
+        if (pBody->flag_hydrostatics == 1)
         {
             w_1 = p_2 - p_1;
             w_2 = p_3 - p_1;
@@ -317,7 +327,7 @@ void BodyMesh::CutMesh(double time)
             q_3.subvec(0, 1) = p_1.subvec(0, 1) + mu_2 * w_2.subvec(0, 1);
             q_3(2) = 0;
         }
-        else if (pBody->flag_hidrostatics == 2)
+        else if (pBody->flag_hydrostatics == 2)
         {
             // Vectices proyections on Free Surface
             pi_1 = {p_1(0), p_1(1), incEta(0)};
@@ -492,7 +502,7 @@ void BodyTri2DMesh::Preprocess(void)
 
     // Maximum edges length
     maxEdgesLength = arma::max(edges_length);
-    if (pBody->flag_hidrostatics == 2 && pSim->pWave->lambda_peak < 8 * maxEdgesLength)
+    if (pBody->flag_hydrostatics == 2 && pSim->pWave->lambda_peak < 8 * maxEdgesLength)
     {
         std::cout << "    WARNING: The mesh is too coarse for the selected waves." << std::endl;
     }
