@@ -194,7 +194,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     // std::cout << "Simulation::CalculateSystemDynamics - Compute forces vector for different lines" << std::endl;
     for (int ii = 0; ii < numLines; ii++)
     {
-        pLines[ii]->SEM_computeF();
+        pLines[ii]->SEM_computeF(time);
     }
 
     // Compute forces of Springs
@@ -2066,6 +2066,15 @@ void Simulation::Run()
                 pOWCs[ii]->WriteOut(pTimeSolver->t);
         }
 
+        for (int ii = 0; ii < numLines; ii = ii + 1)
+        {
+            if ((pLines[ii]->flag_visc==1)&&(pTimeSolver->t>=pLines[ii]->last_time+pLines[ii]->dt))
+            {
+                pLines[ii]->update_buffer(pTimeSolver->t);
+                pLines[ii]->last_time = pTimeSolver->t;
+            }
+        }
+
         if (pTimeSolver->t >= wallTimeHydro + hydroTimeStep)
         {
             // std::cout<< "In Simulation::Run --> Computing hydrodynamic forces... "<< std::endl;
@@ -2603,7 +2612,7 @@ void Simulation::SetupCase()
     }
 
     // Compute equilibrium with FEM for all lines at the same time
-    if (!readEquilibrium && flagStatic == 1)
+    if (!readEquilibrium && flagStatic == 1) //&& flagStatic == 0?
     {
         std::cout << "  --> Computing the equilibrium with FEM for all lines at the same time ..." << std::endl;
 
@@ -2624,10 +2633,9 @@ void Simulation::SetupCase()
 
         // Start the equilibrium computation with an initial guess
         arma::mat posicionInicial = ComputeLinesInitialPoint();
-
         // Perform the equilibrium computation
         ComputeLinesEquilibrium(posicionInicial);
-
+        std::cout << "  --> Equilibrio inicial computado correctamente ..." << std::endl;
         // Return the original values of the friction model and tension flag
         for (int i = 0; i < numLines; i++)
         {
@@ -2638,6 +2646,15 @@ void Simulation::SetupCase()
         std::cout << "  --> ... done!" << std::endl;
     }
 
+    // Initialize strain history vector if viscoelasticity model is used
+    for (int i = 0; i < numLines; i++)
+    {
+        if (pLines[i]->flag_stiffness == 1)
+        {
+            pLines[i]->initiallize_strain_memory();
+        }
+    }
+    std::cout << "  --> Strain memory initiallized ..." << std::endl;
     // Store the initial position, required for the stick-slip friction model
     if (numLines > 0)
     {
@@ -2954,7 +2971,10 @@ arma::mat Simulation::ComputeLinesForces(arma::mat posicion)
         // Set the line nodes velocity to zero
         pLines[i]->vel = arma::zeros(pLines[i]->N, 3);
         // Compute the forces
-        pLines[i]->SEM_computeF();
+        // pLines[i]->compute_tension(0.0); //initial tension. Just checking what happens 
+        // pLines[i]->SEM_computeF(0.0); // TODO: review what happens when computing initial position with hysteresis
+        // std::cout << "Tensión en la línea " << i << ": " << pLines[i]->getT(0.0) << std::endl; //initial tension. Just checking what happens
+        pLines[i]->SEM_computeF(0.0);
         // Store the forces in the global vector
         forcesLinesCouplingVector.rows(pLines[i]->ind4CouplingMat) += pLines[i]->F;
     }
@@ -2976,13 +2996,15 @@ arma::mat Simulation::ComputeLinesJacobian(arma::mat position, arma::mat force)
     // Initialling the jacobian matrix
     arma::mat jacobian = arma::zeros(numVariables, numVariables);
     // Set the finite differences step parameter
-    double h = 1e-12;
+    double h = 1e-12; 
     // Loop over all the variables to compute the jacobian
+    std::cout << "  --> Simulation::ComputeLinesJacobian " << std::endl;
     for (int j = 0; j < numVariables; j++)
-    {
+    {   
         jacobian.col(j) = (ComputeLinesForces(position + h * canonic_base.col(j)) - force) / h;
     }
     return jacobian;
+    std::cout << "  --> Simulation::ComputeLinesJacobian " << std::endl;
 }
 
 void Simulation::ComputeLinesEquilibrium(arma::mat x)

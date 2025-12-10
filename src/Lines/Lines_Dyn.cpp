@@ -49,7 +49,67 @@ void Line::ReadPropertiesASCII(FILE *pFilePointer)
 	fscanf(pFilePointer, "%lf %[^\n]\n", &rho0, buffer_line);
 	fscanf(pFilePointer, "%lf %[^\n]\n", &d, buffer_line);
 	fscanf(pFilePointer, "%d %[^\n]\n", &flag_stiffness, buffer_line);
-	if (flag_stiffness > 1)
+	if (flag_stiffness == 0)
+	{
+		fscanf(pFilePointer, "%lf %[^\n]\n", &EA, buffer_line);
+		fscanf(pFilePointer, "%lf %[^\n]\n", &beta, buffer_line);
+	}
+	else if (flag_stiffness == 1)
+	{
+		fscanf(pFilePointer, "%lf %[^\n]\n", &kernel_coef, buffer_line);
+		for (int ii = 0; ii < 3; ii++)
+		{
+			if (fscanf(pFilePointer, "%lf", &dtemp) != 1)
+			{
+				std::stringstream ss;
+				ss << "An error ocurred when trying to read the elastic polynomial coefficients for line: " << this->GetId() << "\n";
+				throw ValueError(ss.str());
+			}
+			elastic_coef(ii, 0) = dtemp;
+		}
+		fscanf(pFilePointer, "%[^\n]\n", buffer_line);
+		for (int ii = 0; ii < 3; ii++)
+		{
+			if (fscanf(pFilePointer, "%lf", &dtemp) != 1)
+			{
+				std::stringstream ss;
+				ss << "An error ocurred when trying to read the viscous loading polynomial coefficients for line: " << this->GetId() << "\n";
+				throw ValueError(ss.str());
+			}
+			visc_loading_coef(ii, 0) = dtemp;
+			if (visc_loading_coef(ii, 0) != 0.0){
+				flag_visc = 1; // There is viscous component	
+			}
+		}
+		fscanf(pFilePointer, "%[^\n]\n", buffer_line);
+		for (int ii = 0; ii < 3; ii++)
+		{
+			if (fscanf(pFilePointer, "%lf", &dtemp) != 1)
+			{	
+				std::stringstream ss;
+				ss << "An error ocurred when trying to read the viscous unloading polynomial coefficients for line: " << this->GetId() << "\n";
+				throw ValueError(ss.str());
+			}
+			visc_unloading_coef(ii, 0) = dtemp;
+			if (visc_unloading_coef(ii, 0) != 0.0){
+				flag_visc = 1; // There is viscous component	
+			}
+		}
+		fscanf(pFilePointer, "%[^\n]\n", buffer_line);
+		// Compute EA aproximation for QS initial condition
+		if (elastic_coef(0, 0)>0.0)
+		{
+			EA = elastic_coef(0, 0);
+		}
+		else
+		{
+			double strain_EA = 0.1;
+			EA = elastic_coef(0, 0) + 
+			     2*elastic_coef(1, 0)*strain_EA +
+				 3*elastic_coef(2, 0)*strain_EA*strain_EA;
+		}
+	}
+	else if (flag_stiffness > 1)
 	{
 		strain_data = arma::zeros(flag_stiffness, 1);
 		stress_data = arma::zeros(flag_stiffness, 1);
@@ -75,12 +135,24 @@ void Line::ReadPropertiesASCII(FILE *pFilePointer)
 			stress_data(ii, 0) = dtemp;
 		}
 		fscanf(pFilePointer, "%[^\n]\n", buffer_line);
+		fscanf(pFilePointer, "%lf %[^\n]\n", &beta, buffer_line);
+		// Compute EA aproximation for QS initial condition
+		EA = 0;
+		int i_EA = 0;
+		while (EA<=0)
+		{
+			EA = (stress_data(i_EA+1,0) - stress_data(i_EA,0)) / 
+			     (strain_data(i_EA+1,0) - strain_data(i_EA,0));
+		    i_EA++;
+			if (i_EA>flag_stiffness-1)
+			{
+				std::stringstream ss;
+				ss << "Strain-Stress curve should have positive slope for line: " << this->GetId() << "\n";
+				throw ValueError(ss.str());
+			}
+		}
 	}
-	else
-	{
-		fscanf(pFilePointer, "%lf %[^\n]\n", &EA, buffer_line);
-	}
-	fscanf(pFilePointer, "%lf %[^\n]\n", &beta, buffer_line);
+
 	fscanf(pFilePointer, "%lf %[^\n]\n", &CB, buffer_line);
 	fscanf(pFilePointer, "%lf %[^\n]\n", &Cmn, buffer_line);
 	fscanf(pFilePointer, "%lf %[^\n]\n", &Cdn, buffer_line);
@@ -133,6 +205,24 @@ void Line::ReadPropertiesASCII(FILE *pFilePointer)
 	t = arma::zeros(N, 3);
 	e_z = arma::zeros(1, 3);
 	e_z(0, 2) = 1.0;
+	T = arma::zeros(this->N, 1);
+	T_visc = arma::zeros(this->N, 1);
+	T_elast = arma::zeros(this->N, 1);
+	if (flag_stiffness == 1) {
+		// Initiallize viscoelasticity buffer vectors
+		// TODO: review if the size is well chosen with Y(t0)=1e-3 -> nbuffer = int(t0/dt)
+		num_buffer = std::min(std::max(static_cast<int>(ceil(- log(0.001)/(kernel_coef*dt))), 1000), 10000);
+		//min 1000 max 10000
+		time_vector = arma::zeros(num_buffer, 1);
+		strain_vector = arma::zeros(N, num_buffer);
+		strain_rate_vector = arma::zeros(N, num_buffer);
+		visc_resp_tmp_vector = arma::zeros(N, num_buffer);
+		visc_resp_0 = arma::zeros(N, 1); 
+		zc_times = arma::zeros(N, num_buffer);
+		zc_num = arma::zeros<arma::Mat<int>>(N, 1);
+		zc_visc_resp_load = arma::zeros(N, num_buffer);
+		zc_visc_resp_unload = arma::zeros(N, num_buffer);
+	}
 	projectionDirection_1 = arma::zeros(1, 3);
 	projectionDirection_1(0, 2) = 1.0;
 	projectionDirection_N = arma::zeros(1, 3);
@@ -180,7 +270,6 @@ void Line::ReadPropertiesASCII(FILE *pFilePointer)
 
 void Line::SEM_getBaseFunctions(void)
 {
-
 	pos.reshape(3, N);
 	pos = pos.t();
 
@@ -255,7 +344,6 @@ void Line::SEM_getBaseFunctions(void)
 
 void Line::SEM_coefficients(void)
 {
-
 	C = arma::zeros(p + 1, p + 1);
 	arma::mat M = arma::zeros(p + 1, p + 1);
 	for (int ii = 0; ii < p + 1; ii = ii + 1)
@@ -302,41 +390,555 @@ arma::mat Line::SEM_get_D_local(void)
 	return D;
 }
 
-void Line::SEM_computeF(void)
+double Line::kernel(double time)
 {
-	// drds = (D_sp * pos) * (2.0/dL0);
-	// drdsdt = (D_sp * vel) * (2.0/dL0);
+	/**
+	 * Proposed Kernel for the memory capability of the viscoelastic material
+	 */
+	double kernel = exp(-kernel_coef*time); // Usamos exp de <cmath>
+	return kernel;
+}
 
-	drds = (D * pos) * (2.0 / dL0);
-	drdsdt = (D * vel) * (2.0 / dL0);
+double Line::kernel_rate(double time)
+{
+	double kernel_rate = -kernel_coef * kernel(time);
+	return kernel_rate;
+}
 
-	norm_drds = sqrt(pow(drds.col(0), 2) + pow(drds.col(1), 2) + pow(drds.col(2), 2));
-	arma::mat strain = 0.5 * ((drds.col(0) % drds.col(0) + drds.col(1) % drds.col(1) + drds.col(2) % drds.col(2)) - dL / dL0);
-
-	dedt = drds.col(0) % drdsdt.col(0) + drds.col(1) % drdsdt.col(1) + drds.col(2) % drdsdt.col(2);
-
-	if (flag_stiffness > 1)
-	{
-		arma::mat temp_strain = norm_drds - dL / dL0;
-		T = interp1(strain_data, stress_data, temp_strain);
-		arma::mat temp_EA = T / temp_strain;
-		T = T + temp_EA % (beta * dedt);
-	}
-	else
-	{
-		T = EA * (norm_drds - dL / dL0 + beta * dedt);
-		// T = EA * (strain + beta * dedt);
-	}
-
-	if ((flag_tension == 2) && (flag_stiffness <= 1))
-	{
-		T = 0.5 * (T + arma::abs(T));
+void Line::smooth_tension(void)
+{
+	T = 0.5 * (T + arma::abs(T));
 		double T0 = 0.1; // size of the smoothing region in newtons
 		double a2 = 2.0 / T0, a3 = -1.0 / (T0 * T0);
 		arma::mat temp_T = a3 * arma::pow(T, 3) + a2 * arma::pow(T, 3);
 		arma::umat ind = arma::find(((T > 0.0) && (T < T0)));
 		T.elem(ind) = temp_T.elem(ind);
+}
+
+void Line::update_buffer(double time)
+{
+	// Compute strain
+	arma::mat temp_strain = norm_drds - dL / dL0;
+
+	// Update last time
+	// std::cout << "  --> Line::compute_tension: Update last time " << std::endl;
+	last_time = time;
+	num_time_steps += 1;
+	// shift time values to the left
+	// std::cout << "  --> Line::compute_tension: shift time values to the left time_vector " << std::endl;
+	for (int i = 0; i < num_buffer - 1; i++) 
+	{
+		time_vector[i] = time_vector[i + 1];
 	}
+	// assign new value to last position
+	time_vector[num_buffer - 1] = time;
+	// shift strain columns to the left
+	// std::cout << "  --> Line::compute_tension: shift time values to the left strain_vector " << std::endl;
+	for (int i = 0; i < num_buffer - 1; i++)
+	{
+		strain_vector.col(i) = strain_vector.col(i + 1);
+	}
+	// assign new value to last position
+	strain_vector.col(num_buffer - 1) = temp_strain;
+	// shift strain rate columns to the left
+	// std::cout << "  --> Line::compute_tension: shift time values to the left strain_rate_vector " << std::endl;
+	for (int i = 0; i < strain_rate_vector.n_cols - 1; i++)
+	{
+		strain_rate_vector.col(i) = strain_rate_vector.col(i + 1);
+	}
+	// assign new value to last position
+	strain_rate_vector.col(strain_rate_vector.n_cols - 1) = dedt;
+
+
+	// Loop over all nodes
+	// std::cout << "  --> Line::compute_tension: Loop over all nodes " << std::endl;
+	for (int k = 0; k < N; k++)
+	{
+		// Extract current node strain and strain rate
+		// std::cout << "  --> Line::compute_tension: Extract current node strain and strain rate " << std::endl;
+		double strain_k = temp_strain(k,0);
+		double strain_rate_k = dedt(k,0);
+
+		// Check if current state is loading or unloading and choose polynomial coefficients
+		// std::cout << "  --> Line::compute_tension: Check if current state is loading or unloading and choose polynomial coefficients " << std::endl;
+		arma::mat strain_poly_coef = arma::zeros(3, 1);
+		if (strain_rate_k < -tol_zero)
+		{
+			strain_poly_coef = visc_unloading_coef;
+		}
+		else 
+		{
+			strain_poly_coef = visc_loading_coef;
+		}
+		
+		// Compute instant viscous response
+		// std::cout << "  --> Line::compute_tension: Compute instant viscous response " << std::endl;
+		double visc_resp_tmp_k = 0.0; // gv(strain(t))
+		for (int i = 0; i < 3; i++)
+		{
+			visc_resp_tmp_k += strain_poly_coef(i,0)*pow(strain_k,i+1);
+		}
+
+		// shift strain columns to the left
+		// std::cout << "  --> Line::compute_tension: shift strain columns to the left visc_resp_tmp_vector " << std::endl;
+		for (int i = 0; i < num_buffer - 1; i++)
+		{
+			visc_resp_tmp_vector(k,i) = visc_resp_tmp_vector(k,i+1);
+		}
+		// assign new value to last position
+		visc_resp_tmp_vector(k, num_buffer - 1) = visc_resp_tmp_k;
+		
+		// Check for new strain rate zero crossing events
+		// std::cout << "  --> Line::compute_tension: Check for new strain rate zero crossing events " << std::endl;
+		double time_old = time_vector[num_buffer-2];
+		double strain_k_old = strain_vector(k,num_buffer-2);
+		double strain_rate_k_old = strain_rate_vector(k,num_buffer-2);
+		if (((strain_rate_k>-tol_zero)&&(strain_rate_k_old<-tol_zero)) || 
+			((strain_rate_k<-tol_zero)&&(strain_rate_k_old>-tol_zero)))
+		{
+			// Update the number of zero crossings for the current node
+			// std::cout << "  --> Line::compute_tension: Update the number of zero crossings for the current node " << std::endl;
+			zc_num(k,0) += 1;
+
+			// Compute the zero crossing time
+			// std::cout << "  --> Line::compute_tension: Compute the zero crossing time " << std::endl;
+			double dt_temp = std::abs(time-time_old);
+			double zc_time_tmp = time_old 
+								- strain_rate_k_old * dt_temp
+								/ (strain_rate_k - strain_rate_k_old);
+
+			// TODO: remove debug print
+			std::cout << "  --> Line::compute_tension: zero crossing at t = " << zc_time_tmp << " s for node " << k << std::endl;
+			
+			// shift strain columns to the left
+			// std::cout << "  --> Line::compute_tension: shift strain columns to the left zc_times " << std::endl;
+			for (int i = 0; i < num_buffer - 1; i++)
+			{
+				zc_times(k,i) = zc_times(k,i+1);
+			}
+			// assign new value to last position
+			zc_times(k, num_buffer - 1) = zc_time_tmp;
+			
+			// Estimate strain at strain rate zero crossing time
+			// std::cout << "  --> Line::compute_tension: Estimate strain at strain rate zero crossing time " << std::endl;
+
+			// Linear
+			double zc_strain_tmp = strain_k_old + (strain_k-strain_k_old)/(time-time_old)*(zc_time_tmp-time_old);
+
+			// Cubic
+			// TODO: investigate using the cubic approach instead
+			// double zc_strain_tmp = cubic_interp(time_old,
+			// 									time, 
+			// 									strain_k_old, 
+			// 									strain_k, 
+			// 									strain_rate_k_old, 
+			// 									strain_rate_k, 
+			// 									zc_time_tmp);
+
+			// Compute viscous loading and unloading response at new zero crossing
+			// std::cout << "  --> Line::compute_tension: Compute viscous loading and unloading response at new zero crossing " << std::endl;
+			double visc_resp_load_tmp_k = 0.0;
+			double visc_resp_unload_tmp_k = 0.0;
+			for (int j = 0; j < 3; j++)
+			{
+				visc_resp_load_tmp_k += (pow(zc_strain_tmp, j + 1) * visc_loading_coef(j, 0));
+				visc_resp_unload_tmp_k += (pow(zc_strain_tmp, j + 1) * visc_unloading_coef(j, 0));
+			}
+
+			// shift strain columns to the left
+			// std::cout << "  --> Line::compute_tension: shift strain columns to the left zc_visc_resp_load" << std::endl;
+			for (int i = 0; i < num_buffer - 1; i++)
+			{
+				zc_visc_resp_load(k,i) = zc_visc_resp_load(k,i+1);
+				zc_visc_resp_unload(k,i) = zc_visc_resp_unload(k,i+1);
+			}
+			// assign new value to last position
+			zc_visc_resp_load(k, num_buffer - 1) = visc_resp_load_tmp_k;
+			zc_visc_resp_unload(k, num_buffer - 1) = visc_resp_unload_tmp_k;
+		}
+		
+	}
+
+	// Debug file printing
+	// TODO: remove debug variables writing to file or include as definitive output.
+	fprintf(pfile_debug, "%f    ", time);
+	for (int k = 0; k < N; k++)
+	{
+		fprintf(pfile_debug, "%f    ", temp_strain(k,0));
+		fprintf(pfile_debug, "%f    ", dedt(k,0));
+		fprintf(pfile_debug, "%f    ", T(k,0));
+	}
+	fprintf(pfile_debug, "\n");
+
+}
+
+void Line::compute_tension(double time)
+{	
+	// Compute strain
+	arma::mat temp_strain = norm_drds - dL / dL0;
+
+	if (flag_stiffness == 0)
+	{
+		T = EA * temp_strain + beta * dedt;
+		
+		if ((flag_tension == 2))
+		{
+			smooth_tension();
+		}
+	}
+	else if (flag_stiffness == 1)
+	{	
+		T = arma::zeros(N, 1);
+		for (int k = 0; k < N; k++)
+		{	
+			// Extract current node strain and strain rate
+			double strain_k = temp_strain(k,0);
+			// Compute the elastic tension
+			double elastic_tension_k = 0.0;
+			for (int i = 0; i < 3; i++){
+				elastic_tension_k = elastic_tension_k + elastic_coef(i,0)*pow(strain_k, i+1);
+			}
+			T_elast(k,0) = elastic_tension_k;
+		}
+		
+		// Check if viscous tension should be computed/updated
+		if (flag_visc == 1)
+		{ 	
+			// Declare required variables
+			arma::mat tau;
+			arma::mat visc_resp;
+
+			// Extract from time vector buffer the assigned values
+			// std::cout << "  --> Line::compute_tension: Extract from time vector buffer the assigned values " << std::endl;
+			arma::uvec tmp_ind = arma::find(time_vector < time, 1, "last");
+			arma::uword last_ind = tmp_ind[0];
+
+			if (time!=last_time)
+			{
+				if (num_time_steps<num_buffer)
+				{
+					tau = arma::join_vert(
+							time_vector.rows(num_buffer - num_time_steps, last_ind),
+							time*arma::ones<arma::mat>(1,1)
+						);
+				} 
+				else
+				{
+					tau = arma::join_vert(
+							time_vector.rows(0, last_ind),
+							time*arma::ones<arma::mat>(1,1)
+						);
+				}
+			}
+			else
+			{
+				if (num_time_steps<num_buffer)
+				{
+					tau = time_vector.rows(num_buffer - num_time_steps, num_buffer - 1);
+				} 
+				else
+				{
+					tau = time_vector;
+				}
+			}
+
+			// Recompute kernel for integral [dY/dtau(t-tau)]
+			// std::cout << "  --> Line::compute_tension: Recompute kernel for integral [dY/dtau(t-tau)] " << std::endl;
+			arma::mat kernel_rate_tmtau = arma::zeros(size(tau));
+			for (int i = 0; i < tau.n_elem; i++)
+			{	
+				kernel_rate_tmtau(i,0) = kernel_rate(time-arma::as_scalar(tau(i,0)));
+			}
+
+			// Loop over all nodes
+			// std::cout << "  --> Line::compute_tension: Loop over all nodes " << std::endl;
+			for (int k = 0; k < N; k++)
+			{
+				// Extract current node strain and strain rate
+				// std::cout << "  --> Line::compute_tension: Extract current node strain and strain rate " << std::endl;
+				double strain_k = temp_strain(k,0);
+				double strain_rate_k = dedt(k,0);
+
+				// Check if current state is loading or unloading and choose polynomial coefficients
+				// std::cout << "  --> Line::compute_tension: Check if current state is loading or unloading and choose polynomial coefficients " << std::endl;
+				arma::mat strain_poly_coef = arma::zeros(3, 1);
+				if (strain_rate_k < -tol_zero)
+				{
+					strain_poly_coef = visc_unloading_coef;
+				}
+				else
+				{
+					strain_poly_coef = visc_loading_coef;
+				}
+				
+				// Compute instant viscous response
+				// std::cout << "  --> Line::compute_tension: Compute instant viscous response " << std::endl;
+				double visc_resp_tmp_k = 0.0; // gv(strain(t))
+				for (int i = 0; i < 3; i++)
+				{
+					visc_resp_tmp_k += strain_poly_coef(i,0)*pow(strain_k,i+1);
+				}
+
+				// Extract from viscous response vector buffer the assigned values
+				// std::cout << "  --> Line::compute_tension: Extract from viscous response vector buffer the assigned values " << std::endl;
+				if (time!=last_time) 
+				{
+					if (num_time_steps<num_buffer)
+					{
+						visc_resp = arma::join_horiz(
+								visc_resp_tmp_vector(k,arma::span(num_buffer - num_time_steps, last_ind)),
+								visc_resp_tmp_k*arma::ones<arma::mat>(1,1)
+							);
+					} 
+					else
+					{
+						visc_resp = arma::join_horiz(
+								visc_resp_tmp_vector(k,arma::span(0, last_ind)),
+								visc_resp_tmp_k*arma::ones<arma::mat>(1,1)
+							);
+					}
+				}
+				else
+				{
+					if (num_time_steps<num_buffer)
+					{
+						visc_resp = visc_resp_tmp_vector(k,arma::span(num_buffer - num_time_steps, num_buffer - 1));
+					} 
+					else
+					{
+						visc_resp = visc_resp_tmp_vector.row(k);
+					}
+					visc_resp[visc_resp.n_elem-1] = visc_resp_tmp_k;
+				}
+
+				// Integral
+				// std::cout << "  --> Line::compute_tension: Compute Integral " << std::endl;
+				arma::mat integrand = kernel_rate_tmtau.t() % visc_resp;
+				double visc_tension_integral_k = trapzi(tau.t(), integrand);
+
+				// Initial tension term from the integral
+				// std::cout << "  --> Line::compute_tension: Compute Initial tension term from the integral " << std::endl;
+				double final_tension_integral_k = visc_resp_tmp_k;
+
+				// Final tension term from the integral
+				// std::cout << "  --> Line::compute_tension: Compute Final tension term from the integral " << std::endl;
+				double initial_tension_integral_k = kernel(time)*visc_resp_0(k,0);
+
+				// Sum of zero crossing terms from the integral
+				// std::cout << "  --> Line::compute_tension: Sum of zero crossing terms from the integral " << std::endl;
+				double sum_stress_integral = 0.0;
+
+				// Extract from zero crossing vector buffers the assigned values
+				// std::cout << "  --> Line::compute_tension: Extract from zero crossing vector buffers the assigned values" << std::endl;
+				arma::mat zc_times_k, zc_visc_resp_load_k, zc_visc_resp_unload_k;
+				int num_zc_times_k;
+
+				// Get values from previous valid time step
+				// std::cout << "  --> Line::compute_tension: Get values from previous valid time step" << std::endl;
+				double time_old = time_vector[last_ind];
+				double strain_k_old = strain_vector(k,last_ind);
+				double strain_rate_k_old = strain_rate_vector(k,last_ind);
+				if (((strain_rate_k>-tol_zero)&&(strain_rate_k_old<-tol_zero)) || 
+				    ((strain_rate_k<-tol_zero)&&(strain_rate_k_old>-tol_zero)))
+				{
+
+					// New zero crossing detected
+					// std::cout << "  --> Line::compute_tension: New zero crossing detected" << std::endl;
+					double dt_temp = std::abs(time-time_old);
+					double zc_time_tmp = time_old 
+										- strain_rate_k_old * dt_temp
+										/ (strain_rate_k - strain_rate_k_old);
+					double zc_strain_tmp = strain_k_old + (strain_k-strain_k_old)/(time-time_old)*(zc_time_tmp-time_old);
+					double visc_resp_load_tmp_k = 0.0;
+					double visc_resp_unload_tmp_k = 0.0;
+					for (int j = 0; j < 3; j++)
+					{
+						visc_resp_load_tmp_k += (pow(zc_strain_tmp, j + 1) * visc_loading_coef(j, 0));
+						visc_resp_unload_tmp_k += (pow(zc_strain_tmp, j + 1) * visc_unloading_coef(j, 0));
+					}
+
+					if (zc_num(k,0)==0)
+					{
+						// No previous zc in buffer
+						// std::cout << "  --> Line::compute_tension: No previous zc in buffer" << std::endl;
+						zc_times_k = zc_time_tmp*arma::ones<arma::mat>(1,1);
+						zc_visc_resp_load_k = visc_resp_load_tmp_k*arma::ones<arma::mat>(1,1);
+						zc_visc_resp_unload_k = visc_resp_unload_tmp_k*arma::ones<arma::mat>(1,1);
+					}
+					else if (zc_num(k,0)<num_buffer)
+					{
+						// Previous zc in buffer, underfull
+						// std::cout << "  --> Line::compute_tension: Previous zc in buffer, underfull" << std::endl;
+						arma::mat tmp_zc_times = zc_times.row(k);
+						arma::uvec tmp_ind = arma::find(tmp_zc_times < time_old, 1, "last");
+						if (tmp_ind.n_elem>0)
+						{
+							// With previous usefull zc in underfull buffer
+							// std::cout << "  --> Line::compute_tension: With previous usefull zc in underfull buffer" << std::endl;
+							arma::uword last_ind = tmp_ind[0];
+							if (last_ind >= (num_buffer - zc_num(k,0)))
+							{
+								zc_times_k = arma::join_horiz(
+									zc_times(k,arma::span(num_buffer - zc_num(k,0), last_ind)),
+									zc_time_tmp*arma::ones<arma::mat>(1,1)
+									);
+								zc_visc_resp_load_k = arma::join_horiz(
+									zc_visc_resp_load(k,arma::span(num_buffer - zc_num(k,0), last_ind)),
+									visc_resp_load_tmp_k*arma::ones<arma::mat>(1,1)
+									);
+								zc_visc_resp_unload_k = arma::join_horiz(
+									zc_visc_resp_unload(k,arma::span(num_buffer - zc_num(k,0), last_ind)),
+									visc_resp_unload_tmp_k*arma::ones<arma::mat>(1,1)
+									);
+							}
+							else
+							{
+								zc_times_k = zc_time_tmp*arma::ones<arma::mat>(1,1);
+								zc_visc_resp_load_k = visc_resp_load_tmp_k*arma::ones<arma::mat>(1,1);
+								zc_visc_resp_unload_k = visc_resp_unload_tmp_k*arma::ones<arma::mat>(1,1);
+							}
+						}
+						else
+						{
+							// No previous usefull zc in underfull buffer
+							// std::cout << "  --> Line::compute_tension: No previous usefull zc in underfull buffer" << std::endl;
+							zc_times_k = zc_time_tmp*arma::ones<arma::mat>(1,1);
+							zc_visc_resp_load_k = visc_resp_load_tmp_k*arma::ones<arma::mat>(1,1);
+							zc_visc_resp_unload_k = visc_resp_unload_tmp_k*arma::ones<arma::mat>(1,1);
+						}
+					} 
+					else
+					{
+						// Previous zc in buffer, full
+						// std::cout << "  --> Line::compute_tension: Previous zc in buffer, full" << std::endl;
+						arma::mat tmp_zc_times = zc_times.row(k);
+						arma::uvec tmp_ind = arma::find(tmp_zc_times < time_old, 1, "last");
+						arma::uword last_ind = tmp_ind[0];
+						zc_times_k = arma::join_horiz(
+							zc_times(k,arma::span(0, last_ind)),
+							zc_time_tmp*arma::ones<arma::mat>(1,1)
+							);
+						zc_visc_resp_load_k = arma::join_horiz(
+							zc_visc_resp_load(k,arma::span(0, last_ind)),
+							visc_resp_load_tmp_k*arma::ones<arma::mat>(1,1)
+							);
+						zc_visc_resp_unload_k = arma::join_horiz(
+							zc_visc_resp_unload(k,arma::span(0, last_ind)),
+							visc_resp_unload_tmp_k*arma::ones<arma::mat>(1,1)
+							);
+					}
+					num_zc_times_k = zc_times_k.n_elem;
+				}
+				else
+				{
+					// No new zero crossings detected
+					// std::cout << "  --> Line::compute_tension: no new zero crossings detected" << std::endl;
+					if (zc_num(k,0)==0)
+					{
+						// No previous zc in buffer
+						// std::cout << "  --> Line::compute_tension: No previous zc in buffer" << std::endl;
+						num_zc_times_k = 0;
+					}
+					else if (zc_num(k,0)<num_buffer)
+					{
+						// Previous zc in buffer, underfull
+						// std::cout << "  --> Line::compute_tension: Previous zc in buffer, underfull" << std::endl;
+						arma::mat tmp_zc_times = zc_times.row(k);
+						arma::uvec tmp_ind = arma::find(tmp_zc_times < time_old, 1, "last");
+						if (tmp_ind.n_elem>0)
+						{
+							// With previous usefull zc in underfull buffer
+							// std::cout << "  --> Line::compute_tension: With previous usefull zc in underfull buffer" << std::endl;
+							arma::uword last_ind = tmp_ind[0];
+							if (last_ind >= (num_buffer - zc_num(k,0)))
+							{
+								zc_times_k = zc_times(k,arma::span(num_buffer - zc_num(k,0), last_ind));
+								zc_visc_resp_load_k = zc_visc_resp_load(k,arma::span(num_buffer - zc_num(k,0), last_ind));
+								zc_visc_resp_unload_k = zc_visc_resp_unload(k,arma::span(num_buffer - zc_num(k,0), last_ind));
+								num_zc_times_k = zc_times_k.n_elem;
+							}
+							else
+							{
+								num_zc_times_k = 0;
+							}
+						}
+						else
+						{
+							// Without previous usefull zc in underfull buffer
+							// std::cout << "  --> Line::compute_tension: Without previous usefull zc in underfull buffer" << std::endl;
+							num_zc_times_k = 0;
+						}
+					} 
+					else
+					{
+						// Previous zc in buffer, full
+						// std::cout << "  --> Line::compute_tension: Previous zc in buffer, full" << std::endl;
+						arma::mat tmp_zc_times = zc_times.row(k);
+						arma::uvec tmp_ind = arma::find(tmp_zc_times < time_old, 1, "last");
+						arma::uword last_ind = tmp_ind[0];
+						zc_times_k = zc_times(k,arma::span(0, last_ind));
+						zc_visc_resp_load_k = zc_visc_resp_load(k,arma::span(0, last_ind));
+						zc_visc_resp_unload_k = zc_visc_resp_unload(k,arma::span(0, last_ind));
+						num_zc_times_k = zc_times_k.n_elem;
+					}
+				}
+
+				// Sum of initial/final terms from the integral between zero crossing events
+				// std::cout << "  --> Line::compute_tension: Sum of initial/final terms from the integral between zero crossing events" << std::endl;
+				for (int i = 0; i < num_zc_times_k; i++)
+				{
+					sum_stress_integral += kernel(time - zc_times_k[i])
+										* pow(-1,i)
+										* (zc_visc_resp_load_k[i] - zc_visc_resp_unload_k[i]);							
+				}
+
+				// Save the computed tension in the class atribute vector
+				// std::cout << "  --> Line::compute_tension: Save the computed tension in the class atribute vector" << std::endl;
+				T_visc(k,0) = visc_tension_integral_k
+							+ final_tension_integral_k
+							- initial_tension_integral_k
+							+ sum_stress_integral;
+
+			}		
+
+		}
+
+		// Add elastic and viscous tension with initial transition and a voigh model
+		// TODO: Implement voight model parameter as an input and review the size 
+		//       of the transition region and the type of transition.
+		T = T_elast + 0.01 * elastic_coef(0,0) * dedt;
+		if (time > 0.2)
+		{
+			T = T + T_visc;
+		} 
+
+		if ((flag_tension == 2))
+		{
+			smooth_tension();
+		}
+	}
+	else if (flag_stiffness > 1)
+	{
+		// TODO: investigate how to use qubic interpolation
+		T = interp1(strain_data, stress_data, temp_strain) + beta * dedt;
+	}
+	
+}
+
+void Line::SEM_compute_derivarives(void)
+{
+	// Compute the variables needed to get strain and strain rate
+	drds = (D * pos) * (2.0 / dL0);
+	drdsdt = (D * vel) * (2.0 / dL0);
+	norm_drds = sqrt(pow(drds.col(0), 2) + pow(drds.col(1), 2) + pow(drds.col(2), 2));
+	dedt = drds.col(0) % drdsdt.col(0) + drds.col(1) % drdsdt.col(1) + drds.col(2) % drdsdt.col(2);
+}
+
+void Line::SEM_computeF(double time)
+{
+	SEM_compute_derivarives();
+	// Compute tension
+	compute_tension(time);	
 
 	if (floor_flag == 1)
 	{
@@ -347,7 +949,7 @@ void Line::SEM_computeF(void)
 		zCoordinates = temp(0, 1);
 	}
 
-	for (int k = 0; k < N; k = k + 1)
+	for (int k = 0; k < N; k++)
 	{
 		t.row(k) = drds.row(k) / norm_drds(k);
 		FF.row(k) = T(k) * t.row(k);
@@ -596,6 +1198,22 @@ void Line::SEM_computeF(void)
 	pLineBcps[1]->forceBcp.rows(0, 2) = pLineBcps[1]->forceBcp.rows(0, 2) + F_N;
 	pLineBcps[0]->temp = pLineBcps[0]->forceBcp;
 	pLineBcps[1]->temp = pLineBcps[1]->forceBcp;
+}
+
+void Line::initiallize_strain_memory(void)
+{
+	SEM_compute_derivarives();
+	std::cout << "  --> Working on initiallization of strain memory, derivatives computed succesfully ..." << std::endl;
+	arma::mat temp_strain = norm_drds - dL / dL0;
+	std::cout << "  --> Working on initiallization of strain memory,norm_drds = "<<norm_drds<<" dL / dL0 ="<<dL / dL0<<" and  "<<temp_strain<<" = temp_strain ..." << std::endl;
+	for (int i = 0; i < strain_vector.n_cols; i++) {
+		strain_vector.col(i) = temp_strain;
+	}
+	for (int i = 0; i < 3; i++){
+		visc_resp_0 = visc_resp_0 + visc_loading_coef(i,0)*pow(temp_strain,i+1);
+	}
+	update_buffer(0.0);
+	
 }
 
 void Line::print_out(void)
@@ -871,7 +1489,7 @@ void Line::OpenOutputFilesASCII(std::string path)
 	pfile_ten = fopen(file_path4.c_str(), "w");
 	pfile_ten_line = fopen(file_path5.c_str(), "w");
 	pfile_line_ini = fopen(file_path6.c_str(), "w");
-	pfile_line_debug = fopen(file_path7.c_str(), "w");
+	pfile_debug = fopen(file_path7.c_str(), "w");
 }
 
 void Line::CloseOutputFilesASCII(void)
@@ -881,6 +1499,7 @@ void Line::CloseOutputFilesASCII(void)
 	fclose(pfile_zpos);
 	fclose(pfile_ten);
 	fclose(pfile_ten_line);
+	fclose(pfile_debug);
 }
 
 void Line::WriteOut(double t)
