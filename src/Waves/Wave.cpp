@@ -268,6 +268,7 @@ void Wave::SetSinglePiece(void)
 	time_ref(0) = 0.0;
 	time_ini(0) = 0.0;
 	time_end(0) = simulationTime;
+	time_gap = 1.0;
 
 	num_points_piece = num_points;
 	num_comps_piece = num_comps;
@@ -1034,14 +1035,23 @@ void IrregularWave::CutPiecesSpectrumZeros(void)
 	this->num_headings_piece = ind_cols.n_elem;
 	int number_components_cropped = this->num_comps_piece * this->num_headings_piece;
 	this->periods_piece = this->periods_piece.elem(ind_rows);
+	std::cout << "        -> cropping freqs..." << std::endl;
 	this->freqs_piece = this->freqs_piece.elem(ind_rows);
+	std::cout << "        -> cropping ang_freqs..." << std::endl;
 	this->ang_freqs_piece = this->ang_freqs_piece.elem(ind_rows);
+	std::cout << "        -> cropping headings..." << std::endl;
 	this->headings_piece = this->headings.elem(ind_cols);
+	std::cout << "        -> cropping wave numbers..." << std::endl;
 	this->k_piece = this->k_piece.elem(ind_rows);
+	std::cout << "        -> cropping wave numbers 2D (X)..." << std::endl;
 	this->kx_piece = this->kx_piece.elem(ind_rows, ind_cols);
+	std::cout << "        -> cropping wave numbers 2D (Y)..." << std::endl;
 	this->ky_piece = this->ky_piece.elem(ind_rows, ind_cols);
+	std::cout << "        -> cropping wave numbers 1D (X)..." << std::endl;
 	this->kx_1D_piece = this->kx_1D_piece.elem(ind_rows);
+	std::cout << "        -> cropping wave numbers 1D (Y)..." << std::endl;
 	this->ky_1D_piece = this->ky_1D_piece.elem(ind_rows);
+	std::cout << "        -> cropping amplitudes..." << std::endl;
 	for (int ii = 0; ii < this->num_pieces; ii++)
 	{
 		this->amplitudes_piece(ii) = this->amplitudes_piece(ii).submat(ind_rows, ind_cols);

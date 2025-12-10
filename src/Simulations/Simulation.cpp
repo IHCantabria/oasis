@@ -608,6 +608,7 @@ void Simulation::Initialize()
         std::cout << "Initializing temporal solver..." << std::endl;
         pTimeSolver = new BDF(start_time, this->simulationTime, this->maxTimeStep, y, this);
         std::cout << "  Temporal solver constructor done!" << std::endl;
+        std::cout << " y = " << y << std::endl;
         pTimeSolver->Initialize();
         pTimeSolver->atol = this->timeIntAbsTol;
         pTimeSolver->rtol = this->timeIntRelTol;
@@ -783,12 +784,15 @@ void Simulation::ReadBodiesASCII()
     int pos_database = 0;
 
     // Parse file in order to guess the number of bodies
+    std::cout << "Parsing file: datosBodies.dat" << std::endl;
     std::string file_path = JoinPath(inputFolderPath, "datosBodies.dat");
     this->numBodies = parse_file(file_path);
+    std::cout << "Number of bodies: " << this->numBodies << std::endl;
 
     if (numBodies > 0)
     {
         // Open file
+        std::cout << "Opening file: datosBodies.dat" << std::endl;
         FILE *pFile = fopen(file_path.c_str(), "r");
         if (pFile == NULL)
         {
@@ -801,6 +805,7 @@ void Simulation::ReadBodiesASCII()
         pBodies = new Body *[numBodies];
         for (int ii = 0; ii < numBodies; ii++)
         {
+            std::cout << "  ... Including Body: " << ii + 1 << std::endl;
             // Discard header lines and check for body type
             for (int ii = 0; ii < 3; ii++)
             {

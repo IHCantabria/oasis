@@ -557,8 +557,8 @@ arma::mat HydroDatabase::ComputeFirstWaveExcForce(double t)
 	}
 
 	// Interpolate transfer functions to the body heading
-	arma::cube H_Real = interp1((*pHeadings) + yaw, WE_Real_w, pWave->headings_piece);
-	arma::cube H_Imag = interp1((*pHeadings) + yaw, WE_Imag_w, pWave->headings_piece);
+	arma::cube H_Real = interp1(wrapToPi((*pHeadings) + yaw), WE_Real_w, wrapToPi(pWave->headings_piece));
+	arma::cube H_Imag = interp1(wrapToPi((*pHeadings) + yaw), WE_Imag_w, wrapToPi(pWave->headings_piece));
 
 	// Convert interpolated transfer functions to magnitude and phase
 	arma::cube H_Mag = arma::sqrt(arma::pow(H_Real, 2) + arma::pow(H_Imag, 2));
@@ -569,9 +569,20 @@ arma::mat HydroDatabase::ComputeFirstWaveExcForce(double t)
 	H_Pha = permute(H_Pha, 213);
 
 	// Extract the index of the required wave piece
-	arma::uvec ind_piece = arma::find((pWave->time_ini - pWave->time_gap) < t, 1, "last");
-	// Check if current time is in a gap
-	bool flag_gap = ((ind_piece(0) > 0) && (t < pWave->time_ini(ind_piece(0))));
+	arma::uword ind_piece;
+	bool flag_gap;
+	if (pWave->num_pieces > 1)
+	{
+		arma::uvec ind_piece_vec = arma::find((pWave->time_ini - pWave->time_gap) < t, 1, "last");
+		ind_piece = ind_piece_vec(0);
+		// Check if current time is in a gap
+		flag_gap = ((ind_piece > 0) && (t < pWave->time_ini(ind_piece)));
+	}
+	else
+	{
+		ind_piece = 0;
+		flag_gap = false;
+	}
 
 	// Declare local variables
 	arma::mat H_Mag_loc, H_Pha_loc, Cm, Sm, Am, PHIm;
@@ -631,8 +642,8 @@ arma::mat HydroDatabase::ComputeFirstWaveExcForce(double t)
 
 			// Store the excitation force mixing linearly the current and previous piece
 			// TODO: Mix pieces with a qubic function instead of linear
-			Fe(ii, 0) = F_piece * (t - pWave->time_end(ind_piece(0) - 1)) / pWave->time_gap +
-						F_gap * (pWave->time_ini(ind_piece(0)) - t) / pWave->time_gap;
+			Fe(ii, 0) = F_piece * (t - pWave->time_end(ind_piece - 1)) / pWave->time_gap +
+						F_gap * (pWave->time_ini(ind_piece) - t) / pWave->time_gap;
 		}
 		else
 		{
@@ -713,9 +724,20 @@ arma::mat HydroDatabase::ComputeSecondWaveExcForce(double t)
 	}
 
 	// Extract the index of the required wave piece
-	arma::uvec ind_piece = arma::find((pWave->time_ini - pWave->time_gap) < t, 1, "last");
-	// Check if current time is in a gap
-	bool flag_gap = ((ind_piece(0) > 0) && (t < pWave->time_ini(ind_piece(0))));
+	arma::uword ind_piece;
+	bool flag_gap;
+	if (pWave->num_pieces > 1)
+	{
+		arma::uvec ind_piece_vec = arma::find((pWave->time_ini - pWave->time_gap) < t, 1, "last");
+		ind_piece = ind_piece_vec(0);
+		// Check if current time is in a gap
+		flag_gap = ((ind_piece > 0) && (t < pWave->time_ini(ind_piece)));
+	}
+	else
+	{
+		ind_piece = 0;
+		flag_gap = false;
+	}
 
 	// Loop over all active degrees of freedom
 	// TODO: This only works for 6 DOFs, change it.
@@ -771,8 +793,8 @@ arma::mat HydroDatabase::ComputeSecondWaveExcForce(double t)
 
 			// Store the excitation force mixing linearly the current and previous piece
 			// TODO: Mix pieces with a qubic function instead of linear
-			Fe(ii, 0) = F_piece * (t - pWave->time_end(ind_piece(0) - 1)) / pWave->time_gap +
-						F_gap * (pWave->time_ini(ind_piece(0)) - t) / pWave->time_gap;
+			Fe(ii, 0) = F_piece * (t - pWave->time_end(ind_piece - 1)) / pWave->time_gap +
+						F_gap * (pWave->time_ini(ind_piece) - t) / pWave->time_gap;
 		}
 		else
 		{
