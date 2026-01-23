@@ -19,5 +19,11 @@ core*
 *.mat
 *.bak
 *.log
+*.h5
+*.ehydb
+*.bts
+*.dll
+*.so
+*/output/*
 compilar.sh
 .out

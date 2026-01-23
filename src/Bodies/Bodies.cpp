@@ -85,11 +85,16 @@ void Body::LoadHydrodynamicDatabase(Body **hydroDatabaseBodies)
     // Load and check the Hydrodynamic C.O.G position
     if (this->takeCOGHydroDatabase == 1)
     {
-        // Load inital position
+        // Load COG equilibrium position
         this->pos_eq.rows(0, 2) = this->pHydro->GetCog().t();
 
-        // Add initial position to the global position
+        std::cout << "      --> Using HDB COG: " << this->pHydro->GetCog();
+
+        // Add initial displacement to the COG equilibrium position
         this->pos = this->pos + this->pos_eq;
+        pos_ini = pos;
+
+        std::cout << "      --> Initial Position: " << this->pos.t();
     }
     else if ((this->takeCOGHydroDatabase == 0) && (this->pHydro->GetNumBodies() > 1))
     {
@@ -110,10 +115,6 @@ void Body::LoadHydrodynamicDatabase(Body **hydroDatabaseBodies)
             ss << " mismatch with the C.O.G value in the Hydrodynamic database.\n";
             throw ValueError(ss.str());
         }
-    }
-    else if (this->takeCOGHydroDatabase == 0)
-    {
-        this->pos = this->pos + this->pos_eq;
     }
 
     std::cout << "----> Hydrodynamic Properties Read" << std::endl;
@@ -225,7 +226,7 @@ void Body::ReadPropertiesASCII(FILE *pFile)
 
     std::cout << "    --> Wind Turbines: " << this->pIndexWindTurbs << std::endl;
 
-    // Read Initial position
+    // Read COG equilibrium position
     for (int ii = 0; ii < 6; ii++)
     {
         if (fscanf(pFile, "%lf", &dtemp) != 1)
@@ -243,7 +244,10 @@ void Body::ReadPropertiesASCII(FILE *pFile)
     }
     fscanf(pFile, "%[^\n]\n", buffer_line);
 
-    std::cout << "    --> Initial Position: " << this->pos.t() << std::endl;
+    if (this->takeCOGHydroDatabase == 0)
+    {
+        std::cout << "    --> Equilibrium Position: " << this->pos.t() << std::endl;
+    }
 
     // Read Initial displacement from reference position
     for (int ii = 0; ii < 6; ii++)
@@ -347,7 +351,7 @@ void Body::ReadPropertiesASCII(FILE *pFile)
     }
     this->hydrostaticMeshName = cHydrostaticMeshName;
 
-    std::cout << "    --> Hidrostatic Mesh Name: " << this->hydrostaticMeshName << std::endl;
+    std::cout << "    --> Hydrostatic Mesh Name: " << this->hydrostaticMeshName << std::endl;
 
     // Read flag for radiation force
     if (fscanf(pFile, "%d %[^\n]\n", &radiationFlag, buffer_line) != 2)
@@ -357,6 +361,8 @@ void Body::ReadPropertiesASCII(FILE *pFile)
            << ".\n";
         throw ValueError(ss.str());
     }
+
+    std::cout << "    --> Radiation Force Flag: " << firstOrderExcitationFlag << std::endl;
 
     // Read flag for first order excitation force
     if (fscanf(pFile, "%d %[^\n]\n", &firstOrderExcitationFlag, buffer_line) != 2)

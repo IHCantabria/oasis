@@ -1,0 +1,44 @@
+0 // Number of Actuators
+4 // Number of Anchors
+0 // Number of Joints
+4 // Number of Fairleads
+//////////////////
+////////////////// New BCP [1] [Anchor] [1]
+//////////////////
+100.0 0.0 -60.0  // Initial position. [Actuator, Anchor, Joint: global, Fairlead: Local body cdg coordinades [Line: point of contact,  Spring: mean point of the spring] ]
+0 // Winch Id
+//////////////////
+////////////////// New BCP [2] [Anchor] [2]
+//////////////////
+0.0 100.0 -50.0  // Initial position. [Actuator, Anchor, Joint: global, Fairlead: Local body cdg coordinades [Line: point of contact,  Spring: mean point of the spring] ]
+0 // Winch Id
+//////////////////
+////////////////// New BCP [3] [Anchor] [3]
+//////////////////
+-100.0 0.0 -40.0  // Initial position. [Actuator, Anchor, Joint: global, Fairlead: Local body cdg coordinades [Line: point of contact,  Spring: mean point of the spring] ]
+0 // Winch Id
+//////////////////
+////////////////// New BCP [4] [Anchor] [4]
+//////////////////
+0.0 -100.0 -50.0  // Initial position. [Actuator, Anchor, Joint: global, Fairlead: Local body cdg coordinades [Line: point of contact,  Spring: mean point of the spring] ]
+0 // Winch Id
+//////////////////
+////////////////// New BCP [5] [Fairlead] [1]
+//////////////////
+10.0 0.0 0.0  // Initial position. [Actuator, Anchor, Joint: global, Fairlead: Local body cdg coordinades [Line: point of contact,  Spring: mean point of the spring] ]
+0 // Winch Id
+//////////////////
+////////////////// New BCP [6] [Fairlead] [2]
+//////////////////
+0.0 10.0 0.0  // Initial position. [Actuator, Anchor, Joint: global, Fairlead: Local body cdg coordinades [Line: point of contact,  Spring: mean point of the spring] ]
+0 // Winch Id
+//////////////////
+////////////////// New BCP [7] [Fairlead] [3]
+//////////////////
+-10.0 0.0 0.0  // Initial position. [Actuator, Anchor, Joint: global, Fairlead: Local body cdg coordinades [Line: point of contact,  Spring: mean point of the spring] ]
+0 // Winch Id
+//////////////////
+////////////////// New BCP [8] [Fairlead] [4]
+//////////////////
+0.0 -10.0 0.0  // Initial position. [Actuator, Anchor, Joint: global, Fairlead: Local body cdg coordinades [Line: point of contact,  Spring: mean point of the spring] ]
+0 // Winch Id

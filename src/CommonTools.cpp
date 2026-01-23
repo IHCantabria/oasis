@@ -30,7 +30,7 @@ int parse_file(std::string filePath)
         count_line++;
 
         // std::cout << buffer << strncmp(buffer, "/", 1) << std::endl;
-        if (strncmp(buffer, "/", 1) == 0)
+        if (strncmp(buffer, "///", 3) == 0)
         {
             num_head_lines++;
         }

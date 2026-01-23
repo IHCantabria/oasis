@@ -575,7 +575,11 @@ void Line::compute_tension(double time)
 	}
 	else if (flag_stiffness == 1)
 	{
+		// Cubic formulation case. Initiallize tension vector.
+		// std::cout << "Line::compute_tension: Cubic formulation case. Initiallize tension vector." << std::endl;
 		T = arma::zeros(N, 1);
+		// Loop over all nodes: computing elastic term
+		// std::cout << "Line::compute_tension: Loop over all nodes: computing elastic term" << std::endl;
 		for (int k = 0; k < N; k++)
 		{
 			// Extract current node strain and strain rate
@@ -590,8 +594,10 @@ void Line::compute_tension(double time)
 		}
 
 		// Check if viscous tension should be computed/updated
-		if (flag_visc == 1)
+		if (flag_visc == 1 && time > 0.0)
 		{
+			// Loop over all nodes: computing elastic term
+			// std::cout << "Line::compute_tension: Computing viscous term" << std::endl;
 			// Declare required variables
 			arma::mat tau;
 			arma::mat visc_resp;
@@ -904,8 +910,12 @@ void Line::SEM_compute_derivarives(void)
 
 void Line::SEM_computeF(double time)
 {
+	// Compute derivatives relevant to the forces formulation
+	// std::cout << "Line::SEM_computeF: Compute derivatives relevant to the forces formulation." << std::endl;
 	SEM_compute_derivarives();
+
 	// Compute tension
+	// std::cout << "Line::SEM_computeF: Compute tension..." << std::endl;
 	compute_tension(time);
 
 	if (floor_flag == 1)

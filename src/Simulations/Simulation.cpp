@@ -6,7 +6,7 @@
 #include <ctime>
 
 #include "Simulation.hpp"
-#include "../CommonTools.hpp">
+#include "../CommonTools.hpp"
 #include "../Exceptions/Exception.hpp"
 #include "../os_tools.hpp"
 #include "../Bodies/Bodies.hpp"
@@ -747,7 +747,7 @@ void Simulation::Initialize()
     else
     {
         std::cout << "Reading Equilibrium.dat..." << std::endl;
-        file_path = JoinPath(inputFolderPath, "Equilibrio.dat");
+        file_path = JoinPath(inputFolderPath, "dataStaticIC.dat");
         y.load(file_path, arma::arma_ascii);
 
         ini = 6 * this->numBodiesFree;
@@ -1562,9 +1562,9 @@ void Simulation::ReadPropertiesASCII()
     fscanf(file_pointer, "%lf %[^\n]\n", &timeIntRelTol, bufferLine);        // Relative tolerance for temporal integration.
     fscanf(file_pointer, "%d %[^\n]\n", &maxIterStep, bufferLine);           // Maximum number of iterations for one step of temporal integration.
     fscanf(file_pointer, "%d %[^\n]\n", &dummyBool, bufferLine);
-    readEquilibrium = dummyBool; // Read Equilibrio.dat? [0 No, 1 Yes]
+    readEquilibrium = dummyBool; // Read dataStaticIC.dat? [0 No, 1 Yes]
     fscanf(file_pointer, "%d %[^\n]\n", &dummyBool, bufferLine);
-    writeEquilibrium = dummyBool;                                 // Write Equilibrio.dat? [0 No, 1 Yes]
+    writeEquilibrium = dummyBool;                                 // Write dataStaticIC.dat? [0 No, 1 Yes]
     fscanf(file_pointer, "%d %[^\n]\n", &flagStatic, bufferLine); // Mooring initial condition flag [0: Catenary, 1: Newton's]
 
     // Close file
@@ -2068,7 +2068,7 @@ void Simulation::Run()
 
         for (int ii = 0; ii < numLines; ii = ii + 1)
         {
-            if ((pLines[ii]->flag_visc==1)&&(pTimeSolver->t>=pLines[ii]->last_time+pLines[ii]->dt))
+            if ((pLines[ii]->flag_visc == 1) && (pTimeSolver->t >= pLines[ii]->last_time + pLines[ii]->dt))
             {
                 pLines[ii]->update_buffer(pTimeSolver->t);
                 pLines[ii]->last_time = pTimeSolver->t;
@@ -2188,9 +2188,9 @@ void Simulation::Run()
 
     if (writeEquilibrium == 1)
     {
-        std::cout << "  Writting data to Equilibrio.dat ..." << std::endl
+        std::cout << "  Writting data to dataStaticIC.dat ..." << std::endl
                   << std::endl;
-        std::string filename = JoinPath(outputFolderPath, "Equilibrio.dat");
+        std::string filename = JoinPath(outputFolderPath, "dataStaticIC.dat");
         pTimeSolver->y.save(filename, arma::arma_ascii);
     }
 }
@@ -2612,7 +2612,7 @@ void Simulation::SetupCase()
     }
 
     // Compute equilibrium with FEM for all lines at the same time
-    if (!readEquilibrium && flagStatic == 1) //&& flagStatic == 0?
+    if (!readEquilibrium && flagStatic == 1 && numLines > 0) //&& flagStatic == 0?
     {
         std::cout << "  --> Computing the equilibrium with FEM for all lines at the same time ..." << std::endl;
 
@@ -2621,21 +2621,23 @@ void Simulation::SetupCase()
         arma::umat flagTension;
         flagLineas.zeros(numLines, 1);
         flagTension.zeros(numLines, 1);
-        for (int i = 0; i < numLines; i++)
+        for (int ii = 0; ii < numLines; ii++)
         {
+            pLines[ii]->pLineBcps[0]->GetValues(0.0);
+            pLines[ii]->pLineBcps[1]->GetValues(0.0);
             // Store the original values
-            flagLineas(i) = pLines[i]->frictionModel;
-            flagTension(i) = pLines[i]->flag_tension;
+            flagLineas(ii) = pLines[ii]->frictionModel;
+            flagTension(ii) = pLines[ii]->flag_tension;
             // Set them to a value that allows the equilibrium computation
-            pLines[i]->frictionModel = 0;
-            pLines[i]->flag_tension = 1;
+            pLines[ii]->frictionModel = 0;
+            pLines[ii]->flag_tension = 1;
         }
 
         // Start the equilibrium computation with an initial guess
         arma::mat posicionInicial = ComputeLinesInitialPoint();
         // Perform the equilibrium computation
         ComputeLinesEquilibrium(posicionInicial);
-        std::cout << "  --> Equilibrio inicial computado correctamente ..." << std::endl;
+        std::cout << "  --> Initial static position computed ..." << std::endl;
         // Return the original values of the friction model and tension flag
         for (int i = 0; i < numLines; i++)
         {
@@ -2963,28 +2965,35 @@ arma::mat Simulation::ComputeLinesForces(arma::mat posicion)
     arma::mat forcesLinesCouplingVector = arma::zeros(numAllLinesNodes, 3);
 
     // Loop over all the lines to compute the forces
-    for (int i = 0; i < numLines; i++)
+    for (int ii = 0; ii < numLines; ii++)
     {
         // Get the initial positions of the current line
-        arma::mat initial_positions = full_matrix.rows(pLines[i]->ind4CouplingMat);
-        pLines[i]->pos = initial_positions;
+        pLines[ii]->pos = full_matrix.rows(pLines[ii]->ind4CouplingMat);
         // Set the line nodes velocity to zero
-        pLines[i]->vel = arma::zeros(pLines[i]->N, 3);
+        pLines[ii]->vel = arma::zeros(pLines[ii]->N, 3);
         // Compute the forces
-        // pLines[i]->compute_tension(0.0); //initial tension. Just checking what happens 
-        // pLines[i]->SEM_computeF(0.0); // TODO: review what happens when computing initial position with hysteresis
-        // std::cout << "Tensión en la línea " << i << ": " << pLines[i]->getT(0.0) << std::endl; //initial tension. Just checking what happens
-        pLines[i]->SEM_computeF(0.0);
+        // std::cout << "Simulation::ComputeLinesForces: Compute the forces..." << std::endl;
+        pLines[ii]->SEM_computeF(0.0);
         // Store the forces in the global vector
-        forcesLinesCouplingVector.rows(pLines[i]->ind4CouplingMat) += pLines[i]->F;
+        forcesLinesCouplingVector.rows(pLines[ii]->ind4CouplingMat) += pLines[ii]->F;
     }
 
     // Remove the forces of the nodes that are not joints
     forcesLinesCouplingVector.shed_rows(indexesFairAnchor);
     // Convert the matrix to a column vector
     arma::mat output_force = arma::reshape(arma::strans(forcesLinesCouplingVector), 3 * forcesLinesCouplingVector.n_rows, 1);
-
+    // Return output force
     return output_force;
+
+    // TODO: Check why using lines accelerations does not work properly to compute initial position
+    // // Compute lines accelerations
+    // arma::mat LinesAccelerations = arma::solve(*pLinesCouplingMatrix, forcesLinesCouplingVector);
+    // // Remove the forces of the nodes that are not joints
+    // LinesAccelerations.shed_rows(indexesFairAnchor);
+    // // Convert the matrix to a column vector
+    // arma::mat output_force = arma::reshape(arma::strans(LinesAccelerations), 3 * LinesAccelerations.n_rows, 1);
+    // // Return output force
+    // return output_force;
 }
 
 arma::mat Simulation::ComputeLinesJacobian(arma::mat position, arma::mat force)
@@ -2996,15 +3005,13 @@ arma::mat Simulation::ComputeLinesJacobian(arma::mat position, arma::mat force)
     // Initialling the jacobian matrix
     arma::mat jacobian = arma::zeros(numVariables, numVariables);
     // Set the finite differences step parameter
-    double h = 1e-12; 
+    double h = 1e-12;
     // Loop over all the variables to compute the jacobian
-    std::cout << "  --> Simulation::ComputeLinesJacobian " << std::endl;
     for (int j = 0; j < numVariables; j++)
-    {   
+    {
         jacobian.col(j) = (ComputeLinesForces(position + h * canonic_base.col(j)) - force) / h;
     }
     return jacobian;
-    std::cout << "  --> Simulation::ComputeLinesJacobian " << std::endl;
 }
 
 void Simulation::ComputeLinesEquilibrium(arma::mat x)
@@ -3015,12 +3022,14 @@ void Simulation::ComputeLinesEquilibrium(arma::mat x)
 
     // Parameters
     int maxIter = 1000;
-    double tol = timeIntAbsTol;
-    double tolrelativa = timeIntRelTol;
+    double tol = 1.0e-9;
+    double relTol = 1.0e-6;
+    double minStep = 1e-14;
 
     // Initial stop criterion variables
-    double cantidadRel = 2 * tolrelativa;
+    double cantidadRel = 2 * relTol;
     double cantidadAbs = 2 * tol;
+    double step = 2 * minStep;
     int iter = 0;
 
     // Initialization of solution vectos
@@ -3036,11 +3045,13 @@ void Simulation::ComputeLinesEquilibrium(arma::mat x)
     arma::mat dk;
 
     // Store initial force for the stop criterion
+    // std::cout << "Simulation::ComputeLinesEquilibrium: Store initial force for the stop criterion." << std::endl;
     arma::mat fx = ComputeLinesForces(x);
     double normafxInicial = arma::norm(fx, 2);
 
     // Newton-Raphson loop
-    while (iter < maxIter && ((cantidadAbs > tol) || (cantidadRel > tolrelativa)))
+    // std::cout << "Simulation::ComputeLinesEquilibrium: Newton-Raphson loop." << std::endl;
+    while ((iter < maxIter) && (step > minStep) && ((cantidadAbs > tol) || (cantidadRel > relTol)))
     {
 
         // Step 1: compute the Jacobian Matrix
@@ -3054,7 +3065,7 @@ void Simulation::ComputeLinesEquilibrium(arma::mat x)
         double sigma = 1e-4;
         double beta = 0.5;
         arma::mat new_step_vec = ComputeLinesForces(x + rho * dk);
-        while (arma::norm(new_step_vec, 2) > ((1 - sigma * rho) * arma::norm(fx)) && rho > 0.01)
+        while (arma::norm(new_step_vec, "inf") > ((1.0 - sigma) * arma::norm(fx, "inf")) && rho > 0.01)
         {
             rho = beta * rho;
             new_step_vec = ComputeLinesForces(x + rho * dk);
@@ -3067,8 +3078,14 @@ void Simulation::ComputeLinesEquilibrium(arma::mat x)
         // Step 4: Update the stop criterion variables
         // cantidadAbs = arma::norm(dk, 2);
         // cantidadRel = cantidadAbs / arma::norm(x, 2);
-        cantidadAbs = arma::norm(dk, "inf");
-        cantidadRel = arma::norm(dk / x, "inf");
+        step = arma::norm(rho * dk, "inf");
+        cantidadAbs = arma::norm(fxsol, "inf");
+        cantidadRel = arma::norm(dk / arma::as_scalar(arma::sqrt(arma::mean(arma::pow(x, 2)))), "inf");
+
+        if ((iter % 100) == 0)
+        {
+            std::cout << "Iteration " << iter << "/" << maxIter << ". Max. force: " << cantidadAbs << " N (goal " << tol << ").  Max. rel. pos. step: " << cantidadRel << " (goal " << relTol << ")." << std::endl;
+        }
         iter = iter + 1;
 
         // Update the solution for next iteration
@@ -3078,10 +3095,9 @@ void Simulation::ComputeLinesEquilibrium(arma::mat x)
     }
 
     // Check if the maximum number of iterations was exceeded
-    if (iter >= maxIter)
+    if ((iter >= maxIter) || (step <= minStep))
     {
-        std::stringstream ss;
-        ss << "The maximum number of iterations was exceeded. Convergence was not achieved \n";
-        throw ValueError(ss.str());
+        std::cout << "WARNING: Convergence for initial condition was not perfectly achieved! " << std::endl;
     }
+    std::cout << "Final Iteration: " << iter << "/" << maxIter << ". Max. force: " << cantidadAbs << " N (goal " << tol << ").  Max. rel. pos. step: " << cantidadRel << " (goal " << relTol << ")." << std::endl;
 }
