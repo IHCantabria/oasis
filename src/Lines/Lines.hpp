@@ -20,7 +20,7 @@ public:
 	int numBcps = 2;
 	int indexBcps[2];
 	int lineType, nLine, nNodos, p, N, floor_flag, BCP_1, BCP_N, flag_tension, flag_stiffness, smoothstep, frictionModel;
-	double L, dL, dL0, EA, beta, rho0, d, A, Cdt, Cdn, Cmn, CB, GK, GC, Kn, dampCoef, VR, vth, ust, usn, ud, deltamax, fn, kernel_coef;
+	double L, dL, dL0, EA, beta, rho0, d, A, Cdt, Cdn, Cmn, CB, GK, GC, Kn, dampCoef, VR, vth, ust, usn, ud, deltamax, fn;
 	double paramNormal_1, paramNormal_N, parammuelle1_1, parammuelle1_N, parammuelle2_1, parammuelle2_N, paramVel_1, paramVel_N, ultimaCoordVel_1, ultimaCoordVel_N;
 	arma::mat projectionDirection_1, projectionDirection_N;
 	arma::mat strain_data, stress_data;
@@ -28,9 +28,10 @@ public:
 	arma::mat pos_1 = arma::zeros(3, 1), pos_N = arma::zeros(3, 1);
 	arma::mat a_1 = arma::zeros(4, 1);				   // Variables para almacenar los coeficientes polinomicos del coeficiente de friccion
 	arma::mat a_2 = arma::zeros(4, 1);				   // Variables para almacenar los coeficientes polinomicos del coeficiente de friccion
-	arma::mat elastic_coef = arma::zeros(3, 1);		   // Elastic coefficients third degree polynomial, no constant term.
-	arma::mat visc_loading_coef = arma::zeros(3, 1);   // Viscoelastic loading coefficients third degree polynomial, no constant term.
-	arma::mat visc_unloading_coef = arma::zeros(3, 1); // Viscoelastic unloading coefficients third degree polynomial, no constant term.
+	int num_kernel_coef, num_elastic_coef;
+	arma::mat kernel_lin_coef;
+	arma::mat kernel_exp_coef;
+	arma::mat elastic_coef;		   // Elastic coefficients polynomial, no constant term.
 	arma::mat pos, vel, acc, F, s, xc, zc, dxcds, dzcds, Te, roots, weights, isSlip, posFriccion;
 	arma::mat C, D, MassMatrix, MM, StiffMatrix, MSMatrix, MassMatrix_diag;
 	arma::mat inv_MM, inv_MM_1, inv_MM_N, inv_MM_1N;
@@ -52,9 +53,7 @@ public:
 	int num_buffer;
 	double flag_visc;
 	arma::mat time_vector, strain_vector, strain_rate_vector;
-	arma::mat zc_times, zc_visc_resp_load, zc_visc_resp_unload;
-	arma::Mat<int> zc_num;
-	arma::mat visc_resp_tmp_vector, visc_resp_0, gv_tau;
+	arma::mat visc_resp_tmp_vector, gv_tau;
 	arma::mat T_elast;
 	arma::mat T_visc;
 
@@ -87,7 +86,6 @@ public:
 	double SEM_poly_first_derivative(double x, int i);
 	arma::mat SEM_get_D_local(void);
 	double kernel(double time);
-	double kernel_rate(double time);
 	void update_buffer(double time);
 	void compute_tension(double time);
 	void SEM_compute_derivarives(void);

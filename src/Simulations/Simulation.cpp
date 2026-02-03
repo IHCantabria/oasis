@@ -1612,7 +1612,7 @@ void Simulation::ReadWavesASCII()
     // Declare local variables
     char bufferLine[1000];
     char wave_type[1000];
-    double H, T, D;
+    double H, T, D, rampTime;
 
     // Open file
     std::string file_path = JoinPath(inputFolderPath, "dataWaves.dat");
@@ -1635,15 +1635,16 @@ void Simulation::ReadWavesASCII()
     fscanf(file_pointer, "%lf %[^\n]\n", &H, bufferLine);
     fscanf(file_pointer, "%lf %[^\n]\n", &T, bufferLine);
     fscanf(file_pointer, "%lf %[^\n]\n", &D, bufferLine);
+    fscanf(file_pointer, "%lf %[^\n]\n", &rampTime, bufferLine);
 
     // Create wave object and read additional parameters if necessary
     if (strncmp(wave_type, "REG", 3) == 0)
     {
-        pWave = new RegularWave(this, H, T, D);
+        pWave = new RegularWave(this, H, T, D, rampTime);
     }
     else if (strncmp(wave_type, "IRR", 3) == 0)
     {
-        pWave = new IrregularWave(this, H, T, D);
+        pWave = new IrregularWave(this, H, T, D, rampTime);
         for (int ii = 0; ii < 3; ii++)
         {
             fgets(bufferLine, sizeof(bufferLine), file_pointer);
@@ -2386,7 +2387,7 @@ void Simulation::SetupCase()
     // Count the number of Lines in each body and create pointer array
     if (numLines > 0)
     {
-        std::cout << "        Counting the number of Lines in each body ..." << std::endl;
+        std::cout << "        Counting the number of Lines in each BCP ..." << std::endl;
     }
     for (int ii = 0; ii < numLines; ii++)
     {
@@ -2403,10 +2404,18 @@ void Simulation::SetupCase()
             pBcps[pLines[ii]->indexBcps[jj]]->numLinesBcp++;
         }
     }
+    if (numLines > 0)
+    {
+        std::cout << "  --> ... done!" << std::endl;
+    }
+    if (numLines > 0)
+    {
+        std::cout << "        Initiallizing Line data for BCPs with lines..." << std::endl;
+    }
     bool *pDefined_lines_bcps = new bool[numBcps];
     for (int ii = 0; ii < numBcps; ii++)
     {
-        pDefined_lines_bcps[ii] = 0;
+        pDefined_lines_bcps[ii] = false;
     }
     for (int ii = 0; ii < numLines; ii++)
     {

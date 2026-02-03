@@ -20,7 +20,7 @@ arma::mat HydroDatabase::CalculateHydrodynamicForces(double time)
 {
 	arma::mat F = arma::zeros(activeDofs, 1);
 
-	double rampa = std::min(1.0, time / 50.0); // TODO: the ramp time should not be hardcoded!
+	double ramp = pSim->pWave->get_ramp(time);
 	double yaw = pBodies[idBody]->pos(5, 0);
 
 	// std::cout << "--> Computing radiation forces..." << std::endl;
@@ -32,27 +32,27 @@ arma::mat HydroDatabase::CalculateHydrodynamicForces(double time)
 	// std::cout << "--> Computing first order diffraction forces..." << std::endl;
 	if (pBodies[idBody]->firstOrderExcitationFlag == 1)
 	{
-		F = F + ComputeFirstWaveExcForce(time) * rampa;
+		F = F + ComputeFirstWaveExcForce(time) * ramp;
 		// std::cout << "WARNING: Precomputed first order forces not implemented yet. \n" << std::endl;
 	}
 	if (pBodies[idBody]->firstOrderExcitationFlag == 2)
 	{
-		F = F + ComputeFirstWaveExcForce(time) * rampa;
+		F = F + ComputeFirstWaveExcForce(time) * ramp;
 	}
 
 	// std::cout << "--> Computing second order diffraction forces..." << std::endl;
 	if (pBodies[idBody]->secondOrderExcitationFlag == 1)
 	{
-		F = F + ComputeSecondWaveExcForce(time) * rampa;
+		F = F + ComputeSecondWaveExcForce(time) * ramp;
 		// std::cout << "WARNING: Precomputed second order forces not implemented yet. \n" << std::endl;
 	}
 	if (pBodies[idBody]->secondOrderExcitationFlag == 2)
 	{
-		F = F + ComputeSecondWaveExcForce(time) * rampa;
+		F = F + ComputeSecondWaveExcForce(time) * ramp;
 	}
 	if (pBodies[idBody]->secondOrderExcitationFlag == 3 || pBodies[idBody]->secondOrderExcitationFlag == 4)
 	{
-		F = F + ComputeMeanDrift() * rampa;
+		F = F + ComputeMeanDrift() * ramp;
 	}
 
 	// std::cout << "--> Computing viscous drag forces..." << std::endl;
@@ -1426,7 +1426,6 @@ void HydroDatabase::SetUp(void)
 			}
 		}
 
-
 		std::cout << "HydroDatabase::SetUp - Define the matrices required for time domain QTF forces computation" << std::endl;
 		// Preprocess the matrices required for time domain QTF forces computation
 		ampP = arma::field<arma::mat>(pWave->num_pieces);
@@ -1639,6 +1638,11 @@ arma::mat HydroDatabase::CalculateHydrostaticPressure(double t)
 
 		// Non-linear hydrostatic forces without wave
 		pressure = -z * pSim->gravity * pSim->waterDensity;
+		arma::uvec ind_z_eme = arma::find(z >= 0.0);
+		if (ind_z_eme.n_elem > 0)
+		{
+			pressure(ind_z_eme) = 0.0 * pressure(ind_z_eme);
+		}
 	}
 	else if (pBodies[idBody]->flag_hydrostatics == 2)
 	{

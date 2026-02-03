@@ -9,7 +9,7 @@
 #include "../os_tools.hpp"
 #include "../Simulations/Simulation.hpp"
 
-Wave::Wave(Simulation *pSimInc, double H, double T, double D)
+Wave::Wave(Simulation *pSimInc, double H, double T, double D, double RT)
 {
 	height = H;
 	period = T;
@@ -20,6 +20,7 @@ Wave::Wave(Simulation *pSimInc, double H, double T, double D)
 		heading += 2.0 * arma::datum::pi;
 	}
 	heading -= arma::datum::pi;
+	rampTime = RT;
 	pSim = pSimInc;
 	simulationTime = pSim->simulationTime;
 	gravity = pSim->gravity;
@@ -31,6 +32,16 @@ Wave::Wave(Simulation *pSimInc, double H, double T, double D)
 		throw ValueError(ss.str());
 	}
 	lambda_peak = solve_lambda(period);
+	if (rampTime > 0.0)
+	{
+		ramp_a = -2.0 / pow(rampTime, 3.0);
+		ramp_b = 3.0 / pow(rampTime, 2.0);
+	}
+	else
+	{
+		ramp_a = 0.0;
+		ramp_b = 0.0;
+	}
 }
 
 void Wave::SetZeroHeight(void)
@@ -149,6 +160,16 @@ Wave::GetWaveLengths(arma::vec periods, arma::vec headings)
 	return std::make_tuple(lambdas, k, kx, ky, kx_1D, ky_1D);
 }
 
+double Wave::get_ramp(double time)
+{
+	double ramp = 1.0;
+	if (time < rampTime)
+	{
+		ramp = ramp_a * pow(time, 3.0) + ramp_b * pow(time, 2.0);
+	}
+	return ramp;
+}
+
 double Wave::solve_lambda(double T)
 {
 	double lambda = gravity * T * T / (2.0 * arma::datum::pi);
@@ -226,8 +247,9 @@ arma::vec Wave::GetFreeSurface(arma::mat amplitudes, arma::mat phases, int num_p
 
 arma::vec Wave::GetFreeSurface(double time, arma::vec x, arma::vec y)
 {
+	double ramp = get_ramp(time);
 	arma::vec eta = arma::sum(amplitudes * ones(size(amplitudes.t())) * arma::cos(phases * ones(size(x.t())) + kx * x.t() + ky * y.t() - time * ang_freqs * ones(size(x.t())))).t();
-	return eta;
+	return ramp*eta;
 }
 
 arma::vec Wave::GetPressure(double time, arma::vec x, arma::vec y, arma::vec z)
@@ -236,6 +258,8 @@ arma::vec Wave::GetPressure(double time, arma::vec x, arma::vec y, arma::vec z)
 	// std::cout << "      --> num_points = " << x.n_elem << std::endl;
 	// std::cout << "      --> num_freqs = " << num_comps << std::endl;
 	// std::cout << "      --> num_headings = " << num_headings << std::endl;
+
+	double ramp = get_ramp(time);
 
 	// arma::mat onesNp = arma::ones(size(x.t()));
 	// arma::mat eta_term = (A * onesNp) % arma::cos(KX * x.t() + KY * y.t() - time * W * onesNp + P * onesNp);
@@ -247,7 +271,7 @@ arma::vec Wave::GetPressure(double time, arma::vec x, arma::vec y, arma::vec z)
 	eta_term += KY * y.t();
 	eta_term.each_col() += time_arg;
 	eta_term = arma::cos(eta_term);
-	arma::vec eta = (A.t() * eta_term).t();
+	arma::vec eta = ramp * (A.t() * eta_term).t();
 	// std::cout << "      --> Computed free surface!" << std::endl;
 
 	arma::vec tkw = arma::tanh(K * waterDepth);
@@ -258,7 +282,7 @@ arma::vec Wave::GetPressure(double time, arma::vec x, arma::vec y, arma::vec z)
 	coef += tmp;
 	tmp.reset();
 	eta_term.each_col() %= A;
-	arma::vec dynamic_term = arma::sum(eta_term % coef, 0).t();
+	arma::vec dynamic_term = ramp * arma::sum(eta_term % coef, 0).t();
 	// std::cout << "      --> Computed dynamic term!" << std::endl;
 
 	arma::uvec ind_z_pos = arma::find(z > 0);

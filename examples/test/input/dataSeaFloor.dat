@@ -4,9 +4,9 @@
 //////////////////////////////////////////
 ///////////////////////////////////////// New Floor[2] Inclined
 /////////////////////////////////////////
-0.0  0.0  -50.0  // Point1 Coordinates ONLY FOR INCLINED FLOOR
-0.0  100.0  -50.0  // Point2 Coordinates ONLY FOR INCLINED FLOOR
-100.0	0.0	-60.0 // Point3 Coordinates ONLY FOR INCLINED FLOOR
+0.0  0.0  -10.0  // Point1 Coordinates ONLY FOR INCLINED FLOOR
+0.0  100.0  -20.0  // Point2 Coordinates ONLY FOR INCLINED FLOOR
+100.0	0.0	-10.0 // Point3 Coordinates ONLY FOR INCLINED FLOOR
 //////////////////////////////////////////
 ///////////////////////////////////////// New Floor[1] Flat
 /////////////////////////////////////////

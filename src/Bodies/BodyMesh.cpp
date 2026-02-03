@@ -115,7 +115,7 @@ void BodyMesh::CutMesh(double time)
     arma::vec eta;
     if (pBody->flag_hydrostatics == 1)
     {
-        verticesUW = (transNodes.submat(0, 2, numVertices - 1, 2) <= 0);
+        verticesUW = (transNodes.submat(0, 2, numVertices - 1, 2) <= 0.0);
     }
     else if (pBody->flag_hydrostatics == 2)
     {
@@ -137,7 +137,7 @@ void BodyMesh::CutMesh(double time)
     arma::umat auxNodes = iniElems.rows(ind3);
     if (pBody->flag_hydrostatics == 1)
     {
-        nodesUW = arma::find(transNodes.col(2) <= 0);
+        nodesUW = arma::find(transNodes.col(2) <= 0.0);
     }
     else if (pBody->flag_hydrostatics == 2)
     {
@@ -408,7 +408,7 @@ void BodyMesh::IntegrateMesh(void)
     arma::vec weightsVector = {1.0 / 12.0, 1.0 / 12.0, 1.0 / 9.0, 1.0 / 3.0, 25.0 / 108.0, 25.0 / 108.0, 25.0 / 27.0};
     arma::uvec tmpInd;
 
-    // Ensambling the integration vectors with the weights, jacs and normals
+    // Assembling the integration vectors with the weights, jacobians and normals
     for (int ielem = 0; ielem < numElems; ielem++)
     {
         tmpInd = elems.row(ielem).t();

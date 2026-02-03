@@ -2,9 +2,10 @@
 ////////////////// Basic wave data
 //////////////////
 REG // Wave type. Available types: REG, IRR
-3.0 // Wave height (significant for irregular) [m]
-10.0 // Wave period (peak for irregular) [s]
-0.0 // Wave heading (with respect to fixed frame) [deg]
+0.0 // Wave height (significant for irregular) [m]
+6.0 // Wave period (peak for irregular) [s]
+90.0 // Wave heading (with respect to fixed frame) [deg]
+12.0 // Ramp time [s]
 //////////////////
 ////////////////// Irregular wave data
 //////////////////
