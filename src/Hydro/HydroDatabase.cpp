@@ -901,7 +901,7 @@ void HydroDatabase::LoadHydroDataH5(std::string filePath)
 	if (file.nameExists("/qtf_diff_mag") == 0)
 	{
 		// TODO: Review 2nd order excitation flag usage
-		if (pBodies[idBody]->secondOrderExcitationFlag > 0)
+		if (pBodies[idBody]->secondOrderExcitationFlag > 0 && pBodies[idBody]->secondOrderExcitationFlag < 4)
 		{
 			std::stringstream ss;
 			ss << "QTF data not found in file." << std::endl;
@@ -914,7 +914,7 @@ void HydroDatabase::LoadHydroDataH5(std::string filePath)
 	}
 	else
 	{
-		if (pBodies[idBody]->secondOrderExcitationFlag > 0 && pBodies[idBody]->secondOrderExcitationFlag < 0)
+		if (pBodies[idBody]->secondOrderExcitationFlag > 0 && pBodies[idBody]->secondOrderExcitationFlag < 4)
 		{
 			std::cout << "Reading QTF data...\n";
 			// Open "qtf_diff_mag"

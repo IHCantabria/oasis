@@ -1,4 +1,4 @@
-0 // Number of lines
+4 // Number of lines
 ////////////////// 
 ////////////////// New line [1]
 ////////////////// 
@@ -6,9 +6,9 @@
 2 // Tension model [1: symmetric, 2: tension-only]
 11 // Number of nodes used to divide catenary i
 1 // Order of the elements of catenary i
-28.0 // Length of catenary i 
-20.0 // Weight over water of catenary i (kg/m)    
-0.1506 // Diameter of the section of catenary i  
+27.75 // Length of catenary i 
+50.0 // Weight over water of catenary i (kg/m)    
+0.0901 // Diameter of the section of catenary i  
 0 // Flag for axial stiffness [n=0: constant axial stiffness (next line must contain EA), n=1: variable axial stiffness polynomial , n>1 : variable axial stiffness interpolated]
 1.0E+07 // Youngs module multiplied by the Area for catenary i  
 0.002 // Coefficient of the internal damping coefficient as function of EA [Azcona-2016] for i
@@ -35,9 +35,9 @@
 2 // Tension model [1: symmetric, 2: tension-only]
 11 // Number of nodes used to divide catenary i
 1 // Order of the elements of catenary i
-28.0 // Length of catenary i 
-20.0 // Weight over water of catenary i (kg/m)    
-0.1506 // Diameter of the section of catenary i  
+27.75 // Length of catenary i 
+50.0 // Weight over water of catenary i (kg/m)    
+0.0901 // Diameter of the section of catenary i  
 0 // Flag for axial stiffness [n=0: constant axial stiffness (next line must contain EA), n=1: variable axial stiffness polynomial , n>1 : variable axial stiffness interpolated]
 1.0E+07 // Youngs module multiplied by the Area for catenary i  
 0.002 // Coefficient of the internal damping coefficient as function of EA [Azcona-2016] for i
@@ -64,9 +64,9 @@
 2 // Tension model [1: symmetric, 2: tension-only]
 11 // Number of nodes used to divide catenary i
 1 // Order of the elements of catenary i
-28.0 // Length of catenary i 
-20.0 // Weight over water of catenary i (kg/m)    
-0.1506 // Diameter of the section of catenary i  
+27.75 // Length of catenary i 
+50.0 // Weight over water of catenary i (kg/m)    
+0.0901 // Diameter of the section of catenary i  
 0 // Flag for axial stiffness [n=0: constant axial stiffness (next line must contain EA), n=1: variable axial stiffness polynomial , n>1 : variable axial stiffness interpolated]
 1.0E+07 // Youngs module multiplied by the Area for catenary i  
 0.002 // Coefficient of the internal damping coefficient as function of EA [Azcona-2016] for i
@@ -93,9 +93,9 @@
 2 // Tension model [1: symmetric, 2: tension-only]
 11 // Number of nodes used to divide catenary i
 1 // Order of the elements of catenary i
-28.0 // Length of catenary i 
-20.0 // Weight over water of catenary i (kg/m)    
-0.1506 // Diameter of the section of catenary i  
+27.75 // Length of catenary i 
+50.0 // Weight over water of catenary i (kg/m)    
+0.0901 // Diameter of the section of catenary i  
 0 // Flag for axial stiffness [n=0: constant axial stiffness (next line must contain EA), n=1: variable axial stiffness polynomial , n>1 : variable axial stiffness interpolated]
 1.0E+07 // Youngs module multiplied by the Area for catenary i  
 0.002 // Coefficient of the internal damping coefficient as function of EA [Azcona-2016] for i
@@ -243,8 +243,8 @@
 2 // Number of nodes used to divide catenary i
 1 // Order of the elements of catenary i
 1.3 // Length of catenary i 
-20.0 // Weight over water of catenary i (kg/m)    
-0.1506 // Diameter of the section of catenary i  
+50.0 // Weight over water of catenary i (kg/m)    
+0.0901 // Diameter of the section of catenary i  
 0 // Flag for axial stiffness [n=0: constant axial stiffness (next line must contain EA), n=1: variable axial stiffness polynomial , n>1 : variable axial stiffness interpolated]
 1.0E+07 // Youngs module multiplied by the Area for catenary i 
 0.002 // Coefficient of the internal damping coefficient as function of EA [Azcona-2016] for i 

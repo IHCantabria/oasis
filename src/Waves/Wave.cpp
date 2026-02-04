@@ -1107,6 +1107,7 @@ void IrregularWave::CutPiecesSpectrumZeros(void)
 	this->num_comps_piece = ind_rows.n_elem;
 	this->num_headings_piece = ind_cols.n_elem;
 	int number_components_cropped = this->num_comps_piece * this->num_headings_piece;
+	std::cout << "        -> cropping periods..." << std::endl;
 	this->periods_piece = this->periods_piece.elem(ind_rows);
 	std::cout << "        -> cropping freqs..." << std::endl;
 	this->freqs_piece = this->freqs_piece.elem(ind_rows);

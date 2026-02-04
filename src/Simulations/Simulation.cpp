@@ -218,11 +218,13 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     // std::cout << "Simulation::CalculateSystemDynamics - Compute hydrodynamic and hydrostatic forces" << std::endl;
     for (int ii = 0; ii < numBodiesFree; ii++)
     {
-        arma::mat tmp_hs = arma::zeros(6, 1);
-        if (pBodies[ii]->flag_hydrostatics == 0)
-        {
-            tmp_hs = pBodiesFree[ii]->pHydro->CalculateHydrostaticForces(time);
-        }
+        // arma::mat tmp_hs = arma::zeros(6, 1);
+        // if (pBodies[ii]->flag_hydrostatics == 0)
+        // {
+        //     tmp_hs = pBodiesFree[ii]->pHydro->CalculateHydrostaticForces(time);
+        // }
+        arma::mat tmp_hs = pBodiesFree[ii]->pHydro->CalculateHydrostaticForces(time);
+
         arma::mat tmp_hd = pBodiesFree[ii]->Fb;
         Fb(arma::span(6 * ii, 6 * (ii + 1) - 1), 0) = tmp_hs + tmp_hd;
         // std::cout << "Simulation::CalculateSystemDynamics - body " << pBodiesFree[ii]->GetId() + 1 << " hydrostatic forces: " << tmp_hs.t() << std::endl;
@@ -2087,10 +2089,10 @@ void Simulation::Run()
             for (int ii = 0; ii < numBodies; ii = ii + 1)
             {
                 pBodies[ii]->Fb = pBodies[ii]->pHydro->CalculateHydrodynamicForces(wallTimeHydro);
-                if (pBodies[ii]->flag_hydrostatics > 0)
-                {
-                    pBodies[ii]->Fb += pBodies[ii]->pHydro->CalculateHydrostaticForces(wallTimeHydro);
-                }
+                // if (pBodies[ii]->flag_hydrostatics > 0)
+                // {
+                //     pBodies[ii]->Fb += pBodies[ii]->pHydro->CalculateHydrostaticForces(wallTimeHydro);
+                // }
             }
         }
 
