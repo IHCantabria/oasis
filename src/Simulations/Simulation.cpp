@@ -213,22 +213,16 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 
     // Initialize forces vector
     arma::mat Fb = arma::zeros(6 * numBodiesFree, 1);
+    double coefHydro = ((time - lastHydroTime_old) * (time - lastHydroTime_old2)) / ((lastHydroTime - lastHydroTime_old) * (lastHydroTime - lastHydroTime_old2));
+    double coefHydro_old = ((time - lastHydroTime) * (time - lastHydroTime_old2)) / ((lastHydroTime_old - lastHydroTime) * (lastHydroTime_old - lastHydroTime_old2));
+    double coefHydro_old2 = ((time - lastHydroTime) * (time - lastHydroTime_old)) / ((lastHydroTime_old2 - lastHydroTime) * (lastHydroTime_old2 - lastHydroTime_old));
 
     // Compute hydrostatic and hydrodynamic forces
     // std::cout << "Simulation::CalculateSystemDynamics - Compute hydrodynamic and hydrostatic forces" << std::endl;
     for (int ii = 0; ii < numBodiesFree; ii++)
     {
-        // arma::mat tmp_hs = arma::zeros(6, 1);
-        // if (pBodies[ii]->flag_hydrostatics == 0)
-        // {
-        //     tmp_hs = pBodiesFree[ii]->pHydro->CalculateHydrostaticForces(time);
-        // }
-        arma::mat tmp_hs = pBodiesFree[ii]->pHydro->CalculateHydrostaticForces(time);
-
-        arma::mat tmp_hd = pBodiesFree[ii]->Fb;
-        Fb(arma::span(6 * ii, 6 * (ii + 1) - 1), 0) = tmp_hs + tmp_hd;
-        // std::cout << "Simulation::CalculateSystemDynamics - body " << pBodiesFree[ii]->GetId() + 1 << " hydrostatic forces: " << tmp_hs.t() << std::endl;
-        // std::cout << "Simulation::CalculateSystemDynamics - body " << pBodiesFree[ii]->GetId() + 1 << " hydrodynamic forces: " << tmp_hd.t() << std::endl;
+        // Fb(arma::span(6 * ii, 6 * (ii + 1) - 1), 0) = pBodies[ii]->pHydro->CalculateHydrodynamicForces(time) + pBodies[ii]->pHydro->CalculateHydrostaticForces(time);
+        Fb(arma::span(6 * ii, 6 * (ii + 1) - 1), 0) = coefHydro * pBodiesFree[ii]->Fb + coefHydro_old * pBodiesFree[ii]->Fb_old + coefHydro_old2 * pBodiesFree[ii]->Fb_old2;
     }
     if (Fb.has_nan() | Fb.has_inf())
     {
@@ -282,10 +276,8 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     }
 
     // Compute also everything for locked bodies so it can be displayed on the output files
-    arma::mat dummy;
     for (int ii = 0; ii < numBodiesLock; ii++)
     {
-        dummy = pBodiesLock[ii]->pHydro->CalculateHydrostaticForces(time);
         pBodiesLock[ii]->ComputeWindTurbForces();
         pBodiesLock[ii]->ComputeBcpForces();
     }
@@ -593,6 +585,127 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     return yprime;
 }
 
+void Simulation::CalculateSystemDynamicsStatic(double time)
+{
+    // This function is called when numSystem == 0 (no degrees of freedom)
+    // It computes forces without solving differential equations
+    // Similar to CalculateSystemDynamics but without y vector input and without computing accelerations
+    // This is useful for analyzing wave loads on fixed structures or with prescribed motions
+    numCallsSysFun++;
+
+    // Update locked bodies (those with prescribed motion)
+    for (int ii = 0; ii < numBodiesLock; ii++)
+    {
+        pBodiesLock[ii]->UpdateLockBody(time);
+    }
+
+    // Update BodyBCP positions and velocities
+    for (int ii = 0; ii < numBodies; ii++)
+    {
+        pBodies[ii]->UpdateBcps();
+        pBodies[ii]->ResetBcps();
+    }
+
+    // Set boundary conditions on pos and vel of Lines if the BCP is not a joint
+    for (int ii = 0; ii < numLines; ii++)
+    {
+        if (pLines[ii]->pLineBcps[0]->GetType() != 3)
+        {
+            pLines[ii]->pLineBcps[0]->GetValues(time);
+            pLines[ii]->pos.row(0) = pLines[ii]->pLineBcps[0]->pos.t();
+            pLines[ii]->vel.row(0) = pLines[ii]->pLineBcps[0]->vel.t();
+        }
+        if (pLines[ii]->pLineBcps[1]->GetType() != 3)
+        {
+            pLines[ii]->pLineBcps[1]->GetValues(time);
+            pLines[ii]->pos.row(pLines[ii]->N - 1) = pLines[ii]->pLineBcps[1]->pos.t();
+            pLines[ii]->vel.row(pLines[ii]->N - 1) = pLines[ii]->pLineBcps[1]->vel.t();
+        }
+    }
+
+    // Set boundary conditions on pos and vel of Lines if the BCP is a joint
+    for (int ii = 0; ii < numLines; ii++)
+    {
+        if (pLines[ii]->pLineBcps[0]->GetType() == 3)
+        {
+            pLines[ii]->pLineBcps[0]->posLines.row(pLines[ii]->pLineBcps[0]->iLJ) = pLines[ii]->pos.row(0);
+            pLines[ii]->pLineBcps[0]->velLines.row(pLines[ii]->pLineBcps[0]->iLJ) = pLines[ii]->vel.row(0);
+            pLines[ii]->pLineBcps[0]->iLJ = pLines[ii]->pLineBcps[0]->iLJ + 1;
+        }
+        if (pLines[ii]->pLineBcps[1]->GetType() == 3)
+        {
+            pLines[ii]->pLineBcps[1]->posLines.row(pLines[ii]->pLineBcps[1]->iLJ) = pLines[ii]->pos.row(pLines[ii]->N - 1);
+            pLines[ii]->pLineBcps[1]->velLines.row(pLines[ii]->pLineBcps[1]->iLJ) = pLines[ii]->vel.row(pLines[ii]->N - 1);
+            pLines[ii]->pLineBcps[1]->iLJ = pLines[ii]->pLineBcps[1]->iLJ + 1;
+        }
+    }
+
+    for (int ii = 0; ii < numLines; ii++)
+    {
+        if (pLines[ii]->pLineBcps[0]->GetType() == 3)
+        {
+            pLines[ii]->pLineBcps[0]->GetValues(time);
+            pLines[ii]->pos.row(0) = pLines[ii]->pLineBcps[0]->pos.t();
+            pLines[ii]->vel.row(0) = pLines[ii]->pLineBcps[0]->vel.t();
+        }
+        if (pLines[ii]->pLineBcps[1]->GetType() == 3)
+        {
+            pLines[ii]->pLineBcps[1]->GetValues(time);
+            pLines[ii]->pos.row(pLines[ii]->N - 1) = pLines[ii]->pLineBcps[1]->pos.t();
+            pLines[ii]->vel.row(pLines[ii]->N - 1) = pLines[ii]->pLineBcps[1]->vel.t();
+        }
+    }
+
+    // Compute forces vector for the different Lines
+    for (int ii = 0; ii < numLines; ii++)
+    {
+        pLines[ii]->SEM_computeF(time);
+    }
+
+    // Compute forces of Springs
+    for (int ii = 0; ii < numSprings; ii++)
+    {
+        pSprings[ii]->computeSpringForces();
+    }
+
+    // Update hydrostatic parameters if there is sinking
+    for (int ii = 0; ii < numSinking; ii = ii + 1)
+    {
+        pSinking[ii]->UpdateSinkingHydrostatics(time);
+    }
+
+    // Compute hydrostatic and hydrodynamic forces for bodies
+    for (int ii = 0; ii < numBodies; ii++)
+    {
+        arma::mat tmp_hs = pBodies[ii]->pHydro->CalculateHydrostaticForces(time);
+        arma::mat tmp_hd = pBodies[ii]->Fb;
+        // Store combined forces in body for output purposes
+        pBodies[ii]->Fb = tmp_hs + tmp_hd;
+    }
+
+    // Compute forces on BCPs for all bodies
+    for (int ii = 0; ii < numBodies; ii++)
+    {
+        pBodies[ii]->ComputeBcpForces();
+    }
+
+    // Add wind turbine forces
+    for (int ii = 0; ii < numBodies; ii++)
+    {
+        pBodies[ii]->ComputeWindTurbForces();
+    }
+
+    // Compute OWCs dynamics
+    for (int ii = 0; ii < numBodies; ii++)
+    {
+        pBodies[ii]->owcForces = arma::zeros(6, 1);
+    }
+    for (int ii = 0; ii < numOWCs; ii++)
+    {
+        pOWCs[ii]->ComputeForces(time);
+    }
+}
+
 void Simulation::CloseCase()
 {
     for (int ii = 0; ii < numLines; ii++)
@@ -780,42 +893,51 @@ void Simulation::Initialize()
     }
 
     // Initialize Temporal Solver
-    if (this->timeIntMethod == 1)
+    if (numSystem > 0)
     {
-        std::cout << "Initializing BDF2 temporal solver..." << std::endl;
-        pTimeSolver = new BDF2(start_time, this->simulationTime, this->maxTimeStep, this->writeTimeStep, y, this);
-        std::cout << "  BDF2 constructor done!" << std::endl;
-        pTimeSolver->init();
-        pTimeSolver->atol = this->timeIntAbsTol;
-        pTimeSolver->rtol = this->timeIntRelTol;
-        pTimeSolver->nIterMax = this->maxIterStep;
-        std::cout << "  BDF2 initiallized!" << std::endl;
-    }
-    else if (this->timeIntMethod == 2)
-    {
-        std::cout << "Initializing BDF" << timeIntOrder << " temporal solver..." << std::endl;
-        pTimeSolver = new BDFN(this->timeIntOrder, this->timeIntAdaptivity, start_time, this->simulationTime, this->maxTimeStep, this->writeTimeStep, y, this);
-        std::cout << "  BDF" << timeIntOrder << " constructor done!" << std::endl;
-        pTimeSolver->init();
-        pTimeSolver->atol = this->timeIntAbsTol;
-        pTimeSolver->rtol = this->timeIntRelTol;
-        pTimeSolver->nIterMax = this->maxIterStep;
-        std::cout << "  BDF" << timeIntOrder << " initiallized!" << std::endl;
-    }
-    else if (this->timeIntMethod == 3)
-    {
-        std::cout << "Initializing ESDIRK temporal solver..." << std::endl;
-        pTimeSolver = new ESDIRK(this->timeIntAdaptivity, start_time, this->simulationTime, this->maxTimeStep, this->writeTimeStep, this->timeIntJacNumStepsMax, y, this);
-        std::cout << "  ESDIRK constructor done!" << std::endl;
-        pTimeSolver->atol = this->timeIntAbsTol;
-        pTimeSolver->rtol = this->timeIntRelTol;
-        pTimeSolver->nIterMax = this->maxIterStep;
-        std::cout << "  ESDIRK initiallized!" << std::endl;
+        if (this->timeIntMethod == 1)
+        {
+            std::cout << "Initializing BDF2 temporal solver..." << std::endl;
+            pTimeSolver = new BDF2(start_time, this->simulationTime, this->maxTimeStep, this->writeTimeStep, y, this);
+            std::cout << "  BDF2 constructor done!" << std::endl;
+            pTimeSolver->init();
+            pTimeSolver->atol = this->timeIntAbsTol;
+            pTimeSolver->rtol = this->timeIntRelTol;
+            pTimeSolver->nIterMax = this->maxIterStep;
+            std::cout << "  BDF2 initiallized!" << std::endl;
+        }
+        else if (this->timeIntMethod == 2)
+        {
+            std::cout << "Initializing BDF" << timeIntOrder << " temporal solver..." << std::endl;
+            pTimeSolver = new BDFN(this->timeIntOrder, this->timeIntAdaptivity, start_time, this->simulationTime, this->maxTimeStep, this->writeTimeStep, y, this);
+            std::cout << "  BDF" << timeIntOrder << " constructor done!" << std::endl;
+            pTimeSolver->init();
+            pTimeSolver->atol = this->timeIntAbsTol;
+            pTimeSolver->rtol = this->timeIntRelTol;
+            pTimeSolver->nIterMax = this->maxIterStep;
+            std::cout << "  BDF" << timeIntOrder << " initiallized!" << std::endl;
+        }
+        else if (this->timeIntMethod == 3)
+        {
+            std::cout << "Initializing ESDIRK temporal solver..." << std::endl;
+            pTimeSolver = new ESDIRK(this->timeIntAdaptivity, start_time, this->simulationTime, this->maxTimeStep, this->writeTimeStep, this->timeIntJacNumStepsMax, y, this);
+            std::cout << "  ESDIRK constructor done!" << std::endl;
+            pTimeSolver->atol = this->timeIntAbsTol;
+            pTimeSolver->rtol = this->timeIntRelTol;
+            pTimeSolver->nIterMax = this->maxIterStep;
+            std::cout << "  ESDIRK initiallized!" << std::endl;
+        }
+        else
+        {
+            std::cout << "ERROR: Time integration method not recognized!" << std::endl;
+            throw std::exception();
+        }
     }
     else
     {
-        std::cout << "ERROR: Time integration method not recognized!" << std::endl;
-        throw std::exception();
+        std::cout << "WARNING: numSystem == 0. No ODE solver needed." << std::endl;
+        std::cout << "Using simple time-stepping for static analysis (e.g., wave loads on fixed structure)." << std::endl;
+        pTimeSolver = nullptr;
     }
 
     // Write initial condition to files
@@ -826,7 +948,10 @@ void Simulation::Initialize()
 
     std::cout << "Updating system..." << std::endl;
     // Save first data
-    this->UpdateSystem();
+    // Always update system to initialize velocity buffers, even for zero-DOF cases
+    // (needed for bodies with prescribed motion)
+    this->UpdateSystem(start_time);
+
     std::cout << "  System updated!" << std::endl;
 }
 
@@ -883,13 +1008,22 @@ void Simulation::ReadBcpsASCII()
     char bufferLine[1000];
 
     // Open file
-    std::string file_path = JoinPath(inputFolderPath, "datosBCPs.dat");
+    std::string file_path = JoinPath(inputFolderPath, "dataBCPs.dat");
     FILE *file_pointer = fopen(file_path.c_str(), "r");
     if (file_pointer == NULL)
     {
-        std::stringstream ss;
-        ss << "Not possible to open the file: datosBCPs.dat\n    ->Dir: " << inputFolderPath << std::endl;
-        throw IOError(ss.str());
+        std::cout << "    --> WARNING: dataBCPs.dat was not found! Setting numBCPs = 0!" << std::endl;
+        numFairBcps = 0;
+        numAnchorBcps = 0;
+        numJointBcps = 0;
+        numBodyBcps = 0;
+        numBcps = 0;
+        pBcps = new BCP *[0];
+        pFairleadBcps = new FairleadBCP *[0];
+        pAnchorBcps = new AnchorBCP *[0];
+        pJointBcps = new JointBCP *[0];
+        pBodyBcps = new BodyBCP *[0];
+        return;
     }
 
     // Read data
@@ -988,20 +1122,31 @@ void Simulation::ReadBodiesASCII()
     int pos_database = 0;
 
     // Parse file in order to guess the number of bodies
-    std::cout << "Parsing file: datosBodies.dat" << std::endl;
-    std::string file_path = JoinPath(inputFolderPath, "datosBodies.dat");
-    this->numBodies = parse_file(file_path);
+    std::cout << "Parsing file: dataBodies.dat" << std::endl;
+    std::string file_path = JoinPath(inputFolderPath, "dataBodies.dat");
+    // Check if file exists first
+    FILE *test_file = fopen(file_path.c_str(), "r");
+    if (test_file == NULL)
+    {
+        std::cout << "    --> WARNING: dataBodies.dat was not found! Setting numBodies = 0!" << std::endl;
+        this->numBodies = 0;
+    }
+    else
+    {
+        fclose(test_file);
+        this->numBodies = parse_file(file_path);
+    }
     std::cout << "Number of bodies: " << this->numBodies << std::endl;
 
     if (numBodies > 0)
     {
         // Open file
-        std::cout << "Opening file: datosBodies.dat" << std::endl;
+        std::cout << "Opening file: dataBodies.dat" << std::endl;
         FILE *pFile = fopen(file_path.c_str(), "r");
         if (pFile == NULL)
         {
             std::stringstream ss;
-            ss << "Not possible to open the file: datosBodies.dat\n    ->Dir: " << inputFolderPath << std::endl;
+            ss << "Not possible to open the file: dataBodies.dat\n    ->Dir: " << inputFolderPath << std::endl;
             throw IOError(ss.str());
         }
 
@@ -1029,7 +1174,7 @@ void Simulation::ReadBodiesASCII()
             else
             {
                 std::stringstream ss;
-                ss << "Error while parsing file: datosBodies.dat\n --> Expected body: " << ii << " type definition\n";
+                ss << "Error while parsing file: dataBodies.dat\n --> Expected body: " << ii << " type definition\n";
                 throw ValueError(ss.str());
             }
 
@@ -1323,13 +1468,14 @@ void Simulation::ReadLinesASCII()
     char bufferLine[1000];
 
     // Open file
-    std::string file_path = JoinPath(inputFolderPath, "datosLines.dat");
+    std::string file_path = JoinPath(inputFolderPath, "dataLines.dat");
     FILE *file_pointer = fopen(file_path.c_str(), "r");
     if (file_pointer == NULL)
     {
-        std::stringstream ss;
-        ss << "Not possible to open the file: datosLines.dat\n    ->Dir: " << inputFolderPath << std::endl;
-        throw IOError(ss.str());
+        std::cout << "    --> WARNING: dataLines.dat was not found! Setting numLines = 0!" << std::endl;
+        numLines = 0;
+        pLines = new Line *[0];
+        return;
     }
 
     // Read total number of springs to read
@@ -1375,6 +1521,7 @@ void Simulation::ReadLinesASCII()
 
     // Close the file
     fclose(file_pointer);
+
     std::cout << "--> Lines Properties Read" << std::endl;
 }
 
@@ -1405,12 +1552,14 @@ void Simulation::ReadSinkingASCII()
     FILE *pFile = fopen(file_path.c_str(), "r");
     if (pFile == NULL)
     {
-        std::stringstream ss;
-        ss << "Not possible to open the file: dataSinking.dat\n    ->Dir: " << inputFolderPath << std::endl;
-        throw IOError(ss.str());
+        std::cout << "    --> WARNING: dataSinking.dat was not found! Setting numSinking = 0!" << std::endl;
+        numSinking = 0;
+        pSinking = new Sinking *[0];
+        return;
     }
 
     // Read total number of sinking bodies to read
+    fscanf(pFile, "%d %[^\n]\n", &numSinking, bufferLine);
     fscanf(pFile, "%d %[^\n]\n", &numSinking, bufferLine);
 
     // Read sinking bodies if there are any
@@ -1447,6 +1596,10 @@ void Simulation::ReadSinkingASCII()
             pSinking[ii]->OpenOutputFilesASCII(outputFolderPath);
         }
     }
+    else
+    {
+        pSinking = new Sinking *[0];
+    }
 
     // Close file
     fclose(pFile);
@@ -1476,13 +1629,14 @@ void Simulation::ReadSpringsASCII()
     char bufferLine[1000];
 
     // Open file
-    std::string file_path = JoinPath(inputFolderPath, "datosSprings.dat");
+    std::string file_path = JoinPath(inputFolderPath, "dataSprings.dat");
     FILE *file_pointer = fopen(file_path.c_str(), "r");
     if (file_pointer == NULL)
     {
-        std::stringstream ss;
-        ss << "Not possible to open the file: datosSprings.dat\n    ->Dir: " << inputFolderPath << std::endl;
-        throw IOError(ss.str());
+        std::cout << "    --> WARNING: dataSprings.dat was not found! Setting numSprings = 0!" << std::endl;
+        numSprings = 0;
+        pSprings = new Spring *[0];
+        return;
     }
 
     // Read file contents
@@ -1527,25 +1681,28 @@ void Simulation::ReadPropertiesASCII()
     int dummyBool;
 
     // Open file
-    std::string file_path = JoinPath(inputFolderPath, "datosProblema.dat");
+    std::string file_path = JoinPath(inputFolderPath, "dataProblem.dat");
     FILE *file_pointer = fopen(file_path.c_str(), "r");
     if (file_pointer == NULL)
     {
         std::stringstream ss;
-        ss << "Not possible to open the file: datosProblema.dat\n    ->Dir: " << inputFolderPath << std::endl;
+        ss << "Not possible to open the file: dataProblem.dat\n    ->Dir: " << inputFolderPath << std::endl;
         throw IOError(ss.str());
     }
 
     // Read data
-    fscanf(file_pointer, "%lf %[^\n]\n", &gravity, bufferLine);                // Gravity acceleration [m/s^2]
-    fscanf(file_pointer, "%lf %[^\n]\n", &waterDensity, bufferLine);           // Water density [kg/m^3]
-    fscanf(file_pointer, "%lf %[^\n]\n", &airAtmPresDensity, bufferLine);      // Air density at atmospheric pressure [kg/m^3]
-    fscanf(file_pointer, "%lf %[^\n]\n", &airAtmPres, bufferLine);             // Atmospheric pressure [Pa]
-    fscanf(file_pointer, "%lf %[^\n]\n", &airAdiabaticDilation, bufferLine);   // Air adiabatic dilation [-]
-    fscanf(file_pointer, "%lf %[^\n]\n", &waterDepth, bufferLine);             // Seabed vertical coordinate [m]
-    fscanf(file_pointer, "%lf %[^\n]\n", &writeTimeStep, bufferLine);          // Output time step [s]
-    fscanf(file_pointer, "%lf %[^\n]\n", &maxTimeStep, bufferLine);            // Maximum time step for time integration [s]
-    fscanf(file_pointer, "%lf %[^\n]\n", &hydroTimeStep, bufferLine);          // Time step for hydrodynamic forces computation [s]
+    fscanf(file_pointer, "%lf %[^\n]\n", &gravity, bufferLine);              // Gravity acceleration [m/s^2]
+    fscanf(file_pointer, "%lf %[^\n]\n", &waterDensity, bufferLine);         // Water density [kg/m^3]
+    fscanf(file_pointer, "%lf %[^\n]\n", &airAtmPresDensity, bufferLine);    // Air density at atmospheric pressure [kg/m^3]
+    fscanf(file_pointer, "%lf %[^\n]\n", &airAtmPres, bufferLine);           // Atmospheric pressure [Pa]
+    fscanf(file_pointer, "%lf %[^\n]\n", &airAdiabaticDilation, bufferLine); // Air adiabatic dilation [-]
+    fscanf(file_pointer, "%lf %[^\n]\n", &waterDepth, bufferLine);           // Seabed vertical coordinate [m]
+    fscanf(file_pointer, "%lf %[^\n]\n", &writeTimeStep, bufferLine);        // Output time step [s]
+    fscanf(file_pointer, "%lf %[^\n]\n", &maxTimeStep, bufferLine);          // Maximum time step for time integration [s]
+    fscanf(file_pointer, "%lf %[^\n]\n", &hydroTimeStep, bufferLine);        // Time step for hydrodynamic forces computation [s]
+    lastHydroTime = 0.0;
+    lastHydroTime_old = -hydroTimeStep;
+    lastHydroTime_old2 = -2.0 * hydroTimeStep;
     fscanf(file_pointer, "%lf %[^\n]\n", &fastTimeStep, bufferLine);           // Time step for FAST wind turbines forces computation [s]
     fscanf(file_pointer, "%lf %[^\n]\n", &fastControllerTimeStep, bufferLine); // Time step for FAST wind turbines controller update [s]
     fscanf(file_pointer, "%lf %[^\n]\n", &timeIRF, bufferLine);                // IRF time [s]
@@ -1621,9 +1778,9 @@ void Simulation::ReadWavesASCII()
     FILE *file_pointer = fopen(file_path.c_str(), "r");
     if (file_pointer == NULL)
     {
-        std::stringstream ss;
-        ss << "Not possible to open the file: dataWaves.dat\n    ->Dir: " << inputFolderPath << std::endl;
-        throw IOError(ss.str());
+        std::cout << "    --> WARNING: dataWaves.dat was not found! Skipping wave definition!" << std::endl;
+        pWave = new RegularWave(this, 0.0, 1.0, 0.0, 0.0);
+        return;
     }
 
     // Ignore header lines
@@ -1758,21 +1915,23 @@ void Simulation::ReadWinchesASCII()
     char bufferLine[1000];
 
     // Open file
-    std::string file_path = JoinPath(inputFolderPath, "datosWinchies.dat");
+    std::string file_path = JoinPath(inputFolderPath, "dataWinches.dat");
     FILE *file_pointer = fopen(file_path.c_str(), "r");
     if (file_pointer == NULL)
     {
-        std::stringstream ss;
-        ss << "Not possible to open the file: datosWinchies.dat\n    ->Dir: " << inputFolderPath << std::endl;
-        throw IOError(ss.str());
+        std::cout << "    --> WARNING: dataWinches.dat was not found! Setting numWinches = 0!" << std::endl;
+        numWinches = 0;
+        pWinches = new Winchie *[0];
+        WinchesController = WinchieController(0, pWinches, this);
+        return;
     }
 
     // Read number of winches defined in the file
     fscanf(file_pointer, "%d %[^\n]\n", &numWinches, bufferLine);
-    printf("NumWinches: %d - UseWinches: %d\n", numWinches, useWinches);
+
     if ((numWinches == 0) && useWinches)
     {
-        throw ValueError("Use of winches is requested when loading BCPs but there is no winches specified in datosWinches.dat\n");
+        throw ValueError("Use of winches is requested when loading BCPs but there is no winches specified in dataWinches.dat\n");
     }
 
     // Allocate a vector of pointers to Winch class objects
@@ -1792,7 +1951,7 @@ void Simulation::ReadWinchesASCII()
 
     // Read Winches Controller
     std::cout << "--> Reading Winches Controller Properties (ASCII format)" << std::endl;
-    file_path = JoinPath(inputFolderPath, "datosWinchiesController.dat");
+    file_path = JoinPath(inputFolderPath, "dataWinchesController.dat");
     file_pointer = fopen(file_path.c_str(), "r");
     WinchesController = WinchieController(numWinches, pWinches, this);
     WinchesController.ReadPropertiesASCII(file_pointer);
@@ -1828,9 +1987,20 @@ void Simulation::ReadSeaFloorASCII()
     FILE *file_pointer = fopen(file_path.c_str(), "r");
     if (file_pointer == NULL)
     {
-        std::stringstream ss;
-        ss << "Not possible to open the file: dataSeaFloor.dat\n    ->Dir: " << inputFolderPath << std::endl;
-        throw IOError(ss.str());
+        std::cout << "    --> WARNING: dataSeaFloor.dat was not found! Setting flat sea floor!" << std::endl;
+        numBathymetry = 0;
+        numInclined = 0;
+        numFlat = 1;
+        numFloor = numBathymetry + numInclined + numFlat;
+        pSeaFloor = new SeaFloor *[numFloor];
+        pBathymetry = new Bathymetry *[0];
+        pInclined = new Inclined *[0];
+        pFlat = new Flat *[numFlat];
+        pFlat[0] = new Flat(0);
+        pSeaFloor[0] = pFlat[0];
+        pSeaFloor[0]->fondo = this->waterDepth;
+        std::cout << "--> Floor Properties Read" << std::endl;
+        return;
     }
 
     // Read data
@@ -1902,13 +2072,14 @@ void Simulation::ReadWindTurbinesASCII(void)
     char bufferLine[1000];
 
     // Open file
-    std::string file_path = JoinPath(inputFolderPath, "datosWindTurbines.dat");
+    std::string file_path = JoinPath(inputFolderPath, "dataWindTurbines.dat");
     FILE *file_pointer = fopen(file_path.c_str(), "r");
     if (file_pointer == NULL)
     {
-        std::stringstream ss;
-        ss << "Not possible to open the file: datosWindTurbines.dat\n    ->Dir: " << inputFolderPath << std::endl;
-        throw IOError(ss.str());
+        std::cout << "    --> WARNING: dataWindTurbines.dat was not found! Setting numWindTurbines = 0!" << std::endl;
+        numWindTurbines = 0;
+        pWindTurbines = new WindTurbine *[0];
+        return;
     }
 
     // Read number of Wind Turbines defined in the file
@@ -1952,8 +2123,9 @@ void Simulation::ReadOWCsASCII(void)
     FILE *pFileT = fopen(file_pathT.c_str(), "r");
     if (pFileT == NULL)
     {
-        std::cout << "    --> WARNING: dataOWCTurbines.dat was not found! Setting numOWCs = 0!" << std::endl;
+        std::cout << "    --> WARNING: dataOWCTurbines.dat was not found! Setting numOWCTurbines = 0!" << std::endl;
         numOWCTurbines = 0;
+        pOWCTurbines = new OWCTurbineType *[0];
     }
     else
     {
@@ -1968,6 +2140,10 @@ void Simulation::ReadOWCsASCII(void)
                 pOWCTurbines[ii] = new OWCTurbineType(ii, this);
                 pOWCTurbines[ii]->Initialize(pFileT);
             }
+        }
+        else
+        {
+            pOWCTurbines = new OWCTurbineType *[0];
         }
         // Close file
         fclose(pFileT);
@@ -1984,6 +2160,7 @@ void Simulation::ReadOWCsASCII(void)
     {
         std::cout << "    --> WARNING: dataOWCs.dat was not found! Setting numOWCs = 0!" << std::endl;
         numOWCs = 0;
+        pOWCs = new OWC *[0];
     }
     else
     {
@@ -1998,6 +2175,10 @@ void Simulation::ReadOWCsASCII(void)
                 pOWCs[ii] = new OWC(ii, this);
                 pOWCs[ii]->Initialize(pFile);
             }
+        }
+        else
+        {
+            pOWCs = new OWC *[0];
         }
         // Close file
         fclose(pFile);
@@ -2032,143 +2213,271 @@ void Simulation::Run()
 
     std::cout << "    t = " << wallTime << " s" << std::endl;
 
-    // TODO: Implement a logger with different levels of verbosity
-    //  std::cout<< "In Simulation::Run --> Starting temporal integration loop "<< std::endl;
-    while (pTimeSolver->t < simulationTime - 2e-14)
+    // Check if system has degrees of freedom
+    if (numSystem > 0)
     {
-        // std::cout<< "In Simulation::Run --> step() "<< std::endl;
-        pTimeSolver->step();
-
-        // Print lines in first time step for debugging
-        if (flag_debug_lines)
+        // Standard ODE solver-based time stepping for systems with DOFs
+        // TODO: Implement a logger with different levels of verbosity
+        //  std::cout<< "In Simulation::Run --> Starting temporal integration loop "<< std::endl;
+        while (pTimeSolver->t < simulationTime - 2e-14)
         {
-            flag_debug_lines = false;
-            for (int ii = 0; ii < numLines; ii = ii + 1)
-            {
-                fprintf(pLines[ii]->pfile_debug, "s    x    y    z \n");
-                for (int jj = 0; jj < pLines[ii]->N; jj = jj + 1)
-                    fprintf(pLines[ii]->pfile_debug, "%f    %f    %f    %f \n",
-                            pLines[ii]->s(jj, 0),
-                            pLines[ii]->pos(jj, 0),
-                            pLines[ii]->pos(jj, 1),
-                            pLines[ii]->pos(jj, 2));
-                fclose(pLines[ii]->pfile_debug);
-            }
-        }
+            // std::cout<< "In Simulation::Run --> step() "<< std::endl;
+            pTimeSolver->step();
 
-        if (pTimeSolver->t >= wallTime + writeTimeStep - 1e-12)
-        {
-            // std::cout<< "In Simulation::Run --> WriteOut() "<< std::endl;
-            wallTime = writeTimeStep * round((wallTime + writeTimeStep) / writeTimeStep);
-            std::cout << "    t = " << wallTime << " s" << std::endl;
-            for (int ii = 0; ii < numLines; ii = ii + 1)
-                pLines[ii]->WriteOut(pTimeSolver->t);
-            for (int ii = 0; ii < numBodies; ii = ii + 1)
-                pBodies[ii]->WriteOut(pTimeSolver->t);
-            for (int ii = 0; ii < numOWCs; ii = ii + 1)
-                pOWCs[ii]->WriteOut(pTimeSolver->t);
-        }
-
-        for (int ii = 0; ii < numLines; ii = ii + 1)
-        {
-            if ((pLines[ii]->flag_visc == 1) && (pTimeSolver->t >= pLines[ii]->last_time + pLines[ii]->dt))
+            // Print lines in first time step for debugging
+            if (flag_debug_lines)
             {
-                pLines[ii]->update_buffer(pTimeSolver->t);
-                pLines[ii]->last_time = pTimeSolver->t;
-            }
-        }
-
-        if (pTimeSolver->t >= wallTimeHydro + hydroTimeStep)
-        {
-            // std::cout<< "In Simulation::Run --> Computing hydrodynamic forces... "<< std::endl;
-            wallTimeHydro += hydroTimeStep;
-            if (numBodies > 0)
-            {
-                UpdateSystem();
-            }
-            for (int ii = 0; ii < numBodies; ii = ii + 1)
-            {
-                pBodies[ii]->Fb = pBodies[ii]->pHydro->CalculateHydrodynamicForces(wallTimeHydro);
-                // if (pBodies[ii]->flag_hydrostatics > 0)
-                // {
-                //     pBodies[ii]->Fb += pBodies[ii]->pHydro->CalculateHydrostaticForces(wallTimeHydro);
-                // }
-            }
-        }
-
-        if (numWindTurbines > 0)
-        {
-            if (pTimeSolver->t >= wallTimeFAST + fastTimeStep)
-            {
-                wallTimeFAST += fastTimeStep;
-                for (int ii = 0; ii < numWindTurbines; ii = ii + 1)
+                flag_debug_lines = false;
+                for (int ii = 0; ii < numLines; ii = ii + 1)
                 {
-                    // std::cout<< "In Simulation::Run --> Computing forces for turbine " << ii << std::endl;
-                    pWindTurbines[ii]->SetInputsFAST();
-                    pWindTurbines[ii]->ComputeForces(wallTimeFAST);
-                    pWindTurbines[ii]->WriteOut(wallTimeFAST);
+                    fprintf(pLines[ii]->pfile_debug, "s    x    y    z \n");
+                    for (int jj = 0; jj < pLines[ii]->N; jj = jj + 1)
+                        fprintf(pLines[ii]->pfile_debug, "%f    %f    %f    %f \n",
+                                pLines[ii]->s(jj, 0),
+                                pLines[ii]->pos(jj, 0),
+                                pLines[ii]->pos(jj, 1),
+                                pLines[ii]->pos(jj, 2));
+                    fclose(pLines[ii]->pfile_debug);
                 }
             }
-            if (pTimeSolver->t >= wallTimeControllerFAST + fastControllerTimeStep)
-            {
-                wallTimeControllerFAST += fastControllerTimeStep;
-                for (int ii = 0; ii < numWindTurbines; ii = ii + 1)
-                {
-                    // std::cout<< "In Simulation::Run --> Calling controller for turbine " << ii << std::endl;
-                    pWindTurbines[ii]->SetInputsFAST();
-                    pWindTurbines[ii]->ComputeControler(wallTimeControllerFAST);
-                }
-            }
-        }
 
-        if (numOWCs > 0)
-        {
-            if (pTimeSolver->t >= wallTimeControllerOWCs + owcsContTimeStep)
+            if (pTimeSolver->t >= wallTime + writeTimeStep - 1e-12)
             {
-                // std::cout << "In Simulation::Run --> Controlling OWCs... " << std::endl;
-                wallTimeControllerOWCs += owcsContTimeStep;
+                // std::cout<< "In Simulation::Run --> WriteOut() "<< std::endl;
+                wallTime = writeTimeStep * round((wallTime + writeTimeStep) / writeTimeStep);
+                std::cout << "    t = " << wallTime << " s" << std::endl;
+                for (int ii = 0; ii < numLines; ii = ii + 1)
+                    pLines[ii]->WriteOut(pTimeSolver->t);
+                for (int ii = 0; ii < numBodies; ii = ii + 1)
+                    pBodies[ii]->WriteOut(pTimeSolver->t);
                 for (int ii = 0; ii < numOWCs; ii = ii + 1)
+                    pOWCs[ii]->WriteOut(pTimeSolver->t);
+            }
+
+            for (int ii = 0; ii < numLines; ii = ii + 1)
+            {
+                if ((pLines[ii]->flag_visc == 1) && (pTimeSolver->t >= pLines[ii]->last_time + pLines[ii]->dt))
                 {
-                    if (pOWCs[ii]->turbine_type > 0)
+                    pLines[ii]->update_buffer(pTimeSolver->t);
+                    pLines[ii]->last_time = pTimeSolver->t;
+                }
+            }
+
+            if (pTimeSolver->t >= wallTimeHydro + hydroTimeStep)
+            {
+                // std::cout<< "In Simulation::Run --> Computing hydrodynamic forces... "<< std::endl;
+                wallTimeHydro = std::floor(pTimeSolver->t / hydroTimeStep)*hydroTimeStep;
+                if (numBodies > 0)
+                {
+                    UpdateSystem();
+                }
+                for (int ii = 0; ii < numBodies; ii = ii + 1)
+                {
+                    lastHydroTime_old2 = lastHydroTime_old;
+                    lastHydroTime_old = lastHydroTime;
+                    lastHydroTime = pTimeSolver->t;
+                    pBodies[ii]->Fb_old2 = pBodies[ii]->Fb_old;
+                    pBodies[ii]->Fb_old = pBodies[ii]->Fb;
+                    pBodies[ii]->Fb = pBodies[ii]->pHydro->CalculateHydrodynamicForces(pTimeSolver->t) + pBodies[ii]->pHydro->CalculateHydrostaticForces(pTimeSolver->t);
+                }
+            }
+
+            if (numWindTurbines > 0)
+            {
+                if (pTimeSolver->t >= wallTimeFAST + fastTimeStep)
+                {
+                    wallTimeFAST += fastTimeStep;
+                    for (int ii = 0; ii < numWindTurbines; ii = ii + 1)
                     {
-                        pOWCs[ii]->pOWCTurbine->ComputeGenTorque();
+                        // std::cout<< "In Simulation::Run --> Computing forces for turbine " << ii << std::endl;
+                        pWindTurbines[ii]->SetInputsFAST();
+                        pWindTurbines[ii]->ComputeForces(wallTimeFAST);
+                        pWindTurbines[ii]->WriteOut(wallTimeFAST);
+                    }
+                }
+                if (pTimeSolver->t >= wallTimeControllerFAST + fastControllerTimeStep)
+                {
+                    wallTimeControllerFAST += fastControllerTimeStep;
+                    for (int ii = 0; ii < numWindTurbines; ii = ii + 1)
+                    {
+                        // std::cout<< "In Simulation::Run --> Calling controller for turbine " << ii << std::endl;
+                        pWindTurbines[ii]->SetInputsFAST();
+                        pWindTurbines[ii]->ComputeControler(wallTimeControllerFAST);
                     }
                 }
             }
-        }
 
-        if (numSinking > 0)
-        {
-            if (pTimeSolver->t >= wallTimeSinking + sinkingTimeStep)
+            if (numOWCs > 0)
             {
-                // std::cout << "In Simulation::Run --> Updating sinking... " << std::endl;
-                wallTimeSinking += sinkingTimeStep;
-                for (int ii = 0; ii < numSinking; ii = ii + 1)
+                if (pTimeSolver->t >= wallTimeControllerOWCs + owcsContTimeStep)
                 {
-                    pSinking[ii]->UpdateSinkingHydrodynamics(wallTime);
+                    // std::cout << "In Simulation::Run --> Controlling OWCs... " << std::endl;
+                    wallTimeControllerOWCs += owcsContTimeStep;
+                    for (int ii = 0; ii < numOWCs; ii = ii + 1)
+                    {
+                        if (pOWCs[ii]->turbine_type > 0)
+                        {
+                            pOWCs[ii]->pOWCTurbine->ComputeGenTorque();
+                        }
+                    }
                 }
-                // std::cout << "In Simulation::Run --> UpdateSystemMatrix();" << std::endl;
-                UpdateSystemMatrix();
-                // std::cout << "    pSinking[ii]->WriteOut();" << std::endl;
-                for (int ii = 0; ii < numSinking; ii = ii + 1)
-                    pSinking[ii]->WriteOut(wallTime);
-                // std::cout << "In Simulation::Run --> ... done updating sinking!" << std::endl;
+            }
+
+            if (numSinking > 0)
+            {
+                if (pTimeSolver->t >= wallTimeSinking + sinkingTimeStep)
+                {
+                    // std::cout << "In Simulation::Run --> Updating sinking... " << std::endl;
+                    wallTimeSinking += sinkingTimeStep;
+                    for (int ii = 0; ii < numSinking; ii = ii + 1)
+                    {
+                        pSinking[ii]->UpdateSinkingHydrodynamics(wallTime);
+                    }
+                    // std::cout << "In Simulation::Run --> UpdateSystemMatrix();" << std::endl;
+                    UpdateSystemMatrix();
+                    // std::cout << "    pSinking[ii]->WriteOut();" << std::endl;
+                    for (int ii = 0; ii < numSinking; ii = ii + 1)
+                        pSinking[ii]->WriteOut(wallTime);
+                    // std::cout << "In Simulation::Run --> ... done updating sinking!" << std::endl;
+                }
+            }
+
+            if (numWinches > 0)
+            {
+                if (pTimeSolver->t >= wallTimeControllerWinches + winchesContTimeStep)
+                {
+                    // std::cout << "In Simulation::Run --> Controlling winches... " << std::endl;
+                    wallTimeControllerWinches += winchesContTimeStep;
+                    WinchesController.controlWinchies(wallTimeControllerWinches);
+                    WinchesController.WriteOut(wallTimeControllerWinches);
+                    // std::cout << "In Simulation::Run --> ... done controlling winches!" << std::endl;
+                }
             }
         }
+        pTimeSolver->finalize();
+    }
+    else
+    {
+        // Simple time-stepping for systems with zero DOFs (e.g., fixed body under waves)
+        std::cout << "Running static analysis (no DOFs) with simple time-stepping..." << std::endl;
 
-        if (numWinches > 0)
+        int num_steps = (int)std::ceil(simulationTime / writeTimeStep);
+        int output_step = 0;
+
+        for (int step = 0; step <= num_steps; step++)
         {
-            if (pTimeSolver->t >= wallTimeControllerWinches + winchesContTimeStep)
+            double current_time = step * writeTimeStep;
+
+            // Don't go beyond simulation time
+            if (current_time > simulationTime + 1e-10)
+                break;
+
+            // Calculate forces and dynamics at current time
+            CalculateSystemDynamicsStatic(current_time);
+
+            // Write output at specified intervals
+            if (current_time >= wallTime - 1e-12)
             {
-                // std::cout << "In Simulation::Run --> Controlling winches... " << std::endl;
-                wallTimeControllerWinches += winchesContTimeStep;
-                WinchesController.controlWinchies(wallTimeControllerWinches);
-                WinchesController.WriteOut(wallTimeControllerWinches);
-                // std::cout << "In Simulation::Run --> ... done controlling winches!" << std::endl;
+                if (output_step > 0) // Skip printing the initial time (already printed above)
+                {
+                    std::cout << "    t = " << current_time << " s" << std::endl;
+                }
+                output_step++;
+
+                for (int ii = 0; ii < numLines; ii = ii + 1)
+                    pLines[ii]->WriteOut(current_time);
+                for (int ii = 0; ii < numBodies; ii = ii + 1)
+                    pBodies[ii]->WriteOut(current_time);
+                for (int ii = 0; ii < numOWCs; ii = ii + 1)
+                    pOWCs[ii]->WriteOut(current_time);
+
+                wallTime += writeTimeStep; // Increment to next output time
             }
+
+            // Update hydrodynamic forces at specified intervals
+            if (current_time >= wallTimeHydro + hydroTimeStep - 1e-12)
+            {
+                wallTimeHydro += hydroTimeStep;
+                if (numBodies > 0)
+                {
+                    for (int ii = 0; ii < numBodies; ii = ii + 1)
+                    {
+                        pBodies[ii]->Fb = pBodies[ii]->pHydro->CalculateHydrodynamicForces(wallTimeHydro);
+                    }
+                }
+            }
+
+            // Update wind turbine forces at specified intervals
+            if (numWindTurbines > 0)
+            {
+                if (current_time >= wallTimeFAST + fastTimeStep - 1e-12)
+                {
+                    wallTimeFAST += fastTimeStep;
+                    for (int ii = 0; ii < numWindTurbines; ii = ii + 1)
+                    {
+                        pWindTurbines[ii]->SetInputsFAST();
+                        pWindTurbines[ii]->ComputeForces(wallTimeFAST);
+                        pWindTurbines[ii]->WriteOut(wallTimeFAST);
+                    }
+                }
+                if (current_time >= wallTimeControllerFAST + fastControllerTimeStep - 1e-12)
+                {
+                    wallTimeControllerFAST += fastControllerTimeStep;
+                    for (int ii = 0; ii < numWindTurbines; ii = ii + 1)
+                    {
+                        pWindTurbines[ii]->SetInputsFAST();
+                        pWindTurbines[ii]->ComputeControler(wallTimeControllerFAST);
+                    }
+                }
+            }
+
+            // Update OWC controllers at specified intervals
+            if (numOWCs > 0)
+            {
+                if (current_time >= wallTimeControllerOWCs + owcsContTimeStep - 1e-12)
+                {
+                    wallTimeControllerOWCs += owcsContTimeStep;
+                    for (int ii = 0; ii < numOWCs; ii = ii + 1)
+                    {
+                        if (pOWCs[ii]->turbine_type > 0)
+                        {
+                            pOWCs[ii]->pOWCTurbine->ComputeGenTorque();
+                        }
+                    }
+                }
+            }
+
+            // Update sinking dynamics at specified intervals
+            if (numSinking > 0)
+            {
+                if (current_time >= wallTimeSinking + sinkingTimeStep - 1e-12)
+                {
+                    wallTimeSinking += sinkingTimeStep;
+                    for (int ii = 0; ii < numSinking; ii = ii + 1)
+                    {
+                        pSinking[ii]->UpdateSinkingHydrodynamics(current_time);
+                    }
+                    UpdateSystemMatrix();
+                    for (int ii = 0; ii < numSinking; ii = ii + 1)
+                        pSinking[ii]->WriteOut(current_time);
+                }
+            }
+
+            // Update winch controllers at specified intervals
+            if (numWinches > 0)
+            {
+                if (current_time >= wallTimeControllerWinches + winchesContTimeStep - 1e-12)
+                {
+                    wallTimeControllerWinches += winchesContTimeStep;
+                    WinchesController.controlWinchies(wallTimeControllerWinches);
+                    WinchesController.WriteOut(wallTimeControllerWinches);
+                }
+            }
+
+            // Note: time is incremented via the for loop counter in step
         }
     }
-    pTimeSolver->finalize();
+
     tend = time(0);
     double computational_time = difftime(tend, tstart);
     if (computational_time < 60)
@@ -2183,12 +2492,14 @@ void Simulation::Run()
     {
         std::cout << "    Computational time  : " << computational_time / 3600 << " hours" << std::endl;
     }
-    std::cout << "    Total function calls: " << numCallsSysFun << std::endl;
-    std::cout << "    Total jac calls: " << pTimeSolver->iJ << std::endl
-              << std::endl;
-    std::cout << "    Average Newton iterations: " << pTimeSolver->nNewtonIterAvg << std::endl;
-    std::cout << "    Number of times convergence failed: " << pTimeSolver->nConvergenceFailed << std::endl;
-
+    if (numSystem > 0)
+    {
+        std::cout << "    Total function calls: " << numCallsSysFun << std::endl;
+        std::cout << "    Total jac calls: " << pTimeSolver->iJ << std::endl
+                  << std::endl;
+        std::cout << "    Average Newton iterations: " << pTimeSolver->nNewtonIterAvg << std::endl;
+        std::cout << "    Number of times convergence failed: " << pTimeSolver->nConvergenceFailed << std::endl;
+    }
     if (writeEquilibrium == 1)
     {
         std::cout << "  Writting data to dataStaticIC.dat ..." << std::endl
@@ -2216,7 +2527,7 @@ void Simulation::SetupCase()
                 std::stringstream ss;
                 ss << "BCP index: " << pBodies[ii]->pIndexBcps[jj] << " in Body: " << pBodies[ii]->GetId()
                    << " is out of range when compare with the Number of BCPs(" << numBcps << ") defined in"
-                   << " datosBCPs.dat";
+                   << " dataBCPs.dat";
                 throw ValueError(ss.str());
             }
             pBcps[pBodies[ii]->pIndexBcps[jj]]->numBodiesBcp++;
@@ -2306,7 +2617,7 @@ void Simulation::SetupCase()
                 std::stringstream ss;
                 ss << "Wind Turbine index: " << pBodies[ii]->pIndexWindTurbs[jj] << " in Body: " << pBodies[ii]->GetId()
                    << " is out of range when compare with the Number of Wind Turbines (" << numWindTurbines << ") defined in"
-                   << " datosWindTurbines.dat";
+                   << " dataWindTurbines.dat";
                 throw ValueError(ss.str());
             }
         }
@@ -2400,7 +2711,7 @@ void Simulation::SetupCase()
                 std::stringstream ss;
                 ss << "BCP index: " << pLines[ii]->indexBcps[jj] << " in Line: " << pLines[ii]->GetId()
                    << " is out of range when compare with the Number of BCPs(" << numBcps << ") defined in"
-                   << " datosBCPs.dat";
+                   << " dataBCPs.dat";
                 throw ValueError(ss.str());
             }
             pBcps[pLines[ii]->indexBcps[jj]]->numLinesBcp++;
@@ -2866,6 +3177,15 @@ Simulation::Simulation(std::string incProjectPath, std::string incDataFormat)
 
 void Simulation::UpdateSystem()
 {
+    // Call overloaded version with pTimeSolver->t as the time parameter
+    if (pTimeSolver != nullptr)
+    {
+        UpdateSystem(pTimeSolver->t);
+    }
+}
+
+void Simulation::UpdateSystem(double time)
+{
     // Update the bodies velocity buffers for the radiation forces computation
     if (numBodies > 0)
     {
@@ -2874,7 +3194,7 @@ void Simulation::UpdateSystem()
         timeBufferCount++;
         if (timeBufferCount < timeBufferSize)
         {
-            timeBuffer(0, timeBufferCount) = pTimeSolver->t;
+            timeBuffer(0, timeBufferCount) = time;
         }
         else
         {

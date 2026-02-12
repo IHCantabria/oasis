@@ -5,8 +5,8 @@
 1.4         // Air adiabatic dilation [-]
 -500.0       // Seabed vertical coordinate [m]
 0.1         // Output time step [s]
-0.01        // Maximum time step for time integration [s]
-0.01        // Time step for hydrodynamic forces computation [s]
+0.1        // Maximum time step for time integration [s]
+0.1        // Time step for hydrodynamic forces computation [s]
 0.1         // Time step for FAST wind turbines forces computation [s]
 0.1         // Time step for FAST wind turbines controller update [s]
 20.0        // IRF time [s]
@@ -15,7 +15,7 @@
 0.1         // Time step for OWC turbines controller [s]
 60.0        // Total time of simulation [s]
 1           // Flag to use simplification for rigid body rotation dynamics [0 No, 1 Yes]
-1           // Temporal integration algorithm [1: BDF1, 2: BDFN, 3: ESDIRK46]
+3           // Temporal integration algorithm [1: BDF1, 2: BDFN, 3: ESDIRK46]
 2           // Order for temporal integration (only for BDFN)
 0           // Time step adaptivity [0 No, 1 Yes]
 0           // Maximum number of steps for temporal integration Jacobian re-computation.

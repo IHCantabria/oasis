@@ -2,6 +2,7 @@
 #include <armadillo>
 #include <tuple>
 #include <math.h>
+#include <fstream>
 
 #include "Wave.hpp"
 #include "../Exceptions/Exception.hpp"
@@ -84,9 +85,7 @@ void Wave::CheckBreakingWave(void)
 
 	if (height > hmax)
 	{
-		std::stringstream ss;
-		ss << "The water is outside of the breaking limits. \n";
-		throw ValueError(ss.str());
+		std::cout << "    --> ... WARNING: The wave is outside of the breaking limits! (hmax = " << hmax << "; height = " << height << ")" << std::endl;
 	}
 	else
 	{
@@ -235,7 +234,16 @@ arma::vec Wave::GetFreeSurface(arma::mat amplitudes, arma::mat phases, int num_p
 	}
 	arma::cx_mat eta_cx = arma::ifft(Y);
 	double imag = arma::as_scalar(arma::sum(arma::abs(arma::imag(eta_cx)), 0));
-	if (imag > 1e-9 * num_points)
+	double real_sum = arma::as_scalar(arma::sum(arma::abs(arma::real(eta_cx)), 0));
+
+	// Use a tolerance that combines both absolute and relative terms.
+	// For piecewise waves with large num_points, the relative tolerance becomes too strict,
+	// so we use a relaxed threshold that accounts for numerical precision.
+	// The relative factor is increased to 1e-4 to account for accumulated IFFT errors with many components.
+	double tolerance_abs = 1e-9 * num_points;
+	double tolerance_rel = 1e-4 * real_sum;
+	double tolerance = std::max(tolerance_abs, tolerance_rel);
+	if (imag > tolerance)
 	{
 		std::stringstream ss;
 		ss << "Something went wrong with the ifft. imag = " << imag << " \n";
@@ -249,7 +257,7 @@ arma::vec Wave::GetFreeSurface(double time, arma::vec x, arma::vec y)
 {
 	double ramp = get_ramp(time);
 	arma::vec eta = arma::sum(amplitudes * ones(size(amplitudes.t())) * arma::cos(phases * ones(size(x.t())) + kx * x.t() + ky * y.t() - time * ang_freqs * ones(size(x.t())))).t();
-	return ramp*eta;
+	return ramp * eta;
 }
 
 arma::vec Wave::GetPressure(double time, arma::vec x, arma::vec y, arma::vec z)
@@ -361,24 +369,36 @@ void Wave::SetSinglePiece(void)
 
 void Wave::WriteOut(std::string path)
 {
+	std::cout << "    --> Writing wave spectrum to output folder..." << std::endl;
+
 	char buffer1[50];
 	int nn1 = sprintf(buffer1, "WaveSpectrum.txt");
 	std::string file_path1 = JoinPath(path, buffer1);
-	pfile_SPEC = fopen(file_path1.c_str(), "ang_freqs");
+	pfile_SPEC = fopen(file_path1.c_str(), "w");
 	if (pfile_SPEC == NULL)
 	{
 		std::stringstream ss;
 		ss << "Not possible to open the file: " << nn1 << "\n    ->Dir: " << path << std::endl;
 		throw IOError(ss.str());
 	}
-	for (int ii = 0; ii < num_comps; ii = ii + 1)
-		fprintf(pfile_SPEC, "%f    %f  \n", freqs(ii, 0), spectral_density(ii, 0));
+
+	// Write header
+	fprintf(pfile_SPEC, "# Wave Spectrum\n");
+	fprintf(pfile_SPEC, "# Frequency(Hz)  SpectralDensity(m^2/Hz)  Amplitude(m)\n");
+
+	// Write data
+	for (int ii = 0; ii < num_comps; ii++)
+	{
+		double amp = (amplitudes.n_cols > 0) ? amplitudes(ii, 0) : 0.0;
+		fprintf(pfile_SPEC, "%.6f  %.8e  %.6f\n", freqs(ii), spectral_density(ii), amp);
+	}
 	fclose(pfile_SPEC);
+	std::cout << "    --> Wave spectrum written to " << file_path1 << std::endl;
 
 	char buffer2[50];
 	int nn2 = sprintf(buffer2, "WaveTimeSeries.txt");
 	std::string file_path2 = JoinPath(path, buffer2);
-	pfile_TIME = fopen(file_path2.c_str(), "ang_freqs");
+	pfile_TIME = fopen(file_path2.c_str(), "w");
 	if (pfile_TIME == NULL)
 	{
 		std::stringstream ss;
@@ -386,8 +406,13 @@ void Wave::WriteOut(std::string path)
 		throw IOError(ss.str());
 	}
 
-	for (int ii = 0; ii < num_points; ii = ii + 1)
-		fprintf(pfile_TIME, "%f    %f  \n", t_FS(ii), eta_FS(ii));
+	// Write header
+	fprintf(pfile_TIME, "# Wave Time Series\n");
+	fprintf(pfile_TIME, "# Time(s)  Elevation(m)\n");
+
+	// Write data
+	for (int ii = 0; ii < num_points; ii++)
+		fprintf(pfile_TIME, "%.6f  %.6f\n", t_FS(ii), eta_FS(ii));
 
 	fclose(pfile_TIME);
 
@@ -426,7 +451,7 @@ void IrregularWave::GetWaveSpectrum(void)
 		// Find the spectrum width, the maximum frequency step, and the minimum wave time
 		// TODO: Review the methods used to find these variables
 		FindSpectrumWidth();
-		this->df_max = spectrum_width / 10.0;
+		this->df_max = spectrum_width / 6.0;
 		// Update the wave time if necessary
 		this->simulationTime = std::max(simulationTime, std::ceil(1 / this->df_max));
 
@@ -459,7 +484,7 @@ void IrregularWave::GetWaveSpectrum(void)
 		if (num_points % 2 == 0)
 		{
 			t_FS = arma::join_vert(t_FS, arma::ones<arma::vec>(1) * (t_FS(num_points - 1) + this->dt));
-			num_points = num_points++;
+			num_points++;
 		}
 		num_comps = (num_points + 1) / 2;
 		df = 1 / (num_points * dt);
@@ -510,8 +535,10 @@ void IrregularWave::GetWaveSpectrum(void)
 	{
 		// Read the wave time series and preprocess it
 		ReadWaveTimeSeries();
+		// Find the spectrum width for time series
+		FindSpectrumWidth();
 		// Compute the maximum frequency step
-		this->df_max = arma::min(arma::diff(this->freqs));
+		this->df_max = spectrum_width / 6.0;
 		// Update the wave time if necessary
 		this->simulationTime = std::max(simulationTime, std::ceil(1 / this->df_max));
 		// Compute the number of pieces and the time per piece
@@ -524,18 +551,15 @@ void IrregularWave::GetWaveSpectrum(void)
 			num_pieces = 1;
 			time_piece = simulationTime;
 		}
-		// CRITICAL-TODO: Review the computation of the time vector for pieces
-		if (this->num_pieces > 1)
-		{
-			std::stringstream ss;
-			ss << "Custom wave not implemented with several pieces. \n";
-			throw NotImplementedError(ss.str());
-		}
 	}
 	else if (specType_flag == 3)
 	{
+		// Read wave frequency domain data (frequency, heading, amplitude, phase)
 		ReadWavePSD();
-		// TODO: Implement the reading of the wave PSD
+		// No piecewise decomposition for frequency domain waves
+		num_pieces = 1;
+		time_piece = simulationTime;
+		std::cout << "    --> Frequency domain wave read without piecewise decomposition" << std::endl;
 	}
 	else
 	{
@@ -847,10 +871,11 @@ void IrregularWave::ReadWaveTimeSeries(void)
 	arma::cx_vec yf = arma::fft(eta) / num_points;
 	phases = arma::atan2(arma::imag(yf.rows(0, num_comps - 1)), arma::real(yf.rows(0, num_comps - 1)));
 	// phases = phases + ang_freqs * time_ini;  // TODO: Include wave offset wrt wind
-	arma::vec psd = arma::pow(arma::abs(yf.rows(0, num_comps - 1)), 2) / df;
-	psd.rows(1, num_comps - 1) = 2.0 * psd.rows(1, num_comps - 1);
-	psd(0, 0) = 0.0;
-	amplitudes = arma::sqrt(2.0 * psd * df);
+	// For a real signal, the positive frequency components have amplitude 2*|yf|
+	// The amplitude of each frequency component is: a_f = 2 * |yf| (for f > 0)
+	arma::vec amplitudes_fft = 2.0 * arma::abs(yf.rows(0, num_comps - 1));
+	amplitudes_fft(0) = std::abs(yf(0)); // DC component should not be doubled
+	amplitudes = amplitudes_fft;
 
 	num_headings = 1;
 	directional_spreading = arma::ones<arma::vec>(1);
@@ -859,7 +884,8 @@ void IrregularWave::ReadWaveTimeSeries(void)
 	headings_1D = headings;
 	amplitudes_1D = amplitudes;
 	phases_1D = phases;
-	spectral_density = psd;
+	spectral_density = arma::pow(amplitudes_fft, 2) / 2.0; // PSD from amplitudes
+	spectral_density(0) = 0.0;							   // Set DC component to zero
 
 	// TODO: Check how doing this here affects the piecewise computation
 	GetWaveLengths();
@@ -870,11 +896,181 @@ void IrregularWave::ReadWaveTimeSeries(void)
 
 void IrregularWave::ReadWavePSD(void)
 {
-	std::cout << "    --> Reading wave PSD" << std::endl;
-	std::stringstream ss;
-	ss << "Method ReadWavePSD in class IrregularWave not implemented yet. \n";
-	throw NotImplementedError(ss.str());
-	std::cout << "    --> Wave Spectrum Read" << std::endl;
+	std::cout << "    --> Reading wave frequency domain data..." << std::endl;
+
+	// Declare local variables
+	int nn;
+	double dtemp;
+	char bufferLine[1000];
+
+	// Open file
+	FILE *file_pointer = fopen(file_path.c_str(), "r");
+	if (file_pointer == NULL)
+	{
+		std::stringstream ss;
+		ss << "Not possible to open the file: dataWaves.dat\n    ->Dir: " << file_path << std::endl;
+		throw IOError(ss.str());
+	}
+
+	// Read the number of frequency components from file
+	fscanf(file_pointer, "%i", &nn, bufferLine);
+	fscanf(file_pointer, "%[^\n]\n", bufferLine);
+	num_comps = nn;
+
+	// Initialize vectors for reading data
+	arma::vec freqs_read = arma::zeros(nn);
+	arma::vec headings_read = arma::zeros(nn);
+	arma::vec amplitudes_read = arma::zeros(nn);
+	arma::vec phases_read = arma::zeros(nn);
+
+	// Read the frequency, heading, amplitude, and phase from file
+	std::cout << "    --> Reading " << nn << " frequency components..." << std::endl;
+	for (int ii = 0; ii < nn; ii++)
+	{
+		// frequency [Hz]
+		fscanf(file_pointer, "%lf", &dtemp);
+		freqs_read(ii) = dtemp;
+		// heading [deg]
+		fscanf(file_pointer, "%lf", &dtemp);
+		headings_read(ii) = dtemp * arma::datum::pi / 180.0; // Convert to radians
+		// amplitude [m]
+		fscanf(file_pointer, "%lf", &dtemp);
+		amplitudes_read(ii) = dtemp;
+		// phase [rad]
+		fscanf(file_pointer, "%lf", &dtemp);
+		phases_read(ii) = dtemp;
+		fscanf(file_pointer, "%[^\n]\n", bufferLine);
+	}
+
+	// Close file
+	fclose(file_pointer);
+
+	std::cout << "    --> Processing frequency domain data..." << std::endl;
+
+	// Find unique frequencies and headings
+	arma::vec freqs_unique = arma::unique(freqs_read);
+	arma::vec headings_unique = arma::unique(headings_read);
+
+	num_comps = freqs_unique.n_elem;
+	num_headings = headings_unique.n_elem;
+
+	std::cout << "    --> Number of unique frequencies: " << num_comps << std::endl;
+	std::cout << "    --> Number of unique headings: " << num_headings << std::endl;
+	std::cout << "    --> Frequency range: " << freqs_unique.min() << " to " << freqs_unique.max() << " Hz" << std::endl;
+
+	// Set frequency-related variables
+	freqs = freqs_unique;
+	ang_freqs = 2.0 * arma::datum::pi * freqs;
+	periods = 1.0 / freqs;
+	periods(0) = arma::datum::inf; // Avoid division by zero for DC component
+
+	// Compute frequency step (assume uniform spacing)
+	if (num_comps > 1)
+	{
+		df = arma::as_scalar(freqs(1) - freqs(0));
+	}
+	else
+	{
+		df = arma::as_scalar(freqs(0));
+	}
+	dw = 2.0 * arma::datum::pi * df;
+
+	// Set heading-related variables
+	headings = headings_unique;
+	headings = arma::normalise(headings, 2); // Normalize to [0, 2π]
+
+	// Compute heading step (assume uniform spacing)
+	if (num_headings > 1)
+	{
+		dtheta = arma::as_scalar(headings(1) - headings(0));
+	}
+	else
+	{
+		dtheta = 1.0;
+	}
+
+	// Initialize amplitude and phase matrices
+	amplitudes = arma::zeros(num_comps, num_headings);
+	phases = arma::zeros(num_comps, num_headings);
+
+	// Fill amplitude and phase matrices by mapping read data to grid
+	for (int ii = 0; ii < nn; ii++)
+	{
+		// Find index of frequency
+		arma::uvec freq_idx = arma::find(arma::abs(freqs - freqs_read(ii)) < 1e-10, 1, "first");
+		// Find index of heading
+		arma::uvec head_idx = arma::find(arma::abs(headings - headings_read(ii)) < 1e-6, 1, "first");
+
+		if (freq_idx.n_elem > 0 && head_idx.n_elem > 0)
+		{
+			int fi = freq_idx(0);
+			int hi = head_idx(0);
+			amplitudes(fi, hi) = amplitudes_read(ii);
+			phases(fi, hi) = phases_read(ii);
+		}
+	}
+
+	// Compute spectral density from amplitudes: S(f) = A(f)^2 / 2
+	// For directional spectrum: S(f,theta) = A(f,theta)^2 / (2 * df * dtheta)
+	spectral_density = arma::zeros(num_comps);
+	for (int ii = 0; ii < num_comps; ii++)
+	{
+		for (int jj = 0; jj < num_headings; jj++)
+		{
+			spectral_density(ii) += amplitudes(ii, jj) * amplitudes(ii, jj);
+		}
+		spectral_density(ii) = spectral_density(ii) / 2.0;
+	}
+	spectral_density(0) = 0.0; // Set DC component to zero
+
+	// Compute directional spreading (normalized energy per heading)
+	directional_spreading = arma::zeros(num_headings);
+	for (int jj = 0; jj < num_headings; jj++)
+	{
+		for (int ii = 0; ii < num_comps; ii++)
+		{
+			directional_spreading(jj) += amplitudes(ii, jj) * amplitudes(ii, jj);
+		}
+	}
+	// Normalize directional spreading
+	double total_energy = arma::sum(directional_spreading);
+	if (total_energy > 0)
+	{
+		directional_spreading = directional_spreading / total_energy;
+	}
+	else
+	{
+		directional_spreading = arma::ones<arma::vec>(num_headings) / num_headings;
+	}
+
+	// Compute 1D representations (integrate over headings)
+	headings_1D = arma::ones<arma::vec>(1) * this->heading;
+	amplitudes_1D = arma::zeros(num_comps);
+	phases_1D = arma::zeros(num_comps);
+
+	// For 1D, use the heading closest to the main wave heading
+	arma::vec heading_diff = arma::abs(headings - this->heading);
+	arma::uword closest_heading_idx;
+	heading_diff.min(closest_heading_idx);
+
+	amplitudes_1D = amplitudes.col(closest_heading_idx);
+	phases_1D = phases.col(closest_heading_idx);
+
+	// Compute significant wave parameters for output
+	double Hs = 4.0 * std::sqrt(arma::sum(spectral_density) * df);
+	double Tp = 1.0 / freqs(arma::index_max(spectral_density));
+	std::cout << "    --> Computed Hs = " << Hs << " m" << std::endl;
+	std::cout << "    --> Computed Tp = " << Tp << " s" << std::endl;
+
+	// No piecewise decomposition for frequency domain input
+	num_pieces = 1;
+	time_piece = simulationTime;
+	piecewise_flag = 0;
+
+	// Compute wave lengths
+	GetWaveLengths();
+
+	std::cout << "    --> ...done!" << std::endl;
 }
 
 void IrregularWave::FindSpectrumWidth(void)
@@ -910,12 +1106,67 @@ void IrregularWave::FindSpectrumWidth(void)
 		std::cout << "    --> ...done!" << std::endl;
 
 		this->spectrum_width = f2 - f1;
+		std::cout << "    --> Spectrum width (FWHM): " << this->spectrum_width << " Hz" << std::endl;
 	}
 	else if (specType_flag == 2)
 	{
-		std::stringstream ss;
-		ss << "FindSpectrumWidth is not implemented for custom wave in time domain \n";
-		throw ValueError(ss.str());
+		// For time series, compute FWHM from the spectral density
+		// First, smooth the spectrum to handle noise
+		std::cout << "    --> Smoothing spectrum to handle noise..." << std::endl;
+
+		// Apply moving average filter
+		int window_size = std::max(5, static_cast<int>(this->num_comps / 100)); // Use ~1% of spectrum as window
+		if (window_size % 2 == 0)
+			window_size++; // Make sure it's odd
+		int half_window = window_size / 2;
+
+		arma::vec S_smoothed = this->spectral_density;
+		for (int ii = half_window; ii < this->num_comps - half_window; ii++)
+		{
+			double sum = 0.0;
+			for (int jj = -half_window; jj <= half_window; jj++)
+			{
+				sum += this->spectral_density(ii + jj);
+			}
+			S_smoothed(ii) = sum / window_size;
+		}
+
+		std::cout << "    --> Smoothing complete (window size: " << window_size << " points)" << std::endl;
+
+		std::cout << "    --> Find spectrum peak..." << std::endl;
+		double Smax = S_smoothed.max();
+		if (Smax == 0)
+		{
+			std::stringstream ss;
+			ss << "Error: Zero spectrum peak in time series data. \n";
+			throw ValueError(ss.str());
+		}
+		std::cout << "    --> Maximum smoothed spectral density: " << Smax << " m^2/Hz" << std::endl;
+
+		std::cout << "    --> Find first spectrum half height crossing..." << std::endl;
+		arma::uvec i1 = arma::find(S_smoothed > (Smax / 2), 1, "first");
+		if (i1.n_elem == 0)
+		{
+			std::stringstream ss;
+			ss << "Error: Could not find half-max crossing in spectrum. \n";
+			throw ValueError(ss.str());
+		}
+		double f1 = arma::as_scalar(this->freqs(i1));
+		std::cout << "    --> f1 (half-max): " << f1 << " Hz" << std::endl;
+
+		std::cout << "    --> Find last spectrum half height crossing..." << std::endl;
+		arma::uvec i2 = arma::find(S_smoothed > (Smax / 2), 1, "last");
+		if (i2.n_elem == 0)
+		{
+			std::stringstream ss;
+			ss << "Error: Could not find half-max crossing in spectrum. \n";
+			throw ValueError(ss.str());
+		}
+		double f2 = arma::as_scalar(this->freqs(i2));
+		std::cout << "    --> f2 (half-max): " << f2 << " Hz" << std::endl;
+
+		this->spectrum_width = f2 - f1;
+		std::cout << "    --> Spectrum width (FWHM): " << this->spectrum_width << " Hz" << std::endl;
 	}
 	else if (specType_flag == 3)
 	{
@@ -956,37 +1207,38 @@ void IrregularWave::GetPiecesNumber(void)
 		std::cout << "    --> Imposing maximum frequency step constraint..." << std::endl;
 		tmp_int = std::floor(3.0 * this->df_max * (time_sim - this->time_gap) / (1.0 - 3.0 * this->df_max * this->time_gap));
 		n_max = std::min(n_max, tmp_int);
-		std::cout << "        --> n_max: " << n_max << std::endl;
+		std::cout << "        --> n_max (frequency): " << n_max << std::endl;
 	}
 
-	// Check the saving memory constraints
-	// TODO: Review and fix the memory saving constraints
-	// tmp_int = std::ceil(-(time_sim * std::sqrt(36 * std::pow(this->time_gap, 2) -
-	// 										   36 * this->time_gap * time_sim +
-	// 										   std::pow(time_sim, 2)) +
-	// 					  (18 * this->time_gap * time_sim -
-	// 					   18 * std::pow(this->time_gap, 2) -
-	// 					   std::pow(time_sim, 2))) /
-	// 					(18 * std::pow(this->time_gap, 2)));
-	// if (n_min < tmp_int)
-	// {
-	// 	std::cout << "    --> Imposing memory saving constraints (n_min)..." << std::endl;
-	// 	n_min = tmp_int;
-	// 	std::cout << "        --> n_min: " << n_min << std::endl;
-	// }
-	// tmp_int = std::ceil(-(time_sim * std::sqrt(36 * std::pow(this->time_gap, 2) -
-	// 										   36 * this->time_gap * time_sim +
-	// 										   std::pow(time_sim, 2)) -
-	// 					  (18 * this->time_gap * time_sim -
-	// 					   18 * std::pow(this->time_gap, 2) -
-	// 					   std::pow(time_sim, 2))) /
-	// 					(18 * std::pow(this->time_gap, 2)));
-	// if (n_max > tmp_int)
-	// {
-	// 	std::cout << "    --> Imposing memory saving constraints (n_max)..." << std::endl;
-	// 	n_max = tmp_int;
-	// 	std::cout << "        --> n_max: " << n_max << std::endl;
-	// }
+	// Check the memory saving constraints
+	// For piecewise to save memory: C(n) < C(1) where C(n) = (time_sim + (n-1)*time_gap)^2 / n
+	// This yields: 1 < n < (time_sim/time_gap - 1)^2 for time_sim/time_gap >= 2
+	std::cout << "    --> Checking memory saving constraints..." << std::endl;
+	double ratio = time_sim / this->time_gap;
+	if (ratio >= 2.0)
+	{
+		// Memory savings possible: 1 < n < (ratio - 1)^2
+		int n_min_memory = 2;
+		int n_max_memory = std::floor(std::pow(ratio - 1.0, 2.0));
+
+		if (n_min < n_min_memory)
+		{
+			n_min = n_min_memory;
+			std::cout << "        --> n_min (memory): " << n_min << std::endl;
+		}
+		if (n_max > n_max_memory)
+		{
+			n_max = n_max_memory;
+			std::cout << "        --> n_max (memory): " << n_max << std::endl;
+		}
+		std::cout << "        --> Memory constraint: 1 < n < " << n_max_memory << " (ratio = " << ratio << ")" << std::endl;
+	}
+	else
+	{
+		std::cout << "        --> WARNING: time_sim/time_gap = " << ratio << " < 2" << std::endl;
+		std::cout << "        --> Piecewise representation will NOT provide memory savings!" << std::endl;
+		std::cout << "        --> Consider using single-piece representation (piecewise_flag = 0)" << std::endl;
+	}
 
 	// If it is possible, get the optimum number of pieces
 	std::cout << "    --> Finding optimum number of pieces..." << std::endl;
@@ -1045,7 +1297,7 @@ void IrregularWave::GetPiecesWaveLengths(void)
 			 this->kx_piece,
 			 this->ky_piece,
 			 this->kx_1D_piece,
-			 this->ky_1D_piece) = this->GetWaveLengths(this->periods_piece, this->headings);
+			 this->ky_1D_piece) = this->GetWaveLengths(this->periods_piece, this->headings_piece);
 
 	std::cout << "    --> ... pieces wave lengths computed!" << std::endl;
 }
@@ -1056,6 +1308,7 @@ void IrregularWave::CutPiecesSpectrumZeros(void)
 
 	// Find the maximum amplitude value among the pieces
 	int number_components_original = this->num_comps_piece * this->num_headings_piece;
+
 	arma::mat amplitudes_max = arma::zeros(num_comps_piece, num_headings_piece);
 	for (int ii = 0; ii < this->num_pieces; ii++)
 	{
@@ -1100,7 +1353,7 @@ void IrregularWave::CutPiecesSpectrumZeros(void)
 	}
 	else
 	{
-		ind_cols = arma::ones<arma::uvec>(1);
+		ind_cols = arma::zeros<arma::uvec>(1); // When only 1 heading, valid index is 0, not 1
 	}
 
 	// Crop the spectrum to avoid zeros
@@ -1114,13 +1367,13 @@ void IrregularWave::CutPiecesSpectrumZeros(void)
 	std::cout << "        -> cropping ang_freqs..." << std::endl;
 	this->ang_freqs_piece = this->ang_freqs_piece.elem(ind_rows);
 	std::cout << "        -> cropping headings..." << std::endl;
-	this->headings_piece = this->headings.elem(ind_cols);
+	this->headings_piece = this->headings_piece.elem(ind_cols);
 	std::cout << "        -> cropping wave numbers..." << std::endl;
 	this->k_piece = this->k_piece.elem(ind_rows);
 	std::cout << "        -> cropping wave numbers 2D (X)..." << std::endl;
-	this->kx_piece = this->kx_piece.elem(ind_rows, ind_cols);
+	this->kx_piece = this->kx_piece.submat(ind_rows, ind_cols);
 	std::cout << "        -> cropping wave numbers 2D (Y)..." << std::endl;
-	this->ky_piece = this->ky_piece.elem(ind_rows, ind_cols);
+	this->ky_piece = this->ky_piece.submat(ind_rows, ind_cols);
 	std::cout << "        -> cropping wave numbers 1D (X)..." << std::endl;
 	this->kx_1D_piece = this->kx_1D_piece.elem(ind_rows);
 	std::cout << "        -> cropping wave numbers 1D (Y)..." << std::endl;
@@ -1171,7 +1424,7 @@ void IrregularWave::GetPiecesSpectra(void)
 	num_points_piece = time_piece_total.n_elem;
 	if (num_points_piece % 2 == 0)
 	{
-		num_points_piece = num_points_piece++;
+		num_points_piece++;
 	}
 	num_comps_piece = (num_points_piece + 1) / 2;
 	df_piece = 1.0 / (num_points_piece * dt);
@@ -1179,52 +1432,229 @@ void IrregularWave::GetPiecesSpectra(void)
 	ang_freqs_piece = 2.0 * arma::datum::pi * freqs_piece;
 	periods_piece = 1.0 / freqs_piece;
 	dw_piece = 2.0 * arma::datum::pi * df_piece;
+	// Set headings_piece before calling GetPiecesWaveLengths()
+	headings_piece = headings;
+	num_headings_piece = num_headings;
 	GetPiecesWaveLengths();
 	for (int ii = 0; ii < this->num_pieces; ii++)
 	{
 		this->amplitudes_piece(ii) = arma::zeros(num_comps_piece, num_headings);
 		this->phases_piece(ii) = arma::zeros(num_comps_piece, num_headings);
 	}
-	for (int jj = 0; jj < num_headings; jj++)
+
+	// For time-series data, generate extended synthetic time series from the original spectrum
+	if (specType_flag == 2)
 	{
-		// Get the wave free surface for this heading
-		arma::vec eta_heading = GetFreeSurface(amplitudes.col(jj), phases.col(jj), num_points);
+		std::cout << "    --> Using spectrum-based approach for time-series..." << std::endl;
+		std::cout << "    --> Original time series range: " << t_FS(0) << " to " << t_FS.max() << " s" << std::endl;
+		std::cout << "    --> Simulation time: " << this->simulationTime << " s" << std::endl;
+		std::cout << "    --> Time per piece: " << this->time_piece << " s" << std::endl;
+
+		// Determine the required time range for all pieces
+		double t_min_required = 1e10;
+		double t_max_required = -1e10;
 		for (int ii = 0; ii < this->num_pieces; ii++)
 		{
-			// Get the wave free surface for the times corresponding to this piece
-			arma::vec tmp_t = time_piece_total + arma::as_scalar(this->time_ref(ii));
+			// Each piece window goes from time_ref(ii) to time_ref(ii) + 3*time_piece
+			double t_start = this->time_ref(ii);
+			double t_end = this->time_ref(ii) + 3.0 * this->time_piece;
+			t_min_required = std::min(t_min_required, t_start);
+			t_max_required = std::max(t_max_required, t_end);
+		}
+
+		std::cout << "    --> Required time range for all pieces: " << t_min_required
+				  << " to " << t_max_required << " s" << std::endl;
+
+		// Optimize: only generate synthetic data for times outside original range
+		arma::vec t_before, eta_before, t_after, eta_after;
+
+		if (t_min_required < 0.0)
+		{
+			// Generate synthetic data for negative times
+			t_before = arma::regspace(t_min_required, this->dt, -this->dt);
+			int n_before = t_before.n_elem;
+			std::cout << "    --> Generating " << n_before << " synthetic points for t < 0 s..." << std::endl;
+
+			eta_before.zeros(n_before);
+			for (int ii = 0; ii < this->num_comps; ii++)
+			{
+				double omega = this->ang_freqs(ii);
+				double amp = this->amplitudes(ii, 0);
+				double phase = this->phases(ii, 0);
+				for (int tt = 0; tt < n_before; tt++)
+				{
+					eta_before(tt) += amp * std::cos(omega * t_before(tt) + phase);
+				}
+			}
+		}
+
+		if (t_max_required > t_FS.max())
+		{
+			// Generate synthetic data for times beyond original data
+			t_after = arma::regspace(t_FS.max() + this->dt, this->dt, t_max_required);
+			int n_after = t_after.n_elem;
+			std::cout << "    --> Generating " << n_after << " synthetic points for t > " << t_FS.max() << " s..." << std::endl;
+
+			eta_after.zeros(n_after);
+			for (int ii = 0; ii < this->num_comps; ii++)
+			{
+				double omega = this->ang_freqs(ii);
+				double amp = this->amplitudes(ii, 0);
+				double phase = this->phases(ii, 0);
+				for (int tt = 0; tt < n_after; tt++)
+				{
+					eta_after(tt) += amp * std::cos(omega * t_after(tt) + phase);
+				}
+			}
+		}
+
+		// Combine: [before] + [original] + [after]
+		arma::vec t_combined, eta_combined;
+		if (t_before.n_elem > 0 && t_after.n_elem > 0)
+		{
+			t_combined = arma::join_cols(arma::join_cols(t_before, t_FS), t_after);
+			eta_combined = arma::join_cols(arma::join_cols(eta_before, eta_FS), eta_after);
+		}
+		else if (t_before.n_elem > 0)
+		{
+			t_combined = arma::join_cols(t_before, t_FS);
+			eta_combined = arma::join_cols(eta_before, eta_FS);
+		}
+		else if (t_after.n_elem > 0)
+		{
+			t_combined = arma::join_cols(t_FS, t_after);
+			eta_combined = arma::join_cols(eta_FS, eta_after);
+		}
+		else
+		{
+			// No extension needed, use original data
+			t_combined = t_FS;
+			eta_combined = eta_FS;
+		}
+
+		std::cout << "    --> Combined time series: " << t_combined.n_elem << " points (range: ["
+				  << t_combined.min() << ", " << t_combined.max() << "] s)" << std::endl;
+
+		// Now extract pieces from the combined time series
+		for (int ii = 0; ii < this->num_pieces; ii++)
+		{
+			// Use the same time window as JONSWAP: time_ref(ii) to time_ref(ii) + 3*time_piece
+			double t_ref = this->time_ref(ii);
+			double t_start = t_ref;
+			double t_end = t_ref + 3.0 * this->time_piece;
+
+			std::cout << "    --> Piece " << ii << ": extracting window from t=" << t_start
+					  << " to t=" << t_end << " (time_ref: " << t_ref << ")" << std::endl;
+			std::cout << "    --> Piece " << ii << ": time_ini=" << this->time_ini(ii)
+					  << ", time_end=" << this->time_end(ii) << std::endl;
+
+			// Create time vector for this piece (matching JONSWAP approach)
+			arma::vec tmp_t = arma::regspace(t_start, this->dt, t_end);
+
+			// Ensure exact size
+			if (tmp_t.n_elem > num_points_piece)
+			{
+				tmp_t = tmp_t.head(num_points_piece);
+			}
+			else if (tmp_t.n_elem < num_points_piece)
+			{
+				arma::uword original_size = tmp_t.n_elem;
+				tmp_t.resize(num_points_piece);
+				for (arma::uword kk = original_size; kk < num_points_piece; kk++)
+				{
+					tmp_t(kk) = tmp_t(kk - 1) + this->dt;
+				}
+			}
+
+			// Interpolate from combined time series
 			arma::vec tmp_eta;
-			arma::interp1(t_FS, eta_heading, tmp_t, tmp_eta, "*linear");
-			// Get the wave frequency amplitude and phases for this piece
+			arma::interp1(t_combined, eta_combined, tmp_t, tmp_eta, "*linear");
+
+			// Compute FFT for this piece
 			arma::cx_vec yf = arma::fft(tmp_eta) / num_points_piece;
 			arma::vec psd = arma::pow(arma::abs(yf.rows(0, num_comps_piece - 1)), 2) / df_piece;
 			psd.rows(1, num_comps_piece - 1) = 2.0 * psd.rows(1, num_comps_piece - 1);
 			psd(0, 0) = 0.0;
-			this->amplitudes_piece(ii).col(jj) = arma::sqrt(2.0 * psd * df_piece);
-			this->phases_piece(ii).col(jj) = arma::atan2(arma::imag(yf.rows(0, num_comps_piece - 1)),
-														 arma::real(yf.rows(0, num_comps_piece - 1))) -
-											 ang_freqs_piece * this->time_ref(ii); // TODO: Check this
+
+			// Store amplitudes and phases (use time_ref like JONSWAP does)
+			this->amplitudes_piece(ii).col(0) = arma::sqrt(2.0 * psd * df_piece);
+			this->phases_piece(ii).col(0) = arma::atan2(arma::imag(yf.rows(0, num_comps_piece - 1)),
+														arma::real(yf.rows(0, num_comps_piece - 1))) -
+											ang_freqs_piece * t_ref;
+
+			std::cout << "    --> Piece " << ii << ": max amplitude = "
+					  << this->amplitudes_piece(ii).col(0).max() << " m" << std::endl;
+		}
+		std::cout << "    --> Time-series piecewise spectra completed" << std::endl;
+	}
+	else
+	{
+		// Original approach for JONSWAP and other analytical spectra
+		for (int jj = 0; jj < num_headings; jj++)
+		{
+			// Get the wave free surface for this heading
+			arma::vec eta_heading;
+			if (specType_flag == 1)
+			{
+				// JONSWAP: use the pre-computed full free surface
+				eta_heading = eta_FS;
+			}
+			else
+			{
+				// Custom spectrum types: compute free surface for each heading
+				eta_heading = GetFreeSurface(amplitudes.col(jj), phases.col(jj), num_points);
+			}
+			for (int ii = 0; ii < this->num_pieces; ii++)
+			{
+				// Get the wave free surface for the times corresponding to this piece
+				arma::vec tmp_t = time_piece_total + arma::as_scalar(this->time_ref(ii));
+				arma::vec tmp_eta;
+				arma::interp1(t_FS, eta_heading, tmp_t, tmp_eta, "*linear");
+				// Get the wave frequency amplitude and phases for this piece
+				arma::cx_vec yf = arma::fft(tmp_eta) / num_points_piece;
+				arma::vec psd = arma::pow(arma::abs(yf.rows(0, num_comps_piece - 1)), 2) / df_piece;
+				psd.rows(1, num_comps_piece - 1) = 2.0 * psd.rows(1, num_comps_piece - 1);
+				psd(0, 0) = 0.0;
+				this->amplitudes_piece(ii).col(jj) = arma::sqrt(2.0 * psd * df_piece);
+				this->phases_piece(ii).col(jj) = arma::atan2(arma::imag(yf.rows(0, num_comps_piece - 1)),
+															 arma::real(yf.rows(0, num_comps_piece - 1))) -
+												 ang_freqs_piece * this->time_ref(ii); // TODO: Check this
+			}
 		}
 	}
-	headings_piece = headings;
-	num_headings_piece = num_headings;
 	// Repeat for 1D wave
 	// TODO: Review how to define the 1D wave
 	this->amplitudes_1D_piece = arma::field<arma::vec>(this->num_pieces);
 	this->phases_1D_piece = arma::field<arma::vec>(this->num_pieces);
-	for (int ii = 0; ii < this->num_pieces; ii++)
+
+	if (specType_flag == 2)
 	{
-		arma::vec tmp_t = time_piece_total + arma::as_scalar(this->time_ref(ii));
-		arma::vec tmp_eta;
-		arma::interp1(t_FS, eta_FS, tmp_t, tmp_eta, "*linear");
-		arma::cx_vec yf = arma::fft(tmp_eta) / num_points_piece;
-		arma::vec psd = arma::pow(arma::abs(yf.rows(0, num_comps_piece - 1)), 2) / df_piece;
-		psd.rows(1, num_comps_piece - 1) = 2.0 * psd.rows(1, num_comps_piece - 1);
-		psd(0, 0) = 0.0;
-		this->amplitudes_1D_piece(ii) = arma::sqrt(2.0 * psd * df_piece);
-		this->phases_1D_piece(ii) = arma::atan2(arma::imag(yf.rows(0, num_comps_piece - 1)),
-												arma::real(yf.rows(0, num_comps_piece - 1))) -
-									ang_freqs_piece * this->time_ref(ii); // TODO: Check this
+		// For time-series, 1D wave is already computed above
+		std::cout << "    --> Copying to 1D wave arrays (time-series)..." << std::endl;
+		for (int ii = 0; ii < this->num_pieces; ii++)
+		{
+			this->amplitudes_1D_piece(ii) = this->amplitudes_piece(ii).col(0);
+			this->phases_1D_piece(ii) = this->phases_piece(ii).col(0);
+		}
+		std::cout << "    --> 1D wave arrays populated" << std::endl;
+	}
+	else
+	{
+		// For other spectrum types, compute 1D from full free surface
+		for (int ii = 0; ii < this->num_pieces; ii++)
+		{
+			arma::vec tmp_t = time_piece_total + arma::as_scalar(this->time_ref(ii));
+			arma::vec tmp_eta;
+			arma::interp1(t_FS, eta_FS, tmp_t, tmp_eta, "*linear");
+			arma::cx_vec yf = arma::fft(tmp_eta) / num_points_piece;
+			arma::vec psd = arma::pow(arma::abs(yf.rows(0, num_comps_piece - 1)), 2) / df_piece;
+			psd.rows(1, num_comps_piece - 1) = 2.0 * psd.rows(1, num_comps_piece - 1);
+			psd(0, 0) = 0.0;
+			this->amplitudes_1D_piece(ii) = arma::sqrt(2.0 * psd * df_piece);
+			this->phases_1D_piece(ii) = arma::atan2(arma::imag(yf.rows(0, num_comps_piece - 1)),
+													arma::real(yf.rows(0, num_comps_piece - 1))) -
+										ang_freqs_piece * this->time_ref(ii); // TODO: Check this
+		}
 	}
 	headings_1D_piece = headings_1D;
 

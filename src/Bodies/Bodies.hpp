@@ -42,6 +42,8 @@ public:
 
 	// Total hydrodynamic force
 	arma::mat Fb = arma::zeros(6, 1);
+	arma::mat Fb_old = arma::zeros(6, 1);
+	arma::mat Fb_old2 = arma::zeros(6, 1);
 
 	Simulation *pSim;						   // Pointer to simulation instance
 	int takeCOGHydroDatabase;				   // Stores if read the initial COG position from the hydrodynamic database

@@ -447,7 +447,7 @@ void HydroDatabase::LoadHydroDataEHYDB(std::string filePath)
 	if ((numBodies != pSim->numBodies) && (numBodies > 1))
 	{
 		std::stringstream ss;
-		ss << " The number of bodies in datosBodies.dat does not match the number of bodies in the multibody hydrodatabase." << std::endl;
+		ss << " The number of bodies in dataBodies.dat does not match the number of bodies in the multibody hydrodatabase." << std::endl;
 		throw IOError(ss.str());
 	}
 
@@ -694,7 +694,7 @@ void HydroDatabase::LoadHydroDataH5(std::string filePath)
 	if ((numBodies != pSim->numBodies) && (numBodies > 1))
 	{
 		std::stringstream ss;
-		ss << " The number of bodies in datosBodies.dat does not match the number of bodies in the multibody hydrodatabase." << std::endl;
+		ss << " The number of bodies in dataBodies.dat does not match the number of bodies in the multibody hydrodatabase." << std::endl;
 		throw IOError(ss.str());
 	}
 	std::cout << "Number of bodies: " << numBodies << std::endl;
@@ -1270,14 +1270,12 @@ arma::mat HydroDatabase::ComputeSecondWaveExcForce(double t)
 		// Initialize the excitation force for the current DOF
 		F_piece = 0.0;
 
-		// Argument for dif term
-		temp_mat_1 = wD * t - phD(ind_piece) - kxD * x - kyD * y;
+		// Argument for dif term: wD*t - kxD*x - kyD*y + phD
+		temp_mat_1 = wD * t - kxD * x - kyD * y + phD(ind_piece);
 		// Accumulate the real part of the difference QTF for the current piece and DOF
-		temp_mat_2 = (*HDif[0][ii]) % ampP(ind_piece) % arma::cos(temp_mat_1);
-		F_piece = F_piece + 0.5 * arma::accu(temp_mat_2);
-		// Accumulate the imaginary part of the difference QTF for the current piece and DOF
-		temp_mat_2 = (*HDif[1][ii]) % ampP(ind_piece) % arma::sin(temp_mat_1);
-		F_piece = F_piece + 0.5 * arma::accu(temp_mat_2);
+		// Re{ (HDif_real + i*HDif_imag) * e^{i*arg} } = HDif_real*cos(arg) - HDif_imag*sin(arg)
+		temp_mat_2 = (*HDif[0][ii]) % ampP(ind_piece) % arma::cos(temp_mat_1) - (*HDif[1][ii]) % ampP(ind_piece) % arma::sin(temp_mat_1);
+		F_piece = F_piece + arma::accu(temp_mat_2);
 
 		// // Argument for sum term
 		// temp_mat_1 = phS(ind_piece) + kxS * x + kyS * y - wS * t;
@@ -1293,14 +1291,12 @@ arma::mat HydroDatabase::ComputeSecondWaveExcForce(double t)
 			// Compute excitation force for the current wave piece
 			F_gap = 0.0;
 
-			// Argument for dif term
-			temp_mat_1 = wD * t - phD(ind_piece - 1) - kxD * x - kyD * y;
+			// Argument for dif term: wD*t - kxD*x - kyD*y + phD
+			temp_mat_1 = wD * t - kxD * x - kyD * y + phD(ind_piece - 1);
 			// Accumulate the real part of the difference QTF for the current piece and DOF
-			temp_mat_2 = (*HDif[0][ii]) % ampP(ind_piece - 1) % arma::cos(temp_mat_1);
-			F_gap = F_gap + 0.5 * arma::accu(temp_mat_2);
-			// Accumulate the imaginary part of the difference QTF for the current piece and DOF
-			temp_mat_2 = (*HDif[1][ii]) % ampP(ind_piece - 1) % arma::sin(temp_mat_1);
-			F_gap = F_gap + 0.5 * arma::accu(temp_mat_2);
+			// Re{ (HDif_real + i*HDif_imag) * e^{i*arg} } = HDif_real*cos(arg) - HDif_imag*sin(arg)
+			temp_mat_2 = (*HDif[0][ii]) % ampP(ind_piece - 1) % arma::cos(temp_mat_1) - (*HDif[1][ii]) % ampP(ind_piece - 1) % arma::sin(temp_mat_1);
+			F_gap = F_gap + arma::accu(temp_mat_2);
 
 			// // Argument for sum term
 			// temp_mat_1 = phS(ind_piece - 1) + kxS * x + kyS * y - wS * t;
@@ -1498,15 +1494,9 @@ void HydroDatabase::SetUp(void)
 
 	std::cout << "HydroDatabase::SetUp - Set up the hydrodynamic forces at time zero" << std::endl;
 	// Set up the hydrodynamic forces at time zero
-	if (arma::accu(pWave->amplitudes) > 0)
-	{
-
-		pBodies[idBody]->Fb = CalculateHydrodynamicForces(0.0);
-	}
-	else
-	{
-		pBodies[idBody]->Fb = arma::zeros(activeDofs, 1);
-	}
+	pBodies[idBody]->Fb = CalculateHydrodynamicForces(0.0) + CalculateHydrostaticForces(0.0);
+	pBodies[idBody]->Fb_old = pBodies[idBody]->Fb;
+	pBodies[idBody]->Fb_old2 = pBodies[idBody]->Fb;
 
 	std::cout << "HydroDatabase::SetUp - Precompute hydrodynamic forces time series" << std::endl;
 	if (pBodies[idBody]->firstOrderExcitationFlag == 1)

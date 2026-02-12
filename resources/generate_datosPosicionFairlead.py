@@ -64,5 +64,5 @@ for i in range(n):
 
 path = "V:\\09_Mar\\01_cases\\test_case\\input\\"
 np.savetxt(
-    path + "datosPosicionFairlead.dat", M, fmt="%.10e", header=str(n), comments=""
+    path + "dataPosicionFairlead.dat", M, fmt="%.10e", header=str(n), comments=""
 )

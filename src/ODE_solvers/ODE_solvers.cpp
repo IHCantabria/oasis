@@ -44,7 +44,7 @@ BDF2::BDF2(double t_u, double tmax_u, double dt_max_u, double dt_out_u, arma::ma
 	J = arma::zeros(nSystem, nSystem);
 
 	// Set the debug flag
-	debug_flag = true;
+	debug_flag = false;
 	if (debug_flag)
 	{
 		std::cout << "DEBUG: BDF2 debug file opened!" << std::endl;
@@ -893,7 +893,7 @@ ESDIRK::ESDIRK(bool a_u, double t_u, double tmax_u, double dt_max_u, double dt_o
 	jac(t, y);
 
 	// Set the debug flag
-	debug_flag = true;
+	debug_flag = false;
 	if (debug_flag)
 	{
 		std::cout << "DEBUG: ESDIRK debug file opened!" << std::endl;

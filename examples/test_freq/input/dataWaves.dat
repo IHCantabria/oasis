@@ -1,16 +1,16 @@
 //////////////////
 ////////////////// Basic wave data
 //////////////////
-REG // Wave type. Available types: REG, IRR
-0.0 // Wave height (significant for irregular) [m]
+IRR // Wave type. Available types: REG, IRR
+2.0 // Wave height (significant for irregular) [m]
 10.0 // Wave period (peak for irregular) [s]
 0.0 // Wave heading (with respect to fixed frame) [deg]
-10.0 // Ramp time [s]
+0.0 // Ramp time [s]
 //////////////////
 ////////////////// Irregular wave data
 //////////////////
-1 // Spectrum type [1: JONSWAP, 2: CUSTOM (Time-Domain), 3:CUSTOM (Frequency-Domain)]
-1 // Split wave in pieces for faster diffraction forces computation? [0: no; 1: yes]
+3 // Spectrum type [1: JONSWAP, 2: CUSTOM (Time-Domain), 3:CUSTOM (Frequency-Domain)]
+0 // Split wave in pieces for faster diffraction forces computation? [0: no; 1: yes]
 //// JONSWAP
 3.3 // Peak enhacement factor for JONSWAP spectrum [gamma]
 0.0 // Directional spreading factor [s, G(d) = cos^s(d)] [s<1: No directional spreading]
@@ -21,4 +21,4 @@ REG // Wave type. Available types: REG, IRR
 0.1 // Generation and reading: Time step for time series check
 WavePhases.dat // Reading: Filename with the previously generated wave phases
 //// CUSTOM
-FIH21-00009_C1_JS_H2p25_T15_G1_ABS_WDT9_OPER20_00.dat // File with the wave data
+wavefreq.dat // File with the wave data in frequency domain

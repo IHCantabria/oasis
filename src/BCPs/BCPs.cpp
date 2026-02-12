@@ -75,7 +75,7 @@ void BCP::ReadPropertiesASCII(FILE *&pFilePointer)
 		if (header_check.substr(0, 3).compare("///"))
 		{
 			std::stringstream ss;
-			ss << "Error while parsing file: datosBCPs.dat - HINT BCP ID: " << this->GetId() << " - Please check that each type of BCP has its correct number of inputs.";
+			ss << "Error while parsing file: dataBCPs.dat - HINT BCP ID: " << this->GetId() << " - Please check that each type of BCP has its correct number of inputs.";
 			throw IOError(ss.str());
 		}
 	}

@@ -19,7 +19,7 @@ int parse_file(std::string filePath)
     if (pFile == NULL)
     {
         std::stringstream ss;
-        ss << "Not possible to open the file: datosBodies.dat\n    ->Full path: " << filePath.c_str() << std::endl;
+        ss << "Not possible to open the file: dataBodies.dat\n    ->Full path: " << filePath.c_str() << std::endl;
         throw IOError(ss.str());
     }
 

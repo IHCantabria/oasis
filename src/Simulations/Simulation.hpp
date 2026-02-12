@@ -26,7 +26,6 @@ private:
     bool status;
 
 public:
-
     // Declare IO attributes
     bool useWinches = false;
 
@@ -39,6 +38,7 @@ public:
     double writeTimeStep;
     double maxTimeStep;
     double hydroTimeStep;
+    double lastHydroTime, lastHydroTime_old, lastHydroTime_old2;
     double fastTimeStep;
     double fastControllerTimeStep;
     double timeIRF;
@@ -182,11 +182,13 @@ public:
 
     // Declare general purpose class methods
     arma::mat CalculateSystemDynamics(double time, arma::mat y);
+    void CalculateSystemDynamicsStatic(double time);
     void Initialize(void);
     void Run();
     void SetupCase(void);
     void CloseCase(void);
     void UpdateSystem(void);
+    void UpdateSystem(double time);
     void UpdateSystemMatrix(void);
     void ComputeLinesCouplingMatrix(void);
     arma::mat ComputeLinesInitialPoint(void);
