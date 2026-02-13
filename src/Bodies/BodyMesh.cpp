@@ -18,7 +18,9 @@ Library for body meshes
 #include "../Simulations/Simulation.hpp"
 #include "../os_tools.hpp"
 #include "../MathTools.hpp"
+#ifdef OASIS_USE_STL_READER
 #include <stl_reader.h>
+#endif
 
 ////////////////////////////////////////////////////////////////////////////
 /////////////////////////// BodyMesh CLASS DEFINITION //////////////////////
@@ -49,6 +51,10 @@ void BodyMesh::ReadPropertiesASCII(void)
 
     int numElemNodes = 3; // HARDCODED to read STL
 
+#ifndef OASIS_USE_STL_READER
+    throw std::runtime_error("BodyMesh::ReadPropertiesASCII requires stl_reader. "
+                             "Rebuild with OASIS_USE_STL_READER=ON.");
+#else
     // Read body mesh
     stl_reader::StlMesh<float, unsigned int> mesh(meshFileName);
 
@@ -83,6 +89,7 @@ void BodyMesh::ReadPropertiesASCII(void)
 
     std::cout << "  --> num_nodes = " << iniNumNodes << std::endl;
     std::cout << "  --> num_elems = " << iniNumElems << std::endl;
+#endif // OASIS_USE_STL_READER
 }
 
 void BodyMesh::TransformMesh(void)
@@ -449,7 +456,7 @@ void BodyTri2DMesh::Preprocess(void)
     arma::rowvec p_1, p_2, p_3, p_12, p_23, p_31, p_123, v_1, v_2, tmpNormal;
     double norm_fN;
 
-    for (uint iface = 0; iface < iniNumElems; iface++)
+    for (unsigned int iface = 0; iface < iniNumElems; iface++)
     {
 
         p_1 = vertices.row(elems_vertices(iface, 0));

@@ -13,7 +13,7 @@
 15.0        // Time step for sinking hydrodynamic data bases update [s]
 0.1         // Time step for winches controller [s]
 0.1         // Time step for OWC turbines controller [s]
-60.0      // Total time of simulation [s]
+5.0       // Total time of simulation [s]
 1           // Flag to use simplification for rigid body rotation dynamics [0 No, 1 Yes]
 1           // Temporal integration algorithm [1: BDF1, 2: BDFN, 3: ESDIRK46]
 2           // Order for temporal integration (only for BDFN)

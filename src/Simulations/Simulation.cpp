@@ -20,7 +20,7 @@
 #ifndef __has_include
 static_assert(false, "__has_include not supported");
 #else
-#if __cplusplus >= 201703L && __has_include(<filesystem>)
+#if (__cplusplus >= 201703L || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L)) && __has_include(<filesystem>)
 #include <filesystem>
 namespace fs = std::filesystem;
 #elif __has_include(<experimental/filesystem>)
@@ -958,7 +958,7 @@ void Simulation::Initialize()
 void Simulation::LoadCase()
 {
     fs::remove_all(outputFolderPath);
-    fs::create_directory(outputFolderPath);
+    fs::create_directories(outputFolderPath);
 
     // Read Simulation Properties
     this->ReadProperties();
@@ -2266,7 +2266,7 @@ void Simulation::Run()
             if (pTimeSolver->t >= wallTimeHydro + hydroTimeStep)
             {
                 // std::cout<< "In Simulation::Run --> Computing hydrodynamic forces... "<< std::endl;
-                wallTimeHydro = std::floor(pTimeSolver->t / hydroTimeStep)*hydroTimeStep;
+                wallTimeHydro = std::floor(pTimeSolver->t / hydroTimeStep) * hydroTimeStep;
                 if (numBodies > 0)
                 {
                     UpdateSystem();

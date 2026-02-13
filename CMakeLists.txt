@@ -94,7 +94,7 @@ endif()
 # --- HDF5 ---
 if(WIN32)
   find_package(HDF5 COMPONENTS C CXX QUIET)
-  if(HDF5_FOUND)
+  if(HDF5_FOUND AND HDF5_C_LIBRARIES AND HDF5_CXX_LIBRARIES)
     message(STATUS "HDF5 (found): ${HDF5_INCLUDE_DIRS}")
   elseif(DEFINED HDF5_INCLUDE_DIR AND DEFINED HDF5_LIBRARIES)
     # Manual path from CMakeUserConfig.cmake
@@ -102,7 +102,10 @@ if(WIN32)
     set(HDF5_INCLUDE_DIRS ${HDF5_INCLUDE_DIR})
     message(STATUS "HDF5 (manual): ${HDF5_INCLUDE_DIR}")
   else()
-    message(FATAL_ERROR "HDF5 not found. Set HDF5_INCLUDE_DIR and HDF5_LIBRARIES in CMakeUserConfig.cmake")
+    message(FATAL_ERROR
+      "HDF5 with C++ bindings not found.\n"
+      "  If using vcpkg, install with:  vcpkg install hdf5[cpp]:x64-windows\n"
+      "  Or set HDF5_INCLUDE_DIR and HDF5_LIBRARIES in CMakeUserConfig.cmake")
   endif()
 endif()
 
@@ -131,17 +134,15 @@ if(OASIS_USE_SUPERLU)
     if(DEFINED SUPERLU_LIBRARIES)
       set(_superlu_found TRUE)
     else()
-      # Try find_package with error handling for missing debug libs
-      set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
-      find_package(superlu CONFIG QUIET)
-      if(superlu_FOUND)
+      # Manual discovery instead of find_package(superlu CONFIG) to avoid
+      # vcpkg targets file failing when debug libs are not installed.
+      find_library(SUPERLU_LIBRARIES NAMES superlu)
+      find_path(SUPERLU_INCLUDE_DIR NAMES slu_ddefs.h PATH_SUFFIXES superlu)
+      if(SUPERLU_LIBRARIES)
         set(_superlu_found TRUE)
-        # Get the imported target's release library
-        if(TARGET superlu::superlu)
-          get_target_property(_superlu_lib superlu::superlu IMPORTED_LOCATION_RELEASE)
-          if(_superlu_lib)
-            set(SUPERLU_LIBRARIES ${_superlu_lib})
-          endif()
+        message(STATUS "SuperLU library: ${SUPERLU_LIBRARIES}")
+        if(SUPERLU_INCLUDE_DIR)
+          message(STATUS "SuperLU headers: ${SUPERLU_INCLUDE_DIR}")
         endif()
       endif()
     endif()
@@ -295,7 +296,7 @@ ADD_EXECUTABLE(${PROJECT_NAME} ${OASIS_FILES} ${version_file})
 
 # --- Optimization flags ---
 target_compile_options(${PROJECT_NAME} PRIVATE
-  $<$<AND:$<CONFIG:Release>,$<CXX_COMPILER_ID:GNU,Clang>>:-O3 -march=native -ffast-math>
+  $<$<AND:$<CONFIG:Release>,$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>>:-O3 -march=native -ffast-math>
   $<$<AND:$<CONFIG:Release>,$<CXX_COMPILER_ID:MSVC>>:/O2 /fp:fast>
 )
 
@@ -333,6 +334,10 @@ endif()
 
 if(OASIS_USE_STL_READER AND DEFINED STL_READER_INCLUDE_DIR)
   list(APPEND OASIS_INCLUDE_DIRS ${STL_READER_INCLUDE_DIR})
+endif()
+
+if(OASIS_USE_SUPERLU AND DEFINED SUPERLU_INCLUDE_DIR)
+  list(APPEND OASIS_INCLUDE_DIRS ${SUPERLU_INCLUDE_DIR})
 endif()
 
 TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${OASIS_INCLUDE_DIRS})
