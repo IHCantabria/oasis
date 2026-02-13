@@ -188,6 +188,7 @@ if(OASIS_USE_STL_READER)
       PATHS
         ${CMAKE_CURRENT_SOURCE_DIR}/third_party/stl_reader
         ${CMAKE_CURRENT_SOURCE_DIR}/external/stl_reader
+        "C:/ScientificLibraries/stl_reader"
     )
     if(STL_READER_INCLUDE_DIR)
       message(STATUS "stl_reader found: ${STL_READER_INCLUDE_DIR}")
