@@ -7,7 +7,6 @@ Python script to visualize OASIS simulation results including:
 - Wind turbine data
 - 3D animated visualization
 
-Replaces MATLAB scripts: plotBox.m and plot_case.m
 """
 
 import numpy as np

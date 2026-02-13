@@ -20,7 +20,7 @@ def example_basic_plots():
     print("Example 1: Basic Time Series Plots")
     print("="*70)
     
-    output_path = os.path.join(script_dir, '..', 'examples', 'test', 'output')
+    output_path = os.path.join(script_dir, '..', 'examples', 'generic_example', 'output')
     
     plotter = OASISResultsPlotter(output_path)
     plotter.flag_plot = True
@@ -36,7 +36,7 @@ def example_with_lines():
     print("Example 2: With Mooring Lines")
     print("="*70)
     
-    output_path = os.path.join(script_dir, '..', 'examples', 'test', 'output')
+    output_path = os.path.join(script_dir, '..', 'examples', 'generic_example', 'output')
     
     plotter = OASISResultsPlotter(output_path)
     plotter.flag_plot = True
@@ -55,7 +55,7 @@ def example_animation():
     print("="*70)
     print("Note: This may take a while. Close the plot window to continue.")
     
-    output_path = os.path.join(script_dir, '..', 'examples', 'test', 'output')
+    output_path = os.path.join(script_dir, '..', 'examples', 'generic_example', 'output')
     
     plotter = OASISResultsPlotter(output_path)
     plotter.flag_plot = False
@@ -85,7 +85,7 @@ def example_save_all():
     print("Example 4: Save All Plots")
     print("="*70)
     
-    output_path = os.path.join(script_dir, '..', 'examples', 'test', 'output')
+    output_path = os.path.join(script_dir, '..', 'examples', 'generic_example', 'output')
     
     plotter = OASISResultsPlotter(output_path)
     plotter.flag_plot = True
@@ -103,7 +103,7 @@ def example_custom_configuration():
     print("Example 5: Custom Platform Configuration")
     print("="*70)
     
-    output_path = os.path.join(script_dir, '..', 'examples', 'test_freq', 'output')
+    output_path = os.path.join(script_dir, '..', 'examples', 'freq_wave_example', 'output')
     
     plotter = OASISResultsPlotter(output_path)
     

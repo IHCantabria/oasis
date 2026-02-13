@@ -1,0 +1,56 @@
+# ==============================================================================
+# OASIS - CMakeUserConfig.cmake
+# ==============================================================================
+# Copy this file to CMakeUserConfig.cmake and edit the paths for your system.
+# CMakeUserConfig.cmake is NOT tracked by git (add it to .gitignore).
+#
+# On the Linux cluster, paths are auto-detected from EasyBuild environment
+# variables, so this file is typically NOT needed there.
+#
+# On Windows, uncomment and set the paths below to match your local setup.
+# If using vcpkg, set CMAKE_TOOLCHAIN_FILE instead (see below).
+# ==============================================================================
+
+# --- vcpkg integration (recommended for Windows) ---
+# If you use vcpkg, set the toolchain file and most libraries will be found
+# automatically via find_package().
+# set(CMAKE_TOOLCHAIN_FILE "C:/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
+
+# --- Armadillo ---
+# set(ARMADILLO_INCLUDE_DIR "C:/libs/armadillo/include")
+
+# --- HDF5 ---
+# If not found automatically by find_package:
+# set(HDF5_INCLUDE_DIR "C:/libs/hdf5/include")
+# set(HDF5_LIBRARIES   "C:/libs/hdf5/lib/hdf5.lib;C:/libs/hdf5/lib/hdf5_cpp.lib")
+
+# --- BLAS / LAPACK ---
+# If using OpenBLAS:
+# set(BLAS_INCLUDE_DIR "C:/libs/openblas/include")
+# set(BLAS_LIBRARIES   "C:/libs/openblas/lib/openblas.lib")
+# set(BLAS_FOUND TRUE)
+# set(LAPACK_LIBRARIES "C:/libs/openblas/lib/openblas.lib")
+# set(LAPACK_FOUND TRUE)
+#
+# If using Intel MKL:
+# set(BLAS_INCLUDE_DIR  "$ENV{MKLROOT}/include")
+# set(BLAS_LIBRARIES    "$ENV{MKLROOT}/lib/intel64/mkl_rt.lib")
+# set(BLAS_FOUND TRUE)
+# set(LAPACK_LIBRARIES  "$ENV{MKLROOT}/lib/intel64/mkl_rt.lib")
+# set(LAPACK_FOUND TRUE)
+
+# --- SuperLU ---
+# set(SUPERLU_INCLUDE_DIR "C:/libs/superlu/include")
+# set(SUPERLU_LIBRARIES   "C:/libs/superlu/lib/superlu.lib")
+
+# --- stl_reader (header-only) ---
+# If not in third_party/stl_reader/, set include path:
+# set(STL_READER_INCLUDE_DIR "C:/libs/stl_reader/include")
+
+# --- OpenFAST (Linux cluster only, typically auto-detected) ---
+# set(OASIS_USE_OPENFAST ON)
+# set(OPENFAST_INCLUDE_DIR "/path/to/openfast/install/include")
+
+# --- Extra libraries ---
+# For any additional libraries needed on your platform:
+# set(OASIS_EXTRA_LIBRARIES "C:/libs/zlib/lib/zlib.lib;C:/libs/szip/lib/szip.lib")

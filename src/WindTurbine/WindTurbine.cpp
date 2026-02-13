@@ -1,4 +1,7 @@
 
+// WindTurbine.cpp - Only compiled when OASIS_USE_OPENFAST is enabled
+#ifdef OASIS_USE_OPENFAST
+
 #include <armadillo>
 #include <string>
 #include <cstdio>
@@ -304,3 +307,5 @@ void WindTurbine::CheckError(void)
         }
     }
 }
+
+#endif // OASIS_USE_OPENFAST

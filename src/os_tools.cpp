@@ -11,14 +11,27 @@
 #include <sstream>
 #include <iostream>
 #include <iomanip>
-#include <experimental/filesystem>
 #include <string>
 #include <vector>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <armadillo>
 #include "./Exceptions/Exception.hpp"
+
+// Filesystem: prefer C++17, fall back to experimental, then boost
+#if __cplusplus >= 201703L || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L)
+#include <filesystem>
+namespace fs = std::filesystem;
+#elif defined(__has_include) && __has_include(<experimental/filesystem>)
+#include <experimental/filesystem>
 namespace fs = std::experimental::filesystem;
+#elif defined(__has_include) && __has_include(<boost/filesystem.hpp>)
+#include <boost/filesystem.hpp>
+namespace fs = boost::filesystem;
+#else
+#include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
+#endif
 
 #if defined(_WIN32) || defined(_WIN64) || defined(__CYGWIN__)
 #include <windows.h>

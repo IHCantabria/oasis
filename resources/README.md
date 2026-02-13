@@ -1,11 +1,11 @@
-# OASIS Plotting Tools
+# OASIS Plotting and Utility Tools
 
-This directory contains Python scripts for visualizing and analyzing OASIS simulation results.
+This directory contains Python scripts for visualizing and analyzing OASIS simulation results, as well as utilities for generating input files.
 
-## Available Scripts
+## Core Plotting Tool
 
-### 1. `plot_oasis_results.py`
-Main plotting tool for OASIS output data. Replaces previous MATLAB scripts (`plotBox.m`, `plot_case.m`).
+### `plot_oasis_results.py`
+Main plotting library for OASIS output data. Used by all examples.
 
 **Features:**
 - 6 DOF body motion time series plots
@@ -13,57 +13,64 @@ Main plotting tool for OASIS output data. Replaces previous MATLAB scripts (`plo
 - 3D animated visualization of floating structure
 - Wind turbine data visualization (if available)
 
-**Usage:**
-```bash
-# Plot results from specific output directory
-python plot_oasis_results.py path/to/output/directory
+**Note:** This is a library module. For plotting specific examples, use the `plot_results.py` script in each example directory.
 
-# Plot results from default test case
-python plot_oasis_results.py ../examples/test/output
+## Specialized Plotting Scripts
 
-# With custom configuration (edit script first)
-python plot_oasis_results.py
-```
-
-**Configuration:**
-Edit the script to customize:
-- `flag_plot`: Enable/disable time series plots
-- `flag_video`: Enable/disable 3D animation
-- `flag_save`: Save figures to disk
-- `flag_save_video`: Save animation as MP4 (requires ffmpeg)
-- `flag_lines`: Include mooring lines
-- `flag_wt`: Include wind turbine data
-- Video parameters: time range, speed, viewing angle
-
-### 2. `plot_spectrum_from_timeseries.py`
-Plots wave spectrum computed from time-series data.
+### `plot_spectrum_from_timeseries.py`
+Plots wave spectrum computed from time-series data with smoothing for noisy spectra.
 
 **Usage:**
 ```bash
-python plot_spectrum_from_timeseries.py
+cd examples/<example_name>/output
+python ../../../resources/plot_spectrum_from_timeseries.py
 ```
-Reads `WaveSpectrum.txt` from the current directory's output folder.
 
-### 3. `plot_excitation_forces.py`
+### `plot_excitation_forces.py`
 Plots excitation forces on bodies.
 
 **Usage:**
 ```bash
-# Specify output directory
 python plot_excitation_forces.py path/to/output
-
-# Or edit script to set default path
-python plot_excitation_forces.py
 ```
 
-### 4. `generate_wave_freq.py`
-Generates frequency domain wave input files for OASIS.
+## Input Generation Tools
 
-**Usage:**
-```bash
-python generate_wave_freq.py
-```
-Creates `wavefreq.dat` with custom multi-directional wave components.
+### `generate_wave_freq.py`
+Template for generating frequency domain wave input files. 
+
+**Note:** A customized version (`generate_wave_input.py`) is included in the `freq_wave_example` directory.
+
+### `generate_datosPosicionFairlead.py`
+Generates fairlead position data for mooring systems.
+
+## Examples
+
+All OASIS examples are located in the `examples/` directory with the following structure:
+
+### Available Examples
+
+1. **generic_example** - Basic floating platform simulation
+   - Standard JONSWAP waves or regular waves
+   - First-order hydrodynamics
+   - Use: `cd examples/generic_example && python plot_results.py`
+
+2. **qtf_example** - Second-order wave forces (QTF)
+   - Time-series wave input with piecewise decomposition
+   - First and second-order forces
+   - Use: `cd examples/qtf_example && python plot_results.py`
+
+3. **freq_wave_example** - Frequency domain wave input
+   - Multi-directional wave systems
+   - Custom spectral shapes
+   - Use: `cd examples/freq_wave_example && python plot_results.py`
+
+Each example contains:
+- `input/` - Input data files
+- `output/` - Simulation results (created after run)
+- `plot_results.py` - Example-specific plotting script
+- `README.md` - Detailed documentation
+- `run.sl` - SLURM batch script for cluster execution
 
 ## Dependencies
 
@@ -75,75 +82,64 @@ pip install numpy matplotlib
 Optional (for video export):
 ```bash
 # Install ffmpeg for video generation
-# Windows: download from https://ffmpeg.org/
 # Linux: sudo apt install ffmpeg
-# Mac: brew install ffmpeg
 ```
 
-## Examples
+## Usage Workflow
 
-### Basic plotting workflow
+### 1. Run simulation
 ```bash
-# 1. Run OASIS simulation
-cd examples/test/input
+cd examples/<example_name>/input
 oasis dataProblem.dat
-
-# 2. Plot results
-cd ../../..
-python resources/plot_oasis_results.py examples/test/output
 ```
 
-### Creating animated visualization
-```python
-from resources.plot_oasis_results import OASISResultsPlotter
-
-plotter = OASISResultsPlotter('examples/test/output')
-plotter.flag_video = True
-plotter.flag_save_video = True
-plotter.t_ini = 0
-plotter.t_fin = 60
-plotter.view_angle = [45, 15]
-plotter.run()
-```
-
-### Analyzing wave spectrum
+### 2. Plot results
 ```bash
-cd examples/test/output
-python ../../resources/plot_spectrum_from_timeseries.py
+cd ..
+python plot_results.py
 ```
 
-## Migration from MATLAB
+### 3. (Optional) Customize plots
+Edit `plot_results.py` in the example directory to:
+- Change plot settings
+- Enable/disable video generation
+- Modify body visualization parameters
+- Adjust wave parameters for animation
 
-Previous MATLAB scripts have been replaced:
+## Creating Custom Examples
 
-| MATLAB Script | Python Equivalent | Notes |
-|--------------|-------------------|-------|
-| `plotBox.m` | `plot_oasis_results.py` | 3D box generation integrated into main plotter |
-| `plot_case.m` | `plot_oasis_results.py` | All functionality combined in OASISResultsPlotter class |
+To create a new example based on existing ones:
 
-The Python version provides:
-- ✓ Cross-platform compatibility
-- ✓ No MATLAB license required
-- ✓ Object-oriented design for easy customization
-- ✓ Better integration with scientific Python ecosystem
-- ✓ Command-line interface for automation
+1. Copy an existing example directory
+2. Modify input files (dataProblem.dat, dataWaves.dat, etc.)
+3. Update `plot_results.py` with appropriate parameters
+4. Update README.md with example-specific information
 
 ## Tips
 
-1. **Large datasets**: For long simulations, adjust animation frame rate:
+1. **Large datasets**: For long simulations, adjust animation frame rate in `plot_results.py`:
    ```python
    plotter.dt_video = 0.5  # Increase time step between frames
    ```
 
-2. **Custom body shapes**: Modify `create_box_vertices()` method to create custom geometries
+2. **Custom body shapes**: Modify `create_box_vertices()` in plot_oasis_results.py
 
-3. **Multiple bodies**: Extend `load_dof_data()` to handle multiple bodies (Body_1, Body_2, etc.)
-
-4. **Batch processing**: Use Python scripting to process multiple cases:
+3. **Batch processing**: Process multiple examples programmatically:
    ```python
+   from plot_oasis_results import OASISResultsPlotter
    import glob
-   for case_dir in glob.glob('examples/*/output'):
-       plotter = OASISResultsPlotter(case_dir)
+   
+   for output_dir in glob.glob('examples/*/output'):
+       plotter = OASISResultsPlotter(output_dir)
        plotter.flag_save = True
        plotter.run()
    ```
+
+## Migration from MATLAB
+
+Previous MATLAB scripts have been replaced with Python:
+
+| Old MATLAB | Replacement | Location |
+|-----------|-------------|----------|
+| `plotBox.m` | Integrated into `plot_oasis_results.py` | resources/ |
+| `plot_case.m` | `plot_results.py` for each example | examples/*/plot_results.py |
