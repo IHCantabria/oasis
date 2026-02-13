@@ -3,11 +3,25 @@
 # OASIS - Offshore Advanced SImulation Software
 # Cross-platform CMake build system (Linux / Windows)
 # ==============================================================================
-PROJECT(OASIS CXX)
 CMAKE_MINIMUM_REQUIRED(VERSION 3.14)
 
 # ==============================================================================
-# 1. USER CONFIGURATION
+# 1. COMPILER SETUP (must be before project() call)
+# ==============================================================================
+if(UNIX)
+  # Linux / cluster: use environment-provided compilers if available
+  if(DEFINED ENV{EBROOTGCCCORE})
+    set(CMAKE_C_COMPILER   "$ENV{EBROOTGCCCORE}/bin/gcc"  CACHE STRING "")
+    set(CMAKE_CXX_COMPILER "$ENV{EBROOTGCCCORE}/bin/g++"  CACHE STRING "")
+    set(CMAKE_LINKER        "/usr/bin/ld"                  CACHE STRING "")
+  endif()
+endif()
+
+# Enable both C and CXX (C needed for FindHDF5 test compilation)
+PROJECT(OASIS C CXX)
+
+# ==============================================================================
+# 2. USER CONFIGURATION
 # ==============================================================================
 # Load user-local paths if present (not tracked by git)
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/CMakeUserConfig.cmake")
@@ -25,19 +39,8 @@ if(DEFINED ENV{EBROOTOpenFAST} AND NOT DEFINED OASIS_USE_OPENFAST)
   set(OASIS_USE_OPENFAST ON CACHE BOOL "Enable OpenFAST" FORCE)
 endif()
 
-# ==============================================================================
-# 2. COMPILER AND PLATFORM SETUP
-# ==============================================================================
-if(UNIX)
-  # Linux / cluster: use environment-provided compilers if available
-  if(DEFINED ENV{EBROOTGCCCORE})
-    set(CMAKE_C_COMPILER   "$ENV{EBROOTGCCCORE}/bin/gcc"  CACHE STRING "" FORCE)
-    set(CMAKE_CXX_COMPILER "$ENV{EBROOTGCCCORE}/bin/g++"  CACHE STRING "" FORCE)
-    set(CMAKE_LINKER        "/usr/bin/ld"                  CACHE STRING "" FORCE)
-  endif()
-elseif(WIN32)
-  # Windows: use default compiler (MSVC, MinGW, or Intel as detected by CMake)
-  # C++17 for std::filesystem
+# C++17 on Windows for std::filesystem
+if(WIN32)
   set(CMAKE_CXX_STANDARD 17)
   set(CMAKE_CXX_STANDARD_REQUIRED ON)
 endif()
@@ -123,8 +126,26 @@ endif()
 # --- SuperLU ---
 if(OASIS_USE_SUPERLU)
   if(WIN32)
-    find_package(superlu QUIET)
-    if(NOT superlu_FOUND AND NOT DEFINED SUPERLU_LIBRARIES)
+    # Only look for Release config to avoid vcpkg debug lib errors
+    set(_superlu_found FALSE)
+    if(DEFINED SUPERLU_LIBRARIES)
+      set(_superlu_found TRUE)
+    else()
+      # Try find_package with error handling for missing debug libs
+      set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
+      find_package(superlu CONFIG QUIET)
+      if(superlu_FOUND)
+        set(_superlu_found TRUE)
+        # Get the imported target's release library
+        if(TARGET superlu::superlu)
+          get_target_property(_superlu_lib superlu::superlu IMPORTED_LOCATION_RELEASE)
+          if(_superlu_lib)
+            set(SUPERLU_LIBRARIES ${_superlu_lib})
+          endif()
+        endif()
+      endif()
+    endif()
+    if(NOT _superlu_found)
       message(WARNING "SuperLU not found on Windows. Disabling OASIS_USE_SUPERLU. "
                       "Set SUPERLU_INCLUDE_DIR and SUPERLU_LIBRARIES in CMakeUserConfig.cmake to enable.")
       set(OASIS_USE_SUPERLU OFF)
@@ -234,10 +255,12 @@ set(OASIS_HEADER_FILES
     "src/OWC/OWC.hpp"
 )
 
-# Conditionally add WindTurbine sources
+# WindTurbine header is always included (has stub class when OpenFAST is off)
+list(APPEND OASIS_HEADER_FILES "src/WindTurbine/WindTurbine.hpp")
+
+# WindTurbine source only compiled with OpenFAST (entire file is #ifdef guarded)
 if(OASIS_USE_OPENFAST)
   list(APPEND OASIS_SOURCE_FILES "src/WindTurbine/WindTurbine.cpp")
-  list(APPEND OASIS_HEADER_FILES "src/WindTurbine/WindTurbine.hpp")
 endif()
 
 set(OASIS_FILES ${OASIS_SOURCE_FILES} ${OASIS_HEADER_FILES})
