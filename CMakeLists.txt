@@ -35,8 +35,17 @@ option(OASIS_USE_SUPERLU    "Enable SuperLU sparse solver (via Armadillo)"      
 option(OASIS_USE_STL_READER "Enable STL mesh reader for BodyMesh"               ON)
 
 # Auto-detect: enable OpenFAST on Linux cluster if env vars are set
-if(DEFINED ENV{EBROOTOpenFAST} AND NOT DEFINED OASIS_USE_OPENFAST)
+if(DEFINED ENV{EBROOTOpenFAST} AND NOT OASIS_USE_OPENFAST)
   set(OASIS_USE_OPENFAST ON CACHE BOOL "Enable OpenFAST" FORCE)
+endif()
+
+# Auto-detect: enable OpenFAST on Windows if install directories exist
+if(WIN32 AND NOT OASIS_USE_OPENFAST)
+  if(EXISTS "E:/00_GIT_REPOS/openfast-3.0.0/install" AND 
+     EXISTS "E:/00_GIT_REPOS/FASTurbine_wrapper/install")
+    set(OASIS_USE_OPENFAST ON CACHE BOOL "Enable OpenFAST" FORCE)
+    message(STATUS "Auto-detected OpenFAST and FASTurbine_wrapper on Windows")
+  endif()
 endif()
 
 # C++17 on Windows for std::filesystem
@@ -164,7 +173,49 @@ endif()
 
 # --- OpenFAST / FASTurbine wrapper ---
 if(OASIS_USE_OPENFAST)
-  if(DEFINED ENV{EBROOTOpenFAST})
+  if(WIN32)
+    # Windows: search for OpenFAST and FASTurbine wrapper (compiled with Intel oneAPI Fortran)
+    set(_OPENFAST_ROOT "E:/00_GIT_REPOS/openfast-3.0.0/install")
+    set(_FASTURBINE_ROOT "E:/00_GIT_REPOS/FASTurbine_wrapper/install")
+    
+    if(EXISTS "${_OPENFAST_ROOT}/include" AND EXISTS "${_FASTURBINE_ROOT}/include")
+      set(OPENFAST_INCLUDE_DIR "${_OPENFAST_ROOT}/include")
+      set(FASTURBINE_INCLUDE_DIR "${_FASTURBINE_ROOT}/include")
+      
+      # Find required OpenFAST libraries
+      find_library(AERODYN_LIB aerodynlib PATHS "${_OPENFAST_ROOT}/lib" NO_DEFAULT_PATH)
+      find_library(IFW_LIB ifwlib PATHS "${_OPENFAST_ROOT}/lib" NO_DEFAULT_PATH)
+      find_library(SERVODYN_LIB servodynlib PATHS "${_OPENFAST_ROOT}/lib" NO_DEFAULT_PATH)
+      find_library(NWTC_LIB nwtclibs PATHS "${_OPENFAST_ROOT}/lib" NO_DEFAULT_PATH)
+      find_library(FASTURBINE_LIB fasturbwrapper PATHS "${_FASTURBINE_ROOT}/lib" NO_DEFAULT_PATH)
+      
+      # Find Intel oneAPI Fortran runtime (required for linking OpenFAST Fortran libs with MSVC)
+      set(_INTEL_ONEAPI_ROOT "C:/Program Files (x86)/Intel/oneAPI/compiler/latest")
+      find_library(IFCORE_LIB libifcoremd PATHS "${_INTEL_ONEAPI_ROOT}/lib" NO_DEFAULT_PATH)
+      find_library(LIBMMD_LIB libmmd PATHS "${_INTEL_ONEAPI_ROOT}/lib" NO_DEFAULT_PATH)
+      
+      if(AERODYN_LIB AND IFW_LIB AND SERVODYN_LIB AND NWTC_LIB AND FASTURBINE_LIB)
+        set(OPENFAST_LIBRARIES ${FASTURBINE_LIB} ${AERODYN_LIB} ${IFW_LIB} ${SERVODYN_LIB} ${NWTC_LIB})
+        
+        # Add Intel Fortran runtime if found
+        if(IFCORE_LIB AND LIBMMD_LIB)
+          list(APPEND OPENFAST_LIBRARIES ${IFCORE_LIB} ${LIBMMD_LIB})
+          message(STATUS "Intel Fortran runtime: ${_INTEL_ONEAPI_ROOT}/lib")
+        else()
+          message(WARNING "Intel oneAPI Fortran runtime not found at ${_INTEL_ONEAPI_ROOT}/lib. "
+                          "You may need to run from Intel oneAPI command prompt or set _INTEL_ONEAPI_ROOT.")
+        endif()
+        
+        message(STATUS "OpenFAST (Windows/Intel): ${OPENFAST_INCLUDE_DIR}")
+        message(STATUS "FASTurbine wrapper (Windows): ${FASTURBINE_INCLUDE_DIR}")
+      else()
+        message(FATAL_ERROR "OpenFAST libraries not found in ${_OPENFAST_ROOT}/lib")
+      endif()
+    else()
+      message(FATAL_ERROR "OASIS_USE_OPENFAST=ON but OpenFAST/FASTurbine not found at expected Windows paths. "
+                          "Set paths in CMakeLists.txt or use CMakeUserConfig.cmake")
+    endif()
+  elseif(DEFINED ENV{EBROOTOpenFAST})
     set(OPENFAST_INCLUDE_DIR "$ENV{EBROOTOpenFAST}/install/include")
     message(STATUS "OpenFAST (EasyBuild): ${OPENFAST_INCLUDE_DIR}")
   elseif(DEFINED OPENFAST_INCLUDE_DIR)
@@ -177,10 +228,28 @@ endif()
 
 # --- stl_reader ---
 if(OASIS_USE_STL_READER)
+  # EasyBuild: try both naming conventions (lowercase and uppercase)
   if(DEFINED ENV{EBROOTstl_reader})
-    set(STL_READER_INCLUDE_DIR "$ENV{EBROOTstl_reader}/include")
-    message(STATUS "stl_reader (EasyBuild): ${STL_READER_INCLUDE_DIR}")
-  elseif(DEFINED STL_READER_INCLUDE_DIR)
+    set(_STL_READER_ROOT "$ENV{EBROOTstl_reader}")
+  elseif(DEFINED ENV{EBROOTSTL_READER})
+    set(_STL_READER_ROOT "$ENV{EBROOTSTL_READER}")
+  elseif(DEFINED ENV{EBROOTSTL_MINUS_READER})
+    set(_STL_READER_ROOT "$ENV{EBROOTSTL_MINUS_READER}")
+  endif()
+
+  if(DEFINED _STL_READER_ROOT)
+    # Search for header in root and include subdirectory
+    find_path(STL_READER_INCLUDE_DIR stl_reader.h
+      PATHS "${_STL_READER_ROOT}" "${_STL_READER_ROOT}/include"
+      NO_DEFAULT_PATH
+    )
+    if(STL_READER_INCLUDE_DIR)
+      message(STATUS "stl_reader (EasyBuild): ${STL_READER_INCLUDE_DIR}")
+    else()
+      message(WARNING "stl_reader module loaded (EBROOT=${_STL_READER_ROOT}) but stl_reader.h not found there. Disabling.")
+      set(OASIS_USE_STL_READER OFF)
+    endif()
+  elseif(STL_READER_INCLUDE_DIR AND EXISTS "${STL_READER_INCLUDE_DIR}/stl_reader.h")
     message(STATUS "stl_reader (manual): ${STL_READER_INCLUDE_DIR}")
   else()
     # stl_reader is header-only, try common locations
@@ -189,6 +258,7 @@ if(OASIS_USE_STL_READER)
         ${CMAKE_CURRENT_SOURCE_DIR}/third_party/stl_reader
         ${CMAKE_CURRENT_SOURCE_DIR}/external/stl_reader
         "C:/ScientificLibraries/stl_reader"
+        "/home/projects/energia/software/stl_reader"
     )
     if(STL_READER_INCLUDE_DIR)
       message(STATUS "stl_reader found: ${STL_READER_INCLUDE_DIR}")
@@ -331,9 +401,12 @@ endif()
 
 if(OASIS_USE_OPENFAST AND DEFINED OPENFAST_INCLUDE_DIR)
   list(APPEND OASIS_INCLUDE_DIRS ${OPENFAST_INCLUDE_DIR})
+  if(DEFINED FASTURBINE_INCLUDE_DIR)
+    list(APPEND OASIS_INCLUDE_DIRS ${FASTURBINE_INCLUDE_DIR})
+  endif()
 endif()
 
-if(OASIS_USE_STL_READER AND DEFINED STL_READER_INCLUDE_DIR)
+if(OASIS_USE_STL_READER AND STL_READER_INCLUDE_DIR)
   list(APPEND OASIS_INCLUDE_DIRS ${STL_READER_INCLUDE_DIR})
 endif()
 
@@ -364,6 +437,10 @@ if(WIN32)
   
   if(OASIS_USE_SUPERLU AND DEFINED SUPERLU_LIBRARIES)
     TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE ${SUPERLU_LIBRARIES})
+  endif()
+  
+  if(OASIS_USE_OPENFAST AND DEFINED OPENFAST_LIBRARIES)
+    TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE ${OPENFAST_LIBRARIES})
   endif()
 
   # Additional manual Windows libraries from CMakeUserConfig.cmake

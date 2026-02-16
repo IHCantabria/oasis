@@ -73,6 +73,29 @@ python plot_results.py
 
 ---
 
+### 4. turbine_example
+**OpenFAST wind turbine integration test**
+
+Features:
+- Fixed-position floating platform (no wave forces)
+- OpenFAST/FASTurbine wind turbine coupling
+- Wind turbine aerodynamic and structural dynamics
+- Minimal hydrodynamic computation for performance testing
+
+Use case: Testing OpenFAST integration, wind turbine only simulations, debugging turbine setup
+
+**Quick start:**
+```bash
+cd turbine_example/input
+oasis dataProblem.dat
+cd ..
+python plot_results.py
+```
+
+**Note:** Requires OASIS compiled with OpenFAST support (`OASIS_USE_OPENFAST=ON`)
+
+---
+
 ## Example Structure
 
 Each example follows this standard structure:

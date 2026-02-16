@@ -21,4 +21,4 @@ IRR // Wave type. Available types: REG, IRR
 0.1 // Generation and reading: Time step for time series check
 WavePhases.dat // Reading: Filename with the previously generated wave phases
 //// CUSTOM
-wave_long.dat // File with the wave data
+wave.dat // File with the wave data

@@ -19,7 +19,7 @@ set TOTAL_TESTS=0
 set PASSED_TESTS=0
 
 REM --- freq_wave_example ---
-echo [1/3] Running freq_wave_example...
+echo [1/4] Running freq_wave_example...
 cd freq_wave_example
 call run.bat
 set RESULT=%ERRORLEVEL%
@@ -35,7 +35,7 @@ if %RESULT% NEQ 0 (
 echo.
 
 REM --- generic_example ---
-echo [2/3] Running generic_example...
+echo [2/4] Running generic_example...
 cd generic_example
 call run.bat
 set RESULT=%ERRORLEVEL%
@@ -51,7 +51,7 @@ if %RESULT% NEQ 0 (
 echo.
 
 REM --- qtf_example ---
-echo [3/3] Running qtf_example...
+echo [3/4] Running qtf_example...
 cd qtf_example
 call run.bat
 set RESULT=%ERRORLEVEL%
@@ -62,6 +62,22 @@ if %RESULT% NEQ 0 (
     set FAILED_TESTS=%FAILED_TESTS% qtf_example
 ) else (
     echo PASSED: qtf_example
+    set /a PASSED_TESTS+=1
+)
+echo.
+
+REM --- turbine_example ---
+echo [4/4] Running turbine_example...
+cd turbine_example
+call run.bat
+set RESULT=%ERRORLEVEL%
+cd ..
+set /a TOTAL_TESTS+=1
+if %RESULT% NEQ 0 (
+    echo FAILED: turbine_example
+    set FAILED_TESTS=%FAILED_TESTS% turbine_example
+) else (
+    echo PASSED: turbine_example
     set /a PASSED_TESTS+=1
 )
 echo.

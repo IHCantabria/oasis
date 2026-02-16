@@ -389,7 +389,10 @@ void Wave::WriteOut(std::string path)
 	// Write data
 	for (int ii = 0; ii < num_comps; ii++)
 	{
-		double amp = (amplitudes.n_cols > 0) ? amplitudes(ii, 0) : 0.0;
+		// Bounds checking to avoid crashes after spectrum cropping
+		if (ii >= freqs.n_elem || ii >= spectral_density.n_elem)
+			break;
+		double amp = (ii < amplitudes.n_rows && amplitudes.n_cols > 0) ? amplitudes(ii, 0) : 0.0;
 		fprintf(pfile_SPEC, "%.6f  %.8e  %.6f\n", freqs(ii), spectral_density(ii), amp);
 	}
 	fclose(pfile_SPEC);
@@ -412,12 +415,24 @@ void Wave::WriteOut(std::string path)
 
 	// Write data
 	for (int ii = 0; ii < num_points; ii++)
+	{
+		// Bounds checking for safety
+		if (ii >= t_FS.n_elem || ii >= eta_FS.n_elem)
+			break;
 		fprintf(pfile_TIME, "%.6f  %.6f\n", t_FS(ii), eta_FS(ii));
+	}
 
 	fclose(pfile_TIME);
 
 	std::string filename = JoinPath(path, "WavePhases.txt");
-	this->original_phases.save(filename, arma::arma_ascii);
+	if (original_phases.n_elem > 0)
+	{
+		this->original_phases.save(filename, arma::arma_ascii);
+	}
+	else
+	{
+		this->phases.save(filename, arma::arma_ascii);
+	}
 }
 
 void RegularWave::GetWaveSpectrum(void)
