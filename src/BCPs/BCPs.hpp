@@ -81,7 +81,7 @@ private:
 	int typeBcp = 1;
 
 public:
-	AnchorBCP(int incId) : BCP(incId){};
+	AnchorBCP(int incId) : BCP(incId) {};
 	int GetType(void);
 	void GetValues(double t);
 };
@@ -92,7 +92,7 @@ private:
 	int typeBcp = 4;
 
 public:
-	BodyBCP(int incId) : BCP(incId){};
+	BodyBCP(int incId) : BCP(incId) {};
 	int GetType(void);
 	void GetValues(double t);
 };
@@ -103,7 +103,7 @@ private:
 	int typeBcp = 2;
 
 public:
-	FairleadBCP(int incId) : BCP(incId){};
+	FairleadBCP(int incId) : BCP(incId) {};
 	int GetType(void);
 	void GetValues(double t);
 	void Initialize(std::string folder_path);
@@ -117,10 +117,38 @@ private:
 	int typeBcp = 3;
 
 public:
-	JointBCP(int incId) : BCP(incId){};
+	JointBCP(int incId) : BCP(incId) {};
 	int GetType(void);
 	void GetValues(double t);
 	void Initialize(double incG, double incRhoW, double incFondo);
+};
+
+class ElasticAnchorBCP : public BCP
+{
+private:
+	int typeBcp = 5;
+
+public:
+	// Exponential restoring force parameters: F = -c*(1 - exp(-k*x)) toward reference position
+	arma::vec pos_ref = arma::zeros(3, 1); // Reference/equilibrium position [m]
+	double c_param = 0.0;				   // Ultimate holding capacity [N]
+	double k_param = 0.0;				   // Rate parameter [1/m]
+	double anchor_mass = 0.0;			   // Anchor mass [kg]
+	double anchor_vol = 0.0;			   // Anchor volume [m³] (for drag calculation)
+	double rad_anchor = 0.0;			   // Anchor radius [m] (computed from volume)
+	double sec_anchor = 0.0;			   // Cross-sectional area [m²] (for drag)
+	double g = 0.0;						   // Gravity [m/s²]
+	double rhoW = 0.0;					   // Water density [kg/m³]
+
+	// Constructor
+	ElasticAnchorBCP(int incId) : BCP(incId) {};
+
+	// Methods
+	int GetType(void);
+	void GetValues(double t);
+	void Initialize(double incG, double incRhoW);
+	arma::vec ComputeRestoringForce(void); // Compute F = -c*(1 - exp(-k*x)) restoring force
+	void Print(void);
 };
 
 #endif // bcp_hpp__

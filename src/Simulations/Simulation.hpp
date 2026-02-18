@@ -93,6 +93,7 @@ public:
     BodyBCP **pBodyBcps;
     FairleadBCP **pFairleadBcps;
     JointBCP **pJointBcps;
+    ElasticAnchorBCP **pElasticAnchorBcps;
     Line **pLines;
     Spring **pSprings;
     Winchie **pWinches;
@@ -116,6 +117,7 @@ public:
     int numDofLinesTotal = 0;
     int numFairBcps = 0;
     int numJointBcps = 0;
+    int numElasticAnchorBcps = 0;
     int numLines = 0;
     int numSprings = 0;
     int numWinches = 0;

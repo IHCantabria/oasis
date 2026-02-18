@@ -144,30 +144,30 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     // std::cout << "Simulation::CalculateSystemDynamics - Set Boundary conditios" << std::endl;
     for (int ii = 0; ii < numLines; ii++)
     {
-        if (pLines[ii]->pLineBcps[0]->GetType() != 3)
+        if (pLines[ii]->pLineBcps[0]->GetType() != 3 && pLines[ii]->pLineBcps[0]->GetType() != 5)
         {
             pLines[ii]->pLineBcps[0]->GetValues(time);
             pLines[ii]->pos.row(0) = pLines[ii]->pLineBcps[0]->pos.t();
             pLines[ii]->vel.row(0) = pLines[ii]->pLineBcps[0]->vel.t();
         }
-        if (pLines[ii]->pLineBcps[1]->GetType() != 3)
+        if (pLines[ii]->pLineBcps[1]->GetType() != 3 && pLines[ii]->pLineBcps[1]->GetType() != 5)
         {
             pLines[ii]->pLineBcps[1]->GetValues(time);
             pLines[ii]->pos.row(pLines[ii]->N - 1) = pLines[ii]->pLineBcps[1]->pos.t();
             pLines[ii]->vel.row(pLines[ii]->N - 1) = pLines[ii]->pLineBcps[1]->vel.t();
         }
     }
-    // Set boundary conditions on pos and vel of Lines if the BCP is a joint
-    // std::cout << "Simulation::CalculateSystemDynamics - Set Boundary conditios if BCP is a Joint" << std::endl;
+    // Set boundary conditions on pos and vel of Lines if the BCP is a joint or elastic anchor
+    // std::cout << "Simulation::CalculateSystemDynamics - Set Boundary conditios if BCP is a Joint or ElasticAnchor" << std::endl;
     for (int ii = 0; ii < numLines; ii++)
     {
-        if (pLines[ii]->pLineBcps[0]->GetType() == 3)
+        if (pLines[ii]->pLineBcps[0]->GetType() == 3 || pLines[ii]->pLineBcps[0]->GetType() == 5)
         {
             pLines[ii]->pLineBcps[0]->posLines.row(pLines[ii]->pLineBcps[0]->iLJ) = pLines[ii]->pos.row(0);
             pLines[ii]->pLineBcps[0]->velLines.row(pLines[ii]->pLineBcps[0]->iLJ) = pLines[ii]->vel.row(0);
             pLines[ii]->pLineBcps[0]->iLJ = pLines[ii]->pLineBcps[0]->iLJ + 1;
         }
-        if (pLines[ii]->pLineBcps[1]->GetType() == 3)
+        if (pLines[ii]->pLineBcps[1]->GetType() == 3 || pLines[ii]->pLineBcps[1]->GetType() == 5)
         {
             pLines[ii]->pLineBcps[1]->posLines.row(pLines[ii]->pLineBcps[1]->iLJ) = pLines[ii]->pos.row(pLines[ii]->N - 1);
             pLines[ii]->pLineBcps[1]->velLines.row(pLines[ii]->pLineBcps[1]->iLJ) = pLines[ii]->vel.row(pLines[ii]->N - 1);
@@ -176,13 +176,13 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     }
     for (int ii = 0; ii < numLines; ii++)
     {
-        if (pLines[ii]->pLineBcps[0]->GetType() == 3)
+        if (pLines[ii]->pLineBcps[0]->GetType() == 3 || pLines[ii]->pLineBcps[0]->GetType() == 5)
         {
             pLines[ii]->pLineBcps[0]->GetValues(time);
             pLines[ii]->pos.row(0) = pLines[ii]->pLineBcps[0]->pos.t();
             pLines[ii]->vel.row(0) = pLines[ii]->pLineBcps[0]->vel.t();
         }
-        if (pLines[ii]->pLineBcps[1]->GetType() == 3)
+        if (pLines[ii]->pLineBcps[1]->GetType() == 3 || pLines[ii]->pLineBcps[1]->GetType() == 5)
         {
             pLines[ii]->pLineBcps[1]->GetValues(time);
             pLines[ii]->pos.row(pLines[ii]->N - 1) = pLines[ii]->pLineBcps[1]->pos.t();
@@ -382,7 +382,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
         pBodiesFree[ii]->UpdateBcps();
     }
 
-    // Obtain Lines accelerations, imposing boundary conditions if the BCP is not a joint
+    // Obtain Lines accelerations, imposing boundary conditions if the BCP is not a joint or elastic anchor
     // std::cout << "Simulation::CalculateSystemDynamics - Compute lines accelerations" << std::endl;
     for (int ii = 0; ii < numLines; ii++)
     {
@@ -395,12 +395,12 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
         {
             pLines[ii]->pLineBcps[1]->GetValues(time);
         }
-        // Impose BCP accelerations on lines forces vectors
-        if (pLines[ii]->pLineBcps[0]->GetType() != 3)
+        // Impose BCP accelerations on lines forces vectors (not for joints or elastic anchors)
+        if (pLines[ii]->pLineBcps[0]->GetType() != 3 && pLines[ii]->pLineBcps[0]->GetType() != 5)
         {
             pLines[ii]->F.row(0) = pLines[ii]->pLineBcps[0]->acc.t();
         }
-        if (pLines[ii]->pLineBcps[1]->GetType() != 3)
+        if (pLines[ii]->pLineBcps[1]->GetType() != 3 && pLines[ii]->pLineBcps[1]->GetType() != 5)
         {
             pLines[ii]->F.row(pLines[ii]->N - 1) = pLines[ii]->pLineBcps[1]->acc.t();
         }
@@ -421,7 +421,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     }
     for (int ii = 0; ii < numBcps; ii++)
     {
-        if ((pBcps[ii]->GetType() == 3) && (pBcps[ii]->flag_assigned == 1))
+        if ((pBcps[ii]->GetType() == 3 || pBcps[ii]->GetType() == 5) && (pBcps[ii]->flag_assigned == 1))
         {
             LinesCouplingVector.row(pBcps[ii]->couplingMatIndex) += pBcps[ii]->JointForce;
         }
@@ -609,13 +609,13 @@ void Simulation::CalculateSystemDynamicsStatic(double time)
     // Set boundary conditions on pos and vel of Lines if the BCP is not a joint
     for (int ii = 0; ii < numLines; ii++)
     {
-        if (pLines[ii]->pLineBcps[0]->GetType() != 3)
+        if (pLines[ii]->pLineBcps[0]->GetType() != 3 && pLines[ii]->pLineBcps[0]->GetType() != 5)
         {
             pLines[ii]->pLineBcps[0]->GetValues(time);
             pLines[ii]->pos.row(0) = pLines[ii]->pLineBcps[0]->pos.t();
             pLines[ii]->vel.row(0) = pLines[ii]->pLineBcps[0]->vel.t();
         }
-        if (pLines[ii]->pLineBcps[1]->GetType() != 3)
+        if (pLines[ii]->pLineBcps[1]->GetType() != 3 && pLines[ii]->pLineBcps[1]->GetType() != 5)
         {
             pLines[ii]->pLineBcps[1]->GetValues(time);
             pLines[ii]->pos.row(pLines[ii]->N - 1) = pLines[ii]->pLineBcps[1]->pos.t();
@@ -623,16 +623,16 @@ void Simulation::CalculateSystemDynamicsStatic(double time)
         }
     }
 
-    // Set boundary conditions on pos and vel of Lines if the BCP is a joint
+    // Set boundary conditions on pos and vel of Lines if the BCP is a joint or elastic anchor
     for (int ii = 0; ii < numLines; ii++)
     {
-        if (pLines[ii]->pLineBcps[0]->GetType() == 3)
+        if (pLines[ii]->pLineBcps[0]->GetType() == 3 || pLines[ii]->pLineBcps[0]->GetType() == 5)
         {
             pLines[ii]->pLineBcps[0]->posLines.row(pLines[ii]->pLineBcps[0]->iLJ) = pLines[ii]->pos.row(0);
             pLines[ii]->pLineBcps[0]->velLines.row(pLines[ii]->pLineBcps[0]->iLJ) = pLines[ii]->vel.row(0);
             pLines[ii]->pLineBcps[0]->iLJ = pLines[ii]->pLineBcps[0]->iLJ + 1;
         }
-        if (pLines[ii]->pLineBcps[1]->GetType() == 3)
+        if (pLines[ii]->pLineBcps[1]->GetType() == 3 || pLines[ii]->pLineBcps[1]->GetType() == 5)
         {
             pLines[ii]->pLineBcps[1]->posLines.row(pLines[ii]->pLineBcps[1]->iLJ) = pLines[ii]->pos.row(pLines[ii]->N - 1);
             pLines[ii]->pLineBcps[1]->velLines.row(pLines[ii]->pLineBcps[1]->iLJ) = pLines[ii]->vel.row(pLines[ii]->N - 1);
@@ -642,13 +642,13 @@ void Simulation::CalculateSystemDynamicsStatic(double time)
 
     for (int ii = 0; ii < numLines; ii++)
     {
-        if (pLines[ii]->pLineBcps[0]->GetType() == 3)
+        if (pLines[ii]->pLineBcps[0]->GetType() == 3 || pLines[ii]->pLineBcps[0]->GetType() == 5)
         {
             pLines[ii]->pLineBcps[0]->GetValues(time);
             pLines[ii]->pos.row(0) = pLines[ii]->pLineBcps[0]->pos.t();
             pLines[ii]->vel.row(0) = pLines[ii]->pLineBcps[0]->vel.t();
         }
-        if (pLines[ii]->pLineBcps[1]->GetType() == 3)
+        if (pLines[ii]->pLineBcps[1]->GetType() == 3 || pLines[ii]->pLineBcps[1]->GetType() == 5)
         {
             pLines[ii]->pLineBcps[1]->GetValues(time);
             pLines[ii]->pos.row(pLines[ii]->N - 1) = pLines[ii]->pLineBcps[1]->pos.t();
@@ -1031,7 +1031,8 @@ void Simulation::ReadBcpsASCII()
     fscanf(file_pointer, "%d %[^\n]\n", &numAnchorBcps, bufferLine);
     fscanf(file_pointer, "%d %[^\n]\n", &numJointBcps, bufferLine);
     fscanf(file_pointer, "%d %[^\n]\n", &numBodyBcps, bufferLine);
-    numBcps = numFairBcps + numAnchorBcps + numJointBcps + numBodyBcps;
+    fscanf(file_pointer, "%d %[^\n]\n", &numElasticAnchorBcps, bufferLine);
+    numBcps = numFairBcps + numAnchorBcps + numJointBcps + numBodyBcps + numElasticAnchorBcps;
 
     // printf("Number of fairleads: %d\n", numFairBcps);
     // printf("Number of anchor: %d\n", numAnchorBcps);
@@ -1075,6 +1076,15 @@ void Simulation::ReadBcpsASCII()
         pBodyBcps[ii] = new BodyBCP(bcp_count);
         pBodyBcps[ii]->ReadPropertiesASCII(file_pointer);
         pBcps[bcp_count] = pBodyBcps[ii];
+        bcp_count++;
+    }
+    pElasticAnchorBcps = new ElasticAnchorBCP *[numElasticAnchorBcps];
+    for (int ii = 0; ii < numElasticAnchorBcps; ii++)
+    {
+        pElasticAnchorBcps[ii] = new ElasticAnchorBCP(bcp_count);
+        pElasticAnchorBcps[ii]->ReadPropertiesASCII(file_pointer);
+        dynamic_cast<ElasticAnchorBCP *>(pElasticAnchorBcps[ii])->Initialize(this->gravity, this->waterDensity);
+        pBcps[bcp_count] = pElasticAnchorBcps[ii];
         bcp_count++;
     }
 
@@ -2666,14 +2676,14 @@ void Simulation::SetupCase()
         std::cout << "  --> ... done!" << std::endl;
     }
 
-    // Count the number of lines in each joint BCP
+    // Count the number of lines in each joint BCP and elastic anchor BCP
     if (numBcps > 0)
     {
-        std::cout << "  --> Counting the number of lines in each joint BCP ..." << std::endl;
+        std::cout << "  --> Counting the number of lines in each joint BCP and elastic anchor BCP ..." << std::endl;
     }
     for (int ii = 0; ii < numBcps; ii++)
     {
-        if (pBcps[ii]->GetType() == 3)
+        if (pBcps[ii]->GetType() == 3 || pBcps[ii]->GetType() == 5)
         {
             int temp_nL = 0;
             int temp_BCP_Id = pBcps[ii]->GetId();
@@ -2765,25 +2775,30 @@ void Simulation::SetupCase()
             pLines[ii]->pLineBcps[jj]->countLine++;
         }
 
-        if (pLines[ii]->pLineBcps[0]->GetType() != 3 && pLines[ii]->pLineBcps[1]->GetType() != 3)
+        int type0 = pLines[ii]->pLineBcps[0]->GetType();
+        int type1 = pLines[ii]->pLineBcps[1]->GetType();
+        bool isType0Dynamic = (type0 == 3 || type0 == 5); // Joint or ElasticAnchor
+        bool isType1Dynamic = (type1 == 3 || type1 == 5); // Joint or ElasticAnchor
+
+        if (!isType0Dynamic && !isType1Dynamic)
         {
             numDofLinesTotal += (pLines[ii]->N - 2);
             pLines[ii]->first_node = 1;
             pLines[ii]->last_node = pLines[ii]->N - 1;
         }
-        else if (pLines[ii]->pLineBcps[0]->GetType() == 3 && pLines[ii]->pLineBcps[1]->GetType() == 3)
+        else if (isType0Dynamic && isType1Dynamic)
         {
             numDofLinesTotal += pLines[ii]->N;
             pLines[ii]->first_node = 0;
             pLines[ii]->last_node = pLines[ii]->N;
         }
-        else if (pLines[ii]->pLineBcps[0]->GetType() == 3 && pLines[ii]->pLineBcps[1]->GetType() != 3)
+        else if (isType0Dynamic && !isType1Dynamic)
         {
             numDofLinesTotal += (pLines[ii]->N - 1);
             pLines[ii]->first_node = 0;
             pLines[ii]->last_node = pLines[ii]->N - 1;
         }
-        else if (pLines[ii]->pLineBcps[0]->GetType() != 3 && pLines[ii]->pLineBcps[1]->GetType() == 3)
+        else if (!isType0Dynamic && isType1Dynamic)
         {
             numDofLinesTotal += (pLines[ii]->N - 1);
             pLines[ii]->first_node = 1;
@@ -2845,7 +2860,7 @@ void Simulation::SetupCase()
         numAllLinesNodes += pLines[jj]->N;
         for (int kk = 0; kk < 2; kk++)
         {
-            if (pLines[jj]->pLineBcps[kk]->GetType() == 3)
+            if (pLines[jj]->pLineBcps[kk]->GetType() == 3 || pLines[jj]->pLineBcps[kk]->GetType() == 5)
             {
                 if (pLines[jj]->pLineBcps[kk]->flag_counted == 0)
                 {
@@ -2945,8 +2960,11 @@ void Simulation::SetupCase()
         flagTension.zeros(numLines, 1);
         for (int ii = 0; ii < numLines; ii++)
         {
-            pLines[ii]->pLineBcps[0]->GetValues(0.0);
-            pLines[ii]->pLineBcps[1]->GetValues(0.0);
+            // Call GetValues only for non-dynamic BCPs (skip type 5 elastic anchors to preserve their initial pos)
+            if (pLines[ii]->pLineBcps[0]->GetType() != 5)
+                pLines[ii]->pLineBcps[0]->GetValues(0.0);
+            if (pLines[ii]->pLineBcps[1]->GetType() != 5)
+                pLines[ii]->pLineBcps[1]->GetValues(0.0);
             // Store the original values
             flagLineas(ii) = pLines[ii]->frictionModel;
             flagTension(ii) = pLines[ii]->flag_tension;
@@ -3077,12 +3095,12 @@ void Simulation::ComputeLinesCouplingMatrix(void)
 
         std::cout << "    Assembling local mass matrix for line " << jj << std::endl;
         arma::mat LineMassMat_tmp = pLines[jj]->MM * pLines[jj]->dL;
-        if (pLines[jj]->pLineBcps[0]->GetType() != 3)
+        if (pLines[jj]->pLineBcps[0]->GetType() != 3 && pLines[jj]->pLineBcps[0]->GetType() != 5)
         {
             LineMassMat_tmp.row(0) = arma::zeros(1, numLineNodes_tmp);
             LineMassMat_tmp(0, 0) = 1.0;
         }
-        if (pLines[jj]->pLineBcps[1]->GetType() != 3)
+        if (pLines[jj]->pLineBcps[1]->GetType() != 3 && pLines[jj]->pLineBcps[1]->GetType() != 5)
         {
             LineMassMat_tmp.row(numLineNodes_tmp - 1) = arma::zeros(1, numLineNodes_tmp);
             LineMassMat_tmp(numLineNodes_tmp - 1, numLineNodes_tmp - 1) = 1.0;
@@ -3107,19 +3125,21 @@ void Simulation::ComputeLinesCouplingMatrix(void)
         }
     }
 
-    // Loop over all the BCPs to compute the mass matrix from the joints
+    // Loop over all the BCPs to compute the mass matrix from the joints and elastic anchors
     for (int jj = 0; jj < numBcps; jj++)
     {
-        if ((pBcps[jj]->GetType() == 3) && (pBcps[jj]->flag_assigned == 1))
+        if ((pBcps[jj]->GetType() == 3 || pBcps[jj]->GetType() == 5) && (pBcps[jj]->flag_assigned == 1))
         {
+            double node_mass = (pBcps[jj]->GetType() == 3) ? pBcps[jj]->mass_Joint
+                                                           : dynamic_cast<ElasticAnchorBCP *>(pBcps[jj])->anchor_mass;
             // TODO: 100 should be a parameter
             if (numAllLinesNodes >= 100)
             {
-                (*pLinesCouplingMatrix_sp)(pBcps[jj]->couplingMatIndex, pBcps[jj]->couplingMatIndex) += pBcps[jj]->mass_Joint;
+                (*pLinesCouplingMatrix_sp)(pBcps[jj]->couplingMatIndex, pBcps[jj]->couplingMatIndex) += node_mass;
             }
             else
             {
-                (*pLinesCouplingMatrix)(pBcps[jj]->couplingMatIndex, pBcps[jj]->couplingMatIndex) += pBcps[jj]->mass_Joint;
+                (*pLinesCouplingMatrix)(pBcps[jj]->couplingMatIndex, pBcps[jj]->couplingMatIndex) += node_mass;
             }
         }
     }
@@ -3255,10 +3275,10 @@ arma::mat Simulation::ComputeLinesInitialPoint()
         // Store the initial position in the line object
         pLines[ii]->pos = initial_positions;
 
-        // Look for the nodes that are not joints, and store the indexes
+        // Look for the nodes that are not joints or elastic anchors, and store the indexes
         for (int k = 0; k < 2; k++)
         {
-            if (pLines[ii]->pLineBcps[k]->GetType() != 3)
+            if (pLines[ii]->pLineBcps[k]->GetType() != 3 && pLines[ii]->pLineBcps[k]->GetType() != 5)
             {
                 isNotJoint(pLines[ii]->pLineBcps[k]->couplingMatIndex) = 1;
             }
@@ -3307,6 +3327,31 @@ arma::mat Simulation::ComputeLinesForces(arma::mat posicion)
         pLines[ii]->SEM_computeF(0.0);
         // Store the forces in the global vector
         forcesLinesCouplingVector.rows(pLines[ii]->ind4CouplingMat) += pLines[ii]->F;
+    }
+
+    // Populate posLines/velLines for dynamic BCPs (joints and elastic anchors)
+    for (int ii = 0; ii < numLines; ii++)
+    {
+        for (int kk = 0; kk < 2; kk++)
+        {
+            int bcpType = pLines[ii]->pLineBcps[kk]->GetType();
+            if (bcpType == 3 || bcpType == 5)
+            {
+                int lineNode = (kk == 0) ? 0 : pLines[ii]->N - 1;
+                pLines[ii]->pLineBcps[kk]->posLines.row(pLines[ii]->pLineBcps[kk]->iLJ) = pLines[ii]->pos.row(lineNode);
+                pLines[ii]->pLineBcps[kk]->velLines.row(pLines[ii]->pLineBcps[kk]->iLJ) = pLines[ii]->vel.row(lineNode);
+                pLines[ii]->pLineBcps[kk]->iLJ++;
+            }
+        }
+    }
+    // Compute and add joint/elastic anchor forces
+    for (int ii = 0; ii < numBcps; ii++)
+    {
+        if ((pBcps[ii]->GetType() == 3 || pBcps[ii]->GetType() == 5) && (pBcps[ii]->flag_assigned == 1))
+        {
+            pBcps[ii]->GetValues(0.0);
+            forcesLinesCouplingVector.row(pBcps[ii]->couplingMatIndex) += pBcps[ii]->JointForce;
+        }
     }
 
     // Remove the forces of the nodes that are not joints

@@ -103,6 +103,21 @@ void BCP::ReadPropertiesASCII(FILE *&pFilePointer)
 		sec_Joint = arma::datum::pi * rad_Joint * rad_Joint;
 	}
 
+	// Read elastic anchor parameters if any
+	if (this->GetType() == 5)
+	{
+		ElasticAnchorBCP *pEA = dynamic_cast<ElasticAnchorBCP *>(this);
+		fscanf(pFilePointer, "%lf %[^\n]\n", &pEA->anchor_mass, buffer_line);
+		fscanf(pFilePointer, "%lf %[^\n]\n", &pEA->anchor_vol, buffer_line);
+		fscanf(pFilePointer, "%lf %[^\n]\n", &pEA->c_param, buffer_line);
+		fscanf(pFilePointer, "%lf %[^\n]\n", &pEA->k_param, buffer_line);
+		// Compute derived properties assuming spherical anchor
+		pEA->rad_anchor = pow(3.0 * pEA->anchor_vol / (4.0 * arma::datum::pi), 1.0 / 3.0);
+		pEA->sec_anchor = arma::datum::pi * pEA->rad_anchor * pEA->rad_anchor;
+		// Set reference position to initial position (anchor embedded in seafloor)
+		pEA->pos_ref = pos;
+	}
+
 	// Check Winch ID and joint coexistence
 	if ((winchId != 0) && (this->GetType() == 3))
 	{
@@ -291,3 +306,91 @@ void BodyBCP::GetValues(double t)
 	vel = velG_BCP.rows(0, 2);
 	acc = accG_BCP.rows(0, 2);
 };
+
+////////////////////////////////////////////////////////////////////////////
+/////////////////////// ELASTIC ANCHOR CLASS DEFINITION ////////////////////
+////////////////////////////////////////////////////////////////////////////
+int ElasticAnchorBCP::GetType(void)
+{
+	return this->typeBcp;
+}
+
+void ElasticAnchorBCP::Initialize(double incG, double incRhoW)
+{
+	g = incG;
+	rhoW = incRhoW;
+}
+
+arma::vec ElasticAnchorBCP::ComputeRestoringForce(void)
+{
+	// Compute displacement from reference position
+	arma::vec disp = pos - pos_ref;
+	double x = arma::norm(disp);
+
+	// Handle singularity at zero displacement
+	if (x < 1e-10)
+	{
+		return arma::zeros(3, 1);
+	}
+
+	// Compute unit direction vector (from reference toward current position)
+	arma::vec direction = disp / x;
+
+	// Compute exponential restoring force magnitude (negative sign makes it point back)
+	// F = -c*(1 - exp(-k*x)) directed opposite to displacement
+	double F_mag = -c_param * (1.0 - exp(-k_param * x));
+
+	// Return force vector pointing toward reference position
+	return F_mag * direction;
+}
+
+void ElasticAnchorBCP::GetValues(double t)
+{
+	iLJ = 0;
+	tBCP = t;
+
+	// Update position and velocity by averaging from connected lines
+	pos = arma::mean(posLines).t();
+	vel = arma::mean(velLines).t();
+
+	// Compute exponential restoring force: F = -c*(1 - exp(-k*x)) toward reference
+	arma::vec F_restoring = ComputeRestoringForce();
+
+	// Compute buoyancy/gravity force (same pattern as JointBCP)
+	double zz = arma::as_scalar(pos(2, 0));
+	double vol = 0.0;
+	if (anchor_vol > 0.0)
+	{
+		vol = std::min(std::max(0.0, anchor_vol * (rad_anchor - zz) / (2.0 * rad_anchor)), anchor_vol);
+	}
+	double fg = g * (rhoW * vol - anchor_mass);
+
+	// Total external force into JointForce for coupling matrix assembly
+	JointForce = arma::zeros(1, 3);
+	JointForce(0, 2) = fg;
+	JointForce += F_restoring.t();
+	// Add quadratic drag force (Cd = 0.47 for sphere)
+	JointForce = JointForce - vel.t() * arma::norm(vel) * 0.5 * 0.47 * rhoW * sec_anchor;
+}
+
+void ElasticAnchorBCP::Print(void)
+{
+	std::cout << "ElasticAnchorBCP [" << this->GetId() << "]" << std::endl;
+	std::cout << "  Type: " << this->GetType() << std::endl;
+	std::cout << "  Position: (" << pos(0) << ", " << pos(1) << ", " << pos(2) << ")" << std::endl;
+	std::cout << "  Reference: (" << pos_ref(0) << ", " << pos_ref(1) << ", " << pos_ref(2) << ")" << std::endl;
+	std::cout << "  Mass: " << anchor_mass << " kg" << std::endl;
+	std::cout << "  Volume: " << anchor_vol << " m³" << std::endl;
+	std::cout << "  c_param: " << c_param << " N" << std::endl;
+	std::cout << "  k_param: " << k_param << " 1/m" << std::endl;
+
+	arma::vec disp = pos - pos_ref;
+	double x = arma::norm(disp);
+	std::cout << "  Displacement: " << x << " m" << std::endl;
+
+	if (x > 1e-10)
+	{
+		double F_mag = c_param * (1.0 - exp(-k_param * x));
+		std::cout << "  Restoring force magnitude: " << F_mag << " N" << std::endl;
+	}
+}
