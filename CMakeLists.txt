@@ -41,8 +41,8 @@ endif()
 
 # Auto-detect: enable OpenFAST on Windows if install directories exist
 if(WIN32 AND NOT OASIS_USE_OPENFAST)
-  if(EXISTS "E:/00_GIT_REPOS/openfast-3.0.0/install" AND 
-     EXISTS "E:/00_GIT_REPOS/FASTurbine_wrapper/install")
+  if(DEFINED OPENFAST_ROOT AND DEFINED FASTURBINE_ROOT
+     AND EXISTS "${OPENFAST_ROOT}" AND EXISTS "${FASTURBINE_ROOT}")
     set(OASIS_USE_OPENFAST ON CACHE BOOL "Enable OpenFAST" FORCE)
     message(STATUS "Auto-detected OpenFAST and FASTurbine_wrapper on Windows")
   endif()
@@ -175,24 +175,21 @@ endif()
 if(OASIS_USE_OPENFAST)
   if(WIN32)
     # Windows: search for OpenFAST and FASTurbine wrapper (compiled with Intel oneAPI Fortran)
-    set(_OPENFAST_ROOT "E:/00_GIT_REPOS/openfast-3.0.0/install")
-    set(_FASTURBINE_ROOT "E:/00_GIT_REPOS/FASTurbine_wrapper/install")
-    
-    if(EXISTS "${_OPENFAST_ROOT}/include" AND EXISTS "${_FASTURBINE_ROOT}/include")
-      set(OPENFAST_INCLUDE_DIR "${_OPENFAST_ROOT}/include")
-      set(FASTURBINE_INCLUDE_DIR "${_FASTURBINE_ROOT}/include")
+    # Paths are set in CMakeUserConfig.cmake (OPENFAST_ROOT, FASTURBINE_ROOT, INTEL_ONEAPI_ROOT)
+    if(EXISTS "${OPENFAST_ROOT}/include" AND EXISTS "${FASTURBINE_ROOT}/include")
+      set(OPENFAST_INCLUDE_DIR "${OPENFAST_ROOT}/include")
+      set(FASTURBINE_INCLUDE_DIR "${FASTURBINE_ROOT}/include")
       
       # Find required OpenFAST libraries
-      find_library(AERODYN_LIB aerodynlib PATHS "${_OPENFAST_ROOT}/lib" NO_DEFAULT_PATH)
-      find_library(IFW_LIB ifwlib PATHS "${_OPENFAST_ROOT}/lib" NO_DEFAULT_PATH)
-      find_library(SERVODYN_LIB servodynlib PATHS "${_OPENFAST_ROOT}/lib" NO_DEFAULT_PATH)
-      find_library(NWTC_LIB nwtclibs PATHS "${_OPENFAST_ROOT}/lib" NO_DEFAULT_PATH)
-      find_library(FASTURBINE_LIB fasturbwrapper PATHS "${_FASTURBINE_ROOT}/lib" NO_DEFAULT_PATH)
+      find_library(AERODYN_LIB aerodynlib PATHS "${OPENFAST_ROOT}/lib" NO_DEFAULT_PATH)
+      find_library(IFW_LIB ifwlib PATHS "${OPENFAST_ROOT}/lib" NO_DEFAULT_PATH)
+      find_library(SERVODYN_LIB servodynlib PATHS "${OPENFAST_ROOT}/lib" NO_DEFAULT_PATH)
+      find_library(NWTC_LIB nwtclibs PATHS "${OPENFAST_ROOT}/lib" NO_DEFAULT_PATH)
+      find_library(FASTURBINE_LIB fasturbwrapper PATHS "${FASTURBINE_ROOT}/lib" NO_DEFAULT_PATH)
       
       # Find Intel oneAPI Fortran runtime (required for linking OpenFAST Fortran libs with MSVC)
-      set(_INTEL_ONEAPI_ROOT "C:/Program Files (x86)/Intel/oneAPI/compiler/latest")
-      find_library(IFCORE_LIB libifcoremd PATHS "${_INTEL_ONEAPI_ROOT}/lib" NO_DEFAULT_PATH)
-      find_library(LIBMMD_LIB libmmd PATHS "${_INTEL_ONEAPI_ROOT}/lib" NO_DEFAULT_PATH)
+      find_library(IFCORE_LIB libifcoremd PATHS "${INTEL_ONEAPI_ROOT}/lib" NO_DEFAULT_PATH)
+      find_library(LIBMMD_LIB libmmd PATHS "${INTEL_ONEAPI_ROOT}/lib" NO_DEFAULT_PATH)
       
       if(AERODYN_LIB AND IFW_LIB AND SERVODYN_LIB AND NWTC_LIB AND FASTURBINE_LIB)
         set(OPENFAST_LIBRARIES ${FASTURBINE_LIB} ${AERODYN_LIB} ${IFW_LIB} ${SERVODYN_LIB} ${NWTC_LIB})
@@ -200,20 +197,20 @@ if(OASIS_USE_OPENFAST)
         # Add Intel Fortran runtime if found
         if(IFCORE_LIB AND LIBMMD_LIB)
           list(APPEND OPENFAST_LIBRARIES ${IFCORE_LIB} ${LIBMMD_LIB})
-          message(STATUS "Intel Fortran runtime: ${_INTEL_ONEAPI_ROOT}/lib")
+          message(STATUS "Intel Fortran runtime: ${INTEL_ONEAPI_ROOT}/lib")
         else()
-          message(WARNING "Intel oneAPI Fortran runtime not found at ${_INTEL_ONEAPI_ROOT}/lib. "
-                          "You may need to run from Intel oneAPI command prompt or set _INTEL_ONEAPI_ROOT.")
+          message(WARNING "Intel oneAPI Fortran runtime not found at ${INTEL_ONEAPI_ROOT}/lib. "
+                          "You may need to run from Intel oneAPI command prompt or set INTEL_ONEAPI_ROOT in CMakeUserConfig.cmake.")
         endif()
         
         message(STATUS "OpenFAST (Windows/Intel): ${OPENFAST_INCLUDE_DIR}")
         message(STATUS "FASTurbine wrapper (Windows): ${FASTURBINE_INCLUDE_DIR}")
       else()
-        message(FATAL_ERROR "OpenFAST libraries not found in ${_OPENFAST_ROOT}/lib")
+        message(FATAL_ERROR "OpenFAST libraries not found in ${OPENFAST_ROOT}/lib")
       endif()
     else()
-      message(FATAL_ERROR "OASIS_USE_OPENFAST=ON but OpenFAST/FASTurbine not found at expected Windows paths. "
-                          "Set paths in CMakeLists.txt or use CMakeUserConfig.cmake")
+      message(FATAL_ERROR "OASIS_USE_OPENFAST=ON but OpenFAST/FASTurbine not found. "
+                          "Set OPENFAST_ROOT and FASTURBINE_ROOT in CMakeUserConfig.cmake")
     endif()
   elseif(DEFINED ENV{EBROOTOpenFAST})
     set(OPENFAST_INCLUDE_DIR "$ENV{EBROOTOpenFAST}/install/include")
@@ -252,13 +249,10 @@ if(OASIS_USE_STL_READER)
   elseif(STL_READER_INCLUDE_DIR AND EXISTS "${STL_READER_INCLUDE_DIR}/stl_reader.h")
     message(STATUS "stl_reader (manual): ${STL_READER_INCLUDE_DIR}")
   else()
-    # stl_reader is header-only, try common locations
+    # stl_reader is header-only, try paths from CMakeUserConfig.cmake then common locations
     find_path(STL_READER_INCLUDE_DIR stl_reader.h
       PATHS
-        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/stl_reader
-        ${CMAKE_CURRENT_SOURCE_DIR}/external/stl_reader
-        "C:/ScientificLibraries/stl_reader"
-        "/home/projects/energia/software/stl_reader"
+        ${STL_READER_SEARCH_PATHS}
     )
     if(STL_READER_INCLUDE_DIR)
       message(STATUS "stl_reader found: ${STL_READER_INCLUDE_DIR}")
@@ -474,21 +468,21 @@ else()
       -lnwtclibs
       -lfasturbwrapper
     )
-    # OpenMPI link flags (cluster-specific)
-    if(EXISTS "/sNow/easybuild")
+    # OpenMPI link flags (cluster-specific, paths from CMakeUserConfig.cmake)
+    if(DEFINED OPENMPI_ROOT AND EXISTS "${OPENMPI_ROOT}")
       set_target_properties(${PROJECT_NAME} PROPERTIES
-        COMPILE_FLAGS -I/sNow/easybuild/centos/7.3.1611/SandyBridge/software/OpenMPI/4.0.5-GCC-10.2.0/include)
+        COMPILE_FLAGS -I${OPENMPI_ROOT}/include)
       set_target_properties(${PROJECT_NAME} PROPERTIES
-        LINK_FLAGS "-L/sNow/easybuild/centos/7.3.1611/SandyBridge/software/hwloc/2.2.0-GCCcore-10.2.0/lib \
-        -L/sNow/easybuild/centos/7.3.1611/SandyBridge/software/libevent/2.1.12-GCCcore-10.2.0/lib64 \
+        LINK_FLAGS "-L${HWLOC_LIB_DIR} \
+        -L${LIBEVENT_LIB_DIR} \
         -Wl,-rpath \
-        -Wl,/sNow/easybuild/centos/7.3.1611/SandyBridge/software/hwloc/2.2.0-GCCcore-10.2.0/lib \
+        -Wl,${HWLOC_LIB_DIR} \
         -Wl,-rpath \
-        -Wl,/sNow/easybuild/centos/7.3.1611/SandyBridge/software/libevent/2.1.12-GCCcore-10.2.0/lib64 \
+        -Wl,${LIBEVENT_LIB_DIR} \
         -Wl,-rpath \
-        -Wl,/sNow/easybuild/centos/7.3.1611/SandyBridge/software/OpenMPI/4.0.5-GCC-10.2.0/lib \
+        -Wl,${OPENMPI_ROOT}/lib \
         -Wl,--enable-new-dtags \
-        -L/sNow/easybuild/centos/7.3.1611/SandyBridge/software/OpenMPI/4.0.5-GCC-10.2.0/lib \
+        -L${OPENMPI_ROOT}/lib \
         -lmpi")
     endif()
   endif()

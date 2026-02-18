@@ -10,13 +10,13 @@ rem   - MSVC (run from "Developer Command Prompt" or "x64 Native Tools")
 rem   - Libraries: Armadillo, HDF5, OpenBLAS (or MKL)
 rem   - Optional: SuperLU, stl_reader, OpenFAST, FASTurbine_wrapper
 rem
-rem OpenFAST and FASTurbine_wrapper will be auto-detected if present at:
-rem   E:\00_GIT_REPOS\openfast-3.0.0\install
-rem   E:\00_GIT_REPOS\FASTurbine_wrapper\install
-rem
-rem If libraries are not auto-detected, create CMakeUserConfig.cmake
-rem from CMakeUserConfig.cmake.template and set the paths.
+rem Paths are configured in CMakeUserConfig.cmake.
+rem Copy CMakeUserConfig.cmake.template and set paths for your system.
 rem ============================================================
+
+rem --- User-configurable paths (match CMakeUserConfig.cmake) ---
+set FASTURBINE_ROOT=E:\00_GIT_REPOS\FASTurbine_wrapper\install
+set INTEL_ONEAPI_ROOT=C:\Program Files (x86)\Intel\oneAPI\compiler\latest
 
 rem DELETE PREVIOUS BUILD ---------------------------------
 rem rmdir /Q /S build
@@ -45,12 +45,12 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 rem Copy required DLLs for OpenFAST (if present)
-if exist "E:\00_GIT_REPOS\FASTurbine_wrapper\install\lib\fasturbwrapper.dll" (
-    copy "E:\00_GIT_REPOS\FASTurbine_wrapper\install\lib\fasturbwrapper.dll" ".\bin\" >nul
+if exist "%FASTURBINE_ROOT%\lib\fasturbwrapper.dll" (
+    copy "%FASTURBINE_ROOT%\lib\fasturbwrapper.dll" ".\bin\" >nul
     echo Copied fasturbwrapper.dll to bin\
 )
 rem Copy Intel oneAPI Fortran runtime DLLs (required by OpenFAST)
-set INTEL_BIN=C:\Program Files (x86)\Intel\oneAPI\compiler\latest\bin
+set INTEL_BIN=%INTEL_ONEAPI_ROOT%\bin
 if exist "%INTEL_BIN%\libifcoremd.dll" (
     copy "%INTEL_BIN%\libifcoremd.dll" ".\bin\" >nul
     copy "%INTEL_BIN%\libifportmd.dll" ".\bin\" >nul

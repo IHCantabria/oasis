@@ -6,6 +6,7 @@ output/
 tests/
 CMakeFiles/
 CMakeCache.txt
+*_output.txt
 sync_to_cluster.bat
 core*
 .vscode/
