@@ -17,6 +17,25 @@ if(UNIX)
   endif()
 endif()
 
+# Load vcpkg toolchain from CMakeUserConfig.cmake BEFORE project() so that
+# vcpkg's find_package integration is available for all dependencies.
+if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+  set(_user_config "${CMAKE_CURRENT_SOURCE_DIR}/CMakeUserConfig.cmake")
+  if(EXISTS "${_user_config}")
+    file(STRINGS "${_user_config}" _tc_lines REGEX "CMAKE_TOOLCHAIN_FILE")
+    foreach(_l IN LISTS _tc_lines)
+      if(NOT _l MATCHES "^[ \t]*#")  # skip comments
+        string(REGEX MATCH "\"([^\"]+)\"" _ "${_l}")
+        if(CMAKE_MATCH_1 AND EXISTS "${CMAKE_MATCH_1}")
+          set(CMAKE_TOOLCHAIN_FILE "${CMAKE_MATCH_1}" CACHE STRING "vcpkg toolchain")
+          message(STATUS "vcpkg toolchain (from CMakeUserConfig): ${CMAKE_MATCH_1}")
+          break()
+        endif()
+      endif()
+    endforeach()
+  endif()
+endif()
+
 # Enable both C and CXX (C needed for FindHDF5 test compilation)
 PROJECT(OASIS C CXX)
 
@@ -334,10 +353,15 @@ set(OASIS_FILES ${OASIS_SOURCE_FILES} ${OASIS_HEADER_FILES})
 # ==============================================================================
 # 6. COMPILE DEFINITIONS
 # ==============================================================================
-set(OASIS_DEFINITIONS -DARMA_DONT_USE_WRAPPER -DARMA_USE_HDF5)
+set(OASIS_DEFINITIONS -DARMA_DONT_USE_WRAPPER -DARMA_USE_HDF5 -DARMA_DONT_PRINT_FAST_MATH_WARNING)
 
 if(OASIS_USE_SUPERLU)
   list(APPEND OASIS_DEFINITIONS -DARMA_USE_SUPERLU)
+  # Armadillo includes SuperLU headers as: #include "ARMA_SUPERLU_INCLUDE_DIR/slu_ddefs.h"
+  # Point it to the directory containing the slu_*.h files (with trailing /).
+  if(DEFINED SUPERLU_INCLUDE_DIR)
+    list(APPEND OASIS_DEFINITIONS "-DARMA_SUPERLU_INCLUDE_DIR=${SUPERLU_INCLUDE_DIR}/")
+  endif()
 endif()
 
 if(OASIS_USE_OPENFAST)
@@ -377,6 +401,31 @@ if(ipo_supported)
   set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
 else()
   message(STATUS "LTO not supported: ${ipo_output}")
+endif()
+
+# --- Post-build: copy non-vcpkg runtime DLLs on Windows ---
+# vcpkg handles its own DLLs via VCPKG_APPLOCAL_DEPS (on by default).
+# Here we copy FASTurbine and Intel Fortran runtime DLLs so that
+# build/Release/ contains everything needed to run.
+if(WIN32 AND OASIS_USE_OPENFAST)
+  if(EXISTS "${FASTURBINE_ROOT}/lib/fasturbwrapper.dll")
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${FASTURBINE_ROOT}/lib/fasturbwrapper.dll"
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>
+      COMMENT "Copying fasturbwrapper.dll")
+  endif()
+  if(DEFINED INTEL_ONEAPI_ROOT)
+    foreach(_dll libifcoremd.dll libifportmd.dll libmmd.dll svml_dispmd.dll)
+      if(EXISTS "${INTEL_ONEAPI_ROOT}/bin/${_dll}")
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+          COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${INTEL_ONEAPI_ROOT}/bin/${_dll}"
+            $<TARGET_FILE_DIR:${PROJECT_NAME}>
+          COMMENT "Copying ${_dll}")
+      endif()
+    endforeach()
+  endif()
 endif()
 
 # ==============================================================================
