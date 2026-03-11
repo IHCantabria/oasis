@@ -19,7 +19,7 @@ set TOTAL_TESTS=0
 set PASSED_TESTS=0
 
 REM --- freq_wave_example ---
-echo [1/5] Running freq_wave_example...
+echo [1/6] Running freq_wave_example...
 cd freq_wave_example
 call run.bat
 set RESULT=%ERRORLEVEL%
@@ -35,7 +35,7 @@ if %RESULT% NEQ 0 (
 echo.
 
 REM --- generic_example ---
-echo [2/5] Running generic_example...
+echo [2/6] Running generic_example...
 cd generic_example
 call run.bat
 set RESULT=%ERRORLEVEL%
@@ -51,7 +51,7 @@ if %RESULT% NEQ 0 (
 echo.
 
 REM --- qtf_example ---
-echo [3/5] Running qtf_example...
+echo [3/6] Running qtf_example...
 cd qtf_example
 call run.bat
 set RESULT=%ERRORLEVEL%
@@ -67,7 +67,7 @@ if %RESULT% NEQ 0 (
 echo.
 
 REM --- turbine_example ---
-echo [4/5] Running turbine_example...
+echo [4/6] Running turbine_example...
 cd turbine_example
 call run.bat
 set RESULT=%ERRORLEVEL%
@@ -83,7 +83,7 @@ if %RESULT% NEQ 0 (
 echo.
 
 REM --- elastic_anchor_example ---
-echo [5/5] Running elastic_anchor_example...
+echo [5/6] Running elastic_anchor_example...
 cd elastic_anchor_example
 call run.bat
 set RESULT=%ERRORLEVEL%
@@ -94,6 +94,22 @@ if %RESULT% NEQ 0 (
     set FAILED_TESTS=%FAILED_TESTS% elastic_anchor_example
 ) else (
     echo PASSED: elastic_anchor_example
+    set /a PASSED_TESTS+=1
+)
+echo.
+
+REM --- large_rotation_example ---
+echo [6/6] Running large_rotation_example...
+cd large_rotation_example
+call run.bat
+set RESULT=%ERRORLEVEL%
+cd ..
+set /a TOTAL_TESTS+=1
+if %RESULT% NEQ 0 (
+    echo FAILED: large_rotation_example
+    set FAILED_TESTS=%FAILED_TESTS% large_rotation_example
+) else (
+    echo PASSED: large_rotation_example
     set /a PASSED_TESTS+=1
 )
 echo.

@@ -13,7 +13,7 @@ TOTAL_TESTS=0
 PASSED_TESTS=0
 
 # --- freq_wave_example ---
-echo "[1/5] Running freq_wave_example..."
+echo "[1/6] Running freq_wave_example..."
 cd freq_wave_example || exit 1
 sh run.sl .
 RESULT=$?
@@ -29,7 +29,7 @@ fi
 echo
 
 # --- generic_example ---
-echo "[2/5] Running generic_example..."
+echo "[2/6] Running generic_example..."
 cd generic_example || exit 1
 sh run.sl .
 RESULT=$?
@@ -45,7 +45,7 @@ fi
 echo
 
 # --- qtf_example ---
-echo "[3/5] Running qtf_example..."
+echo "[3/6] Running qtf_example..."
 cd qtf_example || exit 1
 sh run.sl .
 RESULT=$?
@@ -61,7 +61,7 @@ fi
 echo
 
 # --- turbine_example ---
-echo "[4/5] Running turbine_example..."
+echo "[4/6] Running turbine_example..."
 cd turbine_example || exit 1
 sh run.sl .
 RESULT=$?
@@ -77,7 +77,7 @@ fi
 echo
 
 # --- elastic_anchor_example ---
-echo "[5/5] Running elastic_anchor_example..."
+echo "[5/6] Running elastic_anchor_example..."
 cd elastic_anchor_example || exit 1
 sh run.sl .
 RESULT=$?
@@ -88,6 +88,22 @@ if [ $RESULT -ne 0 ]; then
     FAILED_TESTS="$FAILED_TESTS elastic_anchor_example"
 else
     echo "PASSED: elastic_anchor_example"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
+# --- large_rotation_example ---
+echo "[6/6] Running large_rotation_example..."
+cd large_rotation_example || exit 1
+sh run.sl .
+RESULT=$?
+cd ..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: large_rotation_example"
+    FAILED_TESTS="$FAILED_TESTS large_rotation_example"
+else
+    echo "PASSED: large_rotation_example"
     PASSED_TESTS=$((PASSED_TESTS + 1))
 fi
 echo

@@ -665,6 +665,7 @@ void Body::UpdateBcps(void)
     R3(1, 1) = cy;
 
     rotMat = R3 * R2 * R1;
+    invRotMat = rotMat.t();
 
     arma::mat R1_dot = arma::zeros(3, 3);
     R1_dot(1, 1) = -sr;

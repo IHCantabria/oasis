@@ -96,6 +96,47 @@ python plot_results.py
 
 ---
 
+### 5. elastic_anchor_example
+**Elastic anchor mooring test**
+
+Features:
+- Elastic (compliant) mooring anchors with exponential restoring force
+- 4 mooring lines with elastic anchor boundary conditions
+- Linear hydrostatics, no wind/turbines
+- Tests anchor dragging and restoring forces
+
+Use case: Validating elastic anchor force models for mooring systems
+
+**Quick start:**
+```bash
+cd elastic_anchor_example/input
+oasis dataProblem.dat
+```
+
+---
+
+### 6. large_rotation_example
+**Simplified vs full rotation dynamics comparison**
+
+Features:
+- Two sub-cases: simplified (`rotSimpFlag=1`) and full (`rotSimpFlag=0`) rotation dynamics
+- Free-decay test with initial heave + pitch displacement
+- Radiation forces enabled for damped oscillation
+- No waves, no mooring lines — isolates rotation mechanics
+
+Use case: Validating full rotation dynamics against simplified approximation
+
+**Quick start:**
+```bash
+cd large_rotation_example
+run.bat
+python plot_results.py
+```
+
+**Note:** Runs two simulations (`case_simplified/` and `case_full/`) and produces an overlay comparison plot.
+
+---
+
 ## Example Structure
 
 Each example follows this standard structure:

@@ -312,7 +312,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
                 for (int ii = 0; ii < numBodiesFree; ii++)
                 {
                     aMat = pBodiesFree[ii]->aMat;
-                    aMat_dot = pBodies[ii]->aMat_dot;
+                    aMat_dot = pBodiesFree[ii]->aMat_dot;
                     invRotMat = pBodiesFree[ii]->invRotMat;
                     phi_dot = pBodiesFree[ii]->vel.rows(arma::span(3, 5));
 
@@ -328,7 +328,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
                 arma::mat tmpMat_FL = tmpMat(sysMatIndFree, sysMatIndLock);
                 arma::mat tmpVec_FF = tmpVec.rows(sysMatIndFree);
 
-                accB = arma::solve(tmpMat, tmpVec - tmpMat_FL * accAll.rows(sysMatIndLock));
+                accB = arma::solve(tmpMat_FF, tmpVec_FF - tmpMat_FL * accAll.rows(sysMatIndLock));
             }
         }
         else
