@@ -1,260 +1,149 @@
-# OASIS Examples
+# OASIS Examples & Functional Tests
 
-This directory contains example simulations demonstrating different features and capabilities of OASIS.
+This directory contains a systematic test suite for OASIS, organized by functionality group. Each group isolates a specific subsystem (bodies, waves, mooring lines, etc.) so that every feature can be tested independently. The examples also serve as user documentation showing how to set up inputs for each feature.
 
-## Available Examples
+## Strategy
 
-### 1. generic_example
-**Basic floating platform simulation**
+The examples are organized into **functional groups**, each in its own subdirectory. Within each group, individual examples test a single feature or flag combination in isolation — no unnecessary subsystems are active. This makes it easy to:
 
-Features:
-- Standard JONSWAP or regular wave input
-- First-order hydrodynamic forces
-- 6 DOF rigid body dynamics
-- Linear hydrostatics
+1. **Verify** that each feature works correctly after code changes
+2. **Diagnose** failures by narrowing down to the exact subsystem
+3. **Learn** how to configure each feature by studying minimal working examples
 
-Use case: Learning basic OASIS workflow and setup
+All examples can be run together via `run_all_examples.bat` (Windows) or `run_all_examples.sh` (Linux).
 
-**Quick start:**
-```bash
-cd generic_example/input
-oasis dataProblem.dat
-cd ..
-python plot_results.py
+## Functional Groups
+
+| # | Group | Directory | Description | Status |
+|---|---|---|---|---|
+| 1 | **Body Behavior** | `body/` | Floating body dynamics: free/fixed/partial DOFs, imposed motion, radiation, excitation, non-linear hydrostatics, QTF | Done |
+| 2 | **Wave Types** | `waves/` | Regular, irregular (JONSWAP), time-series, frequency-domain, multi-directional, piecewise decomposition | Planned |
+| 3 | **Mooring Lines** | `lines/` | Dynamic mooring lines: single/multi-line, BCP types (anchor, fairlead, joint, elastic anchor, actuator), material models (linear, viscoelastic, tabulated), tension models, seabed contact, friction (isotropic, anisotropic) | Done |
+| 4 | **Springs** | `springs/` | Nonlinear springs: pile connector with friction, neoprene+wire body-to-body connector | Done |
+| 5 | **Wind Turbines** | `turbines/` | OpenFAST coupling on fixed and moored bodies, isobara hydro | Done |
+| 6 | **OWCs** | `owcs/` | Oscillating Water Columns: chamber dynamics, turbine models, power output | Planned |
+| 7 | **Sinking** | `sinking/` | Progressive flooding and sinking dynamics | Planned |
+| 8 | **Multi-body** | `multibody/` | Multiple interacting bodies, joints, mechanical couplings | Planned |
+| 9 | **Integration & Solvers** | `solvers/` | ODE solver comparison (BDF1, BDFN, ESDIRK46), time step sensitivity, adaptive stepping | Planned |
+
+## Directory Structure
+
 ```
-
----
-
-### 2. qtf_example
-**Second-order wave forces (QTF - Quadratic Transfer Functions)**
-
-Features:
-- Time-series wave input
-- Piecewise wave decomposition for long simulations
-- First and second-order excitation forces
-- Slow-drift and wave-frequency response
-
-Use case: Accurate long-term simulations with mean drift forces
-
-**Quick start:**
-```bash
-cd qtf_example/input
-oasis dataProblem.dat
-cd ..
-python plot_results.py
+examples/
+├── README.md                   # This file
+├── run_all_examples.bat        # Run all tests (Windows)
+├── run_all_examples.sh         # Run all tests (Linux)
+├── body/                       # Group 1: Body behavior (DONE)
+│   ├── README.md
+│   ├── free_decay/
+│   ├── fixed/
+│   ├── partial_dofs/
+│   ├── imposed_motion/
+│   ├── radiation/
+│   ├── excitation_linear/
+│   ├── excitation_instantpos/
+│   ├── nonlinear_hs_flat/
+│   ├── nonlinear_hs_waves/
+│   └── qtf/
+├── waves/                      # Group 2: Wave types (PLANNED)
+├── lines/                      # Group 3: Mooring lines (DONE)
+│   ├── README.md
+│   ├── single_line/
+│   ├── multi_line/
+│   ├── joint_connection/
+│   ├── elastic_anchor/
+│   ├── prescribed_motion/
+│   ├── viscoelastic/
+│   ├── tabulated_stiffness/
+│   ├── tension_symmetric/
+│   ├── seabed_contact/
+│   ├── friction_isotropic/
+│   └── friction_anisotropic/
+├── springs/                    # Group 4: Springs (DONE)
+│   ├── README.md
+│   ├── pile_connector/
+│   └── neoprene_connector/
+├── turbines/                   # Group 5: Wind turbines (DONE)
+│   ├── README.md
+│   ├── fixed_turbine/
+│   └── moored_turbine/
+├── owcs/                       # Group 6: OWCs (PLANNED)
+├── sinking/                    # Group 7: Sinking (PLANNED)
+├── multibody/                  # Group 8: Multi-body (PLANNED)
+├── solvers/                    # Group 9: Solvers (PLANNED)
+├── misc/                       # Pre-existing mixed examples
+│   ├── freq_wave_example/
+│   ├── generic_example/
+│   ├── qtf_example/
+│   ├── turbine_example/
+│   ├── elastic_anchor_example/
+│   └── large_rotation_example/
 ```
-
----
-
-### 3. freq_wave_example
-**Frequency domain wave input (specType_flag=3)**
-
-Features:
-- Direct frequency domain wave definition
-- Multi-directional wave systems
-- Combining multiple spectra (e.g., wind sea + swell)
-- Custom spectral shapes
-
-Use case: Complex sea states with multiple wave systems from different directions
-
-**Quick start:**
-```bash
-# Optional: Generate custom wave input
-cd freq_wave_example
-python generate_wave_input.py
-mv wavefreq.dat input/
-
-# Run simulation
-cd input
-oasis dataProblem.dat
-cd ..
-python plot_results.py
-```
-
----
-
-### 4. turbine_example
-**OpenFAST wind turbine integration test**
-
-Features:
-- Fixed-position floating platform (no wave forces)
-- OpenFAST/FASTurbine wind turbine coupling
-- Wind turbine aerodynamic and structural dynamics
-- Minimal hydrodynamic computation for performance testing
-
-Use case: Testing OpenFAST integration, wind turbine only simulations, debugging turbine setup
-
-**Quick start:**
-```bash
-cd turbine_example/input
-oasis dataProblem.dat
-cd ..
-python plot_results.py
-```
-
-**Note:** Requires OASIS compiled with OpenFAST support (`OASIS_USE_OPENFAST=ON`)
-
----
-
-### 5. elastic_anchor_example
-**Elastic anchor mooring test**
-
-Features:
-- Elastic (compliant) mooring anchors with exponential restoring force
-- 4 mooring lines with elastic anchor boundary conditions
-- Linear hydrostatics, no wind/turbines
-- Tests anchor dragging and restoring forces
-
-Use case: Validating elastic anchor force models for mooring systems
-
-**Quick start:**
-```bash
-cd elastic_anchor_example/input
-oasis dataProblem.dat
-```
-
----
-
-### 6. large_rotation_example
-**Simplified vs full rotation dynamics comparison**
-
-Features:
-- Two sub-cases: simplified (`rotSimpFlag=1`) and full (`rotSimpFlag=0`) rotation dynamics
-- Free-decay test with initial heave + pitch displacement
-- Radiation forces enabled for damped oscillation
-- No waves, no mooring lines — isolates rotation mechanics
-
-Use case: Validating full rotation dynamics against simplified approximation
-
-**Quick start:**
-```bash
-cd large_rotation_example
-run.bat
-python plot_results.py
-```
-
-**Note:** Runs two simulations (`case_simplified/` and `case_full/`) and produces an overlay comparison plot.
-
----
 
 ## Example Structure
 
-Each example follows this standard structure:
+Each individual example follows this layout:
 
 ```
-example_name/
-├── input/                      # Input files
-│   ├── dataProblem.dat        # Simulation parameters
-│   ├── dataWaves.dat          # Wave configuration
-│   ├── dataBodies.dat         # Body definitions
-│   └── ...                    # Other input files
-├── output/                     # Results (created after run)
-│   ├── DOF_*.txt              # DOF time series
-│   ├── WaveSpectrum.txt       # Wave spectrum data
-│   └── ...                    # Other outputs
-├── plot_results.py            # Plotting script for this example
-├── run.sl                     # SLURM batch script (for cluster)
-└── README.md                  # Example documentation
+<group>/<test_name>/
+├── input/
+│   ├── dataProblem.dat         # Simulation parameters
+│   ├── dataBodies.dat          # Body definitions
+│   ├── dataWaves.dat           # Wave configuration
+│   └── <hydro_database>        # .ehydb or .hydb.h5
+├── output/                     # Created by simulator
+├── run.bat                     # Windows runner
+└── run.sl                      # Linux/SLURM runner
 ```
 
-## Running Examples
+Optional input files (only present when the feature is tested):
+- `dataLines.dat`, `dataBCPs.dat` — mooring lines and boundary conditions
+- `dataSprings.dat` — spring connections
+- `dataWindTurbines.dat` — wind turbine definitions
+- `dataOWCs.dat`, `dataOWCTurbines.dat` — OWC chambers and turbines
+- `dataSinking.dat` — flooding/sinking setup
+- `dataSeaFloor.dat` — seabed profile
+- `dataLockBody_body0.dat` — imposed motion definition
 
-### On a Cluster (Linux with SLURM)
+## Running
 
+### All examples
 ```bash
-cd <example_name>
-sbatch run.sl input/dataProblem.dat
+cd examples
+run_all_examples.bat        # Windows
+sh run_all_examples.sh      # Linux
 ```
 
-### Manual Execution
-
+### Single example
 ```bash
-cd <example_name>/input
-oasis dataProblem.dat
+cd examples/<group>/<test_name>
+run.bat                     # Windows
+sh run.sl .                 # Linux
 ```
 
-## Plotting Results
-
-After running a simulation, visualize results using the example-specific plotting script:
-
+### On a SLURM cluster
 ```bash
-cd <example_name>
-python plot_results.py
+cd examples/<group>/<test_name>
+sbatch run.sl input
 ```
 
-This will:
-- Load simulation results from `output/`
-- Generate time series plots of body motions
-- Create wave spectrum visualizations (if applicable)
-- Save plots as PNG files in the example directory
+## Design Decisions
 
-## Customizing Examples
+- **30s simulation time** for body examples (exceeds 20s IRF window to validate radiation damping)
+- **ESDIRK46 integrator** (method=3, order=2) as default — stable and accurate
+- **dt = 0.1s** for all time steps (output, max, hydro, FAST, controller)
+- **Missing optional files are OK** — OASIS prints a warning and sets the count to 0
+- **Two hydro databases**: `isobara.ehydb` for simple tests, `dique_cadenas.hydb.h5` + STL for non-linear hydrostatics
+- **Nested folder structure**: `examples/<group>/<test_name>/input/` for clear organization
 
-To create a new example:
+## Adding a New Group
 
-1. **Copy an existing example:**
-   ```bash
-   cp -r generic_example my_new_example
-   ```
+To continue building the test suite in a future session:
 
-2. **Modify input files:**
-   - Edit `dataProblem.dat` for simulation parameters
-   - Edit `dataWaves.dat` for wave conditions
-   - Edit `dataBodies.dat` for body properties
-   - Update hydrodynamic database file if needed
-
-3. **Update plotting script:**
-   - Modify `plot_results.py` to match your configuration
-   - Adjust body dimensions, colors, wave parameters
-
-4. **Update documentation:**
-   - Edit `README.md` with example-specific information
-
-## Tips and Best Practices
-
-### Choosing the Right Wave Input
-
-- **Regular waves (specType_flag=0)**: Simple testing, resonance studies
-- **JONSWAP spectrum (specType_flag=1)**: Standard irregular seas, moderate durations
-- **Time-series (specType_flag=2)**: From measurements, long simulations with piecewise
-- **Frequency domain (specType_flag=3)**: Multi-directional seas, custom spectra
-
-### Simulation Time
-
-- Short runs (< 1 hr): Direct computation, single piece
-- Long runs (> 1 hr): Enable piecewise decomposition
-- Very long runs: Use time-series with piecewise (qtf_example)
-
-### Second-Order Forces
-
-Enable in `dataBodies.dat` for:
-- Slow-drift motions
-- Moored structures
-- Long simulation times
-- Requires QTF data in hydrodynamic database
-
-### Performance Optimization
-
-- Use piecewise decomposition for irregular waves (`piecewise_flag = 1`)
-- Adjust time steps based on needed accuracy
-- Balance hydrodynamic vs integration time steps
-
-## Common Issues
-
-### Output files not found
-**Solution:** Verify simulation completed successfully. Check for error messages in terminal output.
-
-### Plotting errors
-**Solution:** Ensure Python dependencies are installed:
-```bash
-pip install numpy matplotlib
-```
-
-### Missing hydrodynamic database
-**Solution:** Ensure `.ehydb` or `.hydb.h5` file is in the input directory.
-
-## Further Information
-
-- See `../resources/README.md` for plotting tool documentation
-- See individual `README.md` in each example for detailed information
-- Refer to OASIS documentation for complete simulation setup guide
+1. Read this README to understand the overall strategy and which groups are planned
+2. Pick the next group to implement (e.g., "Group 2: Wave Types")
+3. Study the relevant source code to understand available flags and input formats
+4. Create isolated examples that each test a single feature
+5. Add a `README.md` inside the group directory with a summary table
+6. Update `run_all_examples.bat` and `run_all_examples.sh` with the new tests
+7. Mark the group as "Done" in the table above

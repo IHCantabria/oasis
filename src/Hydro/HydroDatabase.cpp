@@ -272,7 +272,7 @@ arma::mat HydroDatabase::ComputeRadiationForces()
 		{
 			for (int j = 0; j < 6; j++)
 			{
-				if (pSim->timeBuffer(0, pSim->timeBufferCount) > IRFTotalTime)
+				if (pSim->timeBuffer(0, pSim->timeBufferCount) >= IRFTotalTime)
 				{
 					// Get IRF function from the storage
 					irf_local = (*pIRF[ib]).subcube(0, i, j, numPointsIRF - 1, i, j);

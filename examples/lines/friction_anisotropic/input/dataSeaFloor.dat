@@ -1,0 +1,9 @@
+0 // Number of Bathymetry floors
+1 // Number of Inclined floors
+0 // Number of Flat floors
+//////////////////
+////////////////// New floor [1] [Inclined]
+//////////////////
+0.0 0.0 -90.0 // Point 1 (near body, shallower)
+60.0 0.0 -100.0 // Point 2 (near anchor, deeper)
+0.0 50.0 -90.0 // Point 3 (lateral offset, same depth as point 1)

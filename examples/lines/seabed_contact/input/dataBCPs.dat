@@ -1,0 +1,13 @@
+0 // Number of Actuators (FairleadBCP with prescribed motion, type 2)
+1 // Number of Anchors (AnchorBCP, type 1)
+///// Anchor 1: Close anchor to force seabed contact
+40.0 // x [m] (closer to body so line drapes on seabed)
+0.0 // y [m]
+-100.0 // z [m]
+0 // Number of Joints (JointBCP, type 3)
+1 // Number of Fairleads (BodyBCP attached to body, type 4)
+///// Fairlead 1: on body
+5.0 // x [m] 
+0.0 // y [m]
+-2.0 // z [m]
+0 // Number of Elastic Anchors (ElasticAnchorBCP, type 5)

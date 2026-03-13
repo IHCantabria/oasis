@@ -1,0 +1,65 @@
+0 // Number of winchies
+//////////////////
+////////////////// New winchie [1]
+//////////////////
+1 // Indice de la linea a la que esta conectado el winchie
+2 // Extremo de la linea al que esta conectado el winchie [1: Nodo 1, 2: Nodo N]
+50.0 // Momento de inercia del winchie (kg·m^2)
+0.25 // Radio del winchie (m)
+0.5 // Winche drag (N·s/rad)
+//////////////////
+////////////////// New winchie [2]
+//////////////////
+2 // Indice de la linea a la que esta conectado el winchie
+2 // Extremo de la linea al que esta conectado el winchie [1: Nodo 1, 2: Nodo N]
+50.0 // Momento de inercia del winchie (kg·m^2)
+0.25 // Radio del winchie (m)
+0.5 // Winche drag (N·s/rad)
+//////////////////
+////////////////// New winchie [3]
+//////////////////
+3 // Indice de la linea a la que esta conectado el winchie
+2 // Extremo de la linea al que esta conectado el winchie [1: Nodo 1, 2: Nodo N]
+50.0 // Momento de inercia del winchie (kg·m^2)
+0.25 // Radio del winchie (m)
+0.5 // Winche drag (N·s/rad)
+//////////////////
+////////////////// New winchie [4]
+//////////////////
+4 // Indice de la linea a la que esta conectado el winchie
+2 // Extremo de la linea al que esta conectado el winchie [1: Nodo 1, 2: Nodo N]
+50.0 // Momento de inercia del winchie (kg·m^2)
+0.25 // Radio del winchie (m)
+0.5 // Winche drag (N·s/rad)
+//////////////////
+////////////////// New winchie [5]
+//////////////////
+5 // Indice de la linea a la que esta conectado el winchie
+2 // Extremo de la linea al que esta conectado el winchie [1: Nodo 1, 2: Nodo N]
+50.0 // Momento de inercia del winchie (kg·m^2)
+0.25 // Radio del winchie (m)
+0.5 // Winche drag (N·s/rad)
+//////////////////
+////////////////// New winchie [6]
+//////////////////
+6 // Indice de la linea a la que esta conectado el winchie
+2 // Extremo de la linea al que esta conectado el winchie [1: Nodo 1, 2: Nodo N]
+50.0 // Momento de inercia del winchie (kg·m^2)
+0.25 // Radio del winchie (m)
+0.5 // Winche drag (N·s/rad)
+//////////////////
+////////////////// New winchie [7]
+//////////////////
+7 // Indice de la linea a la que esta conectado el winchie
+2 // Extremo de la linea al que esta conectado el winchie [1: Nodo 1, 2: Nodo N]
+50.0 // Momento de inercia del winchie (kg·m^2)
+0.25 // Radio del winchie (m)
+0.5 // Winche drag (N·s/rad)
+//////////////////
+////////////////// New winchie [8]
+//////////////////
+8 // Indice de la linea a la que esta conectado el winchie
+2 // Extremo de la linea al que esta conectado el winchie [1: Nodo 1, 2: Nodo N]
+50.0 // Momento de inercia del winchie (kg·m^2)
+0.25 // Radio del winchie (m)
+0.5 // Winche drag (N·s/rad)

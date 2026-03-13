@@ -1,0 +1,61 @@
+0 // Number of Actuators
+0 // Number of Anchors
+0 // Number of Joints
+4 // Number of Fairleads
+4 // Number of Elastic Anchors
+//////////////////
+////////////////// New BCP [1] [Fairlead] [1]
+//////////////////
+5.0 5.0 -2.0  // Initial position (local body cdg coordinates) [m]
+0 // Winch Id
+//////////////////
+////////////////// New BCP [2] [Fairlead] [2]
+//////////////////
+-5.0 5.0 -2.0  // Initial position (local body cdg coordinates) [m]
+0 // Winch Id
+//////////////////
+////////////////// New BCP [3] [Fairlead] [3]
+//////////////////
+5.0 -5.0 -2.0  // Initial position (local body cdg coordinates) [m]
+0 // Winch Id
+//////////////////
+////////////////// New BCP [4] [Fairlead] [4]
+//////////////////
+-5.0 -5.0 -2.0  // Initial position (local body cdg coordinates) [m]
+0 // Winch Id
+//////////////////
+////////////////// New BCP [5] [ElasticAnchor] [1]
+//////////////////
+50.0 50.0 -100.0  // Initial position (global) [m] - becomes reference position
+0 // Winch Id
+500.0   // Anchor mass [kg]
+0.1     // Anchor volume [m3]
+50000.0 // c_param: ultimate holding capacity [N]
+0.1     // k_param: rate parameter [1/m]
+//////////////////
+////////////////// New BCP [6] [ElasticAnchor] [2]
+//////////////////
+-50.0 50.0 -100.0  // Initial position (global) [m] - becomes reference position
+0 // Winch Id
+500.0   // Anchor mass [kg]
+0.1     // Anchor volume [m3]
+50000.0 // c_param: ultimate holding capacity [N]
+0.1     // k_param: rate parameter [1/m]
+//////////////////
+////////////////// New BCP [7] [ElasticAnchor] [3]
+//////////////////
+50.0 -50.0 -100.0  // Initial position (global) [m] - becomes reference position
+0 // Winch Id
+500.0   // Anchor mass [kg]
+0.1     // Anchor volume [m3]
+50000.0 // c_param: ultimate holding capacity [N]
+0.1     // k_param: rate parameter [1/m]
+//////////////////
+////////////////// New BCP [8] [ElasticAnchor] [4]
+//////////////////
+-50.0 -50.0 -100.0  // Initial position (global) [m] - becomes reference position
+0 // Winch Id
+500.0   // Anchor mass [kg]
+0.1     // Anchor volume [m3]
+50000.0 // c_param: ultimate holding capacity [N]
+0.1     // k_param: rate parameter [1/m]

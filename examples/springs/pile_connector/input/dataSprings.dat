@@ -1,0 +1,98 @@
+1 // Number of Springs
+//////////////////
+////////////////// New spring [1] [PILE FENDER GUIDE]
+//////////////////
+2 // Flag for spring stress model [1: linear (matrix), 2: non-linear (stress-strain curve)]
+1 // Flag spring damping [0: no, 1: yes]
+1 // Flag spring friction [0: no, 1: Velocity-based, 2: Stick-Slip]
+1 // Flag to indicate the frame for forces and deformations computations [0: average frame, 1: BCP1 frame, 2: BCP2 frame]
+1 // BCP1 index — anchor (pile position)
+2 // BCP2 index — fairlead (body attachment)
+1 // BCP1 type [0: fixed point, 1: point on a line (vector z), 2: point on a plane (normal vector x)] — slides along pile axis (Z)
+0 // BCP2 type [0: fixed point, 1: point on a line (vector z), 2: point on a plane (normal vector x)]
+1.0 0.0 0.0 // Spring normal vector    (x) for BCP1
+0.0 1.0 0.0 // Spring tangent vector 1 (y) for BCP1
+0.0 0.0 1.0 // Spring tangent vector 2 (z) for BCP1 — pile vertical axis
+1.0 0.0 0.0 // Spring normal vector    (x) for BCP2
+0.0 1.0 0.0 // Spring tangent vector 1 (y) for BCP2
+0.0 0.0 1.0 // Spring tangent vector 2 (z) for BCP2
+// STIFFNESS MATRIX (unused for nonlinear model, but must be present)
+0.0 0.0 0.0 0.0 0.0 0.0  // Spring stiffness matrix, row 1
+0.0 0.0 0.0 0.0 0.0 0.0  // Spring stiffness matrix, row 2
+0.0 0.0 0.0 0.0 0.0 0.0  // Spring stiffness matrix, row 3
+0.0 0.0 0.0 0.0 0.0 0.0  // Spring stiffness matrix, row 4
+0.0 0.0 0.0 0.0 0.0 0.0  // Spring stiffness matrix, row 5
+0.0 0.0 0.0 0.0 0.0 0.0  // Spring stiffness matrix, row 6
+// FRICTION COEFFICIENTS
+0.02 // Dynamic friction coefficient mu_d
+0.20 // Static friction coefficient mu_s
+0.001 // Transition velocity threshold [m/s]
+0.01 // Maximum stick-slip deformation [m] (Stick-Slip only)
+// FRICTION MATRIX
+0.0 1.0 0.0 0.0 0.0 0.0  // Spring friction matrix, row 1 — DOF1 friction scales with DOF2 load
+1.0 0.0 0.0 0.0 0.0 0.0  // Spring friction matrix, row 2 — DOF2 friction scales with DOF1 load
+1.0 1.0 0.0 0.0 0.0 0.0  // Spring friction matrix, row 3 — DOF3 friction scales with DOF1+DOF2 load
+0.0 0.0 0.0 0.0 0.0 0.0  // Spring friction matrix, row 4
+0.0 0.0 0.0 0.0 0.0 0.0  // Spring friction matrix, row 5
+0.0 0.0 0.0 0.0 0.0 0.0  // Spring friction matrix, row 6
+// DAMPING COEFFICIENTS
+200000.0 // Spring damping coefficient, DOF 1 (surge)
+200000.0 // Spring damping coefficient, DOF 2 (sway)
+0.0 // Spring damping coefficient, DOF 3 (heave)
+0.0 // Spring damping coefficient, DOF 4 (roll)
+0.0 // Spring damping coefficient, DOF 5 (pitch)
+0.0 // Spring damping coefficient, DOF 6 (yaw)
+// Stress strain curve DOF 1 — surge: ±30mm clearance gap then stiff contact
+8 // Number of points
+-1.0 -0.07 -0.03 -0.029 0.029 0.03 0.07 1.0  // DOF 1 Strain data [m]
+-30000000000.0 -400000.0 -1.0 0.0 0.0 1.0 400000.0 30000000000.0  // Stress in DOF 1 [N]
+0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0  // Stress in DOF 2
+0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0  // Stress in DOF 3
+0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0  // Stress in DOF 4
+0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0  // Stress in DOF 5
+0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0  // Stress in DOF 6
+// Stress strain curve DOF 2 — sway: ±40mm clearance gap then stiff contact
+8 // Number of points
+-1.0 -0.11 -0.04 -0.039 0.039 0.04 0.11 1.0  // DOF 2 Strain data [m]
+0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0  // Stress in DOF 1
+-10000000000.0 -328000.0 -1.0 0.0 0.0 1.0 328000.0 10000000000.0  // Stress in DOF 2 [N]
+0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0  // Stress in DOF 3
+0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0  // Stress in DOF 4
+0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0  // Stress in DOF 5
+0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0  // Stress in DOF 6
+// Stress strain curve DOF 3 — heave: no spring force (free to slide on pile)
+2 // Number of points
+-100.0 100.0  // DOF 3 Strain data [m]
+0.0 0.0  // Stress in DOF 1
+0.0 0.0  // Stress in DOF 2
+0.0 0.0  // Stress in DOF 3
+0.0 0.0  // Stress in DOF 4
+0.0 0.0  // Stress in DOF 5
+0.0 0.0  // Stress in DOF 6
+// Stress strain curve DOF 4 — roll: no spring moment
+2 // Number of points
+-100.0 100.0  // DOF 4 Strain data [rad]
+0.0 0.0  // Stress in DOF 1
+0.0 0.0  // Stress in DOF 2
+0.0 0.0  // Stress in DOF 3
+0.0 0.0  // Stress in DOF 4
+0.0 0.0  // Stress in DOF 5
+0.0 0.0  // Stress in DOF 6
+// Stress strain curve DOF 5 — pitch: no spring moment
+2 // Number of points
+-100.0 100.0  // DOF 5 Strain data [rad]
+0.0 0.0  // Stress in DOF 1
+0.0 0.0  // Stress in DOF 2
+0.0 0.0  // Stress in DOF 3
+0.0 0.0  // Stress in DOF 4
+0.0 0.0  // Stress in DOF 5
+0.0 0.0  // Stress in DOF 6
+// Stress strain curve DOF 6 — yaw: no spring moment
+2 // Number of points
+-100.0 100.0  // DOF 6 Strain data [rad]
+0.0 0.0  // Stress in DOF 1
+0.0 0.0  // Stress in DOF 2
+0.0 0.0  // Stress in DOF 3
+0.0 0.0  // Stress in DOF 4
+0.0 0.0  // Stress in DOF 5
+0.0 0.0  // Stress in DOF 6

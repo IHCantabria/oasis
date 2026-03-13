@@ -1,0 +1,27 @@
+9.81        // Gravity acceleration [m/s^2]
+1025.0      // Water density [kg/m^3]
+1.225       // Air density at atmospheric pressure [kg/m^3]
+101325.0    // Atmospheric pressure [Pa]
+1.4         // Air adiabatic dilation [-]
+-500.0       // Seabed vertical coordinate [m]
+0.1         // Output time step [s]
+0.1        // Maximum time step for time integration [s]
+0.1        // Time step for hydrodynamic forces computation [s]
+0.1         // Time step for FAST wind turbines forces computation [s]
+0.1         // Time step for FAST wind turbines controller update [s]
+20.0        // IRF time [s]
+15.0        // Time step for sinking hydrodynamic data bases update [s]
+0.1         // Time step for winches controller [s]
+0.1         // Time step for OWC turbines controller [s]
+5.0       // Total time of simulation [s]
+1           // Flag to use simplification for rigid body rotation dynamics [0 No, 1 Yes]
+1           // Temporal integration algorithm [1: BDF1, 2: BDFN, 3: ESDIRK46]
+2           // Order for temporal integration (only for BDFN)
+0           // Time step adaptivity [0 No, 1 Yes]
+0           // Maximum number of steps for temporal integration Jacobian re-computation.
+1e-5        // Absolute tolerance for temporal integration.
+1e-3        // Relative tolerance for temporal integration.
+5           // Maximum number of iterations for one step of temporal integration.
+0           // Read dataStaticIC.dat? [0 No, 1 Yes]
+0           // Write dataStaticIC.dat? [0 No, 1 Yes]
+1           // Mooring initial condition flag [0: Catenary, 1: Newton's]

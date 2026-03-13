@@ -1,0 +1,15 @@
+0 // Number of Actuators
+1 // Number of Anchors
+0 // Number of Joints
+1 // Number of Fairleads
+0 // Number of Elastic Anchors
+//////////////////
+////////////////// New BCP [1] [Anchor] [1]
+//////////////////
+5.0 0.0 0.0  // Initial position (global) [m] — pile location at waterline
+0 // Winch Id
+//////////////////
+////////////////// New BCP [2] [Fairlead] [1]
+//////////////////
+5.0 0.0 0.0  // Initial position (local body cdg coordinates) [m] — fender guide attachment on body
+0 // Winch Id

@@ -1,0 +1,8 @@
+//////////////////
+////////////////// Basic wave data
+//////////////////
+REG // Wave type. Available types: REG, IRR
+2.0 // Wave height [m]
+10.0 // Wave period [s]
+0.0 // Wave heading (with respect to fixed frame) [deg]
+5.0 // Ramp time [s]

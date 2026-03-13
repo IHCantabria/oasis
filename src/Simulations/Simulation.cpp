@@ -1187,10 +1187,10 @@ void Simulation::ReadBodiesASCII()
                 ss << "Error while parsing file: dataBodies.dat\n --> Expected body: " << ii << " type definition\n";
                 throw ValueError(ss.str());
             }
-
-            // Close file
-            fclose(pFile);
         }
+
+        // Close file
+        fclose(pFile);
         std::cout << "--> ... done!" << std::endl;
 
         // Loop over bodies in order to get the number of hydrodynamic databases
@@ -2273,10 +2273,10 @@ void Simulation::Run()
                 }
             }
 
-            if (pTimeSolver->t >= wallTimeHydro + hydroTimeStep)
+            if (pTimeSolver->t >= wallTimeHydro + hydroTimeStep - 1e-12)
             {
                 // std::cout<< "In Simulation::Run --> Computing hydrodynamic forces... "<< std::endl;
-                wallTimeHydro = std::floor(pTimeSolver->t / hydroTimeStep) * hydroTimeStep;
+                wallTimeHydro = writeTimeStep * round((wallTimeHydro + hydroTimeStep) / hydroTimeStep);
                 if (numBodies > 0)
                 {
                     UpdateSystem();

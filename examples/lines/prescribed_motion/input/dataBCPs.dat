@@ -1,0 +1,16 @@
+1 // Number of Actuators
+1 // Number of Anchors
+0 // Number of Joints
+0 // Number of Fairleads
+0 // Number of Elastic Anchors
+//////////////////
+////////////////// New BCP [1] [Actuator] [1]
+//////////////////
+5.0 0.0 -2.0  // Initial position (global) [m]
+0 // Winch Id
+dataActuator_0.dat // Actuator prescribed motion file
+//////////////////
+////////////////// New BCP [2] [Anchor] [1]
+//////////////////
+60.0 0.0 -100.0  // Initial position (global) [m]
+0 // Winch Id

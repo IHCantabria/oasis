@@ -1,0 +1,15 @@
+0 // Number of Actuators
+0 // Number of Anchors
+0 // Number of Joints
+2 // Number of Fairleads
+0 // Number of Elastic Anchors
+//////////////////
+////////////////// New BCP [1] [Fairlead] [1]
+//////////////////
+10.075 0.0 0.0  // Initial position (local body 1 cdg coordinates) [m] — edge of dike 1
+0 // Winch Id
+//////////////////
+////////////////// New BCP [2] [Fairlead] [2]
+//////////////////
+-10.075 0.0 0.0  // Initial position (local body 2 cdg coordinates) [m] — edge of dike 2
+0 // Winch Id
