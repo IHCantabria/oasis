@@ -24,12 +24,12 @@ dummy.stl // Name of the file containing the hydrostatics mesh if needed (unused
 ////////////////// New body [2]
 //////////////////
 RAD_DIFF // Body type. Available types: RAD_DIFF
-1 // Take center of gravity from hydrodynamic database [0: NO, 1: YES]
+0 // Take center of gravity from hydrodynamic database [0: NO, 1: YES]
 1 2 3 4 5 6 // Considered DOFs
 2 // BCPs indexes
 // Wind Turbines indexes
-0.0 0.0 0.0 0.0 0.0 0.0 // Body initial position (C.O.G position). It must be the hydrostatic equilibrium position
-20.15 0.0 0.0 0.0 0.0 0.0 // Body initial displacement (From initial C.O.G position)
+20.15 0.0 0.0 0.0 0.0 0.0 // Body initial position (C.O.G position). It must be the hydrostatic equilibrium position
+0.0 0.0 0.0 0.0 0.0 0.0 // Body initial displacement (From initial C.O.G position)
 dique_cadenas.hydb.h5 // Name of the hydrodynamic database
 1 // Index of the body in the hydrodynamic database
 0 // Body freedom flag [0: Body is free to move; 1: Body is locked on initial position; 2: Body moves in an imposed motion]

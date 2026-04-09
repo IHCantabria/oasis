@@ -228,6 +228,19 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     {
         std::cout << std::endl
                   << "ERROR: NaN or Inf detected in Fb for hydrostatic or hydrodynamic forces" << std::endl;
+        std::cout << "  time = " << time << std::endl;
+        std::cout << "  coefHydro = " << coefHydro << ", coefHydro_old = " << coefHydro_old << ", coefHydro_old2 = " << coefHydro_old2 << std::endl;
+        std::cout << "  lastHydroTime = " << lastHydroTime << ", lastHydroTime_old = " << lastHydroTime_old << ", lastHydroTime_old2 = " << lastHydroTime_old2 << std::endl;
+        for (int ii = 0; ii < numBodiesFree; ii++)
+        {
+            std::cout << "  body " << pBodiesFree[ii]->GetId() + 1
+                      << " Fb: " << pBodiesFree[ii]->Fb.t()
+                      << "  Fb_old: " << pBodiesFree[ii]->Fb_old.t()
+                      << "  Fb_old2: " << pBodiesFree[ii]->Fb_old2.t()
+                      << "  pos: " << pBodiesFree[ii]->pos.t()
+                      << "  pos_eq: " << pBodiesFree[ii]->pos_eq.t()
+                      << "  vel: " << pBodiesFree[ii]->vel.t();
+        }
         throw std::exception();
     }
 
@@ -368,6 +381,11 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     {
         std::cout << std::endl
                   << "ERROR: NaN or Inf detected in bodies accelerations" << std::endl;
+        std::cout << "  time = " << time << std::endl;
+        std::cout << "  accB: " << accB.t();
+        std::cout << "  Fb: " << Fb.t();
+        if (pSystemMatrixInv->has_nan() || pSystemMatrixInv->has_inf())
+            std::cout << "  pSystemMatrixInv has NaN/Inf!" << std::endl;
         throw std::exception();
     }
     for (int ii = 0; ii < numBodiesFree; ii++)
@@ -1422,11 +1440,23 @@ void Simulation::ReadBodiesASCII()
         }
         // Invert system matrix
         std::cout << "Inverting system matrix...\n";
+        std::cout << "  System matrix diagonal: " << arma::diagvec(*pSystemMatrix).t();
         *pSystemMatrixInv = arma::solve(*pSystemMatrix, eye(size(*pSystemMatrix)));
+        if (pSystemMatrixInv->has_nan() || pSystemMatrixInv->has_inf())
+        {
+            std::cout << "  WARNING: System matrix inverse has NaN or Inf entries!" << std::endl;
+            std::cout << "  System matrix inverse diagonal: " << arma::diagvec(*pSystemMatrixInv).t();
+        }
         if (numBodiesFree > 0)
         {
             pSystemMatrixFFInv = new arma::mat(6 * numBodiesFree, 6 * numBodiesFree, arma::fill::zeros);
             *pSystemMatrixFFInv = arma::solve(*pSystemMatrixFF, eye(size(*pSystemMatrixFF)));
+            if (pSystemMatrixFFInv->has_nan() || pSystemMatrixFFInv->has_inf())
+            {
+                std::cout << "  WARNING: Free-body system matrix inverse has NaN or Inf entries!" << std::endl;
+                std::cout << "  Free-body system matrix diagonal: " << arma::diagvec(*pSystemMatrixFF).t();
+                std::cout << "  Free-body system matrix inverse diagonal: " << arma::diagvec(*pSystemMatrixFFInv).t();
+            }
         }
         std::cout << "System matrix inverted...\n";
 
@@ -2279,14 +2309,23 @@ void Simulation::Run()
                 {
                     UpdateSystem();
                 }
+                // Update Lagrange interpolation time stamps ONCE (outside body loop)
+                lastHydroTime_old2 = lastHydroTime_old;
+                lastHydroTime_old = lastHydroTime;
+                lastHydroTime = pTimeSolver->t;
                 for (int ii = 0; ii < numBodies; ii = ii + 1)
                 {
-                    lastHydroTime_old2 = lastHydroTime_old;
-                    lastHydroTime_old = lastHydroTime;
-                    lastHydroTime = pTimeSolver->t;
                     pBodies[ii]->Fb_old2 = pBodies[ii]->Fb_old;
                     pBodies[ii]->Fb_old = pBodies[ii]->Fb;
                     pBodies[ii]->Fb = pBodies[ii]->pHydro->CalculateHydrodynamicForces(pTimeSolver->t) + pBodies[ii]->pHydro->CalculateHydrostaticForces(pTimeSolver->t);
+                    if (pBodies[ii]->Fb.has_nan() || pBodies[ii]->Fb.has_inf())
+                    {
+                        std::cout << "  DEBUG: NaN/Inf in Run() Fb update for body " << ii + 1 << " at t = " << pTimeSolver->t << std::endl;
+                        std::cout << "  Fb: " << pBodies[ii]->Fb.t();
+                        std::cout << "  pos: " << pBodies[ii]->pos.t();
+                        std::cout << "  pos_eq: " << pBodies[ii]->pos_eq.t();
+                        std::cout << "  vel: " << pBodies[ii]->vel.t();
+                    }
                 }
             }
 
