@@ -17,7 +17,7 @@ All examples can be run together via `run_all_examples.bat` (Windows) or `run_al
 | # | Group | Directory | Description | Status |
 |---|---|---|---|---|
 | 1 | **Body Behavior** | `body/` | Floating body dynamics: free/fixed/partial DOFs, imposed motion, radiation, excitation, non-linear hydrostatics, QTF | Done |
-| 2 | **Wave Types** | `waves/` | Regular, irregular (JONSWAP), time-series, frequency-domain, multi-directional, piecewise decomposition | Planned |
+| 2 | **Wave Types** | `waves/` | Regular, irregular (JONSWAP), time-series, frequency-domain, multi-directional, piecewise decomposition | Done |
 | 3 | **Mooring Lines** | `lines/` | Dynamic mooring lines: single/multi-line, BCP types (anchor, fairlead, joint, elastic anchor, actuator), material models (linear, viscoelastic, tabulated), tension models, seabed contact, friction (isotropic, anisotropic) | Done |
 | 4 | **Springs** | `springs/` | Nonlinear springs: pile connector with friction, neoprene+wire body-to-body connector | Done |
 | 5 | **Wind Turbines** | `turbines/` | OpenFAST coupling on fixed and moored bodies, isobara hydro | Done |
@@ -45,7 +45,14 @@ examples/
 │   ├── nonlinear_hs_flat/
 │   ├── nonlinear_hs_waves/
 │   └── qtf/
-├── waves/                      # Group 2: Wave types (PLANNED)
+├── waves/                      # Group 2: Wave types (DONE)
+│   ├── README.md
+│   ├── regular/
+│   ├── jonswap/
+│   ├── jonswap_piecewise/
+│   ├── multidirectional/
+│   ├── timeseries/
+│   └── frequency_domain/
 ├── lines/                      # Group 3: Mooring lines (DONE)
 │   ├── README.md
 │   ├── single_line/

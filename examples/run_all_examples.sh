@@ -188,6 +188,112 @@ fi
 echo
 
 # ==============================================================
+# Wave type examples
+# ==============================================================
+
+# --- waves/regular ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running waves/regular..."
+cd waves/regular || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: waves/regular"
+    FAILED_TESTS="$FAILED_TESTS waves/regular"
+else
+    echo "PASSED: waves/regular"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
+# --- waves/jonswap ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running waves/jonswap..."
+cd waves/jonswap || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: waves/jonswap"
+    FAILED_TESTS="$FAILED_TESTS waves/jonswap"
+else
+    echo "PASSED: waves/jonswap"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
+# --- waves/jonswap_piecewise ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running waves/jonswap_piecewise..."
+cd waves/jonswap_piecewise || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: waves/jonswap_piecewise"
+    FAILED_TESTS="$FAILED_TESTS waves/jonswap_piecewise"
+else
+    echo "PASSED: waves/jonswap_piecewise"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
+# --- waves/multidirectional ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running waves/multidirectional..."
+cd waves/multidirectional || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: waves/multidirectional"
+    FAILED_TESTS="$FAILED_TESTS waves/multidirectional"
+else
+    echo "PASSED: waves/multidirectional"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
+# --- waves/timeseries ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running waves/timeseries..."
+cd waves/timeseries || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: waves/timeseries"
+    FAILED_TESTS="$FAILED_TESTS waves/timeseries"
+else
+    echo "PASSED: waves/timeseries"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
+# --- waves/frequency_domain ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running waves/frequency_domain..."
+cd waves/frequency_domain || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: waves/frequency_domain"
+    FAILED_TESTS="$FAILED_TESTS waves/frequency_domain"
+else
+    echo "PASSED: waves/frequency_domain"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
+# ==============================================================
 # Mooring lines examples
 # ==============================================================
 

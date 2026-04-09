@@ -194,6 +194,112 @@ if %RESULT% NEQ 0 (
 echo.
 
 REM ==============================================================
+REM Wave type examples
+REM ==============================================================
+
+REM --- waves/regular ---
+set /a TEST_NUM+=1
+echo [%TEST_NUM%] Running waves/regular...
+cd waves\regular
+call run.bat
+set RESULT=%ERRORLEVEL%
+cd ..\..
+set /a TOTAL_TESTS+=1
+if %RESULT% NEQ 0 (
+    echo FAILED: waves/regular
+    set FAILED_TESTS=%FAILED_TESTS% waves/regular
+) else (
+    echo PASSED: waves/regular
+    set /a PASSED_TESTS+=1
+)
+echo.
+
+REM --- waves/jonswap ---
+set /a TEST_NUM+=1
+echo [%TEST_NUM%] Running waves/jonswap...
+cd waves\jonswap
+call run.bat
+set RESULT=%ERRORLEVEL%
+cd ..\..
+set /a TOTAL_TESTS+=1
+if %RESULT% NEQ 0 (
+    echo FAILED: waves/jonswap
+    set FAILED_TESTS=%FAILED_TESTS% waves/jonswap
+) else (
+    echo PASSED: waves/jonswap
+    set /a PASSED_TESTS+=1
+)
+echo.
+
+REM --- waves/jonswap_piecewise ---
+set /a TEST_NUM+=1
+echo [%TEST_NUM%] Running waves/jonswap_piecewise...
+cd waves\jonswap_piecewise
+call run.bat
+set RESULT=%ERRORLEVEL%
+cd ..\..
+set /a TOTAL_TESTS+=1
+if %RESULT% NEQ 0 (
+    echo FAILED: waves/jonswap_piecewise
+    set FAILED_TESTS=%FAILED_TESTS% waves/jonswap_piecewise
+) else (
+    echo PASSED: waves/jonswap_piecewise
+    set /a PASSED_TESTS+=1
+)
+echo.
+
+REM --- waves/multidirectional ---
+set /a TEST_NUM+=1
+echo [%TEST_NUM%] Running waves/multidirectional...
+cd waves\multidirectional
+call run.bat
+set RESULT=%ERRORLEVEL%
+cd ..\..
+set /a TOTAL_TESTS+=1
+if %RESULT% NEQ 0 (
+    echo FAILED: waves/multidirectional
+    set FAILED_TESTS=%FAILED_TESTS% waves/multidirectional
+) else (
+    echo PASSED: waves/multidirectional
+    set /a PASSED_TESTS+=1
+)
+echo.
+
+REM --- waves/timeseries ---
+set /a TEST_NUM+=1
+echo [%TEST_NUM%] Running waves/timeseries...
+cd waves\timeseries
+call run.bat
+set RESULT=%ERRORLEVEL%
+cd ..\..
+set /a TOTAL_TESTS+=1
+if %RESULT% NEQ 0 (
+    echo FAILED: waves/timeseries
+    set FAILED_TESTS=%FAILED_TESTS% waves/timeseries
+) else (
+    echo PASSED: waves/timeseries
+    set /a PASSED_TESTS+=1
+)
+echo.
+
+REM --- waves/frequency_domain ---
+set /a TEST_NUM+=1
+echo [%TEST_NUM%] Running waves/frequency_domain...
+cd waves\frequency_domain
+call run.bat
+set RESULT=%ERRORLEVEL%
+cd ..\..
+set /a TOTAL_TESTS+=1
+if %RESULT% NEQ 0 (
+    echo FAILED: waves/frequency_domain
+    set FAILED_TESTS=%FAILED_TESTS% waves/frequency_domain
+) else (
+    echo PASSED: waves/frequency_domain
+    set /a PASSED_TESTS+=1
+)
+echo.
+
+REM ==============================================================
 REM Mooring lines examples
 REM ==============================================================
 
