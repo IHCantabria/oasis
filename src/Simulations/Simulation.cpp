@@ -1127,8 +1127,6 @@ void Simulation::ReadBodiesASCII()
     int diff_count = 0;
     int hydro_database_count = 0;
     std::string hydro_databases_name[300];
-    int max_num_bodies_database = 100;
-    int pos_body = 0;
     int pos_database = 0;
 
     // Parse file in order to guess the number of bodies
@@ -1215,12 +1213,21 @@ void Simulation::ReadBodiesASCII()
         }
 
         std::cout << "--> HDB files considered:" << std::endl;
-        for (int ii = 0; ii < hydro_database_count + 1; ii++)
+        for (int ii = 0; ii < hydro_database_count; ii++)
         {
             std::cout << "    -->" << hydro_databases_name[ii].c_str() << std::endl;
         }
 
-        // Arrange all the bodies by database
+        // Pre-determine the number of bodies in each HDB file
+        int *numBodiesPerHDB = new int[hydro_database_count];
+        for (int ii = 0; ii < hydro_database_count; ii++)
+        {
+            std::string hdb_path = JoinPath(inputFolderPath, hydro_databases_name[ii]);
+            numBodiesPerHDB[ii] = HydroDatabase::GetNumBodiesFromFile(hdb_path);
+            std::cout << "    --> HDB: " << hydro_databases_name[ii] << " contains " << numBodiesPerHDB[ii] << " bodies" << std::endl;
+        }
+
+        // Arrange all the bodies by database (different logic for single vs multi-body HDBs)
         Body **pBodiesSort = new Body *[numBodies];
         int *pBody_found = new int[numBodies];
         for (int ii = 0; ii < numBodies; ii++)
@@ -1229,14 +1236,55 @@ void Simulation::ReadBodiesASCII()
         }
         for (int ii = 0; ii < hydro_database_count; ii++)
         {
-            for (int jj = 0; jj < numBodies; jj++)
+            if (numBodiesPerHDB[ii] == 1)
             {
-                if ((hydro_databases_name[ii].compare(pBodies[jj]->hydroDatabaseName) == 0) && (pBody_found[jj] == 0))
+                // Single-body HDB: multiple OASIS bodies can share it, add sequentially
+                for (int jj = 0; jj < numBodies; jj++)
                 {
-                    pBody_found[jj] = 1;
-                    pBodiesSort[body_count] = pBodies[jj];
-                    body_count++;
+                    if ((hydro_databases_name[ii].compare(pBodies[jj]->hydroDatabaseName) == 0) && (pBody_found[jj] == 0))
+                    {
+                        pBody_found[jj] = 1;
+                        pBodiesSort[body_count] = pBodies[jj];
+                        body_count++;
+                    }
                 }
+            }
+            else
+            {
+                // Multi-body HDB: bodies must be placed by their hydroDatabaseIndex
+                int temp_nB_hdb = numBodiesPerHDB[ii];
+                int temp_nB_found = 0;
+                arma::uvec temp_hdb_ind(temp_nB_hdb);
+                for (int jj = 0; jj < numBodies; jj++)
+                {
+                    if ((hydro_databases_name[ii].compare(pBodies[jj]->hydroDatabaseName) == 0) && (pBody_found[jj] == 0))
+                    {
+                        pBody_found[jj] = 1;
+                        pBodiesSort[body_count + pBodies[jj]->hydroDatabaseIndex] = pBodies[jj];
+                        if (temp_nB_found < temp_nB_hdb)
+                        {
+                            temp_hdb_ind(temp_nB_found) = pBodies[jj]->hydroDatabaseIndex;
+                        }
+                        temp_nB_found++;
+                    }
+                }
+                // Validate: all body indices in the multi-body HDB must be used
+                if (temp_nB_found != temp_nB_hdb)
+                {
+                    std::stringstream ss;
+                    ss << "ERROR: Not all bodies in multi-body HDB " << hydro_databases_name[ii]
+                       << " are used. Expected " << temp_nB_hdb << " but found " << temp_nB_found << ".\n";
+                    throw ValueError(ss.str());
+                }
+                // Validate: no repeated body indices in multi-body HDB
+                arma::uvec temp_hdb_ind_unique = arma::unique(temp_hdb_ind);
+                if ((int)temp_hdb_ind_unique.n_elem != temp_nB_hdb)
+                {
+                    std::stringstream ss;
+                    ss << "ERROR: Repeated body indices in multi-body HDB: " << hydro_databases_name[ii] << "\n";
+                    throw ValueError(ss.str());
+                }
+                body_count += temp_nB_hdb;
             }
         }
         delete[] pBody_found;
@@ -1277,61 +1325,6 @@ void Simulation::ReadBodiesASCII()
             }
         }
 
-        // Create an array in order to store the indexes of the bodies in each database
-        int **check_hydro_bodies_id = new int *[hydro_database_count];
-        Body ***check_hydro_bodies = new Body **[hydro_database_count];
-        for (int ii = 0; ii < hydro_database_count; ii++)
-        {
-            check_hydro_bodies_id[ii] = new int[max_num_bodies_database + 1];
-            check_hydro_bodies[ii] = new Body *[max_num_bodies_database];
-        }
-        for (int ii = 0; ii < hydro_database_count; ii++)
-        {
-            for (int jj = 0; jj < max_num_bodies_database + 1; jj++)
-            {
-                check_hydro_bodies_id[ii][jj] = 0;
-            }
-        }
-
-        // Check if there is some repeated body definition in each database
-        std::cout << "Looking for body repetition..." << std::endl;
-        for (int ii = 0; ii < this->numBodies; ii++)
-        {
-            // Find database position inside the array of names generated previously
-            pos_database = 0;
-            while (true)
-            {
-                if (pBodies[ii]->hydroDatabaseName.compare(hydro_databases_name[pos_database]) == 0)
-                {
-                    break;
-                }
-                pos_database++;
-                if (pos_database >= hydro_database_count)
-                {
-                    std::stringstream ss;
-                    ss << "It is not possible to find the name of the hydro database: " << pBodies[ii]->hydroDatabaseName;
-                    ss << " in the list of the hydrodatabase names done with bodies definition.";
-                    throw ValueError(ss.str());
-                }
-            }
-
-            // Check if the body id already exist
-            for (int jj = 1; jj <= check_hydro_bodies_id[pos_database][0]; jj++)
-            {
-                if (check_hydro_bodies_id[pos_database][jj] == pBodies[ii]->hydroDatabaseIndex)
-                {
-                    std::stringstream ss;
-                    ss << "Repeated Hydrodynamic Bodoy Index(" << pBodies[ii]->hydroDatabaseIndex << ") definition for Body: ";
-                    ss << ii << " and hydrodynamic database: " << hydro_databases_name[pos_database];
-                    throw ValueError(ss.str());
-                }
-            }
-            std::cout << check_hydro_bodies_id[pos_database][0] << std::endl;
-            check_hydro_bodies_id[pos_database][0]++;
-            check_hydro_bodies_id[pos_database][check_hydro_bodies_id[pos_database][0]] = pBodies[ii]->hydroDatabaseIndex;
-            check_hydro_bodies[pos_database][check_hydro_bodies_id[pos_database][0] - 1] = pBodies[ii];
-        }
-
         // Set hydrodynamic database to each body
         std::string hydro_file_path;
         for (int ii = 0; ii < this->numBodies; ii++)
@@ -1347,51 +1340,58 @@ void Simulation::ReadBodiesASCII()
                 pos_database++;
             }
 
-            // Set database to the target Body object
-            hydro_file_path = JoinPath(this->inputFolderPath, hydro_databases_name[pos_database]);
-            this->pBodies[ii]->LoadHydrodynamicDatabase(check_hydro_bodies[pos_database]);
+            int nBodiesInHDB = numBodiesPerHDB[pos_database];
+            if (nBodiesInHDB == 1)
+            {
+                // Single-body HDB: create a private 1-element body array for this body
+                Body **pSingleBodyArray = new Body *[1];
+                pSingleBodyArray[0] = pBodies[ii];
+                this->pBodies[ii]->LoadHydrodynamicDatabase(pSingleBodyArray, 0);
+            }
+            else
+            {
+                // Multi-body HDB: build shared body array indexed by hydroDatabaseIndex
+                Body **pMultiBodyArray = new Body *[nBodiesInHDB];
+                for (int jj = 0; jj < nBodiesInHDB; jj++)
+                {
+                    pMultiBodyArray[jj] = pBodies[ii - pBodies[ii]->hydroDatabaseIndex + jj];
+                }
+                this->pBodies[ii]->LoadHydrodynamicDatabase(pMultiBodyArray, pBodies[ii]->hydroDatabaseIndex);
+            }
         }
 
         // Fill System Matrix
         std::cout << "Fill system matrix...\n";
         arma::span a1;
         arma::span a2;
-        int nn2;
-        int db_shift;
-        int body_shift;
         this->pSystemMatrix = new arma::mat(6 * this->numBodies, 6 * this->numBodies, arma::fill::zeros);
         this->pSystemMatrixInv = new arma::mat(6 * this->numBodies, 6 * this->numBodies, arma::fill::zeros);
         for (int ii = 0; ii < this->numBodies; ii++)
         {
-            // Look for position of the database
-            pos_database = 0;
-            while (true)
-            {
-                if (this->pBodies[ii]->hydroDatabaseName.compare(hydro_databases_name[pos_database]) == 0)
-                {
-                    break;
-                }
-                pos_database++;
-            }
+            // Body rows
+            a1 = arma::span(6 * ii, 6 * ii + 5);
 
-            db_shift = 0;
-            for (int jj = 0; jj < pos_database; jj++)
+            // Get number of bodies in body's HDB
+            int temp_nB_hdb = pBodies[ii]->pHydro->GetNumBodies();
+            if (temp_nB_hdb == 1)
             {
-                db_shift += 6 * check_hydro_bodies_id[pos_database][0];
+                // Single-body HDB: diagonal block only, no cross-coupling
+                a2 = a1;
             }
-
-            // Look for position of the body
-            body_shift = 6 * pBodies[ii]->hydroDatabaseIndex;
+            else
+            {
+                // Multi-body HDB: full cross-coupling span
+                int temp_indHDB = pBodies[ii]->hydroDatabaseIndex;
+                a2 = arma::span(6 * (ii - temp_indHDB), 6 * (ii - temp_indHDB + temp_nB_hdb) - 1);
+            }
 
             // Fill system matrix
-            a1 = arma::span(db_shift + body_shift, db_shift + body_shift + 5);
-            a2 = arma::span(db_shift, db_shift + 6 * check_hydro_bodies_id[pos_database][0] - 1);
             std::cout << "  ... Filling system matrix for body: " << ii + 1 << std::endl;
             (*pSystemMatrix)(a1, a2) += pBodies[ii]->pHydro->GetTotalMass();
             std::cout << "  ... done!" << std::endl;
             pBodies[ii]->sysMatSpan1 = a1;
             pBodies[ii]->sysMatSpan2 = a2;
-            pBodies[ii]->sysMatInd1 = arma::regspace<arma::uvec>(db_shift + body_shift, db_shift + body_shift + 5);
+            pBodies[ii]->sysMatInd1 = arma::regspace<arma::uvec>(6 * ii, 6 * ii + 5);
         }
 
         // Take free dofs index vectors from the system matrix
@@ -1448,9 +1448,7 @@ void Simulation::ReadBodiesASCII()
         this->timeBuffer = arma::zeros(1, time_buffer_size);
 
         // Free memory
-        // TODO: Check memory leaks through the code
-        delete[] check_hydro_bodies_id;
-        delete[] check_hydro_bodies;
+        delete[] numBodiesPerHDB;
 
         std::cout << "--> Bodies Properties Read" << std::endl;
     }

@@ -127,6 +127,9 @@ public:
 	void LoadHydroDataEHYDB(std::string file_path); // Loads the corresponding hydrodynamic data in EHYDB format
 	void LoadHydroDataH5(std::string file_path);	// Loads the corresponding hydrodynamic data in HDF5 format
 
+	// Static utility to read the number of bodies from an HDB file without full initialization
+	static int GetNumBodiesFromFile(const std::string &filePath);
+
 	// Declare inherited virutal methods
 	arma::mat CalculateHydrodynamicForces(double time);
 	void LoadHydrodynamicData(std::string file_path); // Loads the corresponding hydrodynamic data

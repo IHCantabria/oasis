@@ -69,7 +69,7 @@ int Body::GetId(void)
     return id;
 }
 
-void Body::LoadHydrodynamicDatabase(Body **hydroDatabaseBodies)
+void Body::LoadHydrodynamicDatabase(Body **hydroDatabaseBodies, int slotIndex)
 {
     std::cout << "--> Reading Hydrodynamics Properties (HDF5 format)" << std::endl;
 
@@ -77,7 +77,8 @@ void Body::LoadHydrodynamicDatabase(Body **hydroDatabaseBodies)
     std::string file_path = JoinPath(this->pSim->inputFolderPath, this->hydroDatabaseName);
 
     // Load hydrodynamic database
-    this->pHydro = new HydroDatabase(this->hydroDatabaseIndex, this->id, hydroDatabaseBodies, this->pSim);
+    // slotIndex is the position of this body in the hydroDatabaseBodies array
+    this->pHydro = new HydroDatabase(this->hydroDatabaseIndex, slotIndex, hydroDatabaseBodies, this->pSim);
     std::cout << "    --> Loading hydrodynamic database" << std::endl;
     this->pHydro->LoadHydrodynamicData(file_path);
 

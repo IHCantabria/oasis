@@ -109,7 +109,7 @@ public:
 	void ComputeBcpForces(void);							   // Calcula el efecto de las fuerzas sobre los BCPs sobre su CDG
 	void ComputeWindTurbForces(void);						   // Calcula el efecto de las fuerzas de las turbinas sobre su CDG
 	int GetId(void);										   // Returns the body identification number
-	void LoadHydrodynamicDatabase(Body **hydroDatabaseBodies); // Loads the hydrodynamics database associated, if any
+	void LoadHydrodynamicDatabase(Body **hydroDatabaseBodies, int slotIndex); // Loads the hydrodynamics database associated, if any
 	void ReadPropertiesASCII(FILE *filePointer);			   // Leer datos de los cuerpos
 	void OpenOutputFilesASCII(std::string path);
 	void CloseOutputFilesASCII(void);

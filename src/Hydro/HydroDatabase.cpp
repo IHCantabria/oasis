@@ -198,13 +198,38 @@ void HydroDatabase::ComputeIRF(std::string HDBname)
 	std::cout << "    Time elapsed ComputeIRF: " << elapsed << std::endl;
 
 	char buffer[50];
-	for (int ib = 0; ib < pSim->numBodies; ib++)
+	for (int ib = 0; ib < numBodies; ib++)
 	{
 		// sprintf(buffer,"IRF_Body_%d_fromBody_%d.dat", pBodies[idBody]->GetId(), pBodies[ib]->GetId());
 		std::string filename = JoinPath(pSim->outputFolderPath, HDBname);
 		filename = filename + "_IRF_Body_" + std::to_string(pBodies[idBody]->GetId()) +
 				   "_fromBody_" + std::to_string(pBodies[ib]->GetId()) + ".dat";
 		pIRF[ib]->save(filename, arma::arma_ascii);
+	}
+}
+
+int HydroDatabase::GetNumBodiesFromFile(const std::string &filePath)
+{
+	if (filePath.find(".ehydb") != std::string::npos)
+	{
+		arma::mat num_bodies_mat;
+		num_bodies_mat.load(arma::hdf5_name(filePath, "num_bodies"));
+		return static_cast<int>(num_bodies_mat(0));
+	}
+	else if (filePath.find(".hydb.h5") != std::string::npos)
+	{
+		H5::H5File file(filePath, H5F_ACC_RDONLY);
+		H5::Group meshGroup = file.openGroup("/mesh");
+		int nBodies = static_cast<int>(meshGroup.getNumObjs());
+		meshGroup.close();
+		file.close();
+		return nBodies;
+	}
+	else
+	{
+		std::stringstream ss;
+		ss << "GetNumBodiesFromFile: File name does not have a valid extension: " << filePath;
+		throw std::runtime_error(ss.str());
 	}
 }
 
