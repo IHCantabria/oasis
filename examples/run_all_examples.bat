@@ -803,6 +803,78 @@ if %RESULT% NEQ 0 (
 )
 echo.
 
+REM ==============================================================
+REM Solver comparison examples
+REM ==============================================================
+
+REM --- solvers/bdf1 ---
+set /a TEST_NUM+=1
+echo [%TEST_NUM%] Running solvers/bdf1...
+cd solvers\bdf1
+call run.bat
+set RESULT=%ERRORLEVEL%
+cd ..\..
+set /a TOTAL_TESTS+=1
+if %RESULT% NEQ 0 (
+    echo FAILED: solvers/bdf1
+    set FAILED_TESTS=%FAILED_TESTS% solvers/bdf1
+) else (
+    echo PASSED: solvers/bdf1
+    set /a PASSED_TESTS+=1
+)
+echo.
+
+REM --- solvers/bdfn_order2 ---
+set /a TEST_NUM+=1
+echo [%TEST_NUM%] Running solvers/bdfn_order2...
+cd solvers\bdfn_order2
+call run.bat
+set RESULT=%ERRORLEVEL%
+cd ..\..
+set /a TOTAL_TESTS+=1
+if %RESULT% NEQ 0 (
+    echo FAILED: solvers/bdfn_order2
+    set FAILED_TESTS=%FAILED_TESTS% solvers/bdfn_order2
+) else (
+    echo PASSED: solvers/bdfn_order2
+    set /a PASSED_TESTS+=1
+)
+echo.
+
+REM --- solvers/bdfn_order4 ---
+set /a TEST_NUM+=1
+echo [%TEST_NUM%] Running solvers/bdfn_order4...
+cd solvers\bdfn_order4
+call run.bat
+set RESULT=%ERRORLEVEL%
+cd ..\..
+set /a TOTAL_TESTS+=1
+if %RESULT% NEQ 0 (
+    echo FAILED: solvers/bdfn_order4
+    set FAILED_TESTS=%FAILED_TESTS% solvers/bdfn_order4
+) else (
+    echo PASSED: solvers/bdfn_order4
+    set /a PASSED_TESTS+=1
+)
+echo.
+
+REM --- solvers/esdirk46 ---
+set /a TEST_NUM+=1
+echo [%TEST_NUM%] Running solvers/esdirk46...
+cd solvers\esdirk46
+call run.bat
+set RESULT=%ERRORLEVEL%
+cd ..\..
+set /a TOTAL_TESTS+=1
+if %RESULT% NEQ 0 (
+    echo FAILED: solvers/esdirk46
+    set FAILED_TESTS=%FAILED_TESTS% solvers/esdirk46
+) else (
+    echo PASSED: solvers/esdirk46
+    set /a PASSED_TESTS+=1
+)
+echo.
+
 echo ============================================
 if "%FAILED_TESTS%"=="" (
     echo   All examples completed successfully!

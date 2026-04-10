@@ -24,7 +24,7 @@ All examples can be run together via `run_all_examples.bat` (Windows) or `run_al
 | 6 | **OWCs** | `owcs/` | Oscillating Water Columns: chamber dynamics, pneumatic coupling, turbine models | WIP |
 | 7 | **Sinking** | `sinking/` | Progressive flooding and sinking dynamics | Done |
 | 8 | **Multi-body** | `multibody/` | Multiple bodies: shared multi-body HDB with cross-coupling, separate single-body HDBs | Done |
-| 9 | **Integration & Solvers** | `solvers/` | ODE solver comparison (BDF1, BDFN, ESDIRK46), time step sensitivity, adaptive stepping | Planned |
+| 9 | **Integration & Solvers** | `solvers/` | ODE solver comparison (BDF1, BDFN order 2, BDFN order 4, ESDIRK46) on a cable with circular actuator motion | Done |
 
 ## Directory Structure
 
@@ -90,7 +90,13 @@ examples/
 ├── multibody/                  # Group 8: Multi-body (DONE)
 │   ├── shared_hydb/
 │   └── separate_hydb/
-├── solvers/                    # Group 9: Solvers (PLANNED)
+├── solvers/                    # Group 9: Solvers (DONE)
+│   ├── README.md
+│   ├── generate_actuator_motion.py
+│   ├── bdf1/
+│   ├── bdfn_order2/
+│   ├── bdfn_order4/
+│   └── esdirk46/
 ├── misc/                       # Pre-existing mixed examples
 │   ├── freq_wave_example/
 │   ├── generic_example/

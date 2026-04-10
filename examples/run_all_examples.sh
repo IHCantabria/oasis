@@ -797,6 +797,78 @@ else
 fi
 echo
 
+# ==============================================================
+# Solver comparison examples
+# ==============================================================
+
+# --- solvers/bdf1 ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running solvers/bdf1..."
+cd solvers/bdf1 || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: solvers/bdf1"
+    FAILED_TESTS="$FAILED_TESTS solvers/bdf1"
+else
+    echo "PASSED: solvers/bdf1"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
+# --- solvers/bdfn_order2 ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running solvers/bdfn_order2..."
+cd solvers/bdfn_order2 || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: solvers/bdfn_order2"
+    FAILED_TESTS="$FAILED_TESTS solvers/bdfn_order2"
+else
+    echo "PASSED: solvers/bdfn_order2"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
+# --- solvers/bdfn_order4 ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running solvers/bdfn_order4..."
+cd solvers/bdfn_order4 || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: solvers/bdfn_order4"
+    FAILED_TESTS="$FAILED_TESTS solvers/bdfn_order4"
+else
+    echo "PASSED: solvers/bdfn_order4"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
+# --- solvers/esdirk46 ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running solvers/esdirk46..."
+cd solvers/esdirk46 || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: solvers/esdirk46"
+    FAILED_TESTS="$FAILED_TESTS solvers/esdirk46"
+else
+    echo "PASSED: solvers/esdirk46"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
 echo "============================================"
 if [ -z "$FAILED_TESTS" ]; then
     echo "  All examples completed successfully!"
