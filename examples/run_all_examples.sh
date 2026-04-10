@@ -666,6 +666,116 @@ else
 fi
 echo
 
+# ==============================================================
+# Multi-body examples
+# ==============================================================
+
+# --- multibody/shared_hydb ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running multibody/shared_hydb..."
+cd multibody/shared_hydb || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: multibody/shared_hydb"
+    FAILED_TESTS="$FAILED_TESTS multibody/shared_hydb"
+else
+    echo "PASSED: multibody/shared_hydb"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
+# --- multibody/separate_hydb ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running multibody/separate_hydb..."
+cd multibody/separate_hydb || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: multibody/separate_hydb"
+    FAILED_TESTS="$FAILED_TESTS multibody/separate_hydb"
+else
+    echo "PASSED: multibody/separate_hydb"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
+# ==============================================================
+# OWC examples
+# ==============================================================
+
+# --- owcs/free_decay ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running owcs/free_decay..."
+cd owcs/free_decay || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: owcs/free_decay"
+    FAILED_TESTS="$FAILED_TESTS owcs/free_decay"
+else
+    echo "PASSED: owcs/free_decay"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
+# --- owcs/excitation ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running owcs/excitation..."
+cd owcs/excitation || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: owcs/excitation"
+    FAILED_TESTS="$FAILED_TESTS owcs/excitation"
+else
+    echo "PASSED: owcs/excitation"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
+# --- owcs/hole_coupling ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running owcs/hole_coupling..."
+cd owcs/hole_coupling || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: owcs/hole_coupling"
+    FAILED_TESTS="$FAILED_TESTS owcs/hole_coupling"
+else
+    echo "PASSED: owcs/hole_coupling"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
+# --- owcs/turbine_coupling ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running owcs/turbine_coupling..."
+cd owcs/turbine_coupling || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: owcs/turbine_coupling"
+    FAILED_TESTS="$FAILED_TESTS owcs/turbine_coupling"
+else
+    echo "PASSED: owcs/turbine_coupling"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
 echo "============================================"
 if [ -z "$FAILED_TESTS" ]; then
     echo "  All examples completed successfully!"

@@ -33,7 +33,6 @@ arma::mat HydroDatabase::CalculateHydrodynamicForces(double time)
 	if (pBodies[idBody]->firstOrderExcitationFlag == 1)
 	{
 		F = F + ComputeFirstWaveExcForce(time) * ramp;
-		// std::cout << "WARNING: Precomputed first order forces not implemented yet. \n" << std::endl;
 	}
 	if (pBodies[idBody]->firstOrderExcitationFlag == 2)
 	{

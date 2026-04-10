@@ -273,7 +273,6 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     }
 
     // Compute OWCs dynamics
-    // std::cout << "Simulation::CalculateSystemDynamics - Compute OWC dynamics" << std::endl;
     for (int ii = 0; ii < numBodiesFree; ii++)
     {
         pBodiesFree[ii]->owcForces = arma::zeros(6, 1);
@@ -285,7 +284,6 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     for (int ii = 0; ii < numBodiesFree; ii++)
     {
         Fb(arma::span(6 * ii, 6 * (ii + 1) - 1), 0) = Fb(arma::span(6 * ii, 6 * (ii + 1) - 1), 0) + pBodiesFree[ii]->owcForces;
-        // std::cout << "Simulation::CalculateSystemDynamics - body " << pBodiesFree[ii]->GetId() + 1 << " OWC forces: " << pBodiesFree[ii]->owcForces.t() << std::endl;
     }
 
     // Compute also everything for locked bodies so it can be displayed on the output files
@@ -2318,14 +2316,6 @@ void Simulation::Run()
                     pBodies[ii]->Fb_old2 = pBodies[ii]->Fb_old;
                     pBodies[ii]->Fb_old = pBodies[ii]->Fb;
                     pBodies[ii]->Fb = pBodies[ii]->pHydro->CalculateHydrodynamicForces(pTimeSolver->t) + pBodies[ii]->pHydro->CalculateHydrostaticForces(pTimeSolver->t);
-                    if (pBodies[ii]->Fb.has_nan() || pBodies[ii]->Fb.has_inf())
-                    {
-                        std::cout << "  DEBUG: NaN/Inf in Run() Fb update for body " << ii + 1 << " at t = " << pTimeSolver->t << std::endl;
-                        std::cout << "  Fb: " << pBodies[ii]->Fb.t();
-                        std::cout << "  pos: " << pBodies[ii]->pos.t();
-                        std::cout << "  pos_eq: " << pBodies[ii]->pos_eq.t();
-                        std::cout << "  vel: " << pBodies[ii]->vel.t();
-                    }
                 }
             }
 

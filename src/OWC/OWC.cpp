@@ -391,9 +391,6 @@ void OWC::ComputeForces(double time)
 void OWC::ComputePressure(double time)
 {
 
-    // std::cout << "  --> Computing pressure for OWC " << idOWC + 1 << std::endl;
-    // std::cout << "    --> rel_pressure_dot = " << rel_pressure_dot << std::endl;
-
     air_volume = reference_air_volume + waterplane_area * (floater_displacement - displacement);
     air_volume_dot = waterplane_area * (floater_velocity - velocity);
     air_pressure = pSim->airAtmPres * rel_pressure;
@@ -506,17 +503,8 @@ void OWC::ComputePressure(double time)
         }
     }
 
-    // std::cout << "    --> air_pressure = " << air_pressure << std::endl;
-    // std::cout << "    --> air_mass_dot = " << air_mass_dot << std::endl;
-    // std::cout << "    --> air_mass = " << air_mass << std::endl;
-    // std::cout << "    --> air_volume_dot = " << air_volume_dot << std::endl;
-    // std::cout << "    --> air_volume = " << air_volume << std::endl;
-
     // Compute the relative pressure rate
     rel_pressure_dot = ComputeRelPressureRate(air_pressure, air_mass_dot, air_mass, air_volume_dot, air_volume);
-
-    // std::cout << "    --> rel_pressure_dot = " << rel_pressure_dot << std::endl;
-    // std::cout << "  --> ...done!" << std::endl;
 }
 
 double OWC::ComputeAirDensity(double pressure)

@@ -1,0 +1,17 @@
+1 // Number of OWC Turbine Types
+//
+// OWC Turbine Type 1
+//
+1.95 // Inertia [kg·m2]
+0.1 // Damping [N·m/s]
+0.75 // Rotor diameter [m]
+0 // Valve type [0: None, 1: Bypass, 2: Throttle, 3: Bypass + Throttle]
+0.1 // Bypass valve area [m2]
+1.0 // Bypass valve discharge coefficient [-]
+0.1 // Throttle valve area [m2]
+1.0 // Throttle valve discharge coefficient [-]
+1.0 // Trhottle valve gap volume [m3]
+0 // Type of controller [0: None, 1: Algebraic, 2: Custom]
+18.5e+03 // Generator rated power [W]
+100.0 // Generator max torque [N·m]
+mutriku_buckingham_curves.csv // CSV filename containing Buckinham curves

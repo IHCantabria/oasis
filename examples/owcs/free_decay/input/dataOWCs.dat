@@ -1,0 +1,73 @@
+6 // Number of OWCs
+//
+// OWC 1
+//
+2 // OWC body index
+1 // OWC floater index
+1.0 // Water plane area [m2]
+1.0 // Reference air volume [m3]
+0.1 // Hole area [m2]
+0.1 // Hole discharge coef [-]
+-1 // Turbine type [-1: none, 0: hole, n>0: id of turbine in dataOWCTurbine.dat]
+0 // Initial turbine angular velocity [rad/s]
+0.0 0.0 0.0 // Position of the OWC in the body frame
+//
+// OWC 2
+//
+3 // OWC body index
+1 // OWC floater index
+1.0 // Water plane area [m2]
+1.0 // Reference air volume [m3]
+0.1 // Hole area [m2]
+0.1 // Hole discharge coef [-]
+-1 // Turbine type [-1: none, 0: hole, n>0: id of turbine in dataOWCTurbine.dat]
+0 // Initial turbine angular velocity [rad/s]
+0.0 0.0 0.0 // Position of the OWC in the body frame
+//
+// OWC 3
+//
+4 // OWC body index
+1 // OWC floater index
+1.0 // Water plane area [m2]
+1.0 // Reference air volume [m3]
+0.1 // Hole area [m2]
+0.1 // Hole discharge coef [-]
+-1 // Turbine type [-1: none, 0: hole, n>0: id of turbine in dataOWCTurbine.dat]
+0 // Initial turbine angular velocity [rad/s]
+0.0 0.0 0.0 // Position of the OWC in the body frame
+//
+// OWC 4
+//
+5 // OWC body index
+1 // OWC floater index
+1.0 // Water plane area [m2]
+1.0 // Reference air volume [m3]
+0.1 // Hole area [m2]
+0.1 // Hole discharge coef [-]
+-1 // Turbine type [-1: none, 0: hole, n>0: id of turbine in dataOWCTurbine.dat]
+0 // Initial turbine angular velocity [rad/s]
+0.0 0.0 0.0 // Position of the OWC in the body frame
+//
+// OWC 5
+//
+6 // OWC body index
+1 // OWC floater index
+1.0 // Water plane area [m2]
+1.0 // Reference air volume [m3]
+0.1 // Hole area [m2]
+0.1 // Hole discharge coef [-]
+-1 // Turbine type [-1: none, 0: hole, n>0: id of turbine in dataOWCTurbine.dat]
+0 // Initial turbine angular velocity [rad/s]
+0.0 0.0 0.0 // Position of the OWC in the body frame
+//
+// OWC 6
+//
+7 // OWC body index
+1 // OWC floater index
+1.0 // Water plane area [m2]
+1.0 // Reference air volume [m3]
+0.1 // Hole area [m2]
+0.1 // Hole discharge coef [-]
+-1 // Turbine type [-1: none, 0: hole, n>0: id of turbine in dataOWCTurbine.dat]
+0 // Initial turbine angular velocity [rad/s]
+0.0 0.0 0.0 // Position of the OWC in the body frame

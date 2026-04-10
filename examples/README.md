@@ -21,9 +21,9 @@ All examples can be run together via `run_all_examples.bat` (Windows) or `run_al
 | 3 | **Mooring Lines** | `lines/` | Dynamic mooring lines: single/multi-line, BCP types (anchor, fairlead, joint, elastic anchor, actuator), material models (linear, viscoelastic, tabulated), tension models, seabed contact, friction (isotropic, anisotropic) | Done |
 | 4 | **Springs** | `springs/` | Nonlinear springs: pile connector with friction, neoprene+wire body-to-body connector | Done |
 | 5 | **Wind Turbines** | `turbines/` | OpenFAST coupling on fixed and moored bodies | Done |
-| 6 | **OWCs** | `owcs/` | Oscillating Water Columns: chamber dynamics, turbine models, power output | Planned |
+| 6 | **OWCs** | `owcs/` | Oscillating Water Columns: chamber dynamics, pneumatic coupling, turbine models | WIP |
 | 7 | **Sinking** | `sinking/` | Progressive flooding and sinking dynamics | Planned |
-| 8 | **Multi-body** | `multibody/` | Multiple interacting bodies, joints, mechanical couplings | Planned |
+| 8 | **Multi-body** | `multibody/` | Multiple bodies: shared multi-body HDB with cross-coupling, separate single-body HDBs | Done |
 | 9 | **Integration & Solvers** | `solvers/` | ODE solver comparison (BDF1, BDFN, ESDIRK46), time step sensitivity, adaptive stepping | Planned |
 
 ## Directory Structure
@@ -36,7 +36,8 @@ examples/
 ├── data/                       # Shared hydro databases
 │   ├── one_box.hydb.h5         # Single-body hydro (most examples)
 │   ├── trl_plus.hydb.h5        # Turbine platform hydro
-│   └── two_boxes.hydb.h5       # Multi-body hydro (future)
+│   ├── two_boxes.hydb.h5       # Multi-body hydro (multibody examples)
+│   └── isobara_owcs.hydb.h5    # OWC platform hydro (7 bodies: 1 floater + 6 OWCs)
 ├── body/                       # Group 1: Body behavior (DONE)
 │   ├── README.md
 │   ├── free_decay/
@@ -78,9 +79,16 @@ examples/
 │   ├── README.md
 │   ├── fixed_turbine/
 │   └── moored_turbine/
-├── owcs/                       # Group 6: OWCs (PLANNED)
+├── owcs/                       # Group 6: OWCs (WIP)
+│   ├── README.md
+│   ├── free_decay/
+│   ├── excitation/
+│   ├── hole_coupling/
+│   └── turbine_coupling/
 ├── sinking/                    # Group 7: Sinking (PLANNED)
-├── multibody/                  # Group 8: Multi-body (PLANNED)
+├── multibody/                  # Group 8: Multi-body (DONE)
+│   ├── shared_hydb/
+│   └── separate_hydb/
 ├── solvers/                    # Group 9: Solvers (PLANNED)
 ├── misc/                       # Pre-existing mixed examples
 │   ├── freq_wave_example/

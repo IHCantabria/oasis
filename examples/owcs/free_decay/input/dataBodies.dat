@@ -1,0 +1,154 @@
+//////////////////
+////////////////// Body [1]: Floater
+//////////////////
+RAD_DIFF // Body type. Available types: RAD_DIFF
+1 // Take center of gravity from hydrodynamic database (This is taken from the Hydrodyanmic analysis)
+1 2 3 4 5 6 // Considered DOFs
+// BCPs indexes
+// Wind Turbines indexes
+0.0 0.0 0.0 0.0 0.0 0.0 // Body initial position (C.O.G position). It must be the hydrostatic equilibrium position
+0.0 0.0 0.5 0.0 0.0 0.0 // Body initial displacement (From initial C.O.G position)
+../../../data/isobara_owcs.hydb.h5 // Name of the hydrodynamic database
+1 // Index of the body in the hydrodynamic database
+0 // Body freedom flag [0: Body is free to move; 1: Body is locked on initial position; 2: Body moves in an imposed motion]
+dummy.dat // Name of the imposed movements filename if needed
+0 // Flag to indicate the hidrostatics of the body [0: linear hidrostatics; 1: non-linear flat FS hidrostatics; 2: non-linear hidrostatics considering waves]
+dummy.stl // Name of the file containing the hidrostatics mesh if needed
+0 // Radiaton force flag [0: No, 1: Yes]
+0 // First order excitation force flag [0: No 1st Ord.; 1: 1st Ord. without instant pos.; 2: 1st Ord. with instant position]
+0 // Second order excitation force flag [0: No 2nd Ord.; 1: 2nd Ord. without instant pos.; 2: 2nd Ord. with instant position]
+0.0 0.0 0.0 0.0 0.0 0.0 // Viscous added mass as percentage of the linear added mass. [0-1]
+1.0e+04 1.0e+04 1.0e+04 1.0e+07 1.0e+07 1.0e+07 // Viscous linear damping
+1.0e+03 1.0e+03 1.0e+03 1.0e+06 1.0e+06 1.0e+06 // Viscous quadratic damping
+//////////////////
+////////////////// Body [2]: OWC 1
+//////////////////
+RAD_DIFF // Body type. Available types: RAD_DIFF
+1 // Take center of gravity from hydrodynamic database (This is taken from the Hydrodyanmic analysis)
+3 // Considered DOFs
+// BCPs indexes
+// Wind Turbines indexes
+0.0 0.0 0.0 0.0 0.0 0.0 // Body initial position (C.O.G position). It must be the hydrostatic equilibrium position
+0.0 0.0 0.0 0.0 0.0 0.0 // Body initial displacement (From initial C.O.G position)
+../../../data/isobara_owcs.hydb.h5 // Name of the hydrodynamic database
+2 // Index of the body in the hydrodynamic database
+0 // Body freedom flag [0: Body is free to move; 1: Body is locked on initial position; 2: Body moves in an imposed motion]
+dummy.dat // Name of the imposed movements filename if needed
+0 // Flag to indicate the hidrostatics of the body [0: linear hidrostatics; 1: non-linear flat FS hidrostatics; 2: non-linear hidrostatics considering waves]
+dummy.stl // Name of the file containing the hidrostatics mesh if needed
+0 // Radiaton force flag [0: No, 1: Yes]
+0 // First order excitation force flag [0: No 1st Ord.; 1: 1st Ord. without instant pos.; 2: 1st Ord. with instant position]
+0 // Second order excitation force flag [0: No 2nd Ord.; 1: 2nd Ord. without instant pos.; 2: 2nd Ord. with instant position]
+0.0 0.0 0.0 0.0 0.0 0.0 // Viscous added mass as percentage of the linear added mass. [0-1]
+0.0 0.0 1.0e3 0.0 0.0 0.0 // Viscous linear damping
+0.0 0.0 1.0e2 0.0 0.0 0.0 // Viscous quadratic damping
+//////////////////
+////////////////// Body [3]: OWC 2
+//////////////////
+RAD_DIFF // Body type. Available types: RAD_DIFF
+1 // Take center of gravity from hydrodynamic database (This is taken from the Hydrodyanmic analysis)
+3 // Considered DOFs
+// BCPs indexes
+// Wind Turbines indexes
+0.0 0.0 0.0 0.0 0.0 0.0 // Body initial position (C.O.G position). It must be the hydrostatic equilibrium position
+0.0 0.0 0.0 0.0 0.0 0.0 // Body initial displacement (From initial C.O.G position)
+../../../data/isobara_owcs.hydb.h5 // Name of the hydrodynamic database
+3 // Index of the body in the hydrodynamic database
+0 // Body freedom flag [0: Body is free to move; 1: Body is locked on initial position; 2: Body moves in an imposed motion]
+dummy.dat // Name of the imposed movements filename if needed
+0 // Flag to indicate the hidrostatics of the body [0: linear hidrostatics; 1: non-linear flat FS hidrostatics; 2: non-linear hidrostatics considering waves]
+dummy.stl // Name of the file containing the hidrostatics mesh if needed
+0 // Radiaton force flag [0: No, 1: Yes]
+0 // First order excitation force flag [0: No 1st Ord.; 1: 1st Ord. without instant pos.; 2: 1st Ord. with instant position]
+0 // Second order excitation force flag [0: No 2nd Ord.; 1: 2nd Ord. without instant pos.; 2: 2nd Ord. with instant position]
+0.0 0.0 0.0 0.0 0.0 0.0 // Viscous added mass as percentage of the linear added mass. [0-1]
+0.0 0.0 1.0e3 0.0 0.0 0.0 // Viscous linear damping
+0.0 0.0 1.0e2 0.0 0.0 0.0 // Viscous quadratic damping
+//////////////////
+////////////////// Body [4]: OWC 3
+//////////////////
+RAD_DIFF // Body type. Available types: RAD_DIFF
+1 // Take center of gravity from hydrodynamic database (This is taken from the Hydrodyanmic analysis)
+3 // Considered DOFs
+// BCPs indexes
+// Wind Turbines indexes
+0.0 0.0 0.0 0.0 0.0 0.0 // Body initial position (C.O.G position). It must be the hydrostatic equilibrium position
+0.0 0.0 0.0 0.0 0.0 0.0 // Body initial displacement (From initial C.O.G position)
+../../../data/isobara_owcs.hydb.h5 // Name of the hydrodynamic database
+4 // Index of the body in the hydrodynamic database
+0 // Body freedom flag [0: Body is free to move; 1: Body is locked on initial position; 2: Body moves in an imposed motion]
+dummy.dat // Name of the imposed movements filename if needed
+0 // Flag to indicate the hidrostatics of the body [0: linear hidrostatics; 1: non-linear flat FS hidrostatics; 2: non-linear hidrostatics considering waves]
+dummy.stl // Name of the file containing the hidrostatics mesh if needed
+0 // Radiaton force flag [0: No, 1: Yes]
+0 // First order excitation force flag [0: No 1st Ord.; 1: 1st Ord. without instant pos.; 2: 1st Ord. with instant position]
+0 // Second order excitation force flag [0: No 2nd Ord.; 1: 2nd Ord. without instant pos.; 2: 2nd Ord. with instant position]
+0.0 0.0 0.0 0.0 0.0 0.0 // Viscous added mass as percentage of the linear added mass. [0-1]
+0.0 0.0 1.0e3 0.0 0.0 0.0 // Viscous linear damping
+0.0 0.0 1.0e2 0.0 0.0 0.0 // Viscous quadratic damping
+//////////////////
+////////////////// Body [5]: OWC 4
+//////////////////
+RAD_DIFF // Body type. Available types: RAD_DIFF
+1 // Take center of gravity from hydrodynamic database (This is taken from the Hydrodyanmic analysis)
+3 // Considered DOFs
+// BCPs indexes
+// Wind Turbines indexes
+0.0 0.0 0.0 0.0 0.0 0.0 // Body initial position (C.O.G position). It must be the hydrostatic equilibrium position
+0.0 0.0 0.0 0.0 0.0 0.0 // Body initial displacement (From initial C.O.G position)
+../../../data/isobara_owcs.hydb.h5 // Name of the hydrodynamic database
+5 // Index of the body in the hydrodynamic database
+0 // Body freedom flag [0: Body is free to move; 1: Body is locked on initial position; 2: Body moves in an imposed motion]
+dummy.dat // Name of the imposed movements filename if needed
+0 // Flag to indicate the hidrostatics of the body [0: linear hidrostatics; 1: non-linear flat FS hidrostatics; 2: non-linear hidrostatics considering waves]
+dummy.stl // Name of the file containing the hidrostatics mesh if needed
+0 // Radiaton force flag [0: No, 1: Yes]
+0 // First order excitation force flag [0: No 1st Ord.; 1: 1st Ord. without instant pos.; 2: 1st Ord. with instant position]
+0 // Second order excitation force flag [0: No 2nd Ord.; 1: 2nd Ord. without instant pos.; 2: 2nd Ord. with instant position]
+0.0 0.0 0.0 0.0 0.0 0.0 // Viscous added mass as percentage of the linear added mass. [0-1]
+0.0 0.0 1.0e3 0.0 0.0 0.0 // Viscous linear damping
+0.0 0.0 1.0e2 0.0 0.0 0.0 // Viscous quadratic damping
+//////////////////
+////////////////// Body [6]: OWC 5
+//////////////////
+RAD_DIFF // Body type. Available types: RAD_DIFF
+1 // Take center of gravity from hydrodynamic database (This is taken from the Hydrodyanmic analysis)
+3 // Considered DOFs
+// BCPs indexes
+// Wind Turbines indexes
+0.0 0.0 0.0 0.0 0.0 0.0 // Body initial position (C.O.G position). It must be the hydrostatic equilibrium position
+0.0 0.0 0.0 0.0 0.0 0.0 // Body initial displacement (From initial C.O.G position)
+../../../data/isobara_owcs.hydb.h5 // Name of the hydrodynamic database
+6 // Index of the body in the hydrodynamic database
+0 // Body freedom flag [0: Body is free to move; 1: Body is locked on initial position; 2: Body moves in an imposed motion]
+dummy.dat // Name of the imposed movements filename if needed
+0 // Flag to indicate the hidrostatics of the body [0: linear hidrostatics; 1: non-linear flat FS hidrostatics; 2: non-linear hidrostatics considering waves]
+dummy.stl // Name of the file containing the hidrostatics mesh if needed
+0 // Radiaton force flag [0: No, 1: Yes]
+0 // First order excitation force flag [0: No 1st Ord.; 1: 1st Ord. without instant pos.; 2: 1st Ord. with instant position]
+0 // Second order excitation force flag [0: No 2nd Ord.; 1: 2nd Ord. without instant pos.; 2: 2nd Ord. with instant position]
+0.0 0.0 0.0 0.0 0.0 0.0 // Viscous added mass as percentage of the linear added mass. [0-1]
+0.0 0.0 1.0e3 0.0 0.0 0.0 // Viscous linear damping
+0.0 0.0 1.0e2 0.0 0.0 0.0 // Viscous quadratic damping
+//////////////////
+////////////////// Body [7]: OWC 6
+//////////////////
+RAD_DIFF // Body type. Available types: RAD_DIFF
+1 // Take center of gravity from hydrodynamic database (This is taken from the Hydrodyanmic analysis)
+3 // Considered DOFs
+// BCPs indexes
+// Wind Turbines indexes
+0.0 0.0 0.0 0.0 0.0 0.0 // Body initial position (C.O.G position). It must be the hydrostatic equilibrium position
+0.0 0.0 0.0 0.0 0.0 0.0 // Body initial displacement (From initial C.O.G position)
+../../../data/isobara_owcs.hydb.h5 // Name of the hydrodynamic database
+7 // Index of the body in the hydrodynamic database
+0 // Body freedom flag [0: Body is free to move; 1: Body is locked on initial position; 2: Body moves in an imposed motion]
+dummy.dat // Name of the imposed movements filename if needed
+0 // Flag to indicate the hidrostatics of the body [0: linear hidrostatics; 1: non-linear flat FS hidrostatics; 2: non-linear hidrostatics considering waves]
+dummy.stl // Name of the file containing the hidrostatics mesh if needed
+0 // Radiaton force flag [0: No, 1: Yes]
+0 // First order excitation force flag [0: No 1st Ord.; 1: 1st Ord. without instant pos.; 2: 1st Ord. with instant position]
+0 // Second order excitation force flag [0: No 2nd Ord.; 1: 2nd Ord. without instant pos.; 2: 2nd Ord. with instant position]
+0.0 0.0 0.0 0.0 0.0 0.0 // Viscous added mass as percentage of the linear added mass. [0-1]
+0.0 0.0 1.0e3 0.0 0.0 0.0 // Viscous linear damping
+0.0 0.0 1.0e2 0.0 0.0 0.0 // Viscous quadratic damping

@@ -672,6 +672,116 @@ if %RESULT% NEQ 0 (
 )
 echo.
 
+REM ==============================================================
+REM Multi-body examples
+REM ==============================================================
+
+REM --- multibody/shared_hydb ---
+set /a TEST_NUM+=1
+echo [%TEST_NUM%] Running multibody/shared_hydb...
+cd multibody\shared_hydb
+call run.bat
+set RESULT=%ERRORLEVEL%
+cd ..\..
+set /a TOTAL_TESTS+=1
+if %RESULT% NEQ 0 (
+    echo FAILED: multibody/shared_hydb
+    set FAILED_TESTS=%FAILED_TESTS% multibody/shared_hydb
+) else (
+    echo PASSED: multibody/shared_hydb
+    set /a PASSED_TESTS+=1
+)
+echo.
+
+REM --- multibody/separate_hydb ---
+set /a TEST_NUM+=1
+echo [%TEST_NUM%] Running multibody/separate_hydb...
+cd multibody\separate_hydb
+call run.bat
+set RESULT=%ERRORLEVEL%
+cd ..\..
+set /a TOTAL_TESTS+=1
+if %RESULT% NEQ 0 (
+    echo FAILED: multibody/separate_hydb
+    set FAILED_TESTS=%FAILED_TESTS% multibody/separate_hydb
+) else (
+    echo PASSED: multibody/separate_hydb
+    set /a PASSED_TESTS+=1
+)
+echo.
+
+REM ==============================================================
+REM OWC examples
+REM ==============================================================
+
+REM --- owcs/free_decay ---
+set /a TEST_NUM+=1
+echo [%TEST_NUM%] Running owcs/free_decay...
+cd owcs\free_decay
+call run.bat
+set RESULT=%ERRORLEVEL%
+cd ..\..
+set /a TOTAL_TESTS+=1
+if %RESULT% NEQ 0 (
+    echo FAILED: owcs/free_decay
+    set FAILED_TESTS=%FAILED_TESTS% owcs/free_decay
+) else (
+    echo PASSED: owcs/free_decay
+    set /a PASSED_TESTS+=1
+)
+echo.
+
+REM --- owcs/excitation ---
+set /a TEST_NUM+=1
+echo [%TEST_NUM%] Running owcs/excitation...
+cd owcs\excitation
+call run.bat
+set RESULT=%ERRORLEVEL%
+cd ..\..
+set /a TOTAL_TESTS+=1
+if %RESULT% NEQ 0 (
+    echo FAILED: owcs/excitation
+    set FAILED_TESTS=%FAILED_TESTS% owcs/excitation
+) else (
+    echo PASSED: owcs/excitation
+    set /a PASSED_TESTS+=1
+)
+echo.
+
+REM --- owcs/hole_coupling ---
+set /a TEST_NUM+=1
+echo [%TEST_NUM%] Running owcs/hole_coupling...
+cd owcs\hole_coupling
+call run.bat
+set RESULT=%ERRORLEVEL%
+cd ..\..
+set /a TOTAL_TESTS+=1
+if %RESULT% NEQ 0 (
+    echo FAILED: owcs/hole_coupling
+    set FAILED_TESTS=%FAILED_TESTS% owcs/hole_coupling
+) else (
+    echo PASSED: owcs/hole_coupling
+    set /a PASSED_TESTS+=1
+)
+echo.
+
+REM --- owcs/turbine_coupling ---
+set /a TEST_NUM+=1
+echo [%TEST_NUM%] Running owcs/turbine_coupling...
+cd owcs\turbine_coupling
+call run.bat
+set RESULT=%ERRORLEVEL%
+cd ..\..
+set /a TOTAL_TESTS+=1
+if %RESULT% NEQ 0 (
+    echo FAILED: owcs/turbine_coupling
+    set FAILED_TESTS=%FAILED_TESTS% owcs/turbine_coupling
+) else (
+    echo PASSED: owcs/turbine_coupling
+    set /a PASSED_TESTS+=1
+)
+echo.
+
 echo ============================================
 if "%FAILED_TESTS%"=="" (
     echo   All examples completed successfully!
