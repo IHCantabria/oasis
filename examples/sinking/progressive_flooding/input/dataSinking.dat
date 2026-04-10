@@ -1,0 +1,28 @@
+1 // Number of bodies with sinking
+//
+// Sinking body 1
+//
+1 // Body index
+5.0e+05 5.0e+05 5.0e+05 1.0e+07 1.0e+07 1.0e+07 // Body initial or empty structural mass diagonal terms (wrt COG)
+3 // Number of hydrodynamic data bases (at least 1)
+0 2.5e+05 5.0e+05 // Load status for the different hydrodynamic data bases (first must be 0) [kg]
+../../../data/one_box_5p0.hydb.h5 // File name for hydrodynamic data base 1 (shallowest draft)
+../../../data/one_box_7p5.hydb.h5 // File name for hydrodynamic data base 2 (intermediate draft)
+../../../data/one_box_10p0.hydb.h5 // File name for hydrodynamic data base 3 (deepest draft)
+2 // Number of groups (at least 1)
+// Group 1 (starboard compartment)
+4 // Number of floor polygon points (at least 3)
+0.0  5.0  5.0  0.0 // Polygon points X coordinates [m] (anti-clockwise order as seen from top)
+0.0  0.0  5.0  5.0 // Polygon points Y coordinates [m] (anti-clockwise order as seen from top)
+-5.0 // Floor Z coordinate [m]
+4 // Number of filling times (at least 1)
+0.0 50.0 400.0 600.0 // Times vector (first must be 0) [s]
+0.0 0.0 2.5e+05 2.5e+05 // Group filling state (first must be 0) [kg]
+// Group 2 (port compartment)
+4 // Number of floor polygon points (at least 3)
+0.0   0.0  -5.0  -5.0 // Polygon points X coordinates [m] (anti-clockwise order as seen from top)
+0.0   5.0   5.0   0.0 // Polygon points Y coordinates [m] (anti-clockwise order as seen from top)
+-5.0 // Floor Z coordinate [m]
+4 // Number of filling times (at least 1)
+0.0 50.0 400.0 600.0 // Times vector (first must be 0) [s]
+0.0 0.0 2.5e+05 2.5e+05 // Group filling state (first must be 0) [kg]

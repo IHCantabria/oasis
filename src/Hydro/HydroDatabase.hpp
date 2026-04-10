@@ -31,6 +31,7 @@ public:
 	int numHeadingExc = 0;
 	// Flag to indicate the hydro database type
 	int hydroDatabaseFlag = 0; // [0: EHYDB, 1: H5]
+	bool hasAsymptoticData = false; // True when HF/LF asymptotic data was loaded directly from file
 
 	// Declare Hydrodynamic Storage Variables
 	arma::mat cog;					 // Position of the center of gravity for the hydrodynamic Radiation-Diffraction problem

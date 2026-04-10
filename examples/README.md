@@ -22,7 +22,7 @@ All examples can be run together via `run_all_examples.bat` (Windows) or `run_al
 | 4 | **Springs** | `springs/` | Nonlinear springs: pile connector with friction, neoprene+wire body-to-body connector | Done |
 | 5 | **Wind Turbines** | `turbines/` | OpenFAST coupling on fixed and moored bodies | Done |
 | 6 | **OWCs** | `owcs/` | Oscillating Water Columns: chamber dynamics, pneumatic coupling, turbine models | WIP |
-| 7 | **Sinking** | `sinking/` | Progressive flooding and sinking dynamics | Planned |
+| 7 | **Sinking** | `sinking/` | Progressive flooding and sinking dynamics | Done |
 | 8 | **Multi-body** | `multibody/` | Multiple bodies: shared multi-body HDB with cross-coupling, separate single-body HDBs | Done |
 | 9 | **Integration & Solvers** | `solvers/` | ODE solver comparison (BDF1, BDFN, ESDIRK46), time step sensitivity, adaptive stepping | Planned |
 
@@ -85,7 +85,8 @@ examples/
 │   ├── excitation/
 │   ├── hole_coupling/
 │   └── turbine_coupling/
-├── sinking/                    # Group 7: Sinking (PLANNED)
+├── sinking/                    # Group 7: Sinking (DONE)
+│   └── progressive_flooding/
 ├── multibody/                  # Group 8: Multi-body (DONE)
 │   ├── shared_hydb/
 │   └── separate_hydb/

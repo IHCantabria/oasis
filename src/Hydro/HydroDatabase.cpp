@@ -240,10 +240,12 @@ void HydroDatabase::ComputeAsymptoticAddedMass(std::string HDBname)
 	// Allocate the asymptotic added mass matrix
 	pAddedMassLf = new arma::mat *[numBodies];
 	pAddedMassHf = new arma::mat *[numBodies];
+	pDampingRadiationLf = new arma::mat *[numBodies];
 	for (int ib = 0; ib < numBodies; ib++)
 	{
 		pAddedMassLf[ib] = new arma::mat(6, 6, arma::fill::zeros);
 		pAddedMassHf[ib] = new arma::mat(6, 6, arma::fill::zeros);
+		pDampingRadiationLf[ib] = new arma::mat(6, 6, arma::fill::zeros);
 		for (int i = 0; i < 6; i++)
 		{
 			for (int j = 0; j < 6; j++)
@@ -254,6 +256,8 @@ void HydroDatabase::ComputeAsymptoticAddedMass(std::string HDBname)
 				// Calculate the asymptotic high frequency added mass as the integral of the IRF
 				(*pAddedMassHf[ib])(i, j) += trapzi(IRFTime, (*pIRF[ib]).subcube(0, i, j, numPointsIRF - 1, i, j));
 				// TODO: REVIEW THIS!!!!!!!!!!!!!
+				// Calculate the asymptotic low frequency damping radiation
+				(*pDampingRadiationLf[ib])(i, j) = (*pDampingRadiation[ib])(i, j, id_min_freq(0));
 			}
 		}
 	}
@@ -440,7 +444,7 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 	std::cout << "  ... computing IRF done!\n";
 
 	// Compute Asymptotic added mass if it was not loaded from the file
-	if (hydroDatabaseFlag == 1)
+	if (hydroDatabaseFlag == 1 && !hasAsymptoticData)
 	{
 		std::cout << "  Computing asymptotic added mass...\n";
 		this->ComputeAsymptoticAddedMass(HDBname);
@@ -1077,6 +1081,57 @@ void HydroDatabase::LoadHydroDataH5(std::string filePath)
 		delete[] buffer_mean_drift_mag;
 	}
 
+	// Load asymptotic added mass and damping radiation from file when available
+	if (file.nameExists("/added_mass_hf") && file.nameExists("/added_mass_lf") && file.nameExists("/damping_rad_lf"))
+	{
+		std::cout << "  Reading asymptotic added mass and damping radiation from file...\n";
+
+		// Read added_mass_hf and added_mass_lf: 4D [numBodies, numBodies, 6, 6]
+		H5::DataSet amHfDataset = file.openDataSet("/added_mass_hf");
+		H5::DataSet amLfDataset = file.openDataSet("/added_mass_lf");
+		int num_asym_values = numBodies * numBodies * 6 * 6;
+		double *buffer_am_hf = new double[num_asym_values];
+		double *buffer_am_lf = new double[num_asym_values];
+		amHfDataset.read(buffer_am_hf, H5::PredType::NATIVE_DOUBLE);
+		amLfDataset.read(buffer_am_lf, H5::PredType::NATIVE_DOUBLE);
+		amHfDataset.close();
+		amLfDataset.close();
+
+		// Read damping_rad_lf: 4D [numBodies, numBodies, 6, 6]
+		H5::DataSet drLfDataset = file.openDataSet("/damping_rad_lf");
+		double *buffer_dr_lf = new double[num_asym_values];
+		drLfDataset.read(buffer_dr_lf, H5::PredType::NATIVE_DOUBLE);
+		drLfDataset.close();
+
+		// Allocate and populate member arrays
+		pAddedMassHf = new arma::mat *[numBodies];
+		pAddedMassLf = new arma::mat *[numBodies];
+		pDampingRadiationLf = new arma::mat *[numBodies];
+		for (int ib = 0; ib < numBodies; ib++)
+		{
+			pAddedMassHf[ib] = new arma::mat(6, 6, arma::fill::zeros);
+			pAddedMassLf[ib] = new arma::mat(6, 6, arma::fill::zeros);
+			pDampingRadiationLf[ib] = new arma::mat(6, 6, arma::fill::zeros);
+			for (int i = 0; i < 6; i++)
+			{
+				for (int j = 0; j < 6; j++)
+				{
+					int index = ib * numBodies * 6 * 6 + idBody * 6 * 6 + i * 6 + j;
+					(*pAddedMassHf[ib])(i, j) = buffer_am_hf[index];
+					(*pAddedMassLf[ib])(i, j) = buffer_am_lf[index];
+					(*pDampingRadiationLf[ib])(i, j) = buffer_dr_lf[index];
+				}
+			}
+		}
+
+		delete[] buffer_am_hf;
+		delete[] buffer_am_lf;
+		delete[] buffer_dr_lf;
+
+		hasAsymptoticData = true;
+		std::cout << "  ... asymptotic data loaded from file!\n";
+	}
+
 	// Close the file
 	file.close();
 }
@@ -1360,11 +1415,11 @@ arma::mat HydroDatabase::ComputeSecondWaveExcForce(double t)
 void HydroDatabase::SetUp(void)
 {
 	// TODO: Implement a logger with different levels of verbosity
-	std::cout << "HydroDatabase::SetUp - At first" << std::endl;
+	// std::cout << "HydroDatabase::SetUp - At first" << std::endl;
 	// Load the wave pointer as a local variable
 	Wave *pWave = pSim->pWave;
 
-	std::cout << "HydroDatabase::SetUp - Convert from real/imag to mag/pha the first order transfer functions" << std::endl;
+	// std::cout << "HydroDatabase::SetUp - Convert from real/imag to mag/pha the first order transfer functions" << std::endl;
 	// Convert from real/imag to mag/pha the first order transfer functions
 	arma::cube WE_Real = (*pWaveExcitingMag) % arma::cos((*pWaveExcitingPha));
 	arma::cube WE_Imag = (*pWaveExcitingMag) % arma::sin((*pWaveExcitingPha));
@@ -1389,7 +1444,7 @@ void HydroDatabase::SetUp(void)
 		phases_w(kk) = pWave->phases_piece(kk).rows(ind_wave_freqs);
 	}
 
-	std::cout << "HydroDatabase::SetUp - Interpolate the first order transfer functions to the wave frequencies" << std::endl;
+	// std::cout << "HydroDatabase::SetUp - Interpolate the first order transfer functions to the wave frequencies" << std::endl;
 	// Interpolate the first order transfer functions to the wave frequencies
 	WE_Real_w = interp1(*pFrequencies, permute(WE_Real, 231), freqs_w);
 	WE_Imag_w = interp1(*pFrequencies, permute(WE_Imag, 231), freqs_w);
@@ -1404,7 +1459,7 @@ void HydroDatabase::SetUp(void)
 	// TODO: QTFs should only be interpolated if they will be used
 	if (pBodies[idBody]->secondOrderExcitationFlag > 0 && pBodies[idBody]->secondOrderExcitationFlag < 4)
 	{
-		std::cout << "HydroDatabase::SetUp - Interpolate the second order transfer functions to the wave frequencies" << std::endl;
+		// std::cout << "HydroDatabase::SetUp - Interpolate the second order transfer functions to the wave frequencies" << std::endl;
 		// Interpolate the second order transfer functions to the wave frequencies
 		arma::cube temp;
 		QtfDiff_w = new arma::cube **[2];
@@ -1446,7 +1501,7 @@ void HydroDatabase::SetUp(void)
 			}
 		}
 
-		std::cout << "HydroDatabase::SetUp - Define the matrices required for time domain QTF forces computation" << std::endl;
+		// std::cout << "HydroDatabase::SetUp - Define the matrices required for time domain QTF forces computation" << std::endl;
 		// Preprocess the matrices required for time domain QTF forces computation
 		ampP = arma::field<arma::mat>(pWave->num_pieces);
 		phS = arma::field<arma::mat>(pWave->num_pieces);
@@ -1459,7 +1514,7 @@ void HydroDatabase::SetUp(void)
 		kxD = arma::zeros(numFrequencies_w, numFrequencies_w);
 		kyD = arma::zeros(numFrequencies_w, numFrequencies_w);
 
-		std::cout << "HydroDatabase::SetUp - Preprocess the matrices required for time domain QTF forces computation (w, k)" << std::endl;
+		// std::cout << "HydroDatabase::SetUp - Preprocess the matrices required for time domain QTF forces computation (w, k)" << std::endl;
 		int i_wave, j_wave;
 		for (int ii = 0; ii < numFrequencies_w; ii++)
 		{
@@ -1476,7 +1531,7 @@ void HydroDatabase::SetUp(void)
 			}
 		}
 
-		std::cout << "HydroDatabase::SetUp - Preprocess the matrices required for time domain QTF forces computation (amp, pha)" << std::endl;
+		// std::cout << "HydroDatabase::SetUp - Preprocess the matrices required for time domain QTF forces computation (amp, pha)" << std::endl;
 		for (int kk = 0; kk < pWave->num_pieces; kk++)
 		{
 			ampP(kk) = arma::zeros(numFrequencies_w, numFrequencies_w);
@@ -1498,7 +1553,7 @@ void HydroDatabase::SetUp(void)
 
 	if (pBodies[idBody]->secondOrderExcitationFlag > 2)
 	{
-		std::cout << "HydroDatabase::SetUp - Compute mean drift force" << std::endl;
+		// std::cout << "HydroDatabase::SetUp - Compute mean drift force" << std::endl;
 		// Compute mean drift force
 		// TODO: Review this!
 		arma::cube temp_mD = interp2(*pFrequencies, *pHeadings, permute(*pMeanDrift, 231), freqs_w, pWave->headings_piece);
@@ -1516,13 +1571,13 @@ void HydroDatabase::SetUp(void)
 		}
 	}
 
-	std::cout << "HydroDatabase::SetUp - Set up the hydrodynamic forces at time zero" << std::endl;
+	// std::cout << "HydroDatabase::SetUp - Set up the hydrodynamic forces at time zero" << std::endl;
 	// Set up the hydrodynamic forces at time zero
 	pBodies[idBody]->Fb = CalculateHydrodynamicForces(0.0) + CalculateHydrostaticForces(0.0);
 	pBodies[idBody]->Fb_old = pBodies[idBody]->Fb;
 	pBodies[idBody]->Fb_old2 = pBodies[idBody]->Fb;
 
-	std::cout << "HydroDatabase::SetUp - Precompute hydrodynamic forces time series" << std::endl;
+	// std::cout << "HydroDatabase::SetUp - Precompute hydrodynamic forces time series" << std::endl;
 	if (pBodies[idBody]->firstOrderExcitationFlag == 1)
 	{
 		// TODO: Precompute first order forces
@@ -1544,7 +1599,7 @@ void HydroDatabase::SetUp(void)
 		}
 	}
 
-	std::cout << "HydroDatabase::SetUp - At end" << std::endl;
+	// std::cout << "HydroDatabase::SetUp - At end" << std::endl;
 }
 
 arma::mat HydroDatabase::ComputeMeanDrift(void)

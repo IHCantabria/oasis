@@ -782,6 +782,27 @@ if %RESULT% NEQ 0 (
 )
 echo.
 
+REM ==============================================================
+REM Sinking examples
+REM ==============================================================
+
+REM --- sinking/progressive_flooding ---
+set /a TEST_NUM+=1
+echo [%TEST_NUM%] Running sinking/progressive_flooding...
+cd sinking\progressive_flooding
+call run.bat
+set RESULT=%ERRORLEVEL%
+cd ..\..
+set /a TOTAL_TESTS+=1
+if %RESULT% NEQ 0 (
+    echo FAILED: sinking/progressive_flooding
+    set FAILED_TESTS=%FAILED_TESTS% sinking/progressive_flooding
+) else (
+    echo PASSED: sinking/progressive_flooding
+    set /a PASSED_TESTS+=1
+)
+echo.
+
 echo ============================================
 if "%FAILED_TESTS%"=="" (
     echo   All examples completed successfully!

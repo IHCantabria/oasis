@@ -776,6 +776,27 @@ else
 fi
 echo
 
+# ==============================================================
+# Sinking examples
+# ==============================================================
+
+# --- sinking/progressive_flooding ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running sinking/progressive_flooding..."
+cd sinking/progressive_flooding || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: sinking/progressive_flooding"
+    FAILED_TESTS="$FAILED_TESTS sinking/progressive_flooding"
+else
+    echo "PASSED: sinking/progressive_flooding"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
 echo "============================================"
 if [ -z "$FAILED_TESTS" ]; then
     echo "  All examples completed successfully!"
