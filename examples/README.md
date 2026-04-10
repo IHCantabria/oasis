@@ -10,7 +10,7 @@ The examples are organized into **functional groups**, each in its own subdirect
 2. **Diagnose** failures by narrowing down to the exact subsystem
 3. **Learn** how to configure each feature by studying minimal working examples
 
-All examples can be run together via `run_all_examples.bat` (Windows) or `run_all_examples.sh` (Linux).
+All examples can be run together via `run_all_examples.bat` (Windows) or `run_all_examples.sh` (Linux). Each group also has its own `run_group.bat` / `run_group.sh` scripts to run just that group.
 
 ## Functional Groups
 
@@ -20,7 +20,7 @@ All examples can be run together via `run_all_examples.bat` (Windows) or `run_al
 | 2 | **Wave Types** | `waves/` | Regular, irregular (JONSWAP), time-series, frequency-domain, multi-directional, piecewise decomposition | Done |
 | 3 | **Mooring Lines** | `lines/` | Dynamic mooring lines: single/multi-line, BCP types (anchor, fairlead, joint, elastic anchor, actuator), material models (linear, viscoelastic, tabulated), tension models, seabed contact, friction (isotropic, anisotropic) | Done |
 | 4 | **Springs** | `springs/` | Nonlinear springs: pile connector with friction, neoprene+wire body-to-body connector | Done |
-| 5 | **Wind Turbines** | `turbines/` | OpenFAST coupling on fixed and moored bodies, isobara hydro | Done |
+| 5 | **Wind Turbines** | `turbines/` | OpenFAST coupling on fixed and moored bodies | Done |
 | 6 | **OWCs** | `owcs/` | Oscillating Water Columns: chamber dynamics, turbine models, power output | Planned |
 | 7 | **Sinking** | `sinking/` | Progressive flooding and sinking dynamics | Planned |
 | 8 | **Multi-body** | `multibody/` | Multiple interacting bodies, joints, mechanical couplings | Planned |
@@ -33,6 +33,10 @@ examples/
 ├── README.md                   # This file
 ├── run_all_examples.bat        # Run all tests (Windows)
 ├── run_all_examples.sh         # Run all tests (Linux)
+├── data/                       # Shared hydro databases
+│   ├── one_box.hydb.h5         # Single-body hydro (most examples)
+│   ├── trl_plus.hydb.h5        # Turbine platform hydro
+│   └── two_boxes.hydb.h5       # Multi-body hydro (future)
 ├── body/                       # Group 1: Body behavior (DONE)
 │   ├── README.md
 │   ├── free_decay/
@@ -96,8 +100,7 @@ Each individual example follows this layout:
 ├── input/
 │   ├── dataProblem.dat         # Simulation parameters
 │   ├── dataBodies.dat          # Body definitions
-│   ├── dataWaves.dat           # Wave configuration
-│   └── <hydro_database>        # .ehydb or .hydb.h5
+│   └── dataWaves.dat           # Wave configuration
 ├── output/                     # Created by simulator
 ├── run.bat                     # Windows runner
 └── run.sl                      # Linux/SLURM runner
@@ -121,6 +124,13 @@ run_all_examples.bat        # Windows
 sh run_all_examples.sh      # Linux
 ```
 
+### Single group
+```bash
+cd examples/<group>
+run_group.bat               # Windows
+sh run_group.sh             # Linux
+```
+
 ### Single example
 ```bash
 cd examples/<group>/<test_name>
@@ -140,7 +150,7 @@ sbatch run.sl input
 - **ESDIRK46 integrator** (method=3, order=2) as default — stable and accurate
 - **dt = 0.1s** for all time steps (output, max, hydro, FAST, controller)
 - **Missing optional files are OK** — OASIS prints a warning and sets the count to 0
-- **Two hydro databases**: `isobara.ehydb` for simple tests, `dique_cadenas.hydb.h5` + STL for non-linear hydrostatics
+- **Centralized hydro databases**: Stored in `examples/data/` and referenced via relative paths (`../../../data/<file>`) to avoid duplication. `one_box.hydb.h5` for most examples, `trl_plus.hydb.h5` for turbines, `dique_cadenas.hydb.h5` + STL for non-linear hydrostatics (kept in-place)
 - **Nested folder structure**: `examples/<group>/<test_name>/input/` for clear organization
 
 ## Adding a New Group

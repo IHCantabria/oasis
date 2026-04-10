@@ -8,7 +8,7 @@ RAD_DIFF // Body type. Available types: RAD_DIFF
 // Wind Turbines indexes
 0.0 0.0 0.0 0.0 0.0 0.0 // Body initial position (C.O.G position). It must be the hydrostatic equilibrium position
 0.0 0.0 0.0 0.0 0.0 0.0 // Body initial displacement (From initial C.O.G position)
-isobara.ehydb // Name of the hydrodynamic database
+../../../data/one_box.hydb.h5 // Name of the hydrodynamic database
 1 // Index of the body in the hydrodynamic database
 1 // Body freedom flag [0: Body is free to move; 1: Body is locked on initial position; 2: Body moves in an imposed motion]
 dummy.dat // Name of the imposed movements filename if needed
