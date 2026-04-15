@@ -1,5 +1,6 @@
 
 #include <armadillo>
+#include <algorithm>
 #include <string>
 #include <cstdio>
 #include <iostream>
@@ -139,6 +140,7 @@ void OWCTurbine::ComputeMassFlowRate(double pressure_diff, double stagnation_den
     if (!IsAdimPressureInRange(adim_pressure))
     {
         std::cout << "WARNING: The adimensional pressure is out of range. The turbine may not work properly." << std::endl;
+        adim_pressure = std::clamp(adim_pressure, pOWCTurbineType->buck_curve_adim_pressure.min(), pOWCTurbineType->buck_curve_adim_pressure.max());
     }
     arma::vec adim_pressure_vec = adim_pressure * arma::ones<arma::vec>(1);
     arma::vec adim_mass_flow_rate_vec;
@@ -153,6 +155,7 @@ void OWCTurbine::ComputeAirTorque(double pressure_diff, double stagnation_densit
     if (!IsAdimPressureInRange(adim_pressure))
     {
         std::cout << "WARNING: The adimensional pressure is out of range. The turbine may not work properly." << std::endl;
+        adim_pressure = std::clamp(adim_pressure, pOWCTurbineType->buck_curve_adim_pressure.min(), pOWCTurbineType->buck_curve_adim_pressure.max());
     }
     arma::vec adim_pressure_vec = adim_pressure * arma::ones<arma::vec>(1);
     arma::vec adim_power_vec;
@@ -373,7 +376,7 @@ void OWC::ComputeForces(double time)
     if (turbine_type >= 0)
     {
         ComputePressure(time);
-        force_pneumatic = rel_pressure * waterplane_area;
+        force_pneumatic = pSim->airAtmPres * (rel_pressure - 1.0) * waterplane_area;
     }
 
     // Save the forces in the bodies
@@ -536,7 +539,10 @@ double OWC::ComputeHoleMassFlowRate(double pressure_diff, double stagnation_dens
         throw ValueError(ss.str());
     }
     // Compute the hole mass flow rate using the orifice equation
-    double hole_mass_flow_rate = hole_discharge_coef * hole_area * sqrt(2.0 * abs(pressure_diff) * stagnation_density) * arma::sign(pressure_diff);
+    // Regularize sqrt(|Dp|)*sign(Dp) -> Dp/sqrt(|Dp|+eps) to avoid infinite derivative at Dp=0
+    // which causes numerical Jacobian inaccuracy in the ESDIRK solver
+    double eps_dp = 1.0; // [Pa] small regularization parameter
+    double hole_mass_flow_rate = hole_discharge_coef * hole_area * sqrt(2.0 * stagnation_density) * pressure_diff / sqrt(abs(pressure_diff) + eps_dp);
     return hole_mass_flow_rate;
 }
 

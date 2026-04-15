@@ -8,7 +8,7 @@
 0 // Valve type [0: None, 1: Bypass, 2: Throttle, 3: Bypass + Throttle]
 0.1 // Bypass valve area [m2]
 1.0 // Bypass valve discharge coefficient [-]
-0.1 // Throttle valve area [m2]
+0.44 // Throttle valve area [m2]
 1.0 // Throttle valve discharge coefficient [-]
 1.0 // Throttle valve gap volume [m3]
 0 // Type of controller [0: None, 1: Algebraic, 2: Custom]
