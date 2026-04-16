@@ -25,6 +25,7 @@ All examples can be run together via `run_all_examples.bat` (Windows) or `run_al
 | 7 | **Sinking** | `sinking/` | Progressive flooding and sinking dynamics | Done |
 | 8 | **Multi-body** | `multibody/` | Multiple bodies: shared multi-body HDB with cross-coupling, separate single-body HDBs | Done |
 | 9 | **Integration & Solvers** | `solvers/` | ODE solver comparison (BDF1, BDFN order 2, BDFN order 4, ESDIRK46) on a cable with circular actuator motion | Done |
+| 10 | **Winches** | `winches/` | Winch-controlled mooring: constant tension pretension and horizontal plane positioning (surge/sway/yaw) with state-space controller | Done |
 
 ## Directory Structure
 
@@ -97,6 +98,9 @@ examples/
 │   ├── bdfn_order2/
 │   ├── bdfn_order4/
 │   └── esdirk46/
+├── winches/                    # Group 10: Winches (DONE)
+│   ├── README.md
+│   └── horizontal_control/
 ├── misc/                       # Pre-existing mixed examples
 │   ├── freq_wave_example/
 │   ├── generic_example/

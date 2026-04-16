@@ -869,6 +869,44 @@ else
 fi
 echo
 
+# ==============================================================
+# Winches examples
+# ==============================================================
+
+# --- winches/constant_tension ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running winches/constant_tension..."
+cd winches/constant_tension || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: winches/constant_tension"
+    FAILED_TESTS="$FAILED_TESTS winches/constant_tension"
+else
+    echo "PASSED: winches/constant_tension"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
+# --- winches/horizontal_control ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running winches/horizontal_control..."
+cd winches/horizontal_control || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: winches/horizontal_control"
+    FAILED_TESTS="$FAILED_TESTS winches/horizontal_control"
+else
+    echo "PASSED: winches/horizontal_control"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
 echo "============================================"
 if [ -z "$FAILED_TESTS" ]; then
     echo "  All examples completed successfully!"

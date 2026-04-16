@@ -1,0 +1,22 @@
+//////////////////
+////////////////// New body [1]
+//////////////////
+RAD_DIFF // Body type. Available types: RAD_DIFF
+1 // Take center of gravity from hydrodynamic database
+1 2 3 4 5 6 // Considered DOFs
+5 6 7 8 // BCPs indexes
+// Wind Turbines indexes
+0.0 0.0 0.0 0.0 0.0 0.0 // Body initial position (C.O.G position). It must be the hydrostatic equilibrium position
+1.0 0.0 0.0 0.0 0.0 0.0 // Body initial displacement (From initial C.O.G position)
+../../../data/one_box.hydb.h5 // Name of the hydrodynamic database
+1 // Index of the body in the hydrodynamic database
+0 // Body freedom flag [0: Body is free to move; 1: Body is locked on initial position; 2: Body moves in an imposed motion]
+dummy.dat // Name of the imposed movements filename if needed
+0 // Flag to indicate the hydrostatics of the body [0: linear hydrostatics; 1: non-linear flat FS hydrostatics; 2: non-linear hydrostatics considering waves]
+dummy.stl // Name of the file containing the hydrostatics mesh if needed (unused with flag 0)
+1 // Radiation force flag [0: No; 1: Yes]
+0 // First order excitation force flag [0: No 1st Ord.; 1: 1st Ord. without instant pos.; 2: 1st Ord. with instant position]
+0 // Second order excitation force flag [0: No 2nd Ord.; 1: 2nd Ord. without instant pos.; 2: 2nd Ord. with instant position]
+0.000 0.000 0.000 0.000 0.000 0.000 // Viscous added mass as percentage of the linear added mass. [0-1]
+0.000 0.000 0.000 0.000 0.000 0.000 // Viscous linear damping
+0.000 0.000 0.000 0.000 0.000 0.000 // Viscous quadratic damping

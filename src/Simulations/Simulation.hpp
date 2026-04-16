@@ -97,7 +97,7 @@ public:
     Line **pLines;
     Spring **pSprings;
     Winchie **pWinches;
-    WinchieController WinchesController;
+    WinchieController *WinchesController = nullptr;
     Wave *pWave;
     Sinking **pSinking;
     SeaFloor **pSeaFloor;

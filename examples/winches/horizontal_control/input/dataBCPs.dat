@@ -1,0 +1,45 @@
+0 // Number of Actuators
+4 // Number of Anchors
+0 // Number of Joints
+4 // Number of Fairleads
+0 // Number of Elastic Anchors
+//////////////////
+////////////////// New BCP [1] [Anchor] [1]
+//////////////////
+80.0 80.0 -100.0  // Initial position (global) [m]
+0 // Winch Id
+//////////////////
+////////////////// New BCP [2] [Anchor] [2]
+//////////////////
+-80.0 80.0 -100.0  // Initial position (global) [m]
+0 // Winch Id
+//////////////////
+////////////////// New BCP [3] [Anchor] [3]
+//////////////////
+80.0 -80.0 -100.0  // Initial position (global) [m]
+0 // Winch Id
+//////////////////
+////////////////// New BCP [4] [Anchor] [4]
+//////////////////
+-80.0 -80.0 -100.0  // Initial position (global) [m]
+0 // Winch Id
+//////////////////
+////////////////// New BCP [5] [Fairlead] [1]
+//////////////////
+5.0 5.0 -2.0  // Initial position (local body cdg coordinates) [m]
+1 // Winch Id
+//////////////////
+////////////////// New BCP [6] [Fairlead] [2]
+//////////////////
+-5.0 5.0 -2.0  // Initial position (local body cdg coordinates) [m]
+2 // Winch Id
+//////////////////
+////////////////// New BCP [7] [Fairlead] [3]
+//////////////////
+5.0 -5.0 -2.0  // Initial position (local body cdg coordinates) [m]
+3 // Winch Id
+//////////////////
+////////////////// New BCP [8] [Fairlead] [4]
+//////////////////
+-5.0 -5.0 -2.0  // Initial position (local body cdg coordinates) [m]
+4 // Winch Id

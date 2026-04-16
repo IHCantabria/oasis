@@ -739,9 +739,11 @@ void Simulation::CloseCase()
         pSinking[ii]->CloseOutputFilesASCII();
     }
 
-    if (useWinches)
+    if (useWinches && WinchesController != nullptr)
     {
-        WinchesController.CloseOutputFilesASCII();
+        WinchesController->CloseOutputFilesASCII();
+        delete WinchesController;
+        WinchesController = nullptr;
     }
 
     for (int ii = 0; ii < numWindTurbines; ii++)
@@ -1958,7 +1960,8 @@ void Simulation::ReadWinchesASCII()
         std::cout << "    --> WARNING: dataWinches.dat was not found! Setting numWinches = 0!" << std::endl;
         numWinches = 0;
         pWinches = new Winchie *[0];
-        WinchesController = WinchieController(0, pWinches, this);
+        WinchesController = nullptr;
+        useWinches = false;
         return;
     }
 
@@ -1989,11 +1992,24 @@ void Simulation::ReadWinchesASCII()
     std::cout << "--> Reading Winches Controller Properties (ASCII format)" << std::endl;
     file_path = JoinPath(inputFolderPath, "dataWinchesController.dat");
     file_pointer = fopen(file_path.c_str(), "r");
-    WinchesController = WinchieController(numWinches, pWinches, this);
-    WinchesController.ReadPropertiesASCII(file_pointer);
+    if (file_pointer == NULL)
+    {
+        std::stringstream ss;
+        ss << "Not possible to open the file: dataWinchesController.dat\n    ->Dir: " << inputFolderPath << std::endl;
+        throw IOError(ss.str());
+    }
+    // Skip 3 header lines
+    for (int ii = 0; ii < 3; ii++)
+        fgets(bufferLine, sizeof(bufferLine), file_pointer);
+    // Read controller type
+    int controllerType;
+    fscanf(file_pointer, "%d %[^\n]\n", &controllerType, bufferLine);
+    // Create appropriate controller via factory
+    WinchesController = WinchieController::Create(controllerType, numWinches, pWinches, this);
+    WinchesController->ReadPropertiesASCII(file_pointer);
     fclose(file_pointer);
     // Open Winches Controller output files
-    WinchesController.OpenOutputFilesASCII(outputFolderPath);
+    WinchesController->OpenOutputFilesASCII(outputFolderPath);
     std::cout << "--> Winches Controller Properties Read" << std::endl;
 }
 
@@ -2385,8 +2401,8 @@ void Simulation::Run()
                 {
                     // std::cout << "In Simulation::Run --> Controlling winches... " << std::endl;
                     wallTimeControllerWinches += winchesContTimeStep;
-                    WinchesController.controlWinchies(wallTimeControllerWinches);
-                    WinchesController.WriteOut(wallTimeControllerWinches);
+                    WinchesController->controlWinchies(wallTimeControllerWinches);
+                    WinchesController->WriteOut(wallTimeControllerWinches);
                     // std::cout << "In Simulation::Run --> ... done controlling winches!" << std::endl;
                 }
             }
@@ -2506,8 +2522,8 @@ void Simulation::Run()
                 if (current_time >= wallTimeControllerWinches + winchesContTimeStep - 1e-12)
                 {
                     wallTimeControllerWinches += winchesContTimeStep;
-                    WinchesController.controlWinchies(wallTimeControllerWinches);
-                    WinchesController.WriteOut(wallTimeControllerWinches);
+                    WinchesController->controlWinchies(wallTimeControllerWinches);
+                    WinchesController->WriteOut(wallTimeControllerWinches);
                 }
             }
 
@@ -3074,7 +3090,7 @@ void Simulation::SetupCase()
     if (useWinches)
     {
         std::cout << "  --> Setting up winchies controller ..." << std::endl;
-        WinchesController.SetUpWinchiesController();
+        WinchesController->SetUpWinchiesController();
         std::cout << "  --> ... done!" << std::endl;
     }
 

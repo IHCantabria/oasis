@@ -875,6 +875,44 @@ if %RESULT% NEQ 0 (
 )
 echo.
 
+REM ==============================================================
+REM Winches examples
+REM ==============================================================
+
+REM --- winches/constant_tension ---
+set /a TEST_NUM+=1
+echo [%TEST_NUM%] Running winches/constant_tension...
+cd winches\constant_tension
+call run.bat
+set RESULT=%ERRORLEVEL%
+cd ..\..
+set /a TOTAL_TESTS+=1
+if %RESULT% NEQ 0 (
+    echo FAILED: winches/constant_tension
+    set FAILED_TESTS=%FAILED_TESTS% winches/constant_tension
+) else (
+    echo PASSED: winches/constant_tension
+    set /a PASSED_TESTS+=1
+)
+echo.
+
+REM --- winches/horizontal_control ---
+set /a TEST_NUM+=1
+echo [%TEST_NUM%] Running winches/horizontal_control...
+cd winches\horizontal_control
+call run.bat
+set RESULT=%ERRORLEVEL%
+cd ..\..
+set /a TOTAL_TESTS+=1
+if %RESULT% NEQ 0 (
+    echo FAILED: winches/horizontal_control
+    set FAILED_TESTS=%FAILED_TESTS% winches/horizontal_control
+) else (
+    echo PASSED: winches/horizontal_control
+    set /a PASSED_TESTS+=1
+)
+echo.
+
 echo ============================================
 if "%FAILED_TESTS%"=="" (
     echo   All examples completed successfully!

@@ -1,0 +1,5 @@
+//////////////////
+////////////////// Controller parameters
+//////////////////
+1 // Controller type [1: Constant tension, 2: Horizontal control]
+30000.0 // Target tension for all winches [N]
