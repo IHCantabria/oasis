@@ -1416,47 +1416,145 @@ void Line::CloseOutputFilesASCII(void)
 	fclose(pfile_debug);
 }
 
+void Line::OpenOutputFilesCSV(std::string path)
+{
+	int lid = GetId();
+	char buffer[100];
+
+	// --- Positions CSV ---
+	sprintf(buffer, "line_%d_positions.csv", lid);
+	std::string pos_path = JoinPath(path, buffer);
+	pfile_positions_csv = fopen(pos_path.c_str(), "w");
+	if (pfile_positions_csv == NULL)
+	{
+		std::stringstream ss;
+		ss << "Not possible to open the file: " << buffer << "\n    ->Dir: " << path << std::endl;
+		throw IOError(ss.str());
+	}
+	// Write header: time, then x/y/z for each node
+	fprintf(pfile_positions_csv, "time");
+	for (int i = 0; i < this->N; i++)
+	{
+		fprintf(pfile_positions_csv, ",l%d_n%d_x,l%d_n%d_y,l%d_n%d_z", lid, i, lid, i, lid, i);
+	}
+	fprintf(pfile_positions_csv, "\n");
+
+	// --- Tensions CSV ---
+	sprintf(buffer, "line_%d_tensions.csv", lid);
+	std::string ten_path = JoinPath(path, buffer);
+	pfile_tensions_csv = fopen(ten_path.c_str(), "w");
+	if (pfile_tensions_csv == NULL)
+	{
+		std::stringstream ss;
+		ss << "Not possible to open the file: " << buffer << "\n    ->Dir: " << path << std::endl;
+		throw IOError(ss.str());
+	}
+	// Write header: time, end tensions (start xyz, end xyz), node tensions
+	fprintf(pfile_tensions_csv, "time");
+	fprintf(pfile_tensions_csv, ",l%d_ten_start_x,l%d_ten_start_y,l%d_ten_start_z", lid, lid, lid);
+	fprintf(pfile_tensions_csv, ",l%d_ten_end_x,l%d_ten_end_y,l%d_ten_end_z", lid, lid, lid);
+	for (int i = 0; i < this->N; i++)
+		fprintf(pfile_tensions_csv, ",l%d_n%d_ten", lid, i);
+	fprintf(pfile_tensions_csv, "\n");
+
+	// Also open line_ini (always ASCII format, written once)
+	sprintf(buffer, "LineIni_%d.txt", lid);
+	std::string ini_path = JoinPath(path, buffer);
+	pfile_line_ini = fopen(ini_path.c_str(), "w");
+}
+
+void Line::CloseOutputFilesCSV(void)
+{
+	if (pfile_positions_csv) fclose(pfile_positions_csv);
+	if (pfile_tensions_csv) fclose(pfile_tensions_csv);
+}
+
+void Line::OpenOutputFiles(std::string path, int format)
+{
+	outputFormat = format;
+	if (outputFormat == 1)
+		OpenOutputFilesCSV(path);
+	else
+		OpenOutputFilesASCII(path);
+}
+
+void Line::CloseOutputFiles(void)
+{
+	if (outputFormat == 1)
+		CloseOutputFilesCSV();
+	else
+		CloseOutputFilesASCII();
+}
+
 void Line::WriteOut(double t)
 {
 	int ii;
 
-	// set the format of the output
-	// char* format = "%f    ";
-	const char *format = "%.14f    ";
-
-	fprintf(pfile_xpos, format, t);
-	for (ii = 0; ii < this->N; ii = ii + 1)
-		fprintf(pfile_xpos, format, this->pos(ii, 0));
-	fprintf(pfile_xpos, "\n");
-
-	fprintf(pfile_ypos, format, t);
-	for (ii = 0; ii < this->N; ii = ii + 1)
-		fprintf(pfile_ypos, format, this->pos(ii, 1));
-	fprintf(pfile_ypos, "\n");
-
-	fprintf(pfile_zpos, format, t);
-	for (ii = 0; ii < this->N; ii = ii + 1)
-		fprintf(pfile_zpos, format, this->pos(ii, 2));
-	fprintf(pfile_zpos, "\n");
-
-	fprintf(pfile_ten, "%f    %f    %f    %f    %f    %f    %f \n", t, ten_1(0, 0), ten_1(1, 0), ten_1(2, 0), ten_N(0, 0), ten_N(1, 0), ten_N(2, 0));
-
-	// TODO: 0.0 should be start_time
-	if (t == 0.0)
+	if (outputFormat == 1)
 	{
+		// CSV format: positions file (x, y, z interleaved per node)
+		fprintf(pfile_positions_csv, "%.14f", t);
+		for (ii = 0; ii < this->N; ii++)
+		{
+			fprintf(pfile_positions_csv, ",%.14f,%.14f,%.14f", this->pos(ii, 0), this->pos(ii, 1), this->pos(ii, 2));
+		}
+		fprintf(pfile_positions_csv, "\n");
+
+		// CSV format: tensions file (end tensions + node tensions)
+		fprintf(pfile_tensions_csv, "%f", t);
+		fprintf(pfile_tensions_csv, ",%f,%f,%f,%f,%f,%f", ten_1(0, 0), ten_1(1, 0), ten_1(2, 0), ten_N(0, 0), ten_N(1, 0), ten_N(2, 0));
+		for (ii = 0; ii < this->N; ii++)
+			fprintf(pfile_tensions_csv, ",%f", this->T(ii, 0));
+		fprintf(pfile_tensions_csv, "\n");
+
+		// Line initial state (written once, same format as ASCII)
+		if (t == 0.0)
+		{
+			fprintf(pfile_line_ini, "s    x    y    z    ten \n");
+			for (ii = 0; ii < this->N; ii++)
+				fprintf(pfile_line_ini, "%f    %f    %f    %f    %f \n", this->s(ii, 0), pos(ii, 0), pos(ii, 1), pos(ii, 2), T(ii, 0));
+			fclose(pfile_line_ini);
+		}
+	}
+	else
+	{
+		// ASCII format (original)
+		const char *format = "%.14f    ";
+
+		fprintf(pfile_xpos, format, t);
+		for (ii = 0; ii < this->N; ii = ii + 1)
+			fprintf(pfile_xpos, format, this->pos(ii, 0));
+		fprintf(pfile_xpos, "\n");
+
+		fprintf(pfile_ypos, format, t);
+		for (ii = 0; ii < this->N; ii = ii + 1)
+			fprintf(pfile_ypos, format, this->pos(ii, 1));
+		fprintf(pfile_ypos, "\n");
+
+		fprintf(pfile_zpos, format, t);
+		for (ii = 0; ii < this->N; ii = ii + 1)
+			fprintf(pfile_zpos, format, this->pos(ii, 2));
+		fprintf(pfile_zpos, "\n");
+
+		fprintf(pfile_ten, "%f    %f    %f    %f    %f    %f    %f \n", t, ten_1(0, 0), ten_1(1, 0), ten_1(2, 0), ten_N(0, 0), ten_N(1, 0), ten_N(2, 0));
+
+		// TODO: 0.0 should be start_time
+		if (t == 0.0)
+		{
+			fprintf(pfile_ten_line, "%f    ", t);
+			for (ii = 0; ii < this->N; ii = ii + 1)
+				fprintf(pfile_ten_line, "%f    ", this->s(ii, 0));
+			fprintf(pfile_ten_line, "\n");
+			// print initial line state in an specific file
+			// print header
+			fprintf(pfile_line_ini, "s    x    y    z    ten \n");
+			for (ii = 0; ii < this->N; ii = ii + 1)
+				fprintf(pfile_line_ini, "%f    %f    %f    %f    %f \n", this->s(ii, 0), this->pos(ii, 0), this->pos(ii, 1), this->pos(ii, 2), this->T(ii, 0));
+			fclose(pfile_line_ini);
+		}
 		fprintf(pfile_ten_line, "%f    ", t);
 		for (ii = 0; ii < this->N; ii = ii + 1)
-			fprintf(pfile_ten_line, "%f    ", this->s(ii, 0));
+			fprintf(pfile_ten_line, "%f    ", this->T(ii, 0));
 		fprintf(pfile_ten_line, "\n");
-		// print initial line state in an specific file
-		// print header
-		fprintf(pfile_line_ini, "s    x    y    z    ten \n");
-		for (ii = 0; ii < this->N; ii = ii + 1)
-			fprintf(pfile_line_ini, "%f    %f    %f    %f    %f \n", this->s(ii, 0), this->pos(ii, 0), this->pos(ii, 1), this->pos(ii, 2), this->T(ii, 0));
-		fclose(pfile_line_ini);
 	}
-	fprintf(pfile_ten_line, "%f    ", t);
-	for (ii = 0; ii < this->N; ii = ii + 1)
-		fprintf(pfile_ten_line, "%f    ", this->T(ii, 0));
-	fprintf(pfile_ten_line, "\n");
 }

@@ -46,6 +46,8 @@ public:
 	// Output files specific to horizontal controller
 	FILE *pfile_FC;
 	FILE *pfile_RP;
+	FILE *pfile_FC_csv = nullptr;
+	FILE *pfile_RP_csv = nullptr;
 
 	WinchieControllerHorizontal(int n, Winchie **Ws, Simulation *pIncSim);
 	~WinchieControllerHorizontal() override;
@@ -56,7 +58,9 @@ public:
 	void controlWinchies(double time) override;
 	void inversorBlock(void);
 	void OpenOutputFilesASCII(std::string path) override;
+	void OpenOutputFilesCSV(std::string path) override;
 	void CloseOutputFilesASCII(void) override;
+	void CloseOutputFilesCSV(void) override;
 	void WriteOut(double t) override;
 };
 

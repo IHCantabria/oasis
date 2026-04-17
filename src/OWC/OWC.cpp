@@ -419,25 +419,46 @@ void OWC::Initialize(FILE *pFile)
 
     // Open output file
     char buffer[50];
-    int nn = sprintf(buffer, "OWC_%d.txt", idOWC);
-    std::string file_path = JoinPath(pSim->outputFolderPath, buffer);
-    pfile_output = fopen(file_path.c_str(), "w");
-    if (pfile_output == NULL)
+    if (pSim->outputFormat == 1)
     {
-        std::stringstream ss;
-        ss << "An error occurred when trying to open the output file for OWC: " << idOWC + 1 << "\n";
-        throw IOError(ss.str());
+        int nn = sprintf(buffer, "owc_%d.csv", idOWC);
+        std::string file_path = JoinPath(pSim->outputFolderPath, buffer);
+        pfile_output = fopen(file_path.c_str(), "w");
+        if (pfile_output == NULL)
+        {
+            std::stringstream ss;
+            ss << "An error occurred when trying to open the output file for OWC: " << idOWC + 1 << "\n";
+            throw IOError(ss.str());
+        }
+        // Write CSV header
+        fprintf(pfile_output, "time,owc%d_disp,owc%d_vel,owc%d_pres\n", idOWC, idOWC, idOWC);
+        fprintf(pfile_output, "%f,%f,%f,%f\n", 0.0, displacement, velocity, air_pressure);
     }
-    // Write header
-    fprintf(pfile_output, "Time    Displacement    Velocity    Pressure\n");
-    fprintf(pfile_output, "%f    %f    %f    %f\n", 0.0, displacement, velocity, air_pressure);
+    else
+    {
+        int nn = sprintf(buffer, "OWC_%d.txt", idOWC);
+        std::string file_path = JoinPath(pSim->outputFolderPath, buffer);
+        pfile_output = fopen(file_path.c_str(), "w");
+        if (pfile_output == NULL)
+        {
+            std::stringstream ss;
+            ss << "An error occurred when trying to open the output file for OWC: " << idOWC + 1 << "\n";
+            throw IOError(ss.str());
+        }
+        // Write header
+        fprintf(pfile_output, "Time    Displacement    Velocity    Pressure\n");
+        fprintf(pfile_output, "%f    %f    %f    %f\n", 0.0, displacement, velocity, air_pressure);
+    }
     // fflush(pfile_output);
 }
 
 void OWC::WriteOut(double time)
 {
     // Write output to file
-    fprintf(pfile_output, "%f    %f    %f    %f\n", time, displacement, velocity, air_pressure);
+    if (pSim->outputFormat == 1)
+        fprintf(pfile_output, "%f,%f,%f,%f\n", time, displacement, velocity, air_pressure);
+    else
+        fprintf(pfile_output, "%f    %f    %f    %f\n", time, displacement, velocity, air_pressure);
     // fflush(pfile_output);
 }
 

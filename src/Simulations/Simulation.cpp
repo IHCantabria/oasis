@@ -726,22 +726,27 @@ void Simulation::CloseCase()
 {
     for (int ii = 0; ii < numLines; ii++)
     {
-        pLines[ii]->CloseOutputFilesASCII();
+        pLines[ii]->CloseOutputFiles();
     }
 
     for (int ii = 0; ii < numBodies; ii++)
     {
-        pBodies[ii]->CloseOutputFilesASCII();
+        pBodies[ii]->CloseOutputFiles();
+    }
+
+    for (int ii = 0; ii < numSprings; ii++)
+    {
+        pSprings[ii]->CloseOutputFiles();
     }
 
     for (int ii = 0; ii < numSinking; ii++)
     {
-        pSinking[ii]->CloseOutputFilesASCII();
+        pSinking[ii]->CloseOutputFiles();
     }
 
     if (useWinches && WinchesController != nullptr)
     {
-        WinchesController->CloseOutputFilesASCII();
+        WinchesController->CloseOutputFiles();
         delete WinchesController;
         WinchesController = nullptr;
     }
@@ -1278,7 +1283,7 @@ void Simulation::ReadBodiesASCII()
             {
                 pBodies[ii] = new Body(ii, this);
                 pBodies[ii]->ReadPropertiesASCII(pFile);
-                pBodies[ii]->OpenOutputFilesASCII(outputFolderPath);
+                pBodies[ii]->OpenOutputFiles(outputFolderPath);
             }
             else
             {
@@ -1603,7 +1608,7 @@ void Simulation::ReadBodiesYAML()
             {
                 pBodies[ii] = new Body(ii, this);
                 pBodies[ii]->ReadPropertiesYAML(bodyNode);
-                pBodies[ii]->OpenOutputFilesASCII(outputFolderPath);
+                pBodies[ii]->OpenOutputFiles(outputFolderPath);
             }
             else
             {
@@ -1911,7 +1916,7 @@ void Simulation::ReadLinesASCII()
         try
         {
             pLines[ii]->ReadPropertiesASCII(file_pointer);
-            pLines[ii]->OpenOutputFilesASCII(outputFolderPath);
+            pLines[ii]->OpenOutputFiles(outputFolderPath, outputFormat);
         }
         catch (int e)
         {
@@ -1965,7 +1970,7 @@ void Simulation::ReadLinesYAML()
         try
         {
             pLines[ii]->ReadPropertiesYAML(yamlRoot["lines"][ii]);
-            pLines[ii]->OpenOutputFilesASCII(outputFolderPath);
+            pLines[ii]->OpenOutputFiles(outputFolderPath, outputFormat);
         }
         catch (int e)
         {
@@ -2048,7 +2053,7 @@ void Simulation::ReadSinkingASCII()
             pSinking[ii]->ReadPropertiesASCII(pFile, inputFolderPath);
 
             // Open output files
-            pSinking[ii]->OpenOutputFilesASCII(outputFolderPath);
+            pSinking[ii]->OpenOutputFiles(outputFolderPath);
         }
     }
     else
@@ -2092,7 +2097,7 @@ void Simulation::ReadSinkingYAML()
             int sinkingBodyIndex = sinkNode["body_index"].as<int>();
             pSinking[ii] = new Sinking(sinkingBodyIndex, this);
             pSinking[ii]->ReadPropertiesYAML(sinkNode, inputFolderPath);
-            pSinking[ii]->OpenOutputFilesASCII(outputFolderPath);
+            pSinking[ii]->OpenOutputFiles(outputFolderPath);
         }
     }
     else
@@ -2228,6 +2233,10 @@ void Simulation::ReadPropertiesASCII()
     writeEquilibrium = dummyBool;                                 // Write dataStaticIC.dat? [0 No, 1 Yes]
     fscanf(file_pointer, "%d %[^\n]\n", &flagStatic, bufferLine); // Mooring initial condition flag [0: Catenary, 1: Newton's]
 
+    // Output format [0: txt, 1: csv] — optional, defaults to 0 (txt)
+    if (fscanf(file_pointer, "%d %[^\n]\n", &outputFormat, bufferLine) != 1)
+        outputFormat = 0;
+
     // Close file
     fclose(file_pointer);
 
@@ -2305,6 +2314,22 @@ void Simulation::ReadPropertiesYAML()
     readEquilibrium = prob["read_equilibrium"].as<int>();
     writeEquilibrium = prob["write_equilibrium"].as<int>();
     flagStatic = prob["mooring_initial_condition"].as<int>();
+
+    // Output format — optional, defaults to "txt"
+    if (prob["output_format"])
+    {
+        std::string fmt = prob["output_format"].as<std::string>();
+        if (fmt == "csv")
+            outputFormat = 1;
+        else
+            outputFormat = 0;
+        std::cout << "    Output format: " << fmt << " (" << outputFormat << ")" << std::endl;
+    }
+    else
+    {
+        outputFormat = 0;
+        std::cout << "    Output format: txt (default)" << std::endl;
+    }
 
     std::cout << "--> Simulation Properties Read" << std::endl;
 }
@@ -2580,7 +2605,7 @@ void Simulation::ReadWinchesASCII()
     WinchesController->ReadPropertiesASCII(file_pointer);
     fclose(file_pointer);
     // Open Winches Controller output files
-    WinchesController->OpenOutputFilesASCII(outputFolderPath);
+    WinchesController->OpenOutputFiles(outputFolderPath);
     std::cout << "--> Winches Controller Properties Read" << std::endl;
 }
 
@@ -2628,7 +2653,7 @@ void Simulation::ReadWinchesYAML()
     int controllerType = ctrlNode["type"].as<int>();
     WinchesController = WinchieController::Create(controllerType, numWinches, pWinches, this);
     WinchesController->ReadPropertiesYAML(ctrlNode);
-    WinchesController->OpenOutputFilesASCII(outputFolderPath);
+    WinchesController->OpenOutputFiles(outputFolderPath);
     std::cout << "--> Winches Controller Properties Read" << std::endl;
 }
 
@@ -3030,6 +3055,8 @@ void Simulation::Run()
                     pBodies[ii]->WriteOut(pTimeSolver->t);
                 for (int ii = 0; ii < numOWCs; ii = ii + 1)
                     pOWCs[ii]->WriteOut(pTimeSolver->t);
+                for (int ii = 0; ii < numSprings; ii = ii + 1)
+                    pSprings[ii]->WriteOut(pTimeSolver->t);
             }
 
             for (int ii = 0; ii < numLines; ii = ii + 1)
@@ -3169,6 +3196,8 @@ void Simulation::Run()
                     pBodies[ii]->WriteOut(current_time);
                 for (int ii = 0; ii < numOWCs; ii = ii + 1)
                     pOWCs[ii]->WriteOut(current_time);
+                for (int ii = 0; ii < numSprings; ii = ii + 1)
+                    pSprings[ii]->WriteOut(current_time);
 
                 wallTime += writeTimeStep; // Increment to next output time
             }
@@ -3705,17 +3734,18 @@ void Simulation::SetupCase()
     {
         std::cout << "  --> ... done!" << std::endl;
     }
+    // DEBUG print (commented out to avoid using extra memory in output) 
     // TODO: 100 should be a parameter
-    if (numAllLinesNodes < 100)
-    {
-        *pLinesCouplingMatrixInv = arma::solve(*pLinesCouplingMatrix, eye(size(*pLinesCouplingMatrix)));
-        std::string filename = JoinPath(outputFolderPath, "LinesCouplingMatrix.dat");
-        (*pLinesCouplingMatrix).save(filename, arma::arma_ascii);
-    }
-    if (numLines > 0)
-    {
-        std::cout << "  --> ... done!" << std::endl;
-    }
+    // if (numAllLinesNodes < 100)
+    // {
+    //     *pLinesCouplingMatrixInv = arma::solve(*pLinesCouplingMatrix, eye(size(*pLinesCouplingMatrix)));
+    //     std::string filename = JoinPath(outputFolderPath, "LinesCouplingMatrix.dat");
+    //     (*pLinesCouplingMatrix).save(filename, arma::arma_ascii);
+    // }
+    // if (numLines > 0)
+    // {
+    //     std::cout << "  --> ... done!" << std::endl;
+    // }
 
     // Compute equilibrium with FEM for all lines at the same time
     if (!readEquilibrium && flagStatic == 1 && numLines > 0) //&& flagStatic == 0?
@@ -3792,6 +3822,8 @@ void Simulation::SetupCase()
         std::cout << "            ->BCP_2 " << pSprings[ii]->BCP_2 << "\n";
         pSprings[ii]->SpringBCP[0] = pBcps[pSprings[ii]->BCP_1];
         pSprings[ii]->SpringBCP[1] = pBcps[pSprings[ii]->BCP_2];
+        pSprings[ii]->pSim = this;
+        pSprings[ii]->OpenOutputFiles(outputFolderPath);
     }
     if (numSprings > 0)
     {

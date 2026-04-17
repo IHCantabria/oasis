@@ -62,6 +62,7 @@ public:
     double waterDepth;
     bool writeEquilibrium;
     int flagStatic;
+    int outputFormat = 0; // Output format [0: txt, 1: csv]
 
     // Declare time simulation attributes
     int numCallsSysFun = 0;

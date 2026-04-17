@@ -465,8 +465,48 @@ void Sinking::CloseOutputFilesASCII(void)
 	fclose(pfile_FillingCOG);
 }
 
+void Sinking::OpenOutputFilesCSV(std::string path)
+{
+	char buffer[100];
+	int sid = indBody - 1;
+	sprintf(buffer, "sinking_%d.csv", sid);
+	std::string file_path = JoinPath(path, buffer);
+	pfile_FillingCOG_csv = fopen(file_path.c_str(), "w");
+	if (pfile_FillingCOG_csv == NULL)
+	{
+		std::stringstream ss;
+		ss << "Not possible to open the file: " << buffer << "\n    ->Dir: " << path << std::endl;
+		throw IOError(ss.str());
+	}
+	fprintf(pfile_FillingCOG_csv, "time,sk%d_cog_x,sk%d_cog_y,sk%d_cog_z,sk%d_fill_mass\n", sid, sid, sid, sid);
+}
+
+void Sinking::CloseOutputFilesCSV(void)
+{
+	if (pfile_FillingCOG_csv) fclose(pfile_FillingCOG_csv);
+}
+
+void Sinking::OpenOutputFiles(std::string path)
+{
+	if (pSim->outputFormat == 1)
+		OpenOutputFilesCSV(path);
+	else
+		OpenOutputFilesASCII(path);
+}
+
+void Sinking::CloseOutputFiles(void)
+{
+	if (pSim->outputFormat == 1)
+		CloseOutputFilesCSV();
+	else
+		CloseOutputFilesASCII();
+}
+
 // Escibir datos a fichero
 void Sinking::WriteOut(double t)
 {
-	fprintf(pfile_FillingCOG, "%f    %f    %f    %f    %f \n", t, groupsCOG(0, 0), groupsCOG(1, 0), groupsCOG(2, 0), totalFillingMass);
+	if (pSim->outputFormat == 1)
+		fprintf(pfile_FillingCOG_csv, "%f,%f,%f,%f,%f\n", t, groupsCOG(0, 0), groupsCOG(1, 0), groupsCOG(2, 0), totalFillingMass);
+	else
+		fprintf(pfile_FillingCOG, "%f    %f    %f    %f    %f \n", t, groupsCOG(0, 0), groupsCOG(1, 0), groupsCOG(2, 0), totalFillingMass);
 }

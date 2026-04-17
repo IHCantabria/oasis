@@ -5,6 +5,8 @@
 #include "Spring.hpp"
 #include "../MathTools.hpp"
 #include "../Exceptions/Exception.hpp"
+#include "../Simulations/Simulation.hpp"
+#include "../os_tools.hpp"
 
 // Lee inputs de los muelles
 void Spring::ReadPropertiesASCII(std::string file_path)
@@ -621,6 +623,8 @@ void Spring::computeSpringForces(void)
 	tempF_G.rows(0, 2) = mat_spring2global * (tempF_L.rows(0, 2));
 	tempF_G.rows(3, 5) = mat_spring2global * (tempF_L.rows(3, 5));
 
+	lastForceG = tempF_G;
+
 	SpringBCP[0]->forceBcp = SpringBCP[0]->forceBcp + tempF_G; // Acumulo la fuerza obtenida en el BCP
 	SpringBCP[1]->forceBcp = SpringBCP[1]->forceBcp - tempF_G;
 
@@ -642,4 +646,37 @@ void Spring::computeSpringForces(void)
 	throw ValueError(ss.str());
 
 	*/
+}
+
+void Spring::OpenOutputFiles(std::string path)
+{
+	if (pSim != nullptr && pSim->outputFormat == 1)
+	{
+		std::string file_path = JoinPath(path, "spring_" + std::to_string(nSpring) + ".csv");
+		pfile_spring_csv = fopen(file_path.c_str(), "w");
+		if (pfile_spring_csv == NULL)
+		{
+			std::stringstream ss;
+			ss << "Not possible to open the file: spring_" << nSpring << ".csv\n    ->Dir: " << path << std::endl;
+			throw IOError(ss.str());
+		}
+		fprintf(pfile_spring_csv, "time,sp%d_fx,sp%d_fy,sp%d_fz,sp%d_mx,sp%d_my,sp%d_mz\n",
+				nSpring, nSpring, nSpring, nSpring, nSpring, nSpring);
+	}
+}
+
+void Spring::CloseOutputFiles(void)
+{
+	if (pfile_spring_csv)
+		fclose(pfile_spring_csv);
+}
+
+void Spring::WriteOut(double t)
+{
+	if (pSim != nullptr && pSim->outputFormat == 1 && pfile_spring_csv != nullptr)
+	{
+		fprintf(pfile_spring_csv, "%f,%f,%f,%f,%f,%f,%f\n",
+				t, lastForceG(0, 0), lastForceG(1, 0), lastForceG(2, 0),
+				lastForceG(3, 0), lastForceG(4, 0), lastForceG(5, 0));
+	}
 }

@@ -66,17 +66,87 @@ void WinchieController::CloseOutputFilesASCII(void)
 		fclose(pfile_LL);
 }
 
+void WinchieController::OpenOutputFilesCSV(std::string path)
+{
+	std::string file_path;
+
+	file_path = JoinPath(path, "winches_tensions.csv");
+	pfile_TW_csv = fopen(file_path.c_str(), "w");
+	if (pfile_TW_csv == NULL)
+	{
+		std::stringstream ss;
+		ss << "Not possible to open the file: winches_tensions.csv\n    ->Dir: " << path << std::endl;
+		throw IOError(ss.str());
+	}
+	// Write header
+	fprintf(pfile_TW_csv, "time");
+	for (int ii = 0; ii < nWinchies; ii++)
+		fprintf(pfile_TW_csv, ",w%d_ten", ii);
+	fprintf(pfile_TW_csv, "\n");
+
+	file_path = JoinPath(path, "winches_lengths.csv");
+	pfile_LL_csv = fopen(file_path.c_str(), "w");
+	if (pfile_LL_csv == NULL)
+	{
+		std::stringstream ss;
+		ss << "Not possible to open the file: winches_lengths.csv\n    ->Dir: " << path << std::endl;
+		throw IOError(ss.str());
+	}
+	// Write header
+	fprintf(pfile_LL_csv, "time");
+	for (int ii = 0; ii < nWinchies; ii++)
+		fprintf(pfile_LL_csv, ",w%d_len", ii);
+	fprintf(pfile_LL_csv, "\n");
+}
+
+void WinchieController::CloseOutputFilesCSV(void)
+{
+	if (pfile_TW_csv) fclose(pfile_TW_csv);
+	if (pfile_LL_csv) fclose(pfile_LL_csv);
+}
+
+void WinchieController::OpenOutputFiles(std::string path)
+{
+	if (pSim->outputFormat == 1)
+		OpenOutputFilesCSV(path);
+	else
+		OpenOutputFilesASCII(path);
+}
+
+void WinchieController::CloseOutputFiles(void)
+{
+	if (pSim->outputFormat == 1)
+		CloseOutputFilesCSV();
+	else
+		CloseOutputFilesASCII();
+}
+
 void WinchieController::WriteOut(double t)
 {
-	fprintf(pfile_TW, "%f    ", t);
-	for (int ii = 0; ii < nWinchies; ii++)
-		fprintf(pfile_TW, "%f    ", T(ii, 0));
-	fprintf(pfile_TW, "\n");
+	if (pSim->outputFormat == 1)
+	{
+		fprintf(pfile_TW_csv, "%f", t);
+		for (int ii = 0; ii < nWinchies; ii++)
+			fprintf(pfile_TW_csv, ",%f", T(ii, 0));
+		fprintf(pfile_TW_csv, "\n");
 
-	fprintf(pfile_LL, "%f    ", t);
-	for (int ii = 0; ii < nWinchies; ii++)
-		fprintf(pfile_LL, "%f    ", Winchies[ii]->LineW->L * Winchies[ii]->LineW->dL / Winchies[ii]->LineW->dL0);
-	fprintf(pfile_LL, "\n");
+		fprintf(pfile_LL_csv, "%f", t);
+		for (int ii = 0; ii < nWinchies; ii++)
+			fprintf(pfile_LL_csv, ",%f", Winchies[ii]->LineW->L * Winchies[ii]->LineW->dL / Winchies[ii]->LineW->dL0);
+		fprintf(pfile_LL_csv, "\n");
+	}
+	else
+	{
+		fprintf(pfile_TW, "%f    ", t);
+		for (int ii = 0; ii < nWinchies; ii++)
+			fprintf(pfile_TW, "%f    ", T(ii, 0));
+		fprintf(pfile_TW, "\n");
+
+		fprintf(pfile_LL, "%f    ", t);
+		for (int ii = 0; ii < nWinchies; ii++)
+			fprintf(pfile_LL, "%f    ", Winchies[ii]->LineW->L * Winchies[ii]->LineW->dL / Winchies[ii]->LineW->dL0);
+		fprintf(pfile_LL, "\n");
+	}
 }
 
 WinchieController *WinchieController::Create(int controllerType, int n, Winchie **Ws, Simulation *pIncSim)

@@ -70,12 +70,21 @@ public:
 	FILE *pfile_line_ini;
 	FILE *pfile_debug;
 
+	// CSV output files
+	FILE *pfile_positions_csv = nullptr;
+	FILE *pfile_tensions_csv = nullptr;
+	int outputFormat = 0;
+
 	Line(int incId, double incG, double incRhoW, double incFondo);
 	int GetId();
 	void ReadPropertiesASCII(FILE *pFilePointer);
 	void ReadPropertiesYAML(YAML::Node node);
 	void OpenOutputFilesASCII(std::string path);
+	void OpenOutputFilesCSV(std::string path);
 	void CloseOutputFilesASCII(void);
+	void CloseOutputFilesCSV(void);
+	void OpenOutputFiles(std::string path, int format);
+	void CloseOutputFiles(void);
 	void print_out(void);
 	void initLine(void);
 	void qs_Functions(double &ff, double &gg, double &DfDH, double &DfDV, double &DgDH, double &DgDV);

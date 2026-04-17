@@ -43,6 +43,7 @@ public:
 	arma::mat groupsInertia = arma::zeros(6, 6);
 
 	FILE *pfile_FillingCOG;
+	FILE *pfile_FillingCOG_csv = nullptr;
 
 	// Declare constructors
 	Sinking(int n, Simulation *pSim_inp);
@@ -57,7 +58,11 @@ public:
 	void UpdateSinkingHydrostatics(double t);
 
 	void OpenOutputFilesASCII(std::string path);
+	void OpenOutputFilesCSV(std::string path);
 	void CloseOutputFilesASCII(void);
+	void CloseOutputFilesCSV(void);
+	void OpenOutputFiles(std::string path);
+	void CloseOutputFiles(void);
 	void WriteOut(double t); // Escribir datos a fichero
 };
 

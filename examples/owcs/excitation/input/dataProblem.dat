@@ -25,3 +25,4 @@
 0 // Read dataStaticIC.dat? [0 No, 1 Yes]
 0 // Write dataStaticIC.dat? [0 No, 1 Yes]
 1 // Mooring initial condition flag [0: Catenary, 1: Newton's]
+0           // Output format [0: txt, 1: csv]

@@ -26,6 +26,7 @@ problem:
   read_equilibrium: 0
   write_equilibrium: 0
   mooring_initial_condition: 1
+  output_format: csv
 
 waves:
   type: REG

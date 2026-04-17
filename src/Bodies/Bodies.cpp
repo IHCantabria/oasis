@@ -1009,58 +1009,184 @@ void Body::CloseOutputFilesASCII(void)
     fclose(pfile_WindTurb);
 }
 
+//
+void Body::OpenOutputFilesCSV(std::string path)
+{
+    int bid = GetId();
+    char buffer[100];
+
+    // --- Motion CSV ---
+    sprintf(buffer, "body_%d_motion.csv", bid);
+    std::string motion_path = JoinPath(path, buffer);
+    pfile_motion_csv = fopen(motion_path.c_str(), "w");
+    if (pfile_motion_csv == NULL)
+    {
+        std::stringstream ss;
+        ss << "Not possible to open the file: " << buffer << "\n    ->Dir: " << path << std::endl;
+        throw IOError(ss.str());
+    }
+    // Write header: time, positions (x,y,z,rl,pt,yw), velocities, accelerations
+    fprintf(pfile_motion_csv, "time");
+    const char *dof_names[] = {"x", "y", "z", "rl", "pt", "yw"};
+    for (int i = 0; i < 6; i++)
+        fprintf(pfile_motion_csv, ",b%d_%s", bid, dof_names[i]);
+    for (int i = 0; i < 6; i++)
+        fprintf(pfile_motion_csv, ",b%d_v%s", bid, dof_names[i]);
+    for (int i = 0; i < 6; i++)
+        fprintf(pfile_motion_csv, ",b%d_a%s", bid, dof_names[i]);
+    fprintf(pfile_motion_csv, "\n");
+
+    // --- Forces CSV ---
+    sprintf(buffer, "body_%d_forces.csv", bid);
+    std::string forces_path = JoinPath(path, buffer);
+    pfile_forces_csv = fopen(forces_path.c_str(), "w");
+    if (pfile_forces_csv == NULL)
+    {
+        std::stringstream ss;
+        ss << "Not possible to open the file: " << buffer << "\n    ->Dir: " << path << std::endl;
+        throw IOError(ss.str());
+    }
+    // Write header
+    const char *force_names[] = {"fx", "fy", "fz", "mx", "my", "mz"};
+    fprintf(pfile_forces_csv, "time");
+    // Hydrostatic forces
+    for (int i = 0; i < 6; i++)
+        fprintf(pfile_forces_csv, ",b%d_hs_%s", bid, force_names[i]);
+    // Radiation forces
+    for (int i = 0; i < 6; i++)
+        fprintf(pfile_forces_csv, ",b%d_rad_%s", bid, force_names[i]);
+    // Excitation forces (1st order)
+    for (int i = 0; i < 6; i++)
+        fprintf(pfile_forces_csv, ",b%d_exc1_%s", bid, force_names[i]);
+    // Excitation forces (2nd order)
+    for (int i = 0; i < 6; i++)
+        fprintf(pfile_forces_csv, ",b%d_exc2_%s", bid, force_names[i]);
+    // BCP forces (per BCP + total)
+    for (int b = 0; b < numBcps; b++)
+        for (int i = 0; i < 6; i++)
+            fprintf(pfile_forces_csv, ",b%d_bcp%d_%s", bid, b, force_names[i]);
+    for (int i = 0; i < 6; i++)
+        fprintf(pfile_forces_csv, ",b%d_bcp_total_%s", bid, force_names[i]);
+    // Wind turbine forces (per turbine + total)
+    for (int w = 0; w < numWindTurbs; w++)
+        for (int i = 0; i < 6; i++)
+            fprintf(pfile_forces_csv, ",b%d_wt%d_%s", bid, w, force_names[i]);
+    for (int i = 0; i < 6; i++)
+        fprintf(pfile_forces_csv, ",b%d_wt_total_%s", bid, force_names[i]);
+    fprintf(pfile_forces_csv, "\n");
+}
+
+void Body::CloseOutputFilesCSV(void)
+{
+    if (pfile_motion_csv) fclose(pfile_motion_csv);
+    if (pfile_forces_csv) fclose(pfile_forces_csv);
+}
+
+void Body::OpenOutputFiles(std::string path)
+{
+    if (pSim->outputFormat == 1)
+        OpenOutputFilesCSV(path);
+    else
+        OpenOutputFilesASCII(path);
+}
+
+void Body::CloseOutputFiles(void)
+{
+    if (pSim->outputFormat == 1)
+        CloseOutputFilesCSV();
+    else
+        CloseOutputFilesASCII();
+}
+
 // Escibir datos a fichero
 void Body::WriteOut(double t)
 {
-    fprintf(pfile_DOF_1, "%f    %f    %f    %f \n", t, this->pos(0, 0), this->vel(0, 0), this->acc(0, 0));
-    fprintf(pfile_DOF_2, "%f    %f    %f    %f \n", t, this->pos(1, 0), this->vel(1, 0), this->acc(1, 0));
-    fprintf(pfile_DOF_3, "%f    %f    %f    %f \n", t, this->pos(2, 0), this->vel(2, 0), this->acc(2, 0));
-    fprintf(pfile_DOF_4, "%f    %f    %f    %f \n", t, this->pos(3, 0), this->vel(3, 0), this->acc(3, 0));
-    fprintf(pfile_DOF_5, "%f    %f    %f    %f \n", t, this->pos(4, 0), this->vel(4, 0), this->acc(4, 0));
-    fprintf(pfile_DOF_6, "%f    %f    %f    %f \n", t, this->pos(5, 0), this->vel(5, 0), this->acc(5, 0));
-    fprintf(pfile_HSF, "%f    ", t);
-    for (int ii = 0; ii < 6; ii = ii + 1)
-        fprintf(pfile_HSF, "%f    ", hydrostaticForces(ii, 0));
-    fprintf(pfile_HSF, "\n");
-
-    fprintf(pfile_WRF, "%f    ", t);
-    for (int ii = 0; ii < 6; ii = ii + 1)
-        fprintf(pfile_WRF, "%f    ", radiationForces(ii, 0));
-    fprintf(pfile_WRF, "\n");
-
-    fprintf(pfile_WEF, "%f    ", t);
-    for (int ii = 0; ii < 6; ii = ii + 1)
-        fprintf(pfile_WEF, "%f    ", excitationForces_1(ii, 0));
-    for (int ii = 0; ii < 6; ii = ii + 1)
-        fprintf(pfile_WEF, "%f    ", excitationForces_2(ii, 0));
-    fprintf(pfile_WEF, "\n");
-
-    fprintf(pfile_BCPF, "%f    ", t);
-    for (int ii = 0; ii < numBcps; ii = ii + 1)
+    if (pSim->outputFormat == 1)
     {
+        // CSV format: motion file
+        fprintf(pfile_motion_csv, "%f", t);
+        for (int i = 0; i < 6; i++)
+            fprintf(pfile_motion_csv, ",%f", this->pos(i, 0));
+        for (int i = 0; i < 6; i++)
+            fprintf(pfile_motion_csv, ",%f", this->vel(i, 0));
+        for (int i = 0; i < 6; i++)
+            fprintf(pfile_motion_csv, ",%f", this->acc(i, 0));
+        fprintf(pfile_motion_csv, "\n");
+
+        // CSV format: forces file
+        fprintf(pfile_forces_csv, "%f", t);
+        for (int i = 0; i < 6; i++)
+            fprintf(pfile_forces_csv, ",%f", hydrostaticForces(i, 0));
+        for (int i = 0; i < 6; i++)
+            fprintf(pfile_forces_csv, ",%f", radiationForces(i, 0));
+        for (int i = 0; i < 6; i++)
+            fprintf(pfile_forces_csv, ",%f", excitationForces_1(i, 0));
+        for (int i = 0; i < 6; i++)
+            fprintf(pfile_forces_csv, ",%f", excitationForces_2(i, 0));
+        for (int ii = 0; ii < numBcps; ii++)
+            for (int jj = 0; jj < 6; jj++)
+                fprintf(pfile_forces_csv, ",%f", pBodyBcps[ii]->temp(jj, 0));
+        for (int jj = 0; jj < 6; jj++)
+            fprintf(pfile_forces_csv, ",%f", bcpForces(jj, 0));
+        for (int ii = 0; ii < numWindTurbs; ii++)
+            for (int jj = 0; jj < 6; jj++)
+                fprintf(pfile_forces_csv, ",%f", pBodyWindTurbs[ii]->forceBodyCOG(jj, 0));
+        for (int jj = 0; jj < 6; jj++)
+            fprintf(pfile_forces_csv, ",%f", windTurbForces(jj, 0));
+        fprintf(pfile_forces_csv, "\n");
+    }
+    else
+    {
+        // ASCII format (original)
+        fprintf(pfile_DOF_1, "%f    %f    %f    %f \n", t, this->pos(0, 0), this->vel(0, 0), this->acc(0, 0));
+        fprintf(pfile_DOF_2, "%f    %f    %f    %f \n", t, this->pos(1, 0), this->vel(1, 0), this->acc(1, 0));
+        fprintf(pfile_DOF_3, "%f    %f    %f    %f \n", t, this->pos(2, 0), this->vel(2, 0), this->acc(2, 0));
+        fprintf(pfile_DOF_4, "%f    %f    %f    %f \n", t, this->pos(3, 0), this->vel(3, 0), this->acc(3, 0));
+        fprintf(pfile_DOF_5, "%f    %f    %f    %f \n", t, this->pos(4, 0), this->vel(4, 0), this->acc(4, 0));
+        fprintf(pfile_DOF_6, "%f    %f    %f    %f \n", t, this->pos(5, 0), this->vel(5, 0), this->acc(5, 0));
+        fprintf(pfile_HSF, "%f    ", t);
+        for (int ii = 0; ii < 6; ii = ii + 1)
+            fprintf(pfile_HSF, "%f    ", hydrostaticForces(ii, 0));
+        fprintf(pfile_HSF, "\n");
+
+        fprintf(pfile_WRF, "%f    ", t);
+        for (int ii = 0; ii < 6; ii = ii + 1)
+            fprintf(pfile_WRF, "%f    ", radiationForces(ii, 0));
+        fprintf(pfile_WRF, "\n");
+
+        fprintf(pfile_WEF, "%f    ", t);
+        for (int ii = 0; ii < 6; ii = ii + 1)
+            fprintf(pfile_WEF, "%f    ", excitationForces_1(ii, 0));
+        for (int ii = 0; ii < 6; ii = ii + 1)
+            fprintf(pfile_WEF, "%f    ", excitationForces_2(ii, 0));
+        fprintf(pfile_WEF, "\n");
+
+        fprintf(pfile_BCPF, "%f    ", t);
+        for (int ii = 0; ii < numBcps; ii = ii + 1)
+        {
+            for (int jj = 0; jj < 6; jj = jj + 1)
+            {
+                fprintf(pfile_BCPF, "%f    ", pBodyBcps[ii]->temp(jj, 0));
+            }
+        }
         for (int jj = 0; jj < 6; jj = jj + 1)
         {
-            fprintf(pfile_BCPF, "%f    ", pBodyBcps[ii]->temp(jj, 0));
-            // fprintf(pfile_BCPF, "%f    ", pBodyBcps[ii]->forceBcp(jj, 0));
+            fprintf(pfile_BCPF, "%f    ", bcpForces(jj, 0));
         }
-    }
-    for (int jj = 0; jj < 6; jj = jj + 1)
-    {
-        fprintf(pfile_BCPF, "%f    ", bcpForces(jj, 0));
-    }
-    fprintf(pfile_BCPF, "\n");
+        fprintf(pfile_BCPF, "\n");
 
-    fprintf(pfile_WindTurb, "%f    ", t);
-    for (int ii = 0; ii < numWindTurbs; ii = ii + 1)
-    {
+        fprintf(pfile_WindTurb, "%f    ", t);
+        for (int ii = 0; ii < numWindTurbs; ii = ii + 1)
+        {
+            for (int jj = 0; jj < 6; jj = jj + 1)
+            {
+                fprintf(pfile_WindTurb, "%f    ", pBodyWindTurbs[ii]->forceBodyCOG(jj, 0));
+            }
+        }
         for (int jj = 0; jj < 6; jj = jj + 1)
         {
-            fprintf(pfile_WindTurb, "%f    ", pBodyWindTurbs[ii]->forceBodyCOG(jj, 0));
+            fprintf(pfile_WindTurb, "%f    ", windTurbForces(jj, 0));
         }
+        fprintf(pfile_WindTurb, "\n");
     }
-    for (int jj = 0; jj < 6; jj = jj + 1)
-    {
-        fprintf(pfile_WindTurb, "%f    ", windTurbForces(jj, 0));
-    }
-    fprintf(pfile_WindTurb, "\n");
 }

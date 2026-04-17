@@ -26,6 +26,10 @@ public:
 	FILE *pfile_TW; // WinchesTensions.txt
 	FILE *pfile_LL; // WinchedLinesLengths.txt
 
+	// CSV output files
+	FILE *pfile_TW_csv = nullptr;
+	FILE *pfile_LL_csv = nullptr;
+
 	WinchieController(void);
 	WinchieController(int n, Winchie **Ws, Simulation *pIncSim);
 	virtual ~WinchieController();
@@ -35,7 +39,11 @@ public:
 	virtual void SetUpWinchiesController(void);
 	virtual void controlWinchies(double time) = 0;
 	virtual void OpenOutputFilesASCII(std::string path);
+	virtual void OpenOutputFilesCSV(std::string path);
 	virtual void CloseOutputFilesASCII(void);
+	virtual void CloseOutputFilesCSV(void);
+	virtual void OpenOutputFiles(std::string path);
+	virtual void CloseOutputFiles(void);
 	virtual void WriteOut(double t);
 
 	// Factory method to create the appropriate controller type

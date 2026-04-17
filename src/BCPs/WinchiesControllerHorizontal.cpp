@@ -705,19 +705,71 @@ void WinchieControllerHorizontal::CloseOutputFilesASCII(void)
 	WinchieController::CloseOutputFilesASCII();
 }
 
+void WinchieControllerHorizontal::OpenOutputFilesCSV(std::string path)
+{
+	// Open base CSV output files (winches_tensions.csv, winches_lengths.csv)
+	WinchieController::OpenOutputFilesCSV(path);
+
+	// Open horizontal-controller-specific CSV output files
+	std::string file_path;
+
+	file_path = JoinPath(path, "control_force.csv");
+	pfile_FC_csv = fopen(file_path.c_str(), "w");
+	if (pfile_FC_csv == NULL)
+	{
+		std::stringstream ss;
+		ss << "Not possible to open the file: control_force.csv\n    ->Dir: " << path << std::endl;
+		throw IOError(ss.str());
+	}
+	fprintf(pfile_FC_csv, "time,ctrl_fx,ctrl_fy,ctrl_fz\n");
+
+	file_path = JoinPath(path, "reference_position.csv");
+	pfile_RP_csv = fopen(file_path.c_str(), "w");
+	if (pfile_RP_csv == NULL)
+	{
+		std::stringstream ss;
+		ss << "Not possible to open the file: reference_position.csv\n    ->Dir: " << path << std::endl;
+		throw IOError(ss.str());
+	}
+	fprintf(pfile_RP_csv, "time,ref_x,ref_y,ref_z\n");
+}
+
+void WinchieControllerHorizontal::CloseOutputFilesCSV(void)
+{
+	if (pfile_FC_csv) fclose(pfile_FC_csv);
+	if (pfile_RP_csv) fclose(pfile_RP_csv);
+	WinchieController::CloseOutputFilesCSV();
+}
+
 void WinchieControllerHorizontal::WriteOut(double t)
 {
 	// Write base outputs (tensions and line lengths)
 	WinchieController::WriteOut(t);
 
-	// Write horizontal-controller-specific outputs
-	fprintf(pfile_FC, "%f    ", t);
-	for (int ii = 0; ii < 3; ii = ii + 1)
-		fprintf(pfile_FC, "%f    ", Kw * yc(ii, 0));
-	fprintf(pfile_FC, "\n");
+	if (pSim->outputFormat == 1)
+	{
+		// CSV format
+		fprintf(pfile_FC_csv, "%f", t);
+		for (int ii = 0; ii < 3; ii = ii + 1)
+			fprintf(pfile_FC_csv, ",%f", Kw * yc(ii, 0));
+		fprintf(pfile_FC_csv, "\n");
 
-	fprintf(pfile_RP, "%f    ", t);
-	for (int ii = 0; ii < 3; ii = ii + 1)
-		fprintf(pfile_RP, "%f    ", yr(ii, 0));
-	fprintf(pfile_RP, "\n");
+		fprintf(pfile_RP_csv, "%f", t);
+		for (int ii = 0; ii < 3; ii = ii + 1)
+			fprintf(pfile_RP_csv, ",%f", yr(ii, 0));
+		fprintf(pfile_RP_csv, "\n");
+	}
+	else
+	{
+		// ASCII format (original)
+		fprintf(pfile_FC, "%f    ", t);
+		for (int ii = 0; ii < 3; ii = ii + 1)
+			fprintf(pfile_FC, "%f    ", Kw * yc(ii, 0));
+		fprintf(pfile_FC, "\n");
+
+		fprintf(pfile_RP, "%f    ", t);
+		for (int ii = 0; ii < 3; ii = ii + 1)
+			fprintf(pfile_RP, "%f    ", yr(ii, 0));
+		fprintf(pfile_RP, "\n");
+	}
 }

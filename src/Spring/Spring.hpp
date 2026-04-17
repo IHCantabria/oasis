@@ -3,8 +3,11 @@
 #define SPRING_FLAG
 #include <armadillo>
 #include <string>
+#include <cstdio>
 #include <yaml-cpp/yaml.h>
 #include "../BCPs/BCPs.hpp"
+
+class Simulation;
 
 class Spring
 {
@@ -39,6 +42,14 @@ public:
 	void ReadPropertiesASCII(std::string filePath); // Lee inputs de los muelles
 	void ReadPropertiesYAML(YAML::Node node);
 	void computeSpringForces(void);					// Calcula las fuerzas que aplica el muelle en los BCPs y las guarda en variables de los BCPs
+
+	// Output
+	Simulation *pSim = nullptr;
+	FILE *pfile_spring_csv = nullptr;
+	arma::mat lastForceG = arma::zeros(6, 1); // Last computed global force for output
+	void OpenOutputFiles(std::string path);
+	void CloseOutputFiles(void);
+	void WriteOut(double t);
 };
 
 #endif

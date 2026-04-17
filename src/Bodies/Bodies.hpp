@@ -104,6 +104,10 @@ public:
 	FILE *pfile_WEF;
 	FILE *pfile_WindTurb;
 
+	// CSV output files
+	FILE *pfile_motion_csv = nullptr;
+	FILE *pfile_forces_csv = nullptr;
+
 	// Methods definition
 	Body(void) {};
 	Body(int n, Simulation *pSim);							   // Inicializa un objeto de clase cuerpo dandole el indice
@@ -114,7 +118,11 @@ public:
 	void ReadPropertiesASCII(FILE *filePointer);			   // Leer datos de los cuerpos
 	void ReadPropertiesYAML(YAML::Node node);
 	void OpenOutputFilesASCII(std::string path);
+	void OpenOutputFilesCSV(std::string path);
 	void CloseOutputFilesASCII(void);
+	void CloseOutputFilesCSV(void);
+	void OpenOutputFiles(std::string path);
+	void CloseOutputFiles(void);
 	void StoreVelocities(bool restoreMatrix); // Store last step velocity into the velocity buffer matrix
 	void UpdateBcps(void);					  // Actualiza valores del BCP
 	void ResetBcps(void);					  // Resetea fuerzas BCPs
