@@ -16,3 +16,4 @@ echo Running OASIS body/nonlinear_hs_waves...
 "%OASIS_EXE%" "%INPUT_DIR%"
 echo.
 echo Exit code: %ERRORLEVEL%
+exit /b %ERRORLEVEL%

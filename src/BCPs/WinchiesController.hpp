@@ -31,6 +31,7 @@ public:
 	virtual ~WinchieController();
 
 	virtual void ReadPropertiesASCII(FILE *pFile) = 0;
+	virtual void ReadPropertiesYAML(YAML::Node node) = 0;
 	virtual void SetUpWinchiesController(void);
 	virtual void controlWinchies(double time) = 0;
 	virtual void OpenOutputFilesASCII(std::string path);

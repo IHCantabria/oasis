@@ -20,6 +20,7 @@
 #include "Hydro/HydroDatabase.hpp"
 #include "ODE_solvers/ODE_solvers.hpp"
 #include "os_tools.hpp"
+#include <filesystem>
 
 int main(int argc, char *argv[])
 {
@@ -53,9 +54,29 @@ int main(int argc, char *argv[])
 
 	try
 	{
+		// Auto-detect input format
+		std::string data_format;
+		std::filesystem::path yaml_path = std::filesystem::path(project_path) / "input" / "dataProblem.yaml";
+		std::filesystem::path dat_path = std::filesystem::path(project_path) / "input" / "dataProblem.dat";
+		if (std::filesystem::exists(yaml_path))
+		{
+			data_format = "YAML";
+			std::cout << "  Input format: YAML (detected dataProblem.yaml)" << std::endl;
+		}
+		else if (std::filesystem::exists(dat_path))
+		{
+			data_format = "ASCII";
+			std::cout << "  Input format: ASCII (detected dataProblem.dat)" << std::endl;
+		}
+		else
+		{
+			std::cout << "ERROR: No input file found. Expected input/dataProblem.yaml or input/dataProblem.dat" << std::endl;
+			return 1;
+		}
+
 		std::cout << std::endl
 				  << "Creating simulation..." << std::endl;
-		Simulation *mySim = new Simulation(project_path, "ASCII");
+		Simulation *mySim = new Simulation(project_path, data_format);
 		std::cout << std::endl
 				  << "Loading..." << std::endl;
 		mySim->LoadCase();

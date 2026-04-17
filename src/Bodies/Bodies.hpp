@@ -5,6 +5,7 @@
 #include <armadillo>
 #include <string>
 #include <cstdio>
+#include <yaml-cpp/yaml.h>
 #include "../BCPs/BCPs.hpp"
 #include "../Hydro/HydroDatabase.hpp"
 #include "../Hydro/HydroForce.hpp"
@@ -111,6 +112,7 @@ public:
 	int GetId(void);										   // Returns the body identification number
 	void LoadHydrodynamicDatabase(Body **hydroDatabaseBodies, int slotIndex); // Loads the hydrodynamics database associated, if any
 	void ReadPropertiesASCII(FILE *filePointer);			   // Leer datos de los cuerpos
+	void ReadPropertiesYAML(YAML::Node node);
 	void OpenOutputFilesASCII(std::string path);
 	void CloseOutputFilesASCII(void);
 	void StoreVelocities(bool restoreMatrix); // Store last step velocity into the velocity buffer matrix

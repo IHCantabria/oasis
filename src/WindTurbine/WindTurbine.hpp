@@ -6,6 +6,7 @@
 #include <string>
 #include <cstdio>
 #include <iostream>
+#include <yaml-cpp/yaml.h>
 
 class Simulation;
 class Body;
@@ -61,6 +62,7 @@ public:
         pSim = pSimInp;
     }
     void ReadPropertiesASCII(FILE *pFile);
+    void ReadPropertiesYAML(YAML::Node node);
     void Initialize(void);
     void Finalize(void);
     void WriteOut(double t);
@@ -109,6 +111,10 @@ public:
         pSim = pSimInp;
     }
     void ReadPropertiesASCII(FILE *pFile)
+    {
+        std::cerr << "ERROR: WindTurbine requires compilation with -DOASIS_USE_OPENFAST=ON" << std::endl;
+    }
+    void ReadPropertiesYAML(YAML::Node node)
     {
         std::cerr << "ERROR: WindTurbine requires compilation with -DOASIS_USE_OPENFAST=ON" << std::endl;
     }

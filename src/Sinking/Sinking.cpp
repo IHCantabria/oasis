@@ -233,6 +233,108 @@ void Sinking::ReadPropertiesASCII(FILE *pFile, std::string inputFolderPath)
 	}
 }
 
+void Sinking::ReadPropertiesYAML(YAML::Node node, std::string inputFolderPath)
+{
+	double dtemp;
+	arma::mat mtemp;
+	std::string file_path;
+
+	// Read bodyReferenceMassMat
+	YAML::Node massNode = node["reference_mass_diagonal"];
+	for (int ii = 0; ii < 6; ii++)
+		bodyReferenceMassMat(ii, ii) = massNode[ii].as<double>();
+	bodyReferenceMass = arma::as_scalar(bodyReferenceMassMat(0, 0));
+
+	// Read HDBs
+	numHDBs = node["num_hdbs"].as<int>();
+	if (numHDBs < 1)
+	{
+		std::stringstream ss;
+		ss << "ERROR: The number of HDBs must be at least 1 " << indBody << "\n";
+		throw ValueError(ss.str());
+	}
+
+	YAML::Node imNode = node["interp_masses"];
+	InterpMasses = arma::zeros(numHDBs, 1);
+	for (int ii = 0; ii < numHDBs; ii++)
+		InterpMasses(ii, 0) = imNode[ii].as<double>();
+
+	pHydro = new HydroDatabase *[numHDBs];
+	YAML::Node hdbNode = node["hdb_files"];
+	for (int ii = 0; ii < numHDBs; ii++)
+	{
+		pHydro[ii] = new HydroDatabase(pSinkingBody->hydroDatabaseIndex, indBody - 1, pSim->pBodies, pSim);
+		file_path = JoinPath(inputFolderPath, hdbNode[ii].as<std::string>());
+		std::cout << "--> Loading Sinking HDB " << ii + 1 << "..." << std::endl;
+		pHydro[ii]->LoadHydrodynamicData(file_path);
+		std::cout << "--> Done loading Sinking HDB " << ii + 1 << std::endl;
+	}
+
+	// Read groups
+	numGroups = node["num_groups"].as<int>();
+	if (numGroups < 1)
+	{
+		std::stringstream ss;
+		ss << "ERROR: The number of groups must be at least 1 " << indBody << "\n";
+		throw ValueError(ss.str());
+	}
+
+	groupsPoints.set_size(numGroups, 1);
+	groupsCenters = arma::zeros(numGroups, 3);
+	groupsAreas = arma::zeros(numGroups, 1);
+	groupsIx = arma::zeros(numGroups, 1);
+	groupsIy = arma::zeros(numGroups, 1);
+	groupsFillingTimes.set_size(numGroups, 1);
+	groupsFillingStates.set_size(numGroups, 1);
+
+	YAML::Node grpNode = node["groups"];
+	for (int ii = 0; ii < numGroups; ii++)
+	{
+		YAML::Node g = grpNode[ii];
+		YAML::Node xNode = g["polygon_x"];
+		YAML::Node yNode = g["polygon_y"];
+		int itemp = (int)xNode.size();
+
+		mtemp = arma::zeros(itemp + 1, 2);
+		for (int jj = 0; jj < itemp; jj++)
+			mtemp(jj, 0) = xNode[jj].as<double>();
+		mtemp(itemp, 0) = mtemp(0, 0);
+		for (int jj = 0; jj < itemp; jj++)
+			mtemp(jj, 1) = yNode[jj].as<double>();
+		mtemp(itemp, 1) = mtemp(0, 1);
+		groupsPoints(ii, 0) = mtemp;
+
+		for (int jj = 0; jj < itemp; jj++)
+		{
+			dtemp = (mtemp(jj, 0) * mtemp(jj + 1, 1) - mtemp(jj + 1, 0) * mtemp(jj, 1));
+			groupsAreas(ii, 0) += dtemp;
+			groupsIx(ii, 0) += dtemp * (mtemp(jj, 1) * mtemp(jj, 1) + mtemp(jj, 1) * mtemp(jj + 1, 1) + mtemp(jj + 1, 1) * mtemp(jj + 1, 1));
+			groupsIy(ii, 0) += dtemp * (mtemp(jj, 0) * mtemp(jj, 0) + mtemp(jj, 0) * mtemp(jj + 1, 0) + mtemp(jj + 1, 0) * mtemp(jj + 1, 0));
+			groupsCenters(ii, 0) += dtemp * (mtemp(jj, 0) + mtemp(jj + 1, 0));
+			groupsCenters(ii, 1) += dtemp * (mtemp(jj, 1) + mtemp(jj + 1, 1));
+		}
+		groupsAreas(ii, 0) /= 2.0;
+		groupsIx(ii, 0) /= 12.0;
+		groupsIy(ii, 0) /= 12.0;
+		groupsCenters(ii, 0) /= (6.0 * groupsAreas(ii, 0));
+		groupsCenters(ii, 1) /= (6.0 * groupsAreas(ii, 0));
+		groupsCenters(ii, 2) = g["floor_z"].as<double>();
+
+		YAML::Node ftNode = g["filling_times"];
+		int nft = (int)ftNode.size();
+		mtemp = arma::zeros(nft, 1);
+		for (int jj = 0; jj < nft; jj++)
+			mtemp(jj, 0) = ftNode[jj].as<double>();
+		groupsFillingTimes(ii, 0) = mtemp;
+
+		YAML::Node fsNode = g["filling_states"];
+		mtemp = arma::zeros(nft, 1);
+		for (int jj = 0; jj < nft; jj++)
+			mtemp(jj, 0) = fsNode[jj].as<double>();
+		groupsFillingStates(ii, 0) = mtemp;
+	}
+}
+
 void Sinking::UpdateSinkingHydrodynamics(double t)
 {
 

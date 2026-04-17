@@ -22,7 +22,7 @@ set TOTAL_TESTS=0
 set PASSED_TESTS=0
 set TEST_NUM=0
 
-for %%d in (single_line multi_line joint_connection elastic_anchor prescribed_motion viscoelastic tabulated_stiffness tension_symmetric seabed_contact friction_isotropic friction_anisotropic) do (
+for %%d in (single_line multi_line joint_connection elastic_anchor prescribed_motion viscoelastic tabulated_stiffness tension_symmetric seabed_contact friction_isotropic friction_anisotropic single_line_yaml multi_line_yaml) do (
     set /a TEST_NUM+=1
     echo [!TEST_NUM!] Running lines/%%d...
     cd %%d

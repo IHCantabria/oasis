@@ -232,6 +232,159 @@ void Spring::ReadPropertiesASCII(std::string file_path)
 	datosSprings.close();
 }
 
+void Spring::ReadPropertiesYAML(YAML::Node node)
+{
+	arma::mat temp_vec;
+
+	SpringVectors.set_size(3, 2);
+	data_StressStrain.set_size(6, 2);
+
+	stressModelFlag = node["stress_model_flag"].as<int>();
+	dampingFlag = node["damping_flag"].as<int>();
+	frictionFlag = node["friction_flag"].as<int>();
+	frameFlag = node["frame_flag"].as<int>();
+	BCP_1 = node["BCP_1"].as<int>() - 1;
+	BCP_2 = node["BCP_2"].as<int>() - 1;
+	BCP_1_type = node["BCP_1_type"].as<int>();
+	BCP_2_type = node["BCP_2_type"].as<int>();
+
+	if (BCP_1_type > 0 && BCP_2_type > 0)
+	{
+		std::stringstream ss;
+		ss << "One of the BCPs must be a fixed point.\n";
+		throw ValueError(ss.str());
+	}
+
+	YAML::Node vecNode = node["vectors"];
+	for (int jj = 0; jj < 2; jj++)
+	{
+		for (int ii = 0; ii < 3; ii++)
+		{
+			temp_vec = arma::zeros(3, 1);
+			YAML::Node v = vecNode[jj * 3 + ii];
+			temp_vec(0, 0) = v[0].as<double>();
+			temp_vec(1, 0) = v[1].as<double>();
+			temp_vec(2, 0) = v[2].as<double>();
+			SpringVectors(ii, jj) = temp_vec;
+		}
+	}
+
+	// Check and post process the spring base
+	std::cout << "        Post-processing Spring " << nSpring + 1 << " vectors..." << std::endl;
+	arma::field<arma::mat> SpringVectors_new;
+	SpringVectors_new.set_size(3, 2);
+	double temp_norm;
+	for (int jj = 0; jj < 2; jj++)
+	{
+		for (int ii = 0; ii < 3; ii++)
+		{
+			temp_vec = SpringVectors(ii, jj);
+			temp_norm = arma::norm(temp_vec);
+			if (temp_norm < 0.99 || temp_norm > 1.01)
+			{
+				std::stringstream ss;
+				ss << "The norm of the spring vectors must be unitary.\n";
+				throw ValueError(ss.str());
+			}
+			temp_vec = temp_vec / temp_norm;
+			SpringVectors_new(ii, jj) = temp_vec;
+		}
+		SpringVectors_new(1, jj) = arma::cross(SpringVectors_new(2, jj), SpringVectors_new(0, jj));
+		SpringVectors_new(1, jj) = SpringVectors_new(1, jj) / arma::norm(SpringVectors_new(1, jj));
+		SpringVectors_new(2, jj) = arma::cross(SpringVectors_new(0, jj), SpringVectors_new(1, jj));
+		for (int ii = 0; ii < 3; ii++)
+		{
+			temp_norm = arma::norm(SpringVectors_new(ii, jj) - SpringVectors(ii, jj));
+			if (temp_norm > 0.02)
+			{
+				std::stringstream ss;
+				ss << "The spring vectors must form an orthonormal basis.\n";
+				throw ValueError(ss.str());
+			}
+		}
+	}
+	for (int jj = 0; jj < 2; jj++)
+	{
+		std::cout << "          Spring " << jj + 1 << " ..." << std::endl;
+		for (int ii = 0; ii < 3; ii++)
+		{
+			temp_norm = arma::norm(SpringVectors_new(ii, jj) - SpringVectors(ii, jj));
+			if (temp_norm > 1e-6)
+			{
+				std::cout << "            Vector " << ii + 1 << " changed from: " << std::endl
+						  << "            " << SpringVectors(ii, jj).t() << "            to" << std::endl
+						  << "            " << SpringVectors_new(ii, jj).t();
+			}
+		}
+		std::cout << "          ... checked! " << std::endl;
+	}
+	SpringVectors = SpringVectors_new;
+
+	// Read stiffness matrix
+	YAML::Node kNode = node["stiffness_matrix"];
+	for (int jj = 0; jj < 6; jj++)
+		for (int kk = 0; kk < 6; kk++)
+			SpringMatrix_K(jj, kk) = kNode[jj][kk].as<double>();
+
+	// Read friction parameters
+	mu_d = node["mu_d"].as<double>();
+	mu_s = node["mu_s"].as<double>();
+	vt = node["vt"].as<double>();
+	Dt = node["Dt"].as<double>();
+
+	arma::mat tmpA, tmpB = arma::zeros(4, 1);
+	tmpA = {{pow(vt / 2, 3), pow(vt / 2, 2), vt / 2, 1},
+			{3 * pow(vt / 2, 2), 2 * (vt / 2), 1, 0},
+			{pow(vt, 3), pow(vt, 2), vt, 1},
+			{3 * pow(vt, 2), 2 * vt, 1, 0}};
+	tmpB(0, 0) = mu_s / 2;
+	tmpB(1, 0) = mu_s / vt;
+	tmpB(2, 0) = mu_s;
+	tmpB(3, 0) = 0;
+	a_1 = arma::solve(tmpA, tmpB);
+
+	tmpA = {{pow(vt, 3), pow(vt, 2), vt, 1},
+			{3 * pow(vt, 2), 2 * vt, 1, 0},
+			{pow(vt * 2, 3), pow(vt * 2, 2), vt * 2, 1},
+			{3 * pow(vt * 2, 2), 2 * (vt * 2), 1, 0}};
+	tmpB(0, 0) = mu_s;
+	tmpB(1, 0) = 0;
+	tmpB(2, 0) = mu_d;
+	tmpB(3, 0) = 0;
+	a_2 = arma::solve(tmpA, tmpB);
+
+	// Read mass matrix
+	YAML::Node mNode = node["mass_matrix"];
+	for (int jj = 0; jj < 6; jj++)
+		for (int kk = 0; kk < 6; kk++)
+			SpringMatrix_M(jj, kk) = mNode[jj][kk].as<double>();
+
+	// Read damping vector
+	YAML::Node dNode = node["damping_vector"];
+	for (int jj = 0; jj < 6; jj++)
+		SpringMatrix_D(jj, 0) = dNode[jj].as<double>();
+
+	// Read stress-strain data for each DOF
+	YAML::Node ssNode = node["stress_strain"];
+	for (int jj = 0; jj < 6; jj++)
+	{
+		YAML::Node dofNode = ssNode[jj];
+		int temp_N = (int)dofNode["displacements"].size();
+		n_StressStrain[jj] = temp_N;
+		arma::mat temp_vec2 = arma::zeros(temp_N, 1);
+		for (int ll = 0; ll < temp_N; ll++)
+			temp_vec2(ll, 0) = dofNode["displacements"][ll].as<double>();
+		data_StressStrain(jj, 0) = temp_vec2;
+
+		arma::mat temp_mat = arma::zeros(temp_N, 6);
+		YAML::Node forcesNode = dofNode["forces"];
+		for (int kk = 0; kk < 6; kk++)
+			for (int ll = 0; ll < temp_N; ll++)
+				temp_mat(ll, kk) = forcesNode[kk][ll].as<double>();
+		data_StressStrain(jj, 1) = temp_mat;
+	}
+}
+
 // Calcula las fuerzas que aplica el muelle en los BCPs y las guarda en estos
 void Spring::computeSpringForces(void)
 {

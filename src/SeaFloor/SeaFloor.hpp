@@ -3,6 +3,7 @@
 
 #include <armadillo>
 #include <string>
+#include <yaml-cpp/yaml.h>
 
 class SeaFloor
 {
@@ -31,6 +32,7 @@ public:
 	virtual arma::field<arma::mat> projectPoints(arma::mat nodos) = 0;
 	// los de batimetria que tienen que estar definidos
 	void ReadPropertiesASCII(FILE *&pFilePointer);
+	void ReadPropertiesYAML(YAML::Node node);
 };
 
 class Bathymetry : public SeaFloor
@@ -56,6 +58,7 @@ public:
 	// Metodos
 	Bathymetry(int incId) : SeaFloor(incId){};
 	void ReadPropertiesASCII(FILE *&pFilePointer, std::string inputFilePath);
+	void ReadPropertiesYAML(YAML::Node node, std::string inputFilePath);
 	void getVertexNormals(void);
 	void getProjectionMatrix(void);
 	arma::field<arma::mat> projectPoints(arma::mat nodos);

@@ -4,6 +4,7 @@
 #include <armadillo>
 #include <cstdio>
 #include <string>
+#include <yaml-cpp/yaml.h>
 #include "../Lines/Lines.hpp"
 
 class Winchie
@@ -27,6 +28,7 @@ public:
 
 	Winchie(int n) { nWinchie = n; }	   // Inicializar el objeto de la clase winchie
 	void ReadPropertiesASCII(FILE *pFile); // Leer inputs
+	void ReadPropertiesYAML(YAML::Node node);
 	void computeWinchie(void);			   // Obten las aceleraciones del winchie y el cambio de longitud de las lineas
 };
 

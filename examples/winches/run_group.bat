@@ -22,7 +22,7 @@ set TOTAL_TESTS=0
 set PASSED_TESTS=0
 set TEST_NUM=0
 
-for %%d in (constant_tension horizontal_control) do (
+for %%d in (constant_tension horizontal_control constant_tension_yaml) do (
     set /a TEST_NUM+=1
     echo [!TEST_NUM!] Running winches/%%d...
     cd %%d

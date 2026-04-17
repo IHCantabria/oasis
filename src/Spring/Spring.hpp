@@ -3,6 +3,7 @@
 #define SPRING_FLAG
 #include <armadillo>
 #include <string>
+#include <yaml-cpp/yaml.h>
 #include "../BCPs/BCPs.hpp"
 
 class Spring
@@ -36,6 +37,7 @@ public:
 
 	Spring(int n) { nSpring = n; }					// Inicializa un objeto de clase muelle dandole el indice
 	void ReadPropertiesASCII(std::string filePath); // Lee inputs de los muelles
+	void ReadPropertiesYAML(YAML::Node node);
 	void computeSpringForces(void);					// Calcula las fuerzas que aplica el muelle en los BCPs y las guarda en variables de los BCPs
 };
 

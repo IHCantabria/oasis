@@ -61,6 +61,27 @@ void SeaFloor::ReadPropertiesASCII(FILE *&pFilePointer)
     }
 }
 
+void SeaFloor::ReadPropertiesYAML(YAML::Node node)
+{
+    if (this->GetType() == 3)
+    {
+        meshFileName = node["mesh_file"].as<std::string>();
+    }
+    if (this->GetType() == 2)
+    {
+        YAML::Node p1n = node["p1"];
+        p1(0, 0) = p1n[0].as<double>(); p1(0, 1) = p1n[1].as<double>(); p1(0, 2) = p1n[2].as<double>();
+        YAML::Node p2n = node["p2"];
+        p2(0, 0) = p2n[0].as<double>(); p2(0, 1) = p2n[1].as<double>(); p2(0, 2) = p2n[2].as<double>();
+        YAML::Node p3n = node["p3"];
+        p3(0, 0) = p3n[0].as<double>(); p3(0, 1) = p3n[1].as<double>(); p3(0, 2) = p3n[2].as<double>();
+    }
+    if (this->GetType() == 1)
+    {
+        fondo = node["depth"].as<double>();
+    }
+}
+
 // Flaf floor methods
 
 int Flat::GetType(void)
@@ -244,6 +265,85 @@ void Bathymetry::ReadPropertiesASCII(FILE *&pFilePointer, std::string inputFileP
     fscanf(file_pointer, "%d %[^\n]\n", &flagBarycenter, buffer_line);
     fclose(file_pointer);
 }
+
+void Bathymetry::ReadPropertiesYAML(YAML::Node node, std::string inputFilePath)
+{
+	SeaFloor::ReadPropertiesYAML(node);
+
+	std::string meshFilePath = JoinPath(inputFilePath, meshFileName);
+	std::cout << "meshFileName = " << std::endl << meshFileName << std::endl;
+	FILE *file_pointer = fopen(meshFilePath.c_str(), "r");
+	if (file_pointer == NULL)
+	{
+		std::stringstream ss;
+		ss << "Not possible to open the file in which the bathymetry data is\n    ->Dir: " << inputFilePath << std::endl;
+		throw IOError(ss.str());
+	}
+	char buffer_line[1000];
+	std::string header_check;
+	fscanf(file_pointer, "%d %[^\n]\n", &numPuntosNube, buffer_line);
+	std::cout << "Number of points (mesh) = " << std::endl << numPuntosNube << std::endl;
+	pointMatrix = arma::zeros(numPuntosNube, 3);
+
+	for (int ii = 0; ii < 3; ii++)
+	{
+		fgets(buffer_line, sizeof(buffer_line), file_pointer);
+		header_check = buffer_line;
+		if (header_check.substr(0, 3).compare("///"))
+		{
+			std::stringstream ss;
+			ss << "Error while parsing file HINT SEAFLOOR ID: " << this->GetId();
+			throw IOError(ss.str());
+		}
+	}
+	for (int i = 0; i < numPuntosNube; i++)
+	{
+		fscanf(file_pointer, "%lf %lf %lf %\n", &pointMatrix(i, 0), &pointMatrix(i, 1), &pointMatrix(i, 2), buffer_line);
+	}
+	for (int ii = 0; ii < 3; ii++)
+	{
+		fgets(buffer_line, sizeof(buffer_line), file_pointer);
+		header_check = buffer_line;
+		if (header_check.substr(0, 3).compare("///"))
+		{
+			std::stringstream ss;
+			ss << "Error. SeaFloor ID:" << this->GetId();
+			throw IOError(ss.str());
+		}
+	}
+	fscanf(file_pointer, "%d %[^\n]\n", &numTriangulos, buffer_line);
+	std::cout << "Number of triangles = " << std::endl << numTriangulos << std::endl;
+	for (int ii = 0; ii < 3; ii++)
+	{
+		fgets(buffer_line, sizeof(buffer_line), file_pointer);
+		header_check = buffer_line;
+		if (header_check.substr(0, 3).compare("///"))
+		{
+			std::stringstream ss;
+			ss << "Error. SeaFloor ID:" << this->GetId();
+			throw IOError(ss.str());
+		}
+	}
+	triangleMatrix.zeros(numTriangulos, 3);
+	for (int i = 0; i < numTriangulos; i++)
+	{
+		fscanf(file_pointer, "%d %d %d %\n", &triangleMatrix(i, 0), &triangleMatrix(i, 1), &triangleMatrix(i, 2), buffer_line);
+	}
+	for (int ii = 0; ii < 3; ii++)
+	{
+		fgets(buffer_line, sizeof(buffer_line), file_pointer);
+		header_check = buffer_line;
+		if (header_check.substr(0, 3).compare("///"))
+		{
+			std::stringstream ss;
+			ss << "Error. SeaFloor ID:" << this->GetId();
+			throw IOError(ss.str());
+		}
+	}
+	fscanf(file_pointer, "%d %[^\n]\n", &flagBarycenter, buffer_line);
+	fclose(file_pointer);
+}
+
 int Bathymetry::GetType(void)
 {
     return this->seaFloorType;

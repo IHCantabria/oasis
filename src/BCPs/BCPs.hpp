@@ -4,6 +4,7 @@
 #include <armadillo>
 #include <string>
 #include <cstdio>
+#include <yaml-cpp/yaml.h>
 
 // Class predefinition in order to avoid class cross-linking
 class Body;
@@ -72,6 +73,7 @@ public:
 	virtual void Initialize(void);
 	virtual void Print(void);
 	void ReadPropertiesASCII(FILE *&pFilePointer);
+	void ReadPropertiesYAML(YAML::Node node);
 	virtual void UpdateBoundary();
 };
 
@@ -108,6 +110,7 @@ public:
 	void GetValues(double t);
 	void Initialize(std::string folder_path);
 	void ReadPropertiesASCII(FILE *&pFilePointer, std::string inputFilePath);
+	void ReadPropertiesYAML(YAML::Node node, std::string inputFilePath);
 	void Print(void);
 };
 

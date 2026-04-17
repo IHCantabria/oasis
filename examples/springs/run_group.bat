@@ -22,7 +22,7 @@ set TOTAL_TESTS=0
 set PASSED_TESTS=0
 set TEST_NUM=0
 
-for %%d in (pile_connector neoprene_connector) do (
+for %%d in (pile_connector neoprene_connector pile_connector_yaml) do (
     set /a TEST_NUM+=1
     echo [!TEST_NUM!] Running springs/%%d...
     cd %%d

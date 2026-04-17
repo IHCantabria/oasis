@@ -907,6 +907,265 @@ else
 fi
 echo
 
+# ==============================================================
+# YAML examples
+# ==============================================================
+
+# --- body/fixed_yaml ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running body/fixed_yaml..."
+cd body/fixed_yaml || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: body/fixed_yaml"
+    FAILED_TESTS="$FAILED_TESTS body/fixed_yaml"
+else
+    echo "PASSED: body/fixed_yaml"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
+# --- body/free_decay_yaml ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running body/free_decay_yaml..."
+cd body/free_decay_yaml || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: body/free_decay_yaml"
+    FAILED_TESTS="$FAILED_TESTS body/free_decay_yaml"
+else
+    echo "PASSED: body/free_decay_yaml"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
+# --- body/radiation_yaml ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running body/radiation_yaml..."
+cd body/radiation_yaml || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: body/radiation_yaml"
+    FAILED_TESTS="$FAILED_TESTS body/radiation_yaml"
+else
+    echo "PASSED: body/radiation_yaml"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
+# --- body/excitation_linear_yaml ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running body/excitation_linear_yaml..."
+cd body/excitation_linear_yaml || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: body/excitation_linear_yaml"
+    FAILED_TESTS="$FAILED_TESTS body/excitation_linear_yaml"
+else
+    echo "PASSED: body/excitation_linear_yaml"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
+# --- body/imposed_motion_yaml ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running body/imposed_motion_yaml..."
+cd body/imposed_motion_yaml || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: body/imposed_motion_yaml"
+    FAILED_TESTS="$FAILED_TESTS body/imposed_motion_yaml"
+else
+    echo "PASSED: body/imposed_motion_yaml"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
+# --- body/nonlinear_hs_flat_yaml ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running body/nonlinear_hs_flat_yaml..."
+cd body/nonlinear_hs_flat_yaml || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: body/nonlinear_hs_flat_yaml"
+    FAILED_TESTS="$FAILED_TESTS body/nonlinear_hs_flat_yaml"
+else
+    echo "PASSED: body/nonlinear_hs_flat_yaml"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
+# --- body/partial_dofs_yaml ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running body/partial_dofs_yaml..."
+cd body/partial_dofs_yaml || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: body/partial_dofs_yaml"
+    FAILED_TESTS="$FAILED_TESTS body/partial_dofs_yaml"
+else
+    echo "PASSED: body/partial_dofs_yaml"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
+# --- waves/regular_yaml ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running waves/regular_yaml..."
+cd waves/regular_yaml || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: waves/regular_yaml"
+    FAILED_TESTS="$FAILED_TESTS waves/regular_yaml"
+else
+    echo "PASSED: waves/regular_yaml"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
+# --- waves/jonswap_yaml ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running waves/jonswap_yaml..."
+cd waves/jonswap_yaml || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: waves/jonswap_yaml"
+    FAILED_TESTS="$FAILED_TESTS waves/jonswap_yaml"
+else
+    echo "PASSED: waves/jonswap_yaml"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
+# --- lines/single_line_yaml ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running lines/single_line_yaml..."
+cd lines/single_line_yaml || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: lines/single_line_yaml"
+    FAILED_TESTS="$FAILED_TESTS lines/single_line_yaml"
+else
+    echo "PASSED: lines/single_line_yaml"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
+# --- lines/multi_line_yaml ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running lines/multi_line_yaml..."
+cd lines/multi_line_yaml || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: lines/multi_line_yaml"
+    FAILED_TESTS="$FAILED_TESTS lines/multi_line_yaml"
+else
+    echo "PASSED: lines/multi_line_yaml"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
+# --- multibody/shared_hydb_yaml ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running multibody/shared_hydb_yaml..."
+cd multibody/shared_hydb_yaml || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: multibody/shared_hydb_yaml"
+    FAILED_TESTS="$FAILED_TESTS multibody/shared_hydb_yaml"
+else
+    echo "PASSED: multibody/shared_hydb_yaml"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
+# --- springs/pile_connector_yaml ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running springs/pile_connector_yaml..."
+cd springs/pile_connector_yaml || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: springs/pile_connector_yaml"
+    FAILED_TESTS="$FAILED_TESTS springs/pile_connector_yaml"
+else
+    echo "PASSED: springs/pile_connector_yaml"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
+# --- winches/constant_tension_yaml ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running winches/constant_tension_yaml..."
+cd winches/constant_tension_yaml || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: winches/constant_tension_yaml"
+    FAILED_TESTS="$FAILED_TESTS winches/constant_tension_yaml"
+else
+    echo "PASSED: winches/constant_tension_yaml"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
+# --- solvers/bdf1_yaml ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running solvers/bdf1_yaml..."
+cd solvers/bdf1_yaml || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: solvers/bdf1_yaml"
+    FAILED_TESTS="$FAILED_TESTS solvers/bdf1_yaml"
+else
+    echo "PASSED: solvers/bdf1_yaml"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
 echo "============================================"
 if [ -z "$FAILED_TESTS" ]; then
     echo "  All examples completed successfully!"

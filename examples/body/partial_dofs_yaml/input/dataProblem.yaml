@@ -1,0 +1,56 @@
+problem:
+  gravity: 9.81
+  water_density: 1025.0
+  air_density: 1.225
+  atmospheric_pressure: 101325.0
+  air_adiabatic_dilation: 1.4
+  water_depth: -500.0
+  write_time_step: 0.1
+  max_time_step: 0.1
+  hydro_time_step: 0.1
+  fast_time_step: 0.1
+  fast_controller_time_step: 0.1
+  irf_time: 20.0
+  sinking_time_step: 15.0
+  winches_controller_time_step: 0.1
+  owcs_controller_time_step: 0.1
+  simulation_time: 30.0
+  rotation_simplification: 1
+  time_integration_method: 3
+  time_integration_order: 2
+  time_step_adaptivity: 0
+  jacobian_recomputation_steps: 0
+  absolute_tolerance: 1.0e-5
+  relative_tolerance: 1.0e-3
+  max_iterations_per_step: 5
+  read_equilibrium: 0
+  write_equilibrium: 0
+  mooring_initial_condition: 1
+
+bodies:
+  - type: RAD_DIFF
+    take_cog_hydro_database: 1
+    dofs: [3, 5]
+    bcps_indexes: []
+    wind_turbines_indexes: []
+    initial_position: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    initial_displacement: [0.0, 0.0, 1.0, 0.0, 0.1, 0.0]
+    hydro_database: ../../../data/one_box.hydb.h5
+    hydro_database_index: 1
+    freedom_flag: 0
+    imposed_motion_file: dummy.dat
+    hydrostatics_flag: 0
+    hydrostatics_mesh: dummy.stl
+    radiation_flag: 1
+    excitation_1st_flag: 0
+    excitation_2nd_flag: 0
+    viscous_added_mass: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    viscous_linear_damping: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    viscous_quadratic_damping: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+waves:
+  type: REG
+  height: 0.0
+  period: 10.0
+  heading: 0.0
+  ramp_time: 0.0

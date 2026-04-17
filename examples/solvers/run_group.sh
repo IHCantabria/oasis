@@ -13,7 +13,7 @@ TOTAL_TESTS=0
 PASSED_TESTS=0
 TEST_NUM=0
 
-for dir in bdf1 bdfn_order2 bdfn_order4 esdirk46; do
+for dir in bdf1 bdfn_order2 bdfn_order4 esdirk46 bdf1_yaml; do
     TEST_NUM=$((TEST_NUM + 1))
     echo "[$TEST_NUM] Running solvers/$dir..."
     cd "$dir" || exit 1

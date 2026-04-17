@@ -16,3 +16,4 @@ echo Running OASIS solvers/bdfn_order4...
 "%OASIS_EXE%" "%INPUT_DIR%"
 echo.
 echo Exit code: %ERRORLEVEL%
+exit /b %ERRORLEVEL%

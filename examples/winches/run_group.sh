@@ -13,7 +13,7 @@ TOTAL_TESTS=0
 PASSED_TESTS=0
 TEST_NUM=0
 
-for dir in constant_tension horizontal_control; do
+for dir in constant_tension horizontal_control constant_tension_yaml; do
     TEST_NUM=$((TEST_NUM + 1))
     echo "[$TEST_NUM] Running winches/$dir..."
     cd "$dir" || exit 1

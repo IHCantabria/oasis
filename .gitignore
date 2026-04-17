@@ -26,6 +26,7 @@ core*
 *.bts
 *.dll
 *.so
+*.zip
 */output/*
 compilar.sh
 .out

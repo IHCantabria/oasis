@@ -18,6 +18,11 @@ void WinchieControllerConstantTension::ReadPropertiesASCII(FILE *pFile)
 	fscanf(pFile, "%lf %[^\n]\n", &targetTension, buffer_line);
 }
 
+void WinchieControllerConstantTension::ReadPropertiesYAML(YAML::Node node)
+{
+	targetTension = node["target_tension"].as<double>();
+}
+
 void WinchieControllerConstantTension::SetUpWinchiesController(void)
 {
 	T = arma::ones(nWinchies, 1) * targetTension;

@@ -16,3 +16,4 @@ echo Running OASIS owcs/free_decay...
 "%OASIS_EXE%" "%INPUT_DIR%"
 echo.
 echo Exit code: %ERRORLEVEL%
+exit /b %ERRORLEVEL%

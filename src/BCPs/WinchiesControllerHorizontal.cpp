@@ -401,6 +401,94 @@ void WinchieControllerHorizontal::ReadPropertiesASCII(FILE *pFile)
 	fscanf(pFile, "%[^\n]\n", buffer_line);
 }
 
+void WinchieControllerHorizontal::ReadPropertiesYAML(YAML::Node node)
+{
+	indBody = node["body_index"].as<int>() - 1;
+
+	Ac = node["Ac"].as<double>();
+	Bc = node["Bc"].as<double>();
+	Cc = node["Cc"].as<double>();
+	Dc = node["Dc"].as<double>();
+
+	YAML::Node kcNode = node["Kc"];
+	for (int ii = 0; ii < 3; ii++)
+		Kc(ii, 0) = kcNode[ii].as<double>();
+
+	YAML::Node kiNode = node["Ki"];
+	for (int ii = 0; ii < 3; ii++)
+		Ki(ii, 0) = kiNode[ii].as<double>();
+
+	Af = node["Af"].as<double>();
+	Bf = node["Bf"].as<double>();
+	Cf = node["Cf"].as<double>();
+	Df = node["Df"].as<double>();
+
+	Kw = node["Kw"].as<double>();
+	time_ini = node["time_ini"].as<double>();
+	reference_flag = node["reference_flag"].as<long>();
+
+	if (reference_flag < 1)
+	{
+		Ar = node["Ar"].as<double>();
+		Br = node["Br"].as<double>();
+		Cr = node["Cr"].as<double>();
+		Dr = node["Dr"].as<double>();
+
+		YAML::Node urNode = node["ur"];
+		for (int ii = 0; ii < 3; ii++)
+			ur(ii, 0) = urNode[ii].as<double>();
+	}
+	else
+	{
+		t_ref = arma::zeros(reference_flag, 1);
+		x_ref = arma::zeros(reference_flag, 1);
+		y_ref = arma::zeros(reference_flag, 1);
+		yaw_ref = arma::zeros(reference_flag, 1);
+
+		YAML::Node tNode = node["t_ref"];
+		for (int ii = 0; ii < reference_flag; ii++)
+			t_ref(ii, 0) = tNode[ii].as<double>();
+
+		YAML::Node xNode = node["x_ref"];
+		for (int ii = 0; ii < reference_flag; ii++)
+			x_ref(ii, 0) = xNode[ii].as<double>();
+
+		YAML::Node yNode = node["y_ref"];
+		for (int ii = 0; ii < reference_flag; ii++)
+			y_ref(ii, 0) = yNode[ii].as<double>();
+
+		YAML::Node yawNode = node["yaw_ref"];
+		for (int ii = 0; ii < reference_flag; ii++)
+			yaw_ref(ii, 0) = yawNode[ii].as<double>();
+	}
+
+	inversor_flag = node["inversor_flag"].as<int>();
+	T_max = node["T_max"].as<double>();
+	T_min = node["T_min"].as<double>();
+	nIterMax = node["nIterMax"].as<int>();
+	atol = node["atol"].as<double>();
+
+	auto readInversorGroup = [&](const std::string &indKey, const std::string &coefKey,
+								 arma::uvec &ind, arma::mat &coef) {
+		YAML::Node indNode = node[indKey];
+		YAML::Node coefNode = node[coefKey];
+		int n = (int)indNode.size();
+		ind = arma::zeros<arma::uvec>(n, 1);
+		coef = arma::zeros(n, 1);
+		for (int ii = 0; ii < n; ii++)
+			ind(ii) = indNode[ii].as<int>() - 1;
+		for (int ii = 0; ii < n; ii++)
+			coef(ii) = coefNode[ii].as<double>();
+	};
+
+	readInversorGroup("ind_x_pos", "coef_x_pos", ind_x_pos, coef_x_pos);
+	readInversorGroup("ind_x_neg", "coef_x_neg", ind_x_neg, coef_x_neg);
+	readInversorGroup("ind_y_pos", "coef_y_pos", ind_y_pos, coef_y_pos);
+	readInversorGroup("ind_y_neg", "coef_y_neg", ind_y_neg, coef_y_neg);
+	readInversorGroup("ind_g_pos", "coef_g_pos", ind_g_pos, coef_g_pos);
+	readInversorGroup("ind_g_neg", "coef_g_neg", ind_g_neg, coef_g_neg);
+}
+
 void WinchieControllerHorizontal::SetUpWinchiesController(void)
 {
 

@@ -1,0 +1,76 @@
+problem:
+  gravity: 9.81
+  water_density: 1025.0
+  air_density: 1.225
+  atmospheric_pressure: 101325.0
+  air_adiabatic_dilation: 1.4
+  water_depth: -50.0
+  write_time_step: 0.1
+  max_time_step: 0.002
+  hydro_time_step: 0.002
+  fast_time_step: 0.1
+  fast_controller_time_step: 0.1
+  irf_time: 20.0
+  sinking_time_step: 15.0
+  winches_controller_time_step: 0.1
+  owcs_controller_time_step: 0.1
+  simulation_time: 50.0
+  rotation_simplification: 1
+  time_integration_method: 1
+  time_integration_order: 2
+  time_step_adaptivity: 0
+  jacobian_recomputation_steps: 1
+  absolute_tolerance: 1.0e-5
+  relative_tolerance: 1.0e-3
+  max_iterations_per_step: 50
+  read_equilibrium: 0
+  write_equilibrium: 0
+  mooring_initial_condition: 1
+
+waves:
+  type: REG
+  height: 0.0
+  period: 10.0
+  heading: 0.0
+  ramp_time: 0.0
+
+bcps:
+  fairleads:
+    - position: [8.0, 0.0, 0.0]
+      winch_id: 0
+      actuator_file: dataActuator_0.dat
+  anchors:
+    - position: [0.0, 0.0, 0.0]
+      winch_id: 0
+
+lines:
+  - line_type: 1
+    flag_tension: 1
+    num_nodes: 6
+    polynomial_order: 1
+    length: 10.0
+    density: 20.0
+    diameter: 0.05
+    flag_stiffness: 0
+    EA: 1.0e+07
+    beta: 0.01
+    CB: 0.0
+    Cmn: 3.8
+    Cdn: 2.5
+    Cdt: 0.5
+    GK: 1.0e+06
+    GC: 0.1
+    seafloor_index: 1
+    BCP_N: 1
+    BCP_1: 2
+    smoothstep: 1
+    friction_model: 0
+    vth: 0.01
+    ust: 0.6
+    usn: 0.4
+    ud: 0.3
+    deltamax: 0.03
+
+seafloor:
+  flat:
+    - depth: -50.0

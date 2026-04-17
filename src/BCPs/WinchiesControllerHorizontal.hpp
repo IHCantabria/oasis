@@ -51,6 +51,7 @@ public:
 	~WinchieControllerHorizontal() override;
 
 	void ReadPropertiesASCII(FILE *pFile) override;
+	void ReadPropertiesYAML(YAML::Node node) override;
 	void SetUpWinchiesController(void) override;
 	void controlWinchies(double time) override;
 	void inversorBlock(void);

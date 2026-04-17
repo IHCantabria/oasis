@@ -13,7 +13,7 @@ TOTAL_TESTS=0
 PASSED_TESTS=0
 TEST_NUM=0
 
-for dir in pile_connector neoprene_connector; do
+for dir in pile_connector neoprene_connector pile_connector_yaml; do
     TEST_NUM=$((TEST_NUM + 1))
     echo "[$TEST_NUM] Running springs/$dir..."
     cd "$dir" || exit 1

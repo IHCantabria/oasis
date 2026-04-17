@@ -16,3 +16,4 @@ echo Running OASIS waves/regular...
 "%OASIS_EXE%" "%INPUT_DIR%"
 echo.
 echo Exit code: %ERRORLEVEL%
+exit /b %ERRORLEVEL%

@@ -130,6 +130,51 @@ void BCP::ReadPropertiesASCII(FILE *&pFilePointer)
 	posG_BCP.rows(0, 2) = pos;
 }
 
+void BCP::ReadPropertiesYAML(YAML::Node node)
+{
+	YAML::Node posNode = node["position"];
+	pos(0, 0) = posNode[0].as<double>();
+	pos(1, 0) = posNode[1].as<double>();
+	pos(2, 0) = posNode[2].as<double>();
+
+	winchId = node["winch_id"].as<int>();
+
+	if (this->GetType() == 2)
+	{
+		actuatorFileName = node["actuator_file"].as<std::string>();
+	}
+
+	if (this->GetType() == 3)
+	{
+		mass_Joint = node["mass"].as<double>();
+		vol_Joint = node["volume"].as<double>();
+		rad_Joint = sqrt(3.0 * vol_Joint / (4.0 * arma::datum::pi));
+		sec_Joint = arma::datum::pi * rad_Joint * rad_Joint;
+	}
+
+	if (this->GetType() == 5)
+	{
+		ElasticAnchorBCP *pEA = dynamic_cast<ElasticAnchorBCP *>(this);
+		pEA->anchor_mass = node["anchor_mass"].as<double>();
+		pEA->anchor_vol = node["anchor_volume"].as<double>();
+		pEA->c_param = node["c_param"].as<double>();
+		pEA->k_param = node["k_param"].as<double>();
+		pEA->rad_anchor = pow(3.0 * pEA->anchor_vol / (4.0 * arma::datum::pi), 1.0 / 3.0);
+		pEA->sec_anchor = arma::datum::pi * pEA->rad_anchor * pEA->rad_anchor;
+		pEA->pos_ref = pos;
+	}
+
+	if ((winchId != 0) && (this->GetType() == 3))
+	{
+		std::stringstream ss;
+		ss << "Actuator and Winch boundary conditions defined at the same BCP --> BCP num: " << this->GetId() + 1;
+		throw ValueError(ss.str());
+	}
+
+	posWrtCdgLocal = pos;
+	posG_BCP.rows(0, 2) = pos;
+}
+
 void BCP::UpdateBoundary()
 {
 	double a = 0.0;
@@ -160,8 +205,20 @@ int FairleadBCP::GetType(void)
 
 void FairleadBCP::GetValues(double t)
 {
-
 	tBCP = t;
+
+	int nt = static_cast<int>(tF.n_rows);
+
+	// Clamp to the last available time point to avoid out-of-bounds access
+	if (t >= tF(nt - 1, 0))
+	{
+		ni = nt - 1;
+		pos = posF.row(nt - 1).t();
+		vel = velF.row(nt - 1).t();
+		acc = accF.row(nt - 1).t();
+		return;
+	}
+
 	ni = std::max(0, ni - 10);
 	do
 	{
@@ -217,6 +274,15 @@ void FairleadBCP::ReadPropertiesASCII(FILE *&pFilePointer, std::string inputFile
 	BCP::ReadPropertiesASCII(pFilePointer);
 
 	// Check if the actuator file exists
+	std::string actuatorFilePath = JoinPath(inputFilePath, actuatorFileName);
+	std::stringstream ss;
+	ss << "ACTUATOR BCP NUMBER: " << this->GetId();
+	CheckInputFile(actuatorFilePath, ss.str());
+}
+
+void FairleadBCP::ReadPropertiesYAML(YAML::Node node, std::string inputFilePath)
+{
+	BCP::ReadPropertiesYAML(node);
 	std::string actuatorFilePath = JoinPath(inputFilePath, actuatorFileName);
 	std::stringstream ss;
 	ss << "ACTUATOR BCP NUMBER: " << this->GetId();

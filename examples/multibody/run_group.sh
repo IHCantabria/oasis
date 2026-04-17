@@ -13,7 +13,7 @@ TOTAL_TESTS=0
 PASSED_TESTS=0
 TEST_NUM=0
 
-for dir in shared_hydb separate_hydb; do
+for dir in shared_hydb separate_hydb shared_hydb_yaml; do
     TEST_NUM=$((TEST_NUM + 1))
     echo "[$TEST_NUM] Running multibody/$dir..."
     cd "$dir" || exit 1

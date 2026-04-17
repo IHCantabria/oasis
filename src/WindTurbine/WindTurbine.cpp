@@ -101,6 +101,24 @@ void WindTurbine::ReadPropertiesASCII(FILE *pFile)
               InputFileName_ED);
 }
 
+void WindTurbine::ReadPropertiesYAML(YAML::Node node)
+{
+    int tmp_body_id = node["body_index"].as<int>() - 1;
+    pBody = pSim->pBodies[tmp_body_id];
+
+    std::string ADFileName = JoinPath(pSim->inputFolderPath, node["aerodyn_file"].as<std::string>());
+    std::copy(ADFileName.data(), ADFileName.data() + (ADFileName.size() + 1), InputFileName_AD);
+
+    std::string IWFileName = JoinPath(pSim->inputFolderPath, node["inflowwind_file"].as<std::string>());
+    std::copy(IWFileName.data(), IWFileName.data() + (IWFileName.size() + 1), InputFileName_IW);
+
+    std::string SDFileName = JoinPath(pSim->inputFolderPath, node["servodyn_file"].as<std::string>());
+    std::copy(SDFileName.data(), SDFileName.data() + (SDFileName.size() + 1), InputFileName_SD);
+
+    std::string EDFileName = JoinPath(pSim->inputFolderPath, node["elastodyn_file"].as<std::string>());
+    std::copy(EDFileName.data(), EDFileName.data() + (EDFileName.size() + 1), InputFileName_ED);
+}
+
 void WindTurbine::Initialize(void)
 {
 

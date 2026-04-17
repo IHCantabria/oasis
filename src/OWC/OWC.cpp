@@ -67,10 +67,46 @@ void OWCTurbineType::ReadPropertiesASCII(FILE *pFile)
     std::cout << "  --> ...done! Number of points in curves: " << buck_curve_adim_pressure.n_elem << std::endl;
 }
 
+void OWCTurbineType::ReadPropertiesYAML(YAML::Node node)
+{
+    inertia = node["inertia"].as<double>();
+    damping = node["damping"].as<double>();
+    rotor_diameter = node["rotor_diameter"].as<double>();
+    valve_type = node["valve_type"].as<int>();
+    bypass_valve_area = node["bypass_valve_area"].as<double>();
+    bypass_valve_discharge_coef = node["bypass_valve_discharge_coef"].as<double>();
+    throttle_valve_area = node["throttle_valve_area"].as<double>();
+    throttle_valve_discharge_coef = node["throttle_valve_discharge_coef"].as<double>();
+    throttle_gap_air_volume = node["throttle_gap_air_volume"].as<double>();
+    controller_type = node["controller_type"].as<int>();
+    generator_rated_power = node["generator_rated_power"].as<double>();
+    generator_max_torque = node["generator_max_torque"].as<double>();
+
+    std::string filename = node["buck_curves_file"].as<std::string>();
+    std::string filepath = JoinPath(this->pSim->inputFolderPath, filename);
+
+    std::cout << "  --> Reading Buckingham curves from file: " << filepath << std::endl;
+
+    arma::field<std::string> header(4);
+    header(0) = "adim_pressure";
+    header(1) = "adim_mass_flow_rate";
+    header(2) = "efficiency";
+    header(3) = "adim_power";
+    arma::mat buck_curve_data;
+    buck_curve_data.load(arma::csv_name(filepath, header));
+    buck_curve_adim_pressure = buck_curve_data.col(0);
+    buck_curve_adim_mass_flow_rate = buck_curve_data.col(1);
+    buck_curve_efficiency = buck_curve_data.col(2);
+    buck_curve_adim_power = buck_curve_data.col(3);
+
+    std::cout << "  --> ...done! Number of points in curves: " << buck_curve_adim_pressure.n_elem << std::endl;
+}
+
 void OWCTurbineType::Initialize(FILE *pFile)
 {
-    // Read properties from the file
-    ReadPropertiesASCII(pFile);
+    // Read properties from the file (skip if already read via YAML)
+    if (pFile != nullptr)
+        ReadPropertiesASCII(pFile);
     // Get the maximum efficiency of the turbine
     arma::uword max_efficiency_index = buck_curve_efficiency.index_max();
     // Get the best efficiency point (BEP) of the turbine for the adimensional pressure and power
@@ -290,9 +326,61 @@ void OWC::ReadPropertiesASCII(FILE *pFile)
     fscanf(pFile, "%[^\n]\n", buffer_line);
 }
 
+void OWC::ReadPropertiesYAML(YAML::Node node)
+{
+    idBodyOWC = node["body_owc"].as<int>() - 1;
+    idBodyFloater = node["body_floater"].as<int>() - 1;
+    pBodyOWC = pSim->pBodies[idBodyOWC];
+    pBodyFloater = pSim->pBodies[idBodyFloater];
+
+    if (pBodyOWC->numDofs != 1)
+    {
+        std::stringstream ss;
+        ss << "The OWC body must have a single degree of freedom. The body " << idBodyOWC + 1 << " has " << pBodyOWC->numDofs << " degrees of freedom.\n";
+        throw ValueError(ss.str());
+    }
+    if (pBodyOWC->pDofs[0] != 2)
+    {
+        std::stringstream ss;
+        ss << "The OWC body must have a single degree of freedom in the vertical direction. The body " << idBodyOWC + 1 << " has the degree of freedom " << pBodyOWC->pDofs[0] + 1 << ".\n";
+        throw ValueError(ss.str());
+    }
+    if (pBodyOWC->numBcps != 0)
+    {
+        std::stringstream ss;
+        ss << "The OWC body must not have any BCPs. The body " << idBodyOWC + 1 << " has " << pBodyOWC->numBcps << " BCPs.\n";
+        throw ValueError(ss.str());
+    }
+    if (pBodyOWC->numWindTurbs != 0)
+    {
+        std::stringstream ss;
+        ss << "The OWC body must not have any wind turbines. The body " << idBodyOWC + 1 << " has " << pBodyOWC->numWindTurbs << " wind turbines.\n";
+        throw ValueError(ss.str());
+    }
+    if (pBodyOWC->flag_hydrostatics != 0)
+    {
+        std::stringstream ss;
+        ss << "The OWC body must have linear hydrostatics. The body " << idBodyOWC + 1 << " has flag_hydrostatics = " << pBodyOWC->flag_hydrostatics << ".\n";
+        throw ValueError(ss.str());
+    }
+
+    waterplane_area = node["waterplane_area"].as<double>();
+    reference_air_volume = node["reference_air_volume"].as<double>();
+    hole_area = node["hole_area"].as<double>();
+    hole_discharge_coef = node["hole_discharge_coef"].as<double>();
+    turbine_type = node["turbine_type"].as<int>();
+    turb_initial_angular_velocity = node["turb_initial_angular_velocity"].as<double>();
+
+    YAML::Node posNode = node["pos_local"];
+    for (int ii = 0; ii < 3; ii++)
+        pos_local(ii, 0) = posNode[ii].as<double>();
+}
+
 void OWC::Initialize(FILE *pFile)
 {
-    ReadPropertiesASCII(pFile);
+    // Read properties from the file (skip if already read via YAML)
+    if (pFile != nullptr)
+        ReadPropertiesASCII(pFile);
 
     // Initialize variables
     displacement = pBodyOWC->pos(2, 0); // TODO: Review this. Ref frames?

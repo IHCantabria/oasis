@@ -453,6 +453,116 @@ void Body::ReadPropertiesASCII(FILE *pFile)
     }
 }
 
+void Body::ReadPropertiesYAML(YAML::Node node)
+{
+    std::cout << "--> Reading Body: " << this->GetId() + 1 << std::endl;
+
+    takeCOGHydroDatabase = node["take_cog_hydro_database"].as<int>();
+    std::cout << " takeCOGHydroDatabase: " << takeCOGHydroDatabase << std::endl;
+
+    // Read dofs
+    YAML::Node dofsNode = node["dofs"];
+    numDofs = (int)dofsNode.size();
+    std::cout << " numDofs: " << numDofs << std::endl;
+    pDofs = new int[numDofs];
+    for (int ii = 0; ii < numDofs; ii++)
+    {
+        pDofs[ii] = dofsNode[ii].as<int>() - 1;
+        isDofActive(pDofs[ii], 0) = 1.0;
+    }
+
+    // Read BCP indexes
+    YAML::Node bcpsNode = node["bcps_indexes"];
+    numBcps = (int)bcpsNode.size();
+    pIndexBcps = new int[numBcps];
+    for (int ii = 0; ii < numBcps; ii++)
+    {
+        pIndexBcps[ii] = bcpsNode[ii].as<int>() - 1;
+    }
+
+    // Read wind turbine indexes
+    YAML::Node wtNode = node["wind_turbines_indexes"];
+    numWindTurbs = (int)wtNode.size();
+    pBodyWindTurbs = new WindTurbine *[numWindTurbs];
+    pIndexWindTurbs = new int[numWindTurbs];
+    for (int ii = 0; ii < numWindTurbs; ii++)
+    {
+        pIndexWindTurbs[ii] = wtNode[ii].as<int>() - 1;
+    }
+
+    // Read equilibrium position
+    YAML::Node posNode = node["initial_position"];
+    for (int ii = 0; ii < 6; ii++)
+    {
+        double dtemp = posNode[ii].as<double>();
+        if (takeCOGHydroDatabase == 0)
+        {
+            pos_eq(ii, 0) = dtemp;
+            pos(ii, 0) = dtemp;
+        }
+    }
+
+    // Read initial displacement
+    YAML::Node dispNode = node["initial_displacement"];
+    for (int ii = 0; ii < 6; ii++)
+    {
+        pos(ii, 0) += dispNode[ii].as<double>();
+    }
+    pos_ini = pos;
+
+    // Read hydro database
+    hydroDatabaseName = node["hydro_database"].as<std::string>();
+    hydroDatabaseIndex = node["hydro_database_index"].as<int>() - 1;
+
+    // Read flags
+    flag_blocked = node["freedom_flag"].as<int>();
+    if (flag_blocked >= 3)
+    {
+        std::stringstream ss;
+        ss << "Body: " << this->GetId() << " - Flag for blocking body not available, must be 0, 1 or 2.\n";
+        throw ValueError(ss.str());
+    }
+
+    movementsFileName = node["imposed_motion_file"].as<std::string>();
+    flag_hydrostatics = node["hydrostatics_flag"].as<int>();
+    hydrostaticMeshName = node["hydrostatics_mesh"].as<std::string>();
+    radiationFlag = node["radiation_flag"].as<int>();
+    firstOrderExcitationFlag = node["excitation_1st_flag"].as<int>();
+    secondOrderExcitationFlag = node["excitation_2nd_flag"].as<int>();
+
+    // Read viscous coefficients
+    YAML::Node avNode = node["viscous_added_mass"];
+    for (int ii = 0; ii < 6; ii++)
+        A_visc(ii, 0) += avNode[ii].as<double>();
+
+    YAML::Node bvNode = node["viscous_linear_damping"];
+    for (int ii = 0; ii < 6; ii++)
+        B_visc(ii, 0) += bvNode[ii].as<double>();
+
+    YAML::Node bv2Node = node["viscous_quadratic_damping"];
+    for (int ii = 0; ii < 6; ii++)
+        B_visc2(ii, 0) += bv2Node[ii].as<double>();
+
+    // Generate array of pointers for BCPs
+    pBodyBcps = new BCP *[numBcps];
+
+    if (flag_blocked == 2)
+    {
+        std::cout << "    --> Reading Body Imposed Movements..." << std::endl;
+        ReadLockBodyMovements();
+        std::cout << "    --> Body Imposed Movements Read" << std::endl;
+    }
+
+    // Generate hydrostatic mesh if needed
+    if (flag_hydrostatics > 0)
+    {
+        std::string filename = JoinPath(pSim->inputFolderPath, hydrostaticMeshName);
+        pNLHSMesh = new BodyTri2DMesh(this->id, filename, this);
+        pNLHSMesh->ReadPropertiesASCII();
+        pNLHSMesh->Preprocess();
+    }
+}
+
 void Body::ReadLockBodyMovements(void)
 {
 

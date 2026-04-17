@@ -16,3 +16,4 @@ echo Running OASIS body/radiation...
 "%OASIS_EXE%" "%INPUT_DIR%"
 echo.
 echo Exit code: %ERRORLEVEL%
+exit /b %ERRORLEVEL%

@@ -291,6 +291,183 @@ void Line::ReadPropertiesASCII(FILE *pFilePointer)
 	}
 }
 
+void Line::ReadPropertiesYAML(YAML::Node node)
+{
+	lineType = node["line_type"].as<int>();
+	flag_tension = node["flag_tension"].as<int>();
+	nNodos = node["num_nodes"].as<int>();
+	p = node["polynomial_order"].as<int>();
+	L = node["length"].as<double>();
+	rho0 = node["density"].as<double>();
+	d = node["diameter"].as<double>();
+	flag_stiffness = node["flag_stiffness"].as<int>();
+
+	if (flag_stiffness == 0)
+	{
+		EA = node["EA"].as<double>();
+		beta = node["beta"].as<double>();
+	}
+	else if (flag_stiffness == 1)
+	{
+		YAML::Node klNode = node["kernel_lin_coef"];
+		num_kernel_coef = (int)klNode.size();
+		kernel_lin_coef = arma::zeros(num_kernel_coef, 1);
+		for (int ii = 0; ii < num_kernel_coef; ii++)
+			kernel_lin_coef(ii, 0) = klNode[ii].as<double>();
+
+		YAML::Node keNode = node["kernel_exp_coef"];
+		if ((int)keNode.size() != num_kernel_coef)
+		{
+			std::stringstream ss;
+			ss << "Number of linear and exponential kernel coefficients is not the same for line: " << this->GetId() << "\n";
+			throw ValueError(ss.str());
+		}
+		kernel_exp_coef = arma::zeros(num_kernel_coef, 1);
+		for (int ii = 0; ii < num_kernel_coef; ii++)
+			kernel_exp_coef(ii, 0) = keNode[ii].as<double>();
+
+		YAML::Node ecNode = node["elastic_coef"];
+		num_elastic_coef = (int)ecNode.size();
+		elastic_coef = arma::zeros(num_elastic_coef, 1);
+		for (int ii = 0; ii < num_elastic_coef; ii++)
+			elastic_coef(ii, 0) = ecNode[ii].as<double>();
+
+		if (elastic_coef(0, 0) > 0.0)
+			EA = elastic_coef(0, 0);
+		else
+		{
+			double strain_EA = 0.1;
+			EA = elastic_coef(0, 0) +
+				 2 * elastic_coef(1, 0) * strain_EA +
+				 3 * elastic_coef(2, 0) * strain_EA * strain_EA;
+		}
+	}
+	else if (flag_stiffness > 1)
+	{
+		YAML::Node strainNode = node["strain_data"];
+		YAML::Node stressNode = node["stress_data"];
+		strain_data = arma::zeros(flag_stiffness, 1);
+		stress_data = arma::zeros(flag_stiffness, 1);
+		for (int ii = 0; ii < flag_stiffness; ii++)
+			strain_data(ii, 0) = strainNode[ii].as<double>();
+		for (int ii = 0; ii < flag_stiffness; ii++)
+			stress_data(ii, 0) = stressNode[ii].as<double>();
+		beta = node["beta"].as<double>();
+		EA = 0;
+		int i_EA = 0;
+		while (EA <= 0)
+		{
+			EA = (stress_data(i_EA + 1, 0) - stress_data(i_EA, 0)) /
+				 (strain_data(i_EA + 1, 0) - strain_data(i_EA, 0));
+			i_EA++;
+			if (i_EA > flag_stiffness - 1)
+			{
+				std::stringstream ss;
+				ss << "Strain-Stress curve should have positive slope for line: " << this->GetId() << "\n";
+				throw ValueError(ss.str());
+			}
+		}
+	}
+
+	CB = node["CB"].as<double>();
+	Cmn = node["Cmn"].as<double>();
+	Cdn = node["Cdn"].as<double>();
+	Cdt = node["Cdt"].as<double>();
+	GK = node["GK"].as<double>();
+	GC = node["GC"].as<double>();
+	indexSeaFloor = node["seafloor_index"].as<int>() - 1;
+	BCP_N = node["BCP_N"].as<int>() - 1;
+	indexBcps[1] = BCP_N;
+	BCP_1 = node["BCP_1"].as<int>() - 1;
+	indexBcps[0] = BCP_1;
+
+	if (lineType == 1)
+		floor_flag = 1;
+
+	smoothstep = node["smoothstep"].as<int>();
+	frictionModel = node["friction_model"].as<int>();
+	vth = node["vth"].as<double>();
+	ust = node["ust"].as<double>();
+	usn = node["usn"].as<double>();
+	ud = node["ud"].as<double>();
+	deltamax = node["deltamax"].as<double>();
+
+	A = arma::datum::pi * d * d * 0.25;
+	dL = L / (nNodos - 1);
+	dL0 = dL;
+	N = p * (nNodos - 1) + 1;
+	Kn = Cmn * A * rhoW;
+	dampCoef = 2.0 * sqrt(rho0 * GK * d);
+	VR = 0.01 * (d * d * GK) / (dampCoef);
+
+	pos = arma::zeros(3 * N);
+	vel = arma::zeros(N, 3);
+	acc = arma::zeros(N, 3);
+	F = arma::zeros(N, 3);
+	s = arma::zeros(N);
+	xc = arma::zeros(N);
+	zc = arma::zeros(N);
+	dxcds = arma::zeros(N);
+	dzcds = arma::zeros(N);
+	Te = arma::zeros(N);
+	roots = arma::zeros(p + 1);
+	weights = arma::zeros(p + 1);
+	FF = arma::zeros(N, 3);
+	ff = arma::zeros(N, 3);
+	t = arma::zeros(N, 3);
+	e_z = arma::zeros(1, 3);
+	e_z(0, 2) = 1.0;
+	T = arma::zeros(this->N, 1);
+	T_visc = arma::zeros(this->N, 1);
+	T_elast = arma::zeros(this->N, 1);
+	if (flag_stiffness == 1)
+	{
+		num_buffer = std::min(std::max(static_cast<int>(ceil(-log(0.001) / (arma::as_scalar(arma::min(kernel_exp_coef)) * dt))), 1000), 10000);
+		time_vector = arma::zeros(num_buffer, 1);
+		strain_vector = arma::zeros(N, num_buffer);
+		strain_rate_vector = arma::zeros(N, num_buffer);
+		visc_resp_tmp_vector = arma::zeros(N, num_buffer);
+	}
+	projectionDirection_1 = arma::zeros(1, 3);
+	projectionDirection_1(0, 2) = 1.0;
+	projectionDirection_N = arma::zeros(1, 3);
+	projectionDirection_N(0, 2) = 1.0;
+	posFriccion = arma::zeros(N, 3);
+	isSlip = arma::zeros(N, 1);
+
+	if (frictionModel == 1)
+	{
+		arma::mat tmpA = arma::zeros(4, 4);
+		arma::mat tmpB = arma::zeros(4, 1);
+		double x1 = 0;
+		double x2 = 1e-04;
+		tmpA = {{pow(x1, 3), pow(x1, 2), 1 * x1, 1},
+				{3 * pow(x1, 2), 2 * (x1), 1, 0},
+				{pow(x2, 3), pow(x2, 2), 1 * x2, 1},
+				{3 * pow(x2, 2), 2 * x2, 1, 0}};
+		tmpB(0, 0) = 1e-07;
+		tmpB(1, 0) = 0.0;
+		tmpB(2, 0) = x2;
+		tmpB(3, 0) = 1;
+		a_1 = arma::solve(tmpA, tmpB);
+	}
+	double *roots_temp = new double[p + 1];
+	double *weights_temp = new double[p + 1];
+	lobatto_set(p + 1, roots_temp, weights_temp);
+	for (int ii = 0; ii < p + 1; ii++)
+	{
+		roots(ii) = roots_temp[ii];
+		weights(ii) = weights_temp[ii];
+	}
+
+	int kk;
+	for (int ii = 0; ii < N; ii++)
+	{
+		kk = ii % p;
+		s(ii, 0) = dL * ((ii - kk) / p + (roots(kk) + 1.0) * 0.5);
+	}
+}
+
 void Line::SEM_getBaseFunctions(void)
 {
 	pos.reshape(3, N);

@@ -4,6 +4,7 @@
 #include <armadillo>
 #include <string>
 #include <cstdio>
+#include <yaml-cpp/yaml.h>
 #include "../Hydro/HydroForce.hpp"
 
 // Attribute class objects forward declaration
@@ -48,6 +49,7 @@ public:
 
 	// Methods definition
 	void ReadPropertiesASCII(FILE *filePointer, std::string inputFolderPath); // Read sinking properties
+	void ReadPropertiesYAML(YAML::Node node, std::string inputFolderPath);
 	void UpdateGroupsFillingState(double t);
 	void UpdateInterpHydro(void);
 	void UpdateBodyProperties(void);

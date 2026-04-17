@@ -16,3 +16,4 @@ echo Running OASIS lines/tension_symmetric...
 "%OASIS_EXE%" "%INPUT_DIR%"
 echo.
 echo Exit code: %ERRORLEVEL%
+exit /b %ERRORLEVEL%

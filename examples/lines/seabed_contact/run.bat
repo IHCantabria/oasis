@@ -16,3 +16,4 @@ echo Running OASIS lines/seabed_contact...
 "%OASIS_EXE%" "%INPUT_DIR%"
 echo.
 echo Exit code: %ERRORLEVEL%
+exit /b %ERRORLEVEL%

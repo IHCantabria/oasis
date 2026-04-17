@@ -22,7 +22,7 @@ set TOTAL_TESTS=0
 set PASSED_TESTS=0
 set TEST_NUM=0
 
-for %%d in (shared_hydb separate_hydb) do (
+for %%d in (shared_hydb separate_hydb shared_hydb_yaml) do (
     set /a TEST_NUM+=1
     echo [!TEST_NUM!] Running multibody/%%d...
     cd %%d

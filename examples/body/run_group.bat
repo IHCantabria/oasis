@@ -22,7 +22,7 @@ set TOTAL_TESTS=0
 set PASSED_TESTS=0
 set TEST_NUM=0
 
-for %%d in (free_decay fixed partial_dofs imposed_motion radiation excitation_linear excitation_instantpos nonlinear_hs_flat nonlinear_hs_waves qtf) do (
+for %%d in (free_decay fixed partial_dofs imposed_motion radiation excitation_linear excitation_instantpos nonlinear_hs_flat nonlinear_hs_waves qtf fixed_yaml free_decay_yaml radiation_yaml excitation_linear_yaml imposed_motion_yaml nonlinear_hs_flat_yaml partial_dofs_yaml) do (
     set /a TEST_NUM+=1
     echo [!TEST_NUM!] Running body/%%d...
     cd %%d

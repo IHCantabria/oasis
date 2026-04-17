@@ -22,7 +22,7 @@ set TOTAL_TESTS=0
 set PASSED_TESTS=0
 set TEST_NUM=0
 
-for %%d in (bdf1 bdfn_order2 bdfn_order4 esdirk46) do (
+for %%d in (bdf1 bdfn_order2 bdfn_order4 esdirk46 bdf1_yaml) do (
     set /a TEST_NUM+=1
     echo [!TEST_NUM!] Running solvers/%%d...
     cd %%d

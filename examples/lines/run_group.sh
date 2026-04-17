@@ -13,7 +13,7 @@ TOTAL_TESTS=0
 PASSED_TESTS=0
 TEST_NUM=0
 
-for dir in single_line multi_line joint_connection elastic_anchor prescribed_motion viscoelastic tabulated_stiffness tension_symmetric seabed_contact friction_isotropic friction_anisotropic; do
+for dir in single_line multi_line joint_connection elastic_anchor prescribed_motion viscoelastic tabulated_stiffness tension_symmetric seabed_contact friction_isotropic friction_anisotropic single_line_yaml multi_line_yaml; do
     TEST_NUM=$((TEST_NUM + 1))
     echo "[$TEST_NUM] Running lines/$dir..."
     cd "$dir" || exit 1

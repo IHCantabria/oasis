@@ -253,6 +253,22 @@ if(OASIS_USE_STL_READER)
     set(_STL_READER_ROOT "$ENV{EBROOTSTL_MINUS_READER}")
   endif()
 
+# --- yaml-cpp ---
+if(WIN32)
+  find_package(yaml-cpp CONFIG QUIET)
+  if(yaml-cpp_FOUND)
+    message(STATUS "yaml-cpp (found via vcpkg/config)")
+  elseif(DEFINED YAMLCPP_INCLUDE_DIR AND DEFINED YAMLCPP_LIBRARIES)
+    set(yaml-cpp_FOUND TRUE)
+    message(STATUS "yaml-cpp (manual): ${YAMLCPP_INCLUDE_DIR}")
+  else()
+    message(FATAL_ERROR
+      "yaml-cpp not found.\n"
+      "  If using vcpkg, install with:  vcpkg install yaml-cpp:x64-windows\n"
+      "  Or set YAMLCPP_INCLUDE_DIR and YAMLCPP_LIBRARIES in CMakeUserConfig.cmake")
+  endif()
+endif()
+
   if(DEFINED _STL_READER_ROOT)
     # Search for header in root and include subdirectory
     find_path(STL_READER_INCLUDE_DIR stl_reader.h
@@ -461,6 +477,10 @@ if(OASIS_USE_SUPERLU AND DEFINED SUPERLU_INCLUDE_DIR)
   list(APPEND OASIS_INCLUDE_DIRS ${SUPERLU_INCLUDE_DIR})
 endif()
 
+if(WIN32 AND yaml-cpp_FOUND AND DEFINED YAMLCPP_INCLUDE_DIR)
+  list(APPEND OASIS_INCLUDE_DIRS ${YAMLCPP_INCLUDE_DIR})
+endif()
+
 TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC ${OASIS_INCLUDE_DIRS})
 
 # ==============================================================================
@@ -484,10 +504,22 @@ if(WIN32)
   
   if(OASIS_USE_SUPERLU AND DEFINED SUPERLU_LIBRARIES)
     TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE ${SUPERLU_LIBRARIES})
+    # SuperLU (vcpkg) may be compiled with METIS support
+    find_library(METIS_LIBRARY NAMES metis)
+    if(METIS_LIBRARY)
+      TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE ${METIS_LIBRARY})
+      message(STATUS "METIS (SuperLU dependency): ${METIS_LIBRARY}")
+    endif()
   endif()
   
   if(OASIS_USE_OPENFAST AND DEFINED OPENFAST_LIBRARIES)
     TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE ${OPENFAST_LIBRARIES})
+  endif()
+
+  if(yaml-cpp_FOUND)
+    TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE yaml-cpp::yaml-cpp)
+  elseif(DEFINED YAMLCPP_LIBRARIES)
+    TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE ${YAMLCPP_LIBRARIES})
   endif()
 
   # Additional manual Windows libraries from CMakeUserConfig.cmake
@@ -509,6 +541,8 @@ else()
   if(OASIS_USE_SUPERLU)
     TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE -lsuperlu)
   endif()
+
+  TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE -lyaml-cpp)
 
   if(OASIS_USE_OPENFAST)
     TARGET_LINK_LIBRARIES(${PROJECT_NAME}

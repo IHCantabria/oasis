@@ -16,3 +16,4 @@ echo Running OASIS freq_wave_example...
 "%OASIS_EXE%" "%INPUT_DIR%"
 echo.
 echo Exit code: %ERRORLEVEL%
+exit /b %ERRORLEVEL%

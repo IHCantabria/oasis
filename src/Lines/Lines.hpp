@@ -3,6 +3,7 @@
 #define linedef_hpp__
 #include <armadillo>
 #include <string>
+#include <yaml-cpp/yaml.h>
 #include "../BCPs/BCPs.hpp"
 #include "../SeaFloor/SeaFloor.hpp"
 
@@ -72,6 +73,7 @@ public:
 	Line(int incId, double incG, double incRhoW, double incFondo);
 	int GetId();
 	void ReadPropertiesASCII(FILE *pFilePointer);
+	void ReadPropertiesYAML(YAML::Node node);
 	void OpenOutputFilesASCII(std::string path);
 	void CloseOutputFilesASCII(void);
 	void print_out(void);

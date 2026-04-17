@@ -13,7 +13,7 @@ TOTAL_TESTS=0
 PASSED_TESTS=0
 TEST_NUM=0
 
-for dir in regular jonswap jonswap_piecewise multidirectional timeseries frequency_domain; do
+for dir in regular jonswap jonswap_piecewise multidirectional timeseries frequency_domain regular_yaml jonswap_yaml; do
     TEST_NUM=$((TEST_NUM + 1))
     echo "[$TEST_NUM] Running waves/$dir..."
     cd "$dir" || exit 1

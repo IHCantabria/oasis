@@ -23,6 +23,15 @@ void Winchie::ReadPropertiesASCII(FILE *pFile)
 	fscanf(pFile, "%lf %[^\n]\n", &drag, buffer_line);
 }
 
+void Winchie::ReadPropertiesYAML(YAML::Node node)
+{
+	nLine = node["line"].as<int>();
+	LineBCP = node["line_bcp"].as<int>();
+	inertia = node["inertia"].as<double>();
+	radius = node["radius"].as<double>();
+	drag = node["drag"].as<double>();
+}
+
 // Obten las aceleraciones del winchie y el cambio de longitud de las lineas
 void Winchie::computeWinchie(void)
 {

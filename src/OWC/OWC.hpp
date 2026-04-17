@@ -4,6 +4,7 @@
 
 #include <armadillo>
 #include <string>
+#include <yaml-cpp/yaml.h>
 
 class Simulation;
 class Body;
@@ -51,6 +52,7 @@ public:
     OWCTurbineType(int n, Simulation *pSimInp);
 
     void ReadPropertiesASCII(FILE *pFile);
+    void ReadPropertiesYAML(YAML::Node node);
     void Initialize(FILE *pFile);
     void Finalize(void);
 };
@@ -132,6 +134,7 @@ public:
     OWC(int n, Simulation *pSimInp);
 
     void ReadPropertiesASCII(FILE *pFile);
+    void ReadPropertiesYAML(YAML::Node node);
     void Initialize(FILE *pFile);
     void Finalize(void);
     void WriteOut(double t);

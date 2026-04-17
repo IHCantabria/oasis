@@ -1121,12 +1121,95 @@ void Simulation::ReadBcpsASCII()
     std::cout << "--> BCPs Properties Read" << std::endl;
 }
 
-void Simulation::ReadBcpsHDF5()
+void Simulation::ReadBcpsYAML()
 {
-    std::cout << "--> Reading BCPs Properties (ASCII format)" << std::endl;
-    std::stringstream ss;
-    ss << "Method ReadBcpsHDF5 in class Simulation not implemented yet.";
-    throw NotImplementedError(ss.str());
+    std::cout << "--> Reading BCPs Properties (YAML format)" << std::endl;
+
+    if (!yamlRoot["bcps"])
+    {
+        std::cout << "    --> WARNING: 'bcps' section not found in YAML! Setting numBCPs = 0!" << std::endl;
+        numFairBcps = 0;
+        numAnchorBcps = 0;
+        numJointBcps = 0;
+        numBodyBcps = 0;
+        numElasticAnchorBcps = 0;
+        numBcps = 0;
+        pBcps = new BCP *[0];
+        pFairleadBcps = new FairleadBCP *[0];
+        pAnchorBcps = new AnchorBCP *[0];
+        pJointBcps = new JointBCP *[0];
+        pBodyBcps = new BodyBCP *[0];
+        pElasticAnchorBcps = new ElasticAnchorBCP *[0];
+        return;
+    }
+
+    YAML::Node bcpsNode = yamlRoot["bcps"];
+
+    // Count BCPs by type from YAML arrays
+    numFairBcps = bcpsNode["fairleads"] ? (int)bcpsNode["fairleads"].size() : 0;
+    numAnchorBcps = bcpsNode["anchors"] ? (int)bcpsNode["anchors"].size() : 0;
+    numJointBcps = bcpsNode["joints"] ? (int)bcpsNode["joints"].size() : 0;
+    numBodyBcps = bcpsNode["body_bcps"] ? (int)bcpsNode["body_bcps"].size() : 0;
+    numElasticAnchorBcps = bcpsNode["elastic_anchors"] ? (int)bcpsNode["elastic_anchors"].size() : 0;
+    numBcps = numFairBcps + numAnchorBcps + numJointBcps + numBodyBcps + numElasticAnchorBcps;
+
+    pBcps = new BCP *[numBcps];
+    int bcp_count = 0;
+
+    pFairleadBcps = new FairleadBCP *[numFairBcps];
+    for (int ii = 0; ii < numFairBcps; ii++)
+    {
+        pFairleadBcps[ii] = new FairleadBCP(bcp_count);
+        pFairleadBcps[ii]->ReadPropertiesYAML(bcpsNode["fairleads"][ii], inputFolderPath);
+        dynamic_cast<FairleadBCP *>(pFairleadBcps[ii])->Initialize(inputFolderPath);
+        pBcps[bcp_count] = pFairleadBcps[ii];
+        bcp_count++;
+    }
+    pAnchorBcps = new AnchorBCP *[numAnchorBcps];
+    for (int ii = 0; ii < numAnchorBcps; ii++)
+    {
+        pAnchorBcps[ii] = new AnchorBCP(bcp_count);
+        pAnchorBcps[ii]->ReadPropertiesYAML(bcpsNode["anchors"][ii]);
+        pBcps[bcp_count] = pAnchorBcps[ii];
+        bcp_count++;
+    }
+    pJointBcps = new JointBCP *[numJointBcps];
+    for (int ii = 0; ii < numJointBcps; ii++)
+    {
+        pJointBcps[ii] = new JointBCP(bcp_count);
+        pJointBcps[ii]->ReadPropertiesYAML(bcpsNode["joints"][ii]);
+        dynamic_cast<JointBCP *>(pJointBcps[ii])->Initialize(this->gravity, this->waterDensity, this->waterDepth);
+        pBcps[bcp_count] = pJointBcps[ii];
+        bcp_count++;
+    }
+    pBodyBcps = new BodyBCP *[numBodyBcps];
+    for (int ii = 0; ii < numBodyBcps; ii++)
+    {
+        pBodyBcps[ii] = new BodyBCP(bcp_count);
+        pBodyBcps[ii]->ReadPropertiesYAML(bcpsNode["body_bcps"][ii]);
+        pBcps[bcp_count] = pBodyBcps[ii];
+        bcp_count++;
+    }
+    pElasticAnchorBcps = new ElasticAnchorBCP *[numElasticAnchorBcps];
+    for (int ii = 0; ii < numElasticAnchorBcps; ii++)
+    {
+        pElasticAnchorBcps[ii] = new ElasticAnchorBCP(bcp_count);
+        pElasticAnchorBcps[ii]->ReadPropertiesYAML(bcpsNode["elastic_anchors"][ii]);
+        dynamic_cast<ElasticAnchorBCP *>(pElasticAnchorBcps[ii])->Initialize(this->gravity, this->waterDensity);
+        pBcps[bcp_count] = pElasticAnchorBcps[ii];
+        bcp_count++;
+    }
+
+    // Check if any BCP needs winches
+    for (int ii = 0; ii < numBcps; ii++)
+    {
+        if (pBcps[ii]->winchId != 0)
+        {
+            useWinches = true;
+            break;
+        }
+    }
+
     std::cout << "--> BCPs Properties Read" << std::endl;
 }
 
@@ -1484,13 +1567,311 @@ void Simulation::ReadBodiesASCII()
     }
 }
 
-void Simulation::ReadBodiesHDF5()
+void Simulation::ReadBodiesYAML()
 {
-    std::cout << "--> Reading Bodies Properties (HDF5 format)" << std::endl;
-    std::stringstream ss;
-    ss << "Method ReadBodiesHDF5 in class Simulation not implemented yet.";
-    throw NotImplementedError(ss.str());
-    std::cout << "--> Bodies Properties Read" << std::endl;
+    std::cout << "--> Reading Bodies Properties (YAML format)" << std::endl;
+
+    if (!yamlRoot["bodies"])
+    {
+        std::cout << "    --> WARNING: 'bodies' section not found in YAML! Setting numBodies = 0!" << std::endl;
+        this->numBodies = 0;
+    }
+    else
+    {
+        this->numBodies = (int)yamlRoot["bodies"].size();
+    }
+
+    std::cout << "Number of bodies: " << this->numBodies << std::endl;
+
+    if (numBodies > 0)
+    {
+        int body_count = 0;
+        int diff_count = 0;
+        int hydro_database_count = 0;
+        std::string hydro_databases_name[300];
+        int pos_database = 0;
+
+        pBodies = new Body *[numBodies];
+        for (int ii = 0; ii < numBodies; ii++)
+        {
+            YAML::Node bodyNode = yamlRoot["bodies"][ii];
+            std::string body_type = bodyNode["type"].as<std::string>();
+
+            std::cout << "  ... Including Body: " << ii + 1 << std::endl;
+
+            if (body_type == "RAD_DIFF")
+            {
+                pBodies[ii] = new Body(ii, this);
+                pBodies[ii]->ReadPropertiesYAML(bodyNode);
+                pBodies[ii]->OpenOutputFilesASCII(outputFolderPath);
+            }
+            else
+            {
+                std::stringstream ss;
+                ss << "Error in YAML bodies section: Unexpected body type '" << body_type << "' for body " << ii << "\n";
+                throw ValueError(ss.str());
+            }
+        }
+
+        std::cout << "--> ... done!" << std::endl;
+
+        // Loop over bodies to get the number of hydrodynamic databases
+        hydro_databases_name[hydro_database_count] = pBodies[0]->hydroDatabaseName;
+        hydro_database_count++;
+        for (int ii = 1; ii < this->numBodies; ii++)
+        {
+            diff_count = 0;
+            for (int jj = 0; jj < hydro_database_count; jj++)
+            {
+                if (pBodies[ii]->hydroDatabaseName.compare(hydro_databases_name[jj]) != 0)
+                {
+                    diff_count++;
+                }
+            }
+            if (diff_count == hydro_database_count)
+            {
+                hydro_databases_name[hydro_database_count] = pBodies[ii]->hydroDatabaseName;
+                hydro_database_count++;
+            }
+        }
+
+        std::cout << "--> HDB files considered:" << std::endl;
+        for (int ii = 0; ii < hydro_database_count; ii++)
+        {
+            std::cout << "    -->" << hydro_databases_name[ii].c_str() << std::endl;
+        }
+
+        // Pre-determine the number of bodies in each HDB file
+        int *numBodiesPerHDB = new int[hydro_database_count];
+        for (int ii = 0; ii < hydro_database_count; ii++)
+        {
+            std::string hdb_path = JoinPath(inputFolderPath, hydro_databases_name[ii]);
+            numBodiesPerHDB[ii] = HydroDatabase::GetNumBodiesFromFile(hdb_path);
+            std::cout << "    --> HDB: " << hydro_databases_name[ii] << " contains " << numBodiesPerHDB[ii] << " bodies" << std::endl;
+        }
+
+        // Arrange all the bodies by database (same logic as ASCII)
+        Body **pBodiesSort = new Body *[numBodies];
+        int *pBody_found = new int[numBodies];
+        for (int ii = 0; ii < numBodies; ii++)
+        {
+            pBody_found[ii] = 0;
+        }
+        for (int ii = 0; ii < hydro_database_count; ii++)
+        {
+            if (numBodiesPerHDB[ii] == 1)
+            {
+                for (int jj = 0; jj < numBodies; jj++)
+                {
+                    if ((hydro_databases_name[ii].compare(pBodies[jj]->hydroDatabaseName) == 0) && (pBody_found[jj] == 0))
+                    {
+                        pBody_found[jj] = 1;
+                        pBodiesSort[body_count] = pBodies[jj];
+                        body_count++;
+                    }
+                }
+            }
+            else
+            {
+                int temp_nB_hdb = numBodiesPerHDB[ii];
+                int temp_nB_found = 0;
+                arma::uvec temp_hdb_ind(temp_nB_hdb);
+                for (int jj = 0; jj < numBodies; jj++)
+                {
+                    if ((hydro_databases_name[ii].compare(pBodies[jj]->hydroDatabaseName) == 0) && (pBody_found[jj] == 0))
+                    {
+                        pBody_found[jj] = 1;
+                        pBodiesSort[body_count + pBodies[jj]->hydroDatabaseIndex] = pBodies[jj];
+                        if (temp_nB_found < temp_nB_hdb)
+                        {
+                            temp_hdb_ind(temp_nB_found) = pBodies[jj]->hydroDatabaseIndex;
+                        }
+                        temp_nB_found++;
+                    }
+                }
+                if (temp_nB_found != temp_nB_hdb)
+                {
+                    std::stringstream ss;
+                    ss << "ERROR: Not all bodies in multi-body HDB " << hydro_databases_name[ii]
+                       << " are used. Expected " << temp_nB_hdb << " but found " << temp_nB_found << ".\n";
+                    throw ValueError(ss.str());
+                }
+                arma::uvec temp_hdb_ind_unique = arma::unique(temp_hdb_ind);
+                if ((int)temp_hdb_ind_unique.n_elem != temp_nB_hdb)
+                {
+                    std::stringstream ss;
+                    ss << "ERROR: Repeated body indices in multi-body HDB: " << hydro_databases_name[ii] << "\n";
+                    throw ValueError(ss.str());
+                }
+                body_count += temp_nB_hdb;
+            }
+        }
+        delete[] pBody_found;
+        for (int ii = 0; ii < numBodies; ii++)
+        {
+            pBodies[ii] = pBodiesSort[ii];
+        }
+        delete[] pBodiesSort;
+
+        // Checking free bodies
+        std::cout << "Checking for free bodies ..." << std::endl;
+        for (int ii = 0; ii < numBodies; ii++)
+        {
+            if (pBodies[ii]->flag_blocked > 0)
+            {
+                numBodiesLock++;
+            }
+            else
+            {
+                numBodiesFree++;
+            }
+        }
+        pBodiesLock = new Body *[numBodiesLock];
+        pBodiesFree = new Body *[numBodiesFree];
+        int indL = 0;
+        int indF = 0;
+        for (int ii = 0; ii < numBodies; ii++)
+        {
+            if (pBodies[ii]->flag_blocked > 0)
+            {
+                pBodiesLock[indL] = pBodies[ii];
+                indL++;
+            }
+            else
+            {
+                pBodiesFree[indF] = pBodies[ii];
+                indF++;
+            }
+        }
+
+        // Set hydrodynamic database to each body
+        std::string hydro_file_path;
+        for (int ii = 0; ii < this->numBodies; ii++)
+        {
+            pos_database = 0;
+            while (true)
+            {
+                if (this->pBodies[ii]->hydroDatabaseName.compare(hydro_databases_name[pos_database]) == 0)
+                {
+                    break;
+                }
+                pos_database++;
+            }
+
+            int nBodiesInHDB = numBodiesPerHDB[pos_database];
+            if (nBodiesInHDB == 1)
+            {
+                Body **pSingleBodyArray = new Body *[1];
+                pSingleBodyArray[0] = pBodies[ii];
+                this->pBodies[ii]->LoadHydrodynamicDatabase(pSingleBodyArray, 0);
+            }
+            else
+            {
+                Body **pMultiBodyArray = new Body *[nBodiesInHDB];
+                for (int jj = 0; jj < nBodiesInHDB; jj++)
+                {
+                    pMultiBodyArray[jj] = pBodies[ii - pBodies[ii]->hydroDatabaseIndex + jj];
+                }
+                this->pBodies[ii]->LoadHydrodynamicDatabase(pMultiBodyArray, pBodies[ii]->hydroDatabaseIndex);
+            }
+        }
+
+        // Fill System Matrix
+        std::cout << "Fill system matrix...\n";
+        arma::span a1;
+        arma::span a2;
+        this->pSystemMatrix = new arma::mat(6 * this->numBodies, 6 * this->numBodies, arma::fill::zeros);
+        this->pSystemMatrixInv = new arma::mat(6 * this->numBodies, 6 * this->numBodies, arma::fill::zeros);
+        for (int ii = 0; ii < this->numBodies; ii++)
+        {
+            a1 = arma::span(6 * ii, 6 * ii + 5);
+            int temp_nB_hdb = pBodies[ii]->pHydro->GetNumBodies();
+            if (temp_nB_hdb == 1)
+            {
+                a2 = a1;
+            }
+            else
+            {
+                int temp_indHDB = pBodies[ii]->hydroDatabaseIndex;
+                a2 = arma::span(6 * (ii - temp_indHDB), 6 * (ii - temp_indHDB + temp_nB_hdb) - 1);
+            }
+            std::cout << "  ... Filling system matrix for body: " << ii + 1 << std::endl;
+            (*pSystemMatrix)(a1, a2) += pBodies[ii]->pHydro->GetTotalMass();
+            std::cout << "  ... done!" << std::endl;
+            pBodies[ii]->sysMatSpan1 = a1;
+            pBodies[ii]->sysMatSpan2 = a2;
+            pBodies[ii]->sysMatInd1 = arma::regspace<arma::uvec>(6 * ii, 6 * ii + 5);
+        }
+
+        // Take free dofs index vectors from the system matrix
+        sysMatIndFree = arma::zeros<arma::uvec>(6 * numBodiesFree);
+        std::cout << "Take free dofs index vectors from the system matrix...\n";
+        for (int ii = 0; ii < this->numBodiesFree; ii++)
+        {
+            sysMatIndFree(arma::span(6 * ii, 6 * (ii + 1) - 1)) = pBodiesFree[ii]->sysMatInd1;
+        }
+        sysMatIndLock = arma::zeros<arma::uvec>(6 * numBodiesLock);
+        std::cout << "Take locked dofs index from matrix...\n";
+        for (int ii = 0; ii < this->numBodiesLock; ii++)
+        {
+            sysMatIndLock(arma::span(6 * ii, 6 * (ii + 1) - 1)) = pBodiesLock[ii]->sysMatInd1;
+        }
+
+        // Extract submatrices from system matrix
+        std::cout << "Extract submatrices from system matrix...\n";
+        if (numBodiesFree > 0)
+        {
+            pSystemMatrixFF = new arma::mat(6 * numBodiesFree, 6 * numBodiesFree, arma::fill::zeros);
+            *pSystemMatrixFF = (*pSystemMatrix)(sysMatIndFree, sysMatIndFree);
+            if (numBodiesLock > 0)
+            {
+                pSystemMatrixFL = new arma::mat(6 * numBodiesFree, 6 * numBodiesLock, arma::fill::zeros);
+                *pSystemMatrixFL = (*pSystemMatrix)(sysMatIndFree, sysMatIndLock);
+            }
+        }
+        // Invert system matrix
+        std::cout << "Inverting system matrix...\n";
+        std::cout << "  System matrix diagonal: " << arma::diagvec(*pSystemMatrix).t();
+        *pSystemMatrixInv = arma::solve(*pSystemMatrix, eye(size(*pSystemMatrix)));
+        if (pSystemMatrixInv->has_nan() || pSystemMatrixInv->has_inf())
+        {
+            std::cout << "  WARNING: System matrix inverse has NaN or Inf entries!" << std::endl;
+            std::cout << "  System matrix inverse diagonal: " << arma::diagvec(*pSystemMatrixInv).t();
+        }
+        if (numBodiesFree > 0)
+        {
+            pSystemMatrixFFInv = new arma::mat(6 * numBodiesFree, 6 * numBodiesFree, arma::fill::zeros);
+            *pSystemMatrixFFInv = arma::solve(*pSystemMatrixFF, eye(size(*pSystemMatrixFF)));
+            if (pSystemMatrixFFInv->has_nan() || pSystemMatrixFFInv->has_inf())
+            {
+                std::cout << "  WARNING: Free-body system matrix inverse has NaN or Inf entries!" << std::endl;
+                std::cout << "  Free-body system matrix diagonal: " << arma::diagvec(*pSystemMatrixFF).t();
+                std::cout << "  Free-body system matrix inverse diagonal: " << arma::diagvec(*pSystemMatrixFFInv).t();
+            }
+        }
+        std::cout << "System matrix inverted...\n";
+
+        // Initialize velocity buffers
+        int time_buffer_size = this->timeBufferSize;
+        for (int ii = 0; ii < this->numBodies; ii++)
+        {
+            if (time_buffer_size < 10 * this->pBodies[ii]->pHydro->GetNumPointsIrf())
+            {
+                time_buffer_size = 10 * this->pBodies[ii]->pHydro->GetNumPointsIrf();
+            }
+        }
+        for (int ii = 0; ii < this->numBodies; ii++)
+        {
+            this->pBodies[ii]->velBufferSize = time_buffer_size;
+            this->pBodies[ii]->velBuffer = arma::zeros(6, time_buffer_size);
+        }
+        this->timeBufferSize = time_buffer_size;
+        this->timeBuffer = arma::zeros(1, time_buffer_size);
+
+        delete[] numBodiesPerHDB;
+
+        std::cout << "--> Bodies Properties Read" << std::endl;
+    }
 }
 
 void Simulation::ReadLines()
@@ -1563,12 +1944,48 @@ void Simulation::ReadLinesASCII()
     std::cout << "--> Lines Properties Read" << std::endl;
 }
 
-void Simulation::ReadLinesHDF5()
+void Simulation::ReadLinesYAML()
 {
-    std::cout << "--> Reading Lines Properties (HDF5 format)" << std::endl;
-    std::stringstream ss;
-    ss << "Method ReadLinesHDF5 in class Simulation not implemented yet.";
-    throw NotImplementedError(ss.str());
+    std::cout << "--> Reading Lines Properties (YAML format)" << std::endl;
+
+    if (!yamlRoot["lines"])
+    {
+        std::cout << "    --> WARNING: 'lines' section not found in YAML! Setting numLines = 0!" << std::endl;
+        numLines = 0;
+        pLines = new Line *[0];
+        return;
+    }
+
+    numLines = (int)yamlRoot["lines"].size();
+    pLines = new Line *[numLines];
+
+    for (int ii = 0; ii < numLines; ii++)
+    {
+        pLines[ii] = new Line(ii, gravity, waterDensity, waterDepth);
+        try
+        {
+            pLines[ii]->ReadPropertiesYAML(yamlRoot["lines"][ii]);
+            pLines[ii]->OpenOutputFilesASCII(outputFolderPath);
+        }
+        catch (int e)
+        {
+            if (e == 0)
+                std::cout << "ERROR: Line " << pLines[ii]->nLine << " is under the floor level." << std::endl << std::endl;
+            if (e == 1)
+                std::cout << "ERROR: Line " << pLines[ii]->nLine << " touches the seafloor and it shouldn't. " << std::endl << std::endl;
+            if (e == 2)
+                std::cout << "ERROR: Line " << pLines[ii]->nLine << " is not tense and laying on the seafloor. It should be pretensed. " << std::endl << std::endl;
+            if (e == 3)
+                std::cout << "ERROR: Line " << pLines[ii]->nLine << " is not tense and vertical. It should be pretensed. " << std::endl << std::endl;
+            if (e == 4)
+                std::cout << "ERROR: Line " << pLines[ii]->nLine << " is not tense and it should. " << std::endl << std::endl;
+            if (e == 5)
+                std::cout << "ERROR: Line " << pLines[ii]->nLine << " initial shape can't be computed with QS method. " << std::endl;
+            if (e == 6)
+                std::cout << "ERROR: Line " << pLines[ii]->nLine << " touches the seafloor althoug none of its ends are there. " << std::endl << std::endl;
+        }
+    }
+
     std::cout << "--> Lines Properties Read" << std::endl;
 }
 
@@ -1645,12 +2062,44 @@ void Simulation::ReadSinkingASCII()
     std::cout << "--> Sinking Properties Read" << std::endl;
 }
 
-void Simulation::ReadSinkingHDF5()
+void Simulation::ReadSinkingYAML()
 {
-    std::cout << "--> Reading Sinking Properties (HDF5 format)" << std::endl;
-    std::stringstream ss;
-    ss << "Method ReadSinkingHDF5 in class Simulation not implemented yet.";
-    throw NotImplementedError(ss.str());
+    std::cout << "--> Reading Sinking Properties (YAML format)" << std::endl;
+
+    if (!yamlRoot["sinking"])
+    {
+        std::cout << "    --> WARNING: 'sinking' section not found in YAML! Setting numSinking = 0!" << std::endl;
+        numSinking = 0;
+        pSinking = new Sinking *[0];
+        return;
+    }
+
+    numSinking = (int)yamlRoot["sinking"].size();
+
+    if (numSinking > 0)
+    {
+        if (numSinking > 1)
+        {
+            std::stringstream ss;
+            ss << "Multiple bodies sinking is not implemented yet." << std::endl;
+            throw IOError(ss.str());
+        }
+
+        pSinking = new Sinking *[numSinking];
+        for (int ii = 0; ii < numSinking; ii++)
+        {
+            YAML::Node sinkNode = yamlRoot["sinking"][ii];
+            int sinkingBodyIndex = sinkNode["body_index"].as<int>();
+            pSinking[ii] = new Sinking(sinkingBodyIndex, this);
+            pSinking[ii]->ReadPropertiesYAML(sinkNode, inputFolderPath);
+            pSinking[ii]->OpenOutputFilesASCII(outputFolderPath);
+        }
+    }
+    else
+    {
+        pSinking = new Sinking *[0];
+    }
+
     std::cout << "--> Sinking Properties Read" << std::endl;
 }
 
@@ -1696,12 +2145,27 @@ void Simulation::ReadSpringsASCII()
     std::cout << "--> Spring Properties Read" << std::endl;
 }
 
-void Simulation::ReadSpringsHDF5()
+void Simulation::ReadSpringsYAML()
 {
-    std::cout << "--> Reading Spring Properties (HDF5 format)" << std::endl;
-    std::stringstream ss;
-    ss << "Method ReadSpringsHDF5 in class Simulation not implemented yet.";
-    throw NotImplementedError(ss.str());
+    std::cout << "--> Reading Spring Properties (YAML format)" << std::endl;
+
+    if (!yamlRoot["springs"])
+    {
+        std::cout << "    --> WARNING: 'springs' section not found in YAML! Setting numSprings = 0!" << std::endl;
+        numSprings = 0;
+        pSprings = new Spring *[0];
+        return;
+    }
+
+    numSprings = (int)yamlRoot["springs"].size();
+    pSprings = new Spring *[numSprings];
+
+    for (int ii = 0; ii < numSprings; ii++)
+    {
+        pSprings[ii] = new Spring(ii);
+        pSprings[ii]->ReadPropertiesYAML(yamlRoot["springs"][ii]);
+    }
+
     std::cout << "--> Spring Properties Read" << std::endl;
 }
 
@@ -1788,12 +2252,60 @@ void Simulation::ReadPropertiesASCII()
     std::cout << "--> Simulation Properties Read" << std::endl;
 }
 
-void Simulation::ReadPropertiesHDF5()
+void Simulation::ReadPropertiesYAML()
 {
-    std::cout << "--> Reading Simulation Properties (HDF5 format)" << std::endl;
-    std::stringstream ss;
-    ss << "Method ReadPropertiesHDF5 in class Simulation not implemented yet.";
-    throw NotImplementedError(ss.str());
+    std::cout << "--> Reading Simulation Properties (YAML format)" << std::endl;
+
+    // Open and parse YAML file
+    std::string file_path = JoinPath(inputFolderPath, "dataProblem.yaml");
+    try
+    {
+        yamlRoot = YAML::LoadFile(file_path);
+    }
+    catch (const YAML::Exception &e)
+    {
+        std::stringstream ss;
+        ss << "Error parsing YAML file: " << file_path << "\n    " << e.what();
+        throw IOError(ss.str());
+    }
+
+    if (!yamlRoot["problem"])
+    {
+        throw ValueError("YAML file missing required 'problem' section.");
+    }
+
+    YAML::Node prob = yamlRoot["problem"];
+    gravity = prob["gravity"].as<double>();
+    waterDensity = prob["water_density"].as<double>();
+    airAtmPresDensity = prob["air_density"].as<double>();
+    airAtmPres = prob["atmospheric_pressure"].as<double>();
+    airAdiabaticDilation = prob["air_adiabatic_dilation"].as<double>();
+    waterDepth = prob["water_depth"].as<double>();
+    writeTimeStep = prob["write_time_step"].as<double>();
+    maxTimeStep = prob["max_time_step"].as<double>();
+    hydroTimeStep = prob["hydro_time_step"].as<double>();
+    lastHydroTime = 0.0;
+    lastHydroTime_old = -hydroTimeStep;
+    lastHydroTime_old2 = -2.0 * hydroTimeStep;
+    fastTimeStep = prob["fast_time_step"].as<double>();
+    fastControllerTimeStep = prob["fast_controller_time_step"].as<double>();
+    timeIRF = prob["irf_time"].as<double>();
+    sinkingTimeStep = prob["sinking_time_step"].as<double>();
+    winchesContTimeStep = prob["winches_controller_time_step"].as<double>();
+    owcsContTimeStep = prob["owcs_controller_time_step"].as<double>();
+    simulationTime = prob["simulation_time"].as<double>();
+    rotSimpFlag = prob["rotation_simplification"].as<int>();
+    timeIntMethod = prob["time_integration_method"].as<int>();
+    timeIntOrder = prob["time_integration_order"].as<int>();
+    timeIntAdaptivity = prob["time_step_adaptivity"].as<int>();
+    timeIntJacNumStepsMax = prob["jacobian_recomputation_steps"].as<int>();
+    timeIntAbsTol = prob["absolute_tolerance"].as<double>();
+    timeIntRelTol = prob["relative_tolerance"].as<double>();
+    maxIterStep = prob["max_iterations_per_step"].as<int>();
+    readEquilibrium = prob["read_equilibrium"].as<int>();
+    writeEquilibrium = prob["write_equilibrium"].as<int>();
+    flagStatic = prob["mooring_initial_condition"].as<int>();
+
     std::cout << "--> Simulation Properties Read" << std::endl;
 }
 
@@ -1931,13 +2443,72 @@ void Simulation::ReadWavesASCII()
     std::cout << "--> ... wave preprocessed!" << std::endl;
 }
 
-void Simulation::ReadWavesHDF5()
+void Simulation::ReadWavesYAML()
 {
-    std::cout << "--> Reading Waves (HDF5 format)" << std::endl;
-    std::stringstream ss;
-    ss << "Method ReadWavesHDF5 in class Simulation not implemented yet.";
-    throw NotImplementedError(ss.str());
-    std::cout << "--> Simulation Properties Read" << std::endl;
+    std::cout << "--> Reading Waves (YAML format)" << std::endl;
+
+    if (!yamlRoot["waves"])
+    {
+        std::cout << "    --> WARNING: 'waves' section not found in YAML! Skipping wave definition!" << std::endl;
+        pWave = new RegularWave(this, 0.0, 1.0, 0.0, 0.0);
+        return;
+    }
+
+    YAML::Node wav = yamlRoot["waves"];
+    std::string wave_type = wav["type"].as<std::string>();
+    double H = wav["height"].as<double>();
+    double T = wav["period"].as<double>();
+    double D = wav["heading"].as<double>();
+    double rampTime = wav["ramp_time"].as<double>();
+
+    if (wave_type == "REG")
+    {
+        pWave = new RegularWave(this, H, T, D, rampTime);
+    }
+    else if (wave_type == "IRR")
+    {
+        pWave = new IrregularWave(this, H, T, D, rampTime);
+        pWave->specType_flag = wav["spectrum_type"].as<int>();
+        pWave->piecewise_flag = wav["piecewise_flag"].as<int>();
+        pWave->gamma = wav["gamma"].as<double>();
+        pWave->s = wav["spreading"].as<double>();
+        pWave->dtheta = wav["dtheta"].as<double>();
+        pWave->factor = wav["factor"].as<double>();
+        pWave->readPhases_flag = wav["read_phases_flag"].as<int>();
+        pWave->rel_tol = wav["relative_tolerance"].as<double>();
+        pWave->dt = wav["dt"].as<double>();
+        pWave->wavePhasesFileName = wav["phases_file"].as<std::string>();
+        pWave->filePhases_path = JoinPath(inputFolderPath, pWave->wavePhasesFileName);
+        pWave->waveDatabaseName = wav["database_file"].as<std::string>();
+        pWave->file_path = JoinPath(inputFolderPath, pWave->waveDatabaseName);
+    }
+    else
+    {
+        std::stringstream ss;
+        ss << "Error in YAML waves section: Unexpected wave type '" << wave_type << "'.\n";
+        throw ValueError(ss.str());
+    }
+
+    std::cout << "--> ... wave read!" << std::endl;
+
+    // Preprocess wave data if H>0
+    if (H > 0.0)
+    {
+        std::cout << "-->  Preprocessing wave..." << std::endl;
+        pWave->CheckBreakingWave();
+        pWave->GetWaveSpectrum();
+        if (wave_type == "IRR")
+        {
+            pWave->WriteOut(outputFolderPath);
+        }
+    }
+    else
+    {
+        std::cout << "-->  Preprocessing dummy wave..." << std::endl;
+        pWave->SetZeroHeight();
+    }
+
+    std::cout << "--> ... wave preprocessed!" << std::endl;
 }
 
 void Simulation::ReadWinches()
@@ -2013,13 +2584,52 @@ void Simulation::ReadWinchesASCII()
     std::cout << "--> Winches Controller Properties Read" << std::endl;
 }
 
-void Simulation::ReadWinchesHDF5()
+void Simulation::ReadWinchesYAML()
 {
-    std::cout << "--> Reading Winches Properties (HDF5 format)" << std::endl;
-    std::stringstream ss;
-    ss << "Method ReadWinchesHDF5 in class Simulation not implemented yet.";
-    throw NotImplementedError(ss.str());
+    std::cout << "--> Reading Winches Properties (YAML format)" << std::endl;
+
+    if (!yamlRoot["winches"])
+    {
+        std::cout << "    --> WARNING: 'winches' section not found in YAML! Setting numWinches = 0!" << std::endl;
+        numWinches = 0;
+        pWinches = new Winchie *[0];
+        WinchesController = nullptr;
+        useWinches = false;
+        return;
+    }
+
+    YAML::Node winchesNode = yamlRoot["winches"];
+    YAML::Node winchList = winchesNode["winches"];
+    numWinches = winchList ? (int)winchList.size() : 0;
+
+    if ((numWinches == 0) && useWinches)
+    {
+        throw ValueError("Use of winches is requested when loading BCPs but there are no winches specified in YAML\n");
+    }
+
+    pWinches = new Winchie *[numWinches];
+    for (int ii = 0; ii < numWinches; ii++)
+    {
+        pWinches[ii] = new Winchie(ii);
+        pWinches[ii]->ReadPropertiesYAML(winchList[ii]);
+        pWinches[ii]->LineW = pLines[pWinches[ii]->nLine - 1];
+    }
     std::cout << "--> Winches Properties Read" << std::endl;
+
+    // Read Winches Controller
+    std::cout << "--> Reading Winches Controller Properties (YAML format)" << std::endl;
+    if (!winchesNode["controller"])
+    {
+        std::stringstream ss;
+        ss << "YAML 'winches' section missing 'controller' subsection.";
+        throw IOError(ss.str());
+    }
+    YAML::Node ctrlNode = winchesNode["controller"];
+    int controllerType = ctrlNode["type"].as<int>();
+    WinchesController = WinchieController::Create(controllerType, numWinches, pWinches, this);
+    WinchesController->ReadPropertiesYAML(ctrlNode);
+    WinchesController->OpenOutputFilesASCII(outputFolderPath);
+    std::cout << "--> Winches Controller Properties Read" << std::endl;
 }
 
 void Simulation::ReadSeaFloor()
@@ -2102,13 +2712,63 @@ void Simulation::ReadSeaFloorASCII()
     std::cout << "--> Floor Properties Read" << std::endl;
 }
 
-void Simulation::ReadSeaFloorHDF5()
+void Simulation::ReadSeaFloorYAML()
 {
-    std::cout << "--> Reading SeaFloor Properties (HDF5 format)" << std::endl;
-    std::stringstream ss;
-    ss << "Method ReadSeaFloorHDF5 in class Simulation not implemented yet.";
-    throw NotImplementedError(ss.str());
-    std::cout << "--> SeaFloor Properties Read" << std::endl;
+    std::cout << "--> Reading SeaFloor (YAML format)" << std::endl;
+
+    if (!yamlRoot["seafloor"])
+    {
+        std::cout << "    --> WARNING: 'seafloor' section not found in YAML! Setting flat sea floor!" << std::endl;
+        numBathymetry = 0;
+        numInclined = 0;
+        numFlat = 1;
+        numFloor = 1;
+        pSeaFloor = new SeaFloor *[numFloor];
+        pBathymetry = new Bathymetry *[0];
+        pInclined = new Inclined *[0];
+        pFlat = new Flat *[numFlat];
+        pFlat[0] = new Flat(0);
+        pSeaFloor[0] = pFlat[0];
+        pSeaFloor[0]->fondo = this->waterDepth;
+        std::cout << "--> Floor Properties Read" << std::endl;
+        return;
+    }
+
+    YAML::Node sfNode = yamlRoot["seafloor"];
+    numBathymetry = sfNode["bathymetry"] ? (int)sfNode["bathymetry"].size() : 0;
+    numInclined = sfNode["inclined"] ? (int)sfNode["inclined"].size() : 0;
+    numFlat = sfNode["flat"] ? (int)sfNode["flat"].size() : 0;
+    numFloor = numBathymetry + numInclined + numFlat;
+
+    pSeaFloor = new SeaFloor *[numFloor];
+    int floor_count = 0;
+
+    pBathymetry = new Bathymetry *[numBathymetry];
+    for (int ii = 0; ii < numBathymetry; ii++)
+    {
+        pBathymetry[ii] = new Bathymetry(floor_count);
+        pBathymetry[ii]->ReadPropertiesYAML(sfNode["bathymetry"][ii], inputFolderPath);
+        pSeaFloor[floor_count] = pBathymetry[ii];
+        floor_count++;
+    }
+    pInclined = new Inclined *[numInclined];
+    for (int ii = 0; ii < numInclined; ii++)
+    {
+        pInclined[ii] = new Inclined(floor_count);
+        pInclined[ii]->ReadPropertiesYAML(sfNode["inclined"][ii]);
+        pSeaFloor[floor_count] = pInclined[ii];
+        floor_count++;
+    }
+    pFlat = new Flat *[numFlat];
+    for (int ii = 0; ii < numFlat; ii++)
+    {
+        pFlat[ii] = new Flat(floor_count);
+        pFlat[ii]->ReadPropertiesYAML(sfNode["flat"][ii]);
+        pSeaFloor[floor_count] = pFlat[ii];
+        floor_count++;
+    }
+
+    std::cout << "--> Floor Properties Read" << std::endl;
 }
 
 void Simulation::ReadWindTurbines(void)
@@ -2151,12 +2811,26 @@ void Simulation::ReadWindTurbinesASCII(void)
     std::cout << "--> Wind Turbines Properties Read" << std::endl;
 }
 
-void Simulation::ReadWindTurbinesHDF5(void)
+void Simulation::ReadWindTurbinesYAML(void)
 {
-    std::cout << "--> Reading Wind Turbines (HDF5 format)" << std::endl;
-    std::stringstream ss;
-    ss << "Method ReadWindTurbinesHDF5 in class Simulation not implemented yet.";
-    throw NotImplementedError(ss.str());
+    std::cout << "--> Reading Wind Turbines Properties (YAML format)" << std::endl;
+
+    if (!yamlRoot["wind_turbines"])
+    {
+        std::cout << "    --> WARNING: 'wind_turbines' section not found in YAML! Setting numWindTurbines = 0!" << std::endl;
+        numWindTurbines = 0;
+        pWindTurbines = new WindTurbine *[0];
+        return;
+    }
+
+    numWindTurbines = (int)yamlRoot["wind_turbines"].size();
+    pWindTurbines = new WindTurbine *[numWindTurbines];
+    for (int ii = 0; ii < numWindTurbines; ii++)
+    {
+        pWindTurbines[ii] = new WindTurbine(ii, this);
+        pWindTurbines[ii]->ReadPropertiesYAML(yamlRoot["wind_turbines"][ii]);
+    }
+
     std::cout << "--> Wind Turbines Properties Read" << std::endl;
 }
 
@@ -2238,12 +2912,64 @@ void Simulation::ReadOWCsASCII(void)
     std::cout << "--> OWCs Properties Read" << std::endl;
 }
 
-void Simulation::ReadOWCsHDF5(void)
+void Simulation::ReadOWCsYAML(void)
 {
-    std::cout << "--> Reading OWCs (HDF5 format)" << std::endl;
-    std::stringstream ss;
-    ss << "Method ReadOWCsHDF5 in class Simulation not implemented yet.";
-    throw NotImplementedError(ss.str());
+    std::cout << "--> Reading OWCs Properties (YAML format)" << std::endl;
+
+    // Read OWC Turbine Types
+    if (!yamlRoot["owcs"] || !yamlRoot["owcs"]["turbine_types"])
+    {
+        std::cout << "    --> WARNING: 'owcs.turbine_types' section not found in YAML! Setting numOWCTurbines = 0!" << std::endl;
+        numOWCTurbines = 0;
+        pOWCTurbines = new OWCTurbineType *[0];
+    }
+    else
+    {
+        YAML::Node turbTypes = yamlRoot["owcs"]["turbine_types"];
+        numOWCTurbines = (int)turbTypes.size();
+        if (numOWCTurbines > 0)
+        {
+            pOWCTurbines = new OWCTurbineType *[numOWCTurbines];
+            for (int ii = 0; ii < numOWCTurbines; ii++)
+            {
+                pOWCTurbines[ii] = new OWCTurbineType(ii, this);
+                pOWCTurbines[ii]->ReadPropertiesYAML(turbTypes[ii]);
+                pOWCTurbines[ii]->Initialize(nullptr);
+            }
+        }
+        else
+        {
+            pOWCTurbines = new OWCTurbineType *[0];
+        }
+    }
+    std::cout << "--> OWCs Turbines Properties Read" << std::endl;
+
+    // Read OWC Chambers
+    if (!yamlRoot["owcs"] || !yamlRoot["owcs"]["chambers"])
+    {
+        std::cout << "    --> WARNING: 'owcs.chambers' section not found in YAML! Setting numOWCs = 0!" << std::endl;
+        numOWCs = 0;
+        pOWCs = new OWC *[0];
+    }
+    else
+    {
+        YAML::Node chambers = yamlRoot["owcs"]["chambers"];
+        numOWCs = (int)chambers.size();
+        if (numOWCs > 0)
+        {
+            pOWCs = new OWC *[numOWCs];
+            for (int ii = 0; ii < numOWCs; ii++)
+            {
+                pOWCs[ii] = new OWC(ii, this);
+                pOWCs[ii]->ReadPropertiesYAML(chambers[ii]);
+                pOWCs[ii]->Initialize(nullptr);
+            }
+        }
+        else
+        {
+            pOWCs = new OWC *[0];
+        }
+    }
     std::cout << "--> OWCs Properties Read" << std::endl;
 }
 
@@ -3212,28 +3938,28 @@ Simulation::Simulation(std::string incProjectPath, std::string incDataFormat)
         pReadWindTurbines = &Simulation::ReadWindTurbinesASCII;
         pReadOWCs = &Simulation::ReadOWCsASCII;
     }
-    else if (!incDataFormat.compare("HDF5"))
+    else if (!incDataFormat.compare("YAML"))
     {
         dataFormat = 1;
-        dataFormatStr = "HDF5";
-        inputFolderPath = incProjectPath;
-        outputFolderPath = incProjectPath;
-        pReadProperties = &Simulation::ReadPropertiesHDF5;
-        pReadWaves = &Simulation::ReadWavesHDF5;
-        pReadBcps = &Simulation::ReadBcpsHDF5;
-        pReadBodies = &Simulation::ReadBodiesHDF5;
-        pReadSinking = &Simulation::ReadSinkingHDF5;
-        pReadLines = &Simulation::ReadLinesHDF5;
-        pReadSprings = &Simulation::ReadSpringsHDF5;
-        pReadWinches = &Simulation::ReadWinchesHDF5;
-        pReadSeaFloor = &Simulation::ReadSeaFloorHDF5;
-        pReadWindTurbines = &Simulation::ReadWindTurbinesHDF5;
-        pReadOWCs = &Simulation::ReadOWCsHDF5;
+        dataFormatStr = "YAML";
+        inputFolderPath = JoinPath(incProjectPath, "input");
+        outputFolderPath = JoinPath(incProjectPath, "output");
+        pReadProperties = &Simulation::ReadPropertiesYAML;
+        pReadWaves = &Simulation::ReadWavesYAML;
+        pReadBcps = &Simulation::ReadBcpsYAML;
+        pReadBodies = &Simulation::ReadBodiesYAML;
+        pReadSinking = &Simulation::ReadSinkingYAML;
+        pReadLines = &Simulation::ReadLinesYAML;
+        pReadSprings = &Simulation::ReadSpringsYAML;
+        pReadWinches = &Simulation::ReadWinchesYAML;
+        pReadSeaFloor = &Simulation::ReadSeaFloorYAML;
+        pReadWindTurbines = &Simulation::ReadWindTurbinesYAML;
+        pReadOWCs = &Simulation::ReadOWCsYAML;
     }
     else
     {
         std::stringstream ss;
-        ss << "Simulation data format --> " << incDataFormat << " is not available.\n    Available formats: ASCII | HDF5.";
+        ss << "Simulation data format --> " << incDataFormat << " is not available.\n    Available formats: ASCII | YAML.";
         throw ValueError(ss.str());
     }
 }

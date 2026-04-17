@@ -3,6 +3,7 @@
 #define simulationdef_hpp__
 
 #include <string>
+#include <yaml-cpp/yaml.h>
 #include "ISimulation.hpp"
 #include "../Bodies/Bodies.hpp"
 #include "../BCPs/BCPs.hpp"
@@ -24,6 +25,7 @@ private:
     int dataFormat;
     std::string dataFormatStr;
     bool status;
+    YAML::Node yamlRoot;
 
 public:
     // Declare IO attributes
@@ -150,37 +152,37 @@ public:
     void PrintSetup(void);
     void ReadBcps(void);
     void ReadBcpsASCII(void);
-    void ReadBcpsHDF5(void);
+    void ReadBcpsYAML(void);
     void ReadBodies(void);
     void ReadBodiesASCII(void);
-    void ReadBodiesHDF5(void);
+    void ReadBodiesYAML(void);
     void ReadLines(void);
     void ReadLinesASCII(void);
-    void ReadLinesHDF5(void);
+    void ReadLinesYAML(void);
     void ReadSinking(void);
     void ReadSinkingASCII(void);
-    void ReadSinkingHDF5(void);
+    void ReadSinkingYAML(void);
     void ReadSprings(void);
     void ReadSpringsASCII(void);
-    void ReadSpringsHDF5(void);
+    void ReadSpringsYAML(void);
     void ReadWinches(void);
     void ReadWinchesASCII(void);
-    void ReadWinchesHDF5(void);
+    void ReadWinchesYAML(void);
     void ReadProperties(void);
     void ReadPropertiesASCII(void);
-    void ReadPropertiesHDF5(void);
+    void ReadPropertiesYAML(void);
     void ReadWaves(void);
     void ReadWavesASCII(void);
-    void ReadWavesHDF5(void);
+    void ReadWavesYAML(void);
     void ReadSeaFloor(void);
     void ReadSeaFloorASCII(void);
-    void ReadSeaFloorHDF5(void);
+    void ReadSeaFloorYAML(void);
     void ReadWindTurbines(void);
     void ReadWindTurbinesASCII(void);
-    void ReadWindTurbinesHDF5(void);
+    void ReadWindTurbinesYAML(void);
     void ReadOWCs(void);
     void ReadOWCsASCII(void);
-    void ReadOWCsHDF5(void);
+    void ReadOWCsYAML(void);
 
     // Declare general purpose class methods
     arma::mat CalculateSystemDynamics(double time, arma::mat y);
