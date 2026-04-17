@@ -16,7 +16,7 @@ This example simulates a floating platform (ISOBARA-like) under regular or irreg
 - `dataProblem.dat`: General simulation parameters
 - `dataWaves.dat`: Wave configuration
 - `dataBodies.dat`: Body definition
-- `dique_cadenas.hydb.h5`: Hydrodynamic database
+- `one_box.hydb.h5`: Hydrodynamic database
 
 ### Output Files
 - `DOF_X_Body_Y.txt`: Time series of body motions (6 DOF)

@@ -13,8 +13,8 @@ Isolated tests for floating body dynamics. Each example tests a single aspect of
 | `radiation` | Radiation damping (surge) | isobara.ehydb | displacement x=1m, radiation ON |
 | `excitation_linear` | 1st-order excitation (locked) | isobara.ehydb | flag_blocked=1, excitation=1, REG wave H=2 |
 | `excitation_instantpos` | Excitation at instant position | isobara.ehydb | free body, excitation=2, REG wave H=2 |
-| `nonlinear_hs_flat` | Non-linear hydrostatics (flat water) | dique_cadenas.hydb.h5 + STL | hydrostatics=1, displacement z=1m |
-| `nonlinear_hs_waves` | Non-linear hydrostatics with waves | dique_cadenas.hydb.h5 + STL | hydrostatics=2, excitation=1, REG wave H=2 |
+| `nonlinear_hs_flat` | Non-linear hydrostatics (flat water) | one_box.hydb.h5 + STL | hydrostatics=1, displacement z=1m |
+| `nonlinear_hs_waves` | Non-linear hydrostatics with waves | one_box.hydb.h5 + STL | hydrostatics=2, excitation=1, REG wave H=2 |
 | `qtf` | 2nd-order QTF forces | isobara.ehydb | excitation=1, QTF=1, IRR JONSWAP Hs=1 |
 
 ## Shared Configuration

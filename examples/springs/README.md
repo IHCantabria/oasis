@@ -15,7 +15,7 @@ All examples use:
 - **Simulation time:** 50s
 - **Integration:** ESDIRK46 (method=3), order=2, dt=0.02s
 - **Water depth:** -8m, density=1025 kg/m³, gravity=9.81 m/s²
-- **Body:** dique_cadenas.hydb.h5, RAD_DIFF, 6 DOFs, linear hydrostatics, radiation ON, 1st order excitation with instant position
+- **Body:** one_box.hydb.h5, RAD_DIFF, 6 DOFs, linear hydrostatics, radiation ON, 1st order excitation with instant position
 - **Waves:** REG H=0.5m T=5.0s heading=225°
 - **Spring stress model:** Nonlinear (stressModelFlag=2) with stress-strain curves
 - **IRF time span:** 40s

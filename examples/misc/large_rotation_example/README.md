@@ -33,7 +33,7 @@ large_rotation_example/
 │   │   ├── dataWaves.dat
 │   │   ├── dataBCPs.dat
 │   │   ├── dataLines.dat
-│   │   └── dique_cadenas.hydb.h5
+│   │   └── one_box.hydb.h5
 │   └── output/
 ├── case_full/             # rotSimpFlag = 0
 │   ├── input/             # (same files, only dataProblem.dat differs)

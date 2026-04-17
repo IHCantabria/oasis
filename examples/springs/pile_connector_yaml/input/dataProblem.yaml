@@ -35,7 +35,7 @@ bodies:
     wind_turbines_indexes: []
     initial_position: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     initial_displacement: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    hydro_database: dique_cadenas.hydb.h5
+    hydro_database: ../../../data/one_box.hydb.h5
     hydro_database_index: 1
     freedom_flag: 0
     imposed_motion_file: dummy.dat

@@ -169,7 +169,7 @@ sbatch run.sl input
 - **ESDIRK46 integrator** (method=3, order=2) as default — stable and accurate
 - **dt = 0.1s** for all time steps (output, max, hydro, FAST, controller)
 - **Missing optional files are OK** — OASIS prints a warning and sets the count to 0
-- **Centralized hydro databases**: Stored in `examples/data/` and referenced via relative paths (`../../../data/<file>`) to avoid duplication. `one_box.hydb.h5` for most examples, `trl_plus.hydb.h5` for turbines, `dique_cadenas.hydb.h5` + STL for non-linear hydrostatics (kept in-place)
+- **Centralized hydro databases**: Stored in `examples/data/` and referenced via relative paths (`../../../data/<file>`) to avoid duplication. `one_box.hydb.h5` for most examples, `trl_plus.hydb.h5` for turbines, `one_box.hydb.h5` + STL for non-linear hydrostatics
 - **Nested folder structure**: `examples/<group>/<test_name>/input/` for clear organization
 
 ## Adding a New Group
