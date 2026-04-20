@@ -16,7 +16,7 @@ public:
     int idOWCTurbineType;
 
     // Pointer to the simulation instance
-    Simulation *pSim;
+    Simulation* pSim;
 
     // Properties of the turbine type
     int valve_type;                       // Type of valve [0: None, 1: Bypass, 2: Throttle, 3: Bypass + Throttle]
@@ -49,19 +49,19 @@ public:
     double param_b; // Parameter b of the controller
 
     // Class methods
-    OWCTurbineType(int n, Simulation *pSimInp);
+    OWCTurbineType(int n, Simulation* pSimInp);
 
-    void ReadPropertiesASCII(FILE *pFile);
+    void ReadPropertiesASCII(FILE* pFile);
     void ReadPropertiesYAML(YAML::Node node);
-    void Initialize(FILE *pFile);
+    void Initialize(FILE* pFile);
     void Finalize(void);
 };
 
 class OWCTurbine
 {
 public:
-    OWCTurbineType *pOWCTurbineType; // Pointer to the corresponding turbine type
-    Simulation *pSim;                // Pointer to the simulation instance
+    OWCTurbineType* pOWCTurbineType; // Pointer to the corresponding turbine type
+    Simulation* pSim;                // Pointer to the simulation instance
 
     double mass_flow_rate;          // Mass flow rate of the turbine
     double angular_velocity;        // Angular velocity of the turbine
@@ -79,7 +79,7 @@ public:
     double gap_air_mass;            // Air mass in the gap of the turbine
 
     // Class methods
-    OWCTurbine(Simulation *pSimInp, int id_OWCTurbineType);
+    OWCTurbine(Simulation* pSimInp, int id_OWCTurbineType);
 
     void Initialize(double initial_angular_velocity);
 
@@ -96,19 +96,19 @@ class OWC
 {
 public:
     int idOWC;               // OWC number
-    Simulation *pSim;        // Pointer to simulation instance
-    Body *pBodyOWC;          // Pointer to corresponding body
-    Body *pBodyFloater;      // Pointer to linked body
-    OWCTurbine *pOWCTurbine; // Pointer to the corresponding turbine
+    Simulation* pSim;        // Pointer to simulation instance
+    Body* pBodyOWC;          // Pointer to corresponding body
+    Body* pBodyFloater;      // Pointer to linked body
+    OWCTurbine* pOWCTurbine; // Pointer to the corresponding turbine
 
     int idBodyOWC;     // OWC body ID
     int idBodyFloater; // Floater body ID
 
-    double waterplane_area;                  // Waterplane area of the OWC
-    double reference_air_volume;             // Reference air volume of the OWC
-    double hole_area;                        // Hole area of the OWC
-    double hole_discharge_coef;              // Hole discharge coefficient of the OWC
-    int turbine_type;                        // Type of turbine [-1: none, 0: hole, n>0: id of turbine in dataOWCTurbine.dat]
+    double waterplane_area;      // Waterplane area of the OWC
+    double reference_air_volume; // Reference air volume of the OWC
+    double hole_area;            // Hole area of the OWC
+    double hole_discharge_coef;  // Hole discharge coefficient of the OWC
+    int turbine_type;            // Type of turbine [-1: none, 0: hole, n>0: id of turbine in dataOWCTurbine.dat]
     double turb_initial_angular_velocity;    // Initial angular velocity of the turbine
     arma::mat pos_local = arma::zeros(3, 1); // Local position of the OWC in the floater body
 
@@ -129,21 +129,23 @@ public:
     double gap_rel_pressure;     // Throttle valve gap relative pressure of the OWC
     double gap_rel_pressure_dot; // Throttle valve gap relative pressure derivative of the OWC
 
-    FILE *pfile_output; // Pointer to output file
+    FILE* pfile_output; // Pointer to output file
 
-    OWC(int n, Simulation *pSimInp);
+    OWC(int n, Simulation* pSimInp);
 
-    void ReadPropertiesASCII(FILE *pFile);
+    void ReadPropertiesASCII(FILE* pFile);
     void ReadPropertiesYAML(YAML::Node node);
-    void Initialize(FILE *pFile);
+    void Initialize(FILE* pFile);
     void Finalize(void);
     void WriteOut(double t);
 
     void ComputeForces(double time);
     void ComputePressure(double time);
     double ComputeAirDensity(double pressure);
-    double ComputeHoleMassFlowRate(double pressure_diff, double stagnation_density, double hole_area, double hole_discharge_coef);
-    double ComputeRelPressureRate(double air_pressure, double mass_flow_rate, double air_mass, double air_volume_dot, double air_volume);
+    double ComputeHoleMassFlowRate(double pressure_diff, double stagnation_density, double hole_area,
+                                   double hole_discharge_coef);
+    double ComputeRelPressureRate(double air_pressure, double mass_flow_rate, double air_mass, double air_volume_dot,
+                                  double air_volume);
 };
 
 #endif

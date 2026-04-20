@@ -20,7 +20,7 @@ public:
     virtual void UpdateTotalMass(void) = 0;
     virtual void LoadHydrodynamicData(std::string file_path) = 0;
     virtual void SetUp(void) = 0;
-    virtual void InterpolateHydro(HydroDatabase *pHydro1, HydroDatabase *pHydro2, double interpCoef) = 0;
+    virtual void InterpolateHydro(HydroDatabase* pHydro1, HydroDatabase* pHydro2, double interpCoef) = 0;
     virtual void UpdateHydroStiffness(arma::mat newHydrostaticStiffness) = 0;
 };
 

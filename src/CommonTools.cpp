@@ -12,7 +12,7 @@ int parse_file(std::string filePath)
     int count_line = 0;
     int num_items = 0;
     int num_head_lines = 0;
-    FILE *pFile;
+    FILE* pFile;
 
     // Open file
     pFile = fopen(filePath.c_str(), "r");
@@ -26,7 +26,7 @@ int parse_file(std::string filePath)
     // Parse input file
     while (fgets(buffer, sizeof(buffer), pFile) != NULL)
     {
-        // Advnace line count
+        // Advance line count
         count_line++;
 
         // std::cout << buffer << strncmp(buffer, "/", 1) << std::endl;
@@ -42,7 +42,8 @@ int parse_file(std::string filePath)
             if (fgets(buffer, sizeof(buffer), pFile) == NULL)
             {
                 std::stringstream ss;
-                ss << "Error while parsing file: " << filePath.c_str() << "\n --> Expected item definition at file line:" << count_line << "\n";
+                ss << "Error while parsing file: " << filePath.c_str()
+                   << "\n --> Expected item definition at file line:" << count_line << "\n";
                 throw ValueError(ss.str());
             }
 

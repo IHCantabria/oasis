@@ -10,7 +10,7 @@ class Morison
 {
 public:
     // Declare class variables
-    Simulation *pSim; // Pointer to the simulation instance. It gives fast access to the necessary simulation variables
+    Simulation* pSim; // Pointer to the simulation instance. It gives fast access to the necessary simulation variables
     int numBodies;
     double pi;
 
@@ -23,13 +23,13 @@ public:
     int FlowType_flag;
     arma::mat time, wind_spd, wind_dir, curr_spd, curr_dir, wind_acc, curr_acc;
     arma::mat headings;
-    arma::cube **pWindFKCoeff;   // Matrix components: [body, headings, dofs, vel_comps];
-    arma::cube **pWindDragCoeff; // Matrix components: [body, headings, dofs, vel_comps];
-    arma::cube **pCurrFKCoeff;   // Matrix components: [body, headings, dofs, vel_comps];
-    arma::cube **pCurrDragCoeff; // Matrix components: [body, headings, dofs, vel_comps];
+    arma::cube** pWindFKCoeff;   // Matrix components: [body, headings, dofs, vel_comps];
+    arma::cube** pWindDragCoeff; // Matrix components: [body, headings, dofs, vel_comps];
+    arma::cube** pCurrFKCoeff;   // Matrix components: [body, headings, dofs, vel_comps];
+    arma::cube** pCurrDragCoeff; // Matrix components: [body, headings, dofs, vel_comps];
 
     // Declare class constructors
-    Morison(int numBodies_inp, Simulation *pSim_inp);
+    Morison(int numBodies_inp, Simulation* pSim_inp);
 
     // Methods
     void ReadMorisonData(void);

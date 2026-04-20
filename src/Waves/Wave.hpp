@@ -12,7 +12,7 @@ class Wave
 {
 public:
     // Declare class variables
-    Simulation *pSim; // Pointer to simulation instance
+    Simulation* pSim; // Pointer to simulation instance
     double height;
     double period;
     double heading;
@@ -56,11 +56,11 @@ public:
 
     // Variables for vectorised matrices
     arma::vec A;
-	arma::vec P;
-	arma::vec KX;
-	arma::vec KY;
-	arma::vec K;
-	arma::vec W;
+    arma::vec P;
+    arma::vec KX;
+    arma::vec KY;
+    arma::vec K;
+    arma::vec W;
 
     // Variables for irregular waves
     int specType_flag;
@@ -76,8 +76,8 @@ public:
     std::string file_path;
     std::string wavePhasesFileName;
     std::string filePhases_path;
-    FILE *pfile_SPEC;
-    FILE *pfile_TIME;
+    FILE* pfile_SPEC;
+    FILE* pfile_TIME;
 
     // Variables for piecewise irregular waves
     int piecewise_flag;
@@ -111,13 +111,14 @@ public:
     arma::field<arma::vec> phases_1D_piece;
 
     // Declare class constructors
-    Wave(Simulation *pSimInc, double H, double T, double D, double rampTime);
+    Wave(Simulation* pSimInc, double H, double T, double D, double rampTime);
 
     // Methods
     virtual void GetWaveSpectrum(void) = 0;
     void CheckBreakingWave(void);
     void GetWaveLengths(void);
-    std::tuple<arma::vec, arma::vec, arma::mat, arma::mat, arma::vec, arma::vec> GetWaveLengths(arma::vec periods, arma::vec headings);
+    std::tuple<arma::vec, arma::vec, arma::mat, arma::mat, arma::vec, arma::vec> GetWaveLengths(arma::vec periods,
+                                                                                                arma::vec headings);
     double get_ramp(double time);
     double solve_lambda(double T);
     double f_lambda(double lambda, double T);
@@ -135,14 +136,16 @@ public:
 class RegularWave : public Wave
 {
 public:
-    RegularWave(Simulation *pSimInc, double H, double T, double D, double rampTime) : Wave(pSimInc, H, T, D, rampTime) {};
+    RegularWave(Simulation* pSimInc, double H, double T, double D, double rampTime)
+        : Wave(pSimInc, H, T, D, rampTime) {};
     void GetWaveSpectrum(void);
 };
 
 class IrregularWave : public Wave
 {
 public:
-    IrregularWave(Simulation *pSimInc, double H, double T, double D, double rampTime) : Wave(pSimInc, H, T, D, rampTime) {};
+    IrregularWave(Simulation* pSimInc, double H, double T, double D, double rampTime)
+        : Wave(pSimInc, H, T, D, rampTime) {};
     void GetWaveSpectrum(void);
     void GetCheckedFreeSurface(void);
     void ReadWaveTimeSeries(void);

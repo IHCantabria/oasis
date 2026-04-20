@@ -17,40 +17,40 @@ class Simulation;
 class WinchieController
 {
 public:
-	int nWinchies;		// Number of winchies
-	Winchie **Winchies; // Pointers a los winchies
-	Simulation *pSim;	// Pointer to simulation instance
-	arma::mat T;		// Tension vector [N]
+    int nWinchies;      // Number of winchies
+    Winchie** Winchies; // Pointers a los winchies
+    Simulation* pSim;   // Pointer to simulation instance
+    arma::mat T;        // Tension vector [N]
 
-	// Output files (common to all controllers)
-	FILE *pfile_TW; // WinchesTensions.txt
-	FILE *pfile_LL; // WinchedLinesLengths.txt
+    // Output files (common to all controllers)
+    FILE* pfile_TW; // WinchesTensions.txt
+    FILE* pfile_LL; // WinchedLinesLengths.txt
 
-	// CSV output files
-	FILE *pfile_TW_csv = nullptr;
-	FILE *pfile_LL_csv = nullptr;
+    // CSV output files
+    FILE* pfile_TW_csv = nullptr;
+    FILE* pfile_LL_csv = nullptr;
 
-	WinchieController(void);
-	WinchieController(int n, Winchie **Ws, Simulation *pIncSim);
-	virtual ~WinchieController();
+    WinchieController(void);
+    WinchieController(int n, Winchie** Ws, Simulation* pIncSim);
+    virtual ~WinchieController();
 
-	virtual void ReadPropertiesASCII(FILE *pFile) = 0;
-	virtual void ReadPropertiesYAML(YAML::Node node) = 0;
-	virtual void SetUpWinchiesController(void);
-	virtual void controlWinchies(double time) = 0;
-	virtual void OpenOutputFilesASCII(std::string path);
-	virtual void OpenOutputFilesCSV(std::string path);
-	virtual void CloseOutputFilesASCII(void);
-	virtual void CloseOutputFilesCSV(void);
-	virtual void OpenOutputFiles(std::string path);
-	virtual void CloseOutputFiles(void);
-	virtual void WriteOut(double t);
+    virtual void ReadPropertiesASCII(FILE* pFile) = 0;
+    virtual void ReadPropertiesYAML(YAML::Node node) = 0;
+    virtual void SetUpWinchiesController(void);
+    virtual void controlWinchies(double time) = 0;
+    virtual void OpenOutputFilesASCII(std::string path);
+    virtual void OpenOutputFilesCSV(std::string path);
+    virtual void CloseOutputFilesASCII(void);
+    virtual void CloseOutputFilesCSV(void);
+    virtual void OpenOutputFiles(std::string path);
+    virtual void CloseOutputFiles(void);
+    virtual void WriteOut(double t);
 
-	// Factory method to create the appropriate controller type
-	static WinchieController *Create(int controllerType, int n, Winchie **Ws, Simulation *pIncSim);
+    // Factory method to create the appropriate controller type
+    static WinchieController* Create(int controllerType, int n, Winchie** Ws, Simulation* pIncSim);
 
 protected:
-	void applyTensions(void);
+    void applyTensions(void);
 };
 
 #endif

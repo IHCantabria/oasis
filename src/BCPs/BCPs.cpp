@@ -22,162 +22,163 @@ Libreria para las condiciones de contorno
 ////////////////////////////////////////////////////////////////////////////
 BCP::BCP(int incId)
 {
-	id = incId;
+    id = incId;
 }
 
 int BCP::GetId(void)
 {
-	return this->id;
+    return this->id;
 }
 
 int BCP::GetType(void)
 {
-	return this->typeBcp;
+    return this->typeBcp;
 }
 
 void BCP::Initialize(void)
 {
-	double a = 0.0;
+    double a = 0.0;
 }
 
 void BCP::Print(void)
 {
-	printf("BCP: %d PROPERTIES:\n", this->GetId());
-	printf("--> PosX: %f m - PosY: %f m - PosZ: %f m\n", this->posG_BCP[0], this->posG_BCP[1], this->posG_BCP[2]);
-	printf("--> Winch Id: %d\n", this->winchId);
-	// Print actuator if any
-	if (this->GetType() == 2)
-	{
-		printf("--> Actuator Filename: %s\n", this->actuatorFileName);
-	}
-	// Print joint mass if any
-	if (this->GetType() == 3)
-	{
-		printf("--> Joint Mass: %f kg\n", this->mass_Joint);
-		printf("--> Joint Volume: %f m3\n", this->vol_Joint);
-	}
-	printf(" \n");
+    printf("BCP: %d PROPERTIES:\n", this->GetId());
+    printf("--> PosX: %f m - PosY: %f m - PosZ: %f m\n", this->posG_BCP[0], this->posG_BCP[1], this->posG_BCP[2]);
+    printf("--> Winch Id: %d\n", this->winchId);
+    // Print actuator if any
+    if (this->GetType() == 2)
+    {
+        printf("--> Actuator Filename: %s\n", this->actuatorFileName);
+    }
+    // Print joint mass if any
+    if (this->GetType() == 3)
+    {
+        printf("--> Joint Mass: %f kg\n", this->mass_Joint);
+        printf("--> Joint Volume: %f m3\n", this->vol_Joint);
+    }
+    printf(" \n");
 }
 
-void BCP::ReadPropertiesASCII(FILE *&pFilePointer)
+void BCP::ReadPropertiesASCII(FILE*& pFilePointer)
 {
-	// Declare variables
-	std::string header_check;
-	char buffer_line[1000];
-	char cActuatorFileName[1000];
+    // Declare variables
+    std::string header_check;
+    char buffer_line[1000];
+    char cActuatorFileName[1000];
 
-	// Ignoro las tres primeras lineas, donde pone "New Body"
+    // Ignoro las tres primeras lineas, donde pone "New Body"
 
-	for (int ii = 0; ii < 3; ii++)
-	{
-		fgets(buffer_line, sizeof(buffer_line), pFilePointer);
-		header_check = buffer_line;
-		if (header_check.substr(0, 3).compare("///"))
-		{
-			std::stringstream ss;
-			ss << "Error while parsing file: dataBCPs.dat - HINT BCP ID: " << this->GetId() << " - Please check that each type of BCP has its correct number of inputs.";
-			throw IOError(ss.str());
-		}
-	}
+    for (int ii = 0; ii < 3; ii++)
+    {
+        fgets(buffer_line, sizeof(buffer_line), pFilePointer);
+        header_check = buffer_line;
+        if (header_check.substr(0, 3).compare("///"))
+        {
+            std::stringstream ss;
+            ss << "Error while parsing file: dataBCPs.dat - HINT BCP ID: " << this->GetId()
+               << " - Please check that each type of BCP has its correct number of inputs.";
+            throw IOError(ss.str());
+        }
+    }
 
-	// Read BCP position
-	fscanf(pFilePointer, "%lf %lf %lf %[^\n]\n", &pos(0, 0), &pos(1, 0), &pos(2, 0), buffer_line);
+    // Read BCP position
+    fscanf(pFilePointer, "%lf %lf %lf %[^\n]\n", &pos(0, 0), &pos(1, 0), &pos(2, 0), buffer_line);
 
-	// Read Winch ID
-	fscanf(pFilePointer, "%d %[^\n]\n", &winchId, buffer_line);
+    // Read Winch ID
+    fscanf(pFilePointer, "%d %[^\n]\n", &winchId, buffer_line);
 
-	// Read actuator if any
-	if (this->GetType() == 2)
-	{
-		fscanf(pFilePointer, "%s %[^\n]\n", &cActuatorFileName, buffer_line);
-		actuatorFileName = cActuatorFileName;
-		// std::cout << actuatorFileName.c_str() << std::endl;
-	}
+    // Read actuator if any
+    if (this->GetType() == 2)
+    {
+        fscanf(pFilePointer, "%s %[^\n]\n", &cActuatorFileName, buffer_line);
+        actuatorFileName = cActuatorFileName;
+        // std::cout << actuatorFileName.c_str() << std::endl;
+    }
 
-	// Read joint mass if any
-	if (this->GetType() == 3)
-	{
-		fscanf(pFilePointer, "%lf %[^\n]\n", &mass_Joint, buffer_line);
-		fscanf(pFilePointer, "%lf %[^\n]\n", &vol_Joint, buffer_line);
-		rad_Joint = sqrt(3.0 * vol_Joint / (4.0 * arma::datum::pi));
-		sec_Joint = arma::datum::pi * rad_Joint * rad_Joint;
-	}
+    // Read joint mass if any
+    if (this->GetType() == 3)
+    {
+        fscanf(pFilePointer, "%lf %[^\n]\n", &mass_Joint, buffer_line);
+        fscanf(pFilePointer, "%lf %[^\n]\n", &vol_Joint, buffer_line);
+        rad_Joint = sqrt(3.0 * vol_Joint / (4.0 * arma::datum::pi));
+        sec_Joint = arma::datum::pi * rad_Joint * rad_Joint;
+    }
 
-	// Read elastic anchor parameters if any
-	if (this->GetType() == 5)
-	{
-		ElasticAnchorBCP *pEA = dynamic_cast<ElasticAnchorBCP *>(this);
-		fscanf(pFilePointer, "%lf %[^\n]\n", &pEA->anchor_mass, buffer_line);
-		fscanf(pFilePointer, "%lf %[^\n]\n", &pEA->anchor_vol, buffer_line);
-		fscanf(pFilePointer, "%lf %[^\n]\n", &pEA->c_param, buffer_line);
-		fscanf(pFilePointer, "%lf %[^\n]\n", &pEA->k_param, buffer_line);
-		// Compute derived properties assuming spherical anchor
-		pEA->rad_anchor = pow(3.0 * pEA->anchor_vol / (4.0 * arma::datum::pi), 1.0 / 3.0);
-		pEA->sec_anchor = arma::datum::pi * pEA->rad_anchor * pEA->rad_anchor;
-		// Set reference position to initial position (anchor embedded in seafloor)
-		pEA->pos_ref = pos;
-	}
+    // Read elastic anchor parameters if any
+    if (this->GetType() == 5)
+    {
+        ElasticAnchorBCP* pEA = dynamic_cast<ElasticAnchorBCP*>(this);
+        fscanf(pFilePointer, "%lf %[^\n]\n", &pEA->anchor_mass, buffer_line);
+        fscanf(pFilePointer, "%lf %[^\n]\n", &pEA->anchor_vol, buffer_line);
+        fscanf(pFilePointer, "%lf %[^\n]\n", &pEA->c_param, buffer_line);
+        fscanf(pFilePointer, "%lf %[^\n]\n", &pEA->k_param, buffer_line);
+        // Compute derived properties assuming spherical anchor
+        pEA->rad_anchor = pow(3.0 * pEA->anchor_vol / (4.0 * arma::datum::pi), 1.0 / 3.0);
+        pEA->sec_anchor = arma::datum::pi * pEA->rad_anchor * pEA->rad_anchor;
+        // Set reference position to initial position (anchor embedded in seafloor)
+        pEA->pos_ref = pos;
+    }
 
-	// Check Winch ID and joint coexistence
-	if ((winchId != 0) && (this->GetType() == 3))
-	{
-		std::stringstream ss;
-		ss << "Actuator and Winch boundary conditions defined at the same BCP --> BCP num: " << this->GetId() + 1;
-		throw ValueError(ss.str());
-	}
+    // Check Winch ID and joint coexistence
+    if ((winchId != 0) && (this->GetType() == 3))
+    {
+        std::stringstream ss;
+        ss << "Actuator and Winch boundary conditions defined at the same BCP --> BCP num: " << this->GetId() + 1;
+        throw ValueError(ss.str());
+    }
 
-	posWrtCdgLocal = pos;
-	posG_BCP.rows(0, 2) = pos;
+    posWrtCdgLocal = pos;
+    posG_BCP.rows(0, 2) = pos;
 }
 
 void BCP::ReadPropertiesYAML(YAML::Node node)
 {
-	YAML::Node posNode = node["position"];
-	pos(0, 0) = posNode[0].as<double>();
-	pos(1, 0) = posNode[1].as<double>();
-	pos(2, 0) = posNode[2].as<double>();
+    YAML::Node posNode = node["position"];
+    pos(0, 0) = posNode[0].as<double>();
+    pos(1, 0) = posNode[1].as<double>();
+    pos(2, 0) = posNode[2].as<double>();
 
-	winchId = node["winch_id"].as<int>();
+    winchId = node["winch_id"].as<int>();
 
-	if (this->GetType() == 2)
-	{
-		actuatorFileName = node["actuator_file"].as<std::string>();
-	}
+    if (this->GetType() == 2)
+    {
+        actuatorFileName = node["actuator_file"].as<std::string>();
+    }
 
-	if (this->GetType() == 3)
-	{
-		mass_Joint = node["mass"].as<double>();
-		vol_Joint = node["volume"].as<double>();
-		rad_Joint = sqrt(3.0 * vol_Joint / (4.0 * arma::datum::pi));
-		sec_Joint = arma::datum::pi * rad_Joint * rad_Joint;
-	}
+    if (this->GetType() == 3)
+    {
+        mass_Joint = node["mass"].as<double>();
+        vol_Joint = node["volume"].as<double>();
+        rad_Joint = sqrt(3.0 * vol_Joint / (4.0 * arma::datum::pi));
+        sec_Joint = arma::datum::pi * rad_Joint * rad_Joint;
+    }
 
-	if (this->GetType() == 5)
-	{
-		ElasticAnchorBCP *pEA = dynamic_cast<ElasticAnchorBCP *>(this);
-		pEA->anchor_mass = node["anchor_mass"].as<double>();
-		pEA->anchor_vol = node["anchor_volume"].as<double>();
-		pEA->c_param = node["c_param"].as<double>();
-		pEA->k_param = node["k_param"].as<double>();
-		pEA->rad_anchor = pow(3.0 * pEA->anchor_vol / (4.0 * arma::datum::pi), 1.0 / 3.0);
-		pEA->sec_anchor = arma::datum::pi * pEA->rad_anchor * pEA->rad_anchor;
-		pEA->pos_ref = pos;
-	}
+    if (this->GetType() == 5)
+    {
+        ElasticAnchorBCP* pEA = dynamic_cast<ElasticAnchorBCP*>(this);
+        pEA->anchor_mass = node["anchor_mass"].as<double>();
+        pEA->anchor_vol = node["anchor_volume"].as<double>();
+        pEA->c_param = node["c_param"].as<double>();
+        pEA->k_param = node["k_param"].as<double>();
+        pEA->rad_anchor = pow(3.0 * pEA->anchor_vol / (4.0 * arma::datum::pi), 1.0 / 3.0);
+        pEA->sec_anchor = arma::datum::pi * pEA->rad_anchor * pEA->rad_anchor;
+        pEA->pos_ref = pos;
+    }
 
-	if ((winchId != 0) && (this->GetType() == 3))
-	{
-		std::stringstream ss;
-		ss << "Actuator and Winch boundary conditions defined at the same BCP --> BCP num: " << this->GetId() + 1;
-		throw ValueError(ss.str());
-	}
+    if ((winchId != 0) && (this->GetType() == 3))
+    {
+        std::stringstream ss;
+        ss << "Actuator and Winch boundary conditions defined at the same BCP --> BCP num: " << this->GetId() + 1;
+        throw ValueError(ss.str());
+    }
 
-	posWrtCdgLocal = pos;
-	posG_BCP.rows(0, 2) = pos;
+    posWrtCdgLocal = pos;
+    posG_BCP.rows(0, 2) = pos;
 }
 
 void BCP::UpdateBoundary()
 {
-	double a = 0.0;
+    double a = 0.0;
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -185,14 +186,14 @@ void BCP::UpdateBoundary()
 ////////////////////////////////////////////////////////////////////////////
 int AnchorBCP::GetType(void)
 {
-	return this->typeBcp;
+    return this->typeBcp;
 }
 
 void AnchorBCP::GetValues(double t)
 {
-	tBCP = t;
-	vel = arma::zeros(3, 1);
-	acc = arma::zeros(3, 1);
+    tBCP = t;
+    vel = arma::zeros(3, 1);
+    acc = arma::zeros(3, 1);
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -200,101 +201,102 @@ void AnchorBCP::GetValues(double t)
 ////////////////////////////////////////////////////////////////////////////
 int FairleadBCP::GetType(void)
 {
-	return this->typeBcp;
+    return this->typeBcp;
 }
 
 void FairleadBCP::GetValues(double t)
 {
-	tBCP = t;
+    tBCP = t;
 
-	int nt = static_cast<int>(tF.n_rows);
+    int nt = static_cast<int>(tF.n_rows);
 
-	// Clamp to the last available time point to avoid out-of-bounds access
-	if (t >= tF(nt - 1, 0))
-	{
-		ni = nt - 1;
-		pos = posF.row(nt - 1).t();
-		vel = velF.row(nt - 1).t();
-		acc = accF.row(nt - 1).t();
-		return;
-	}
+    // Clamp to the last available time point to avoid out-of-bounds access
+    if (t >= tF(nt - 1, 0))
+    {
+        ni = nt - 1;
+        pos = posF.row(nt - 1).t();
+        vel = velF.row(nt - 1).t();
+        acc = accF.row(nt - 1).t();
+        return;
+    }
 
-	ni = std::max(0, ni - 10);
-	do
-	{
-		ni = ni + 1;
-	} while (tF(ni, 0) < t);
+    ni = std::max(0, ni - 10);
+    do
+    {
+        ni = ni + 1;
+    } while (tF(ni, 0) < t);
 
-	if (tF(ni, 0) > t)
-	{
-		ni = ni - 1;
-	}
+    if (tF(ni, 0) > t)
+    {
+        ni = ni - 1;
+    }
 
-	dt = t - tF(ni, 0);
+    dt = t - tF(ni, 0);
 
-	pos = (posF.row(ni) + dt * (posF.row(ni + 1) - posF.row(ni)) / (tF(ni + 1, 0) - tF(ni, 0))).t();
-	vel = (velF.row(ni) + dt * (velF.row(ni + 1) - velF.row(ni)) / (tF(ni + 1, 0) - tF(ni, 0))).t();
-	acc = (accF.row(ni) + dt * (accF.row(ni + 1) - accF.row(ni)) / (tF(ni + 1, 0) - tF(ni, 0))).t();
+    pos = (posF.row(ni) + dt * (posF.row(ni + 1) - posF.row(ni)) / (tF(ni + 1, 0) - tF(ni, 0))).t();
+    vel = (velF.row(ni) + dt * (velF.row(ni + 1) - velF.row(ni)) / (tF(ni + 1, 0) - tF(ni, 0))).t();
+    acc = (accF.row(ni) + dt * (accF.row(ni + 1) - accF.row(ni)) / (tF(ni + 1, 0) - tF(ni, 0))).t();
 }
 
 void FairleadBCP::Initialize(std::string folder_path)
 {
-	// Inicializo la variable donde guardar el numero de pasos temporales
-	int nt;
-	// Abro el fichero
-	std::string file_path = JoinPath(folder_path, actuatorFileName);
-	std::ifstream datosPosF(file_path);
+    // Inicializo la variable donde guardar el numero de pasos temporales
+    int nt;
+    // Abro el fichero
+    std::string file_path = JoinPath(folder_path, actuatorFileName);
+    std::ifstream datosPosF(file_path);
 
-	// Leo el numero de pasos temporales a leer
-	datosPosF >> nt;
-	datosPosF.ignore(std::numeric_limits<int>::max(), '\n');
+    // Leo el numero de pasos temporales a leer
+    datosPosF >> nt;
+    datosPosF.ignore(std::numeric_limits<int>::max(), '\n');
 
-	// Alocato la matriz que contiene la informacion
-	tF = arma::zeros(nt, 1);
-	posF = arma::zeros(nt, 3);
-	velF = arma::zeros(nt, 3);
-	accF = arma::zeros(nt, 3);
-	// Leo toda la info
-	for (int i = 0; i < nt; i = i + 1)
-	{
-		datosPosF >> tF(i, 0) >> posF(i, 0) >> posF(i, 1) >> posF(i, 2) >> velF(i, 0) >> velF(i, 1) >> velF(i, 2) >> accF(i, 0) >> accF(i, 1) >> accF(i, 2);
-	}
-	// Cierro el fichero
-	datosPosF.close();
+    // Alocato la matriz que contiene la informacion
+    tF = arma::zeros(nt, 1);
+    posF = arma::zeros(nt, 3);
+    velF = arma::zeros(nt, 3);
+    accF = arma::zeros(nt, 3);
+    // Leo toda la info
+    for (int i = 0; i < nt; i = i + 1)
+    {
+        datosPosF >> tF(i, 0) >> posF(i, 0) >> posF(i, 1) >> posF(i, 2) >> velF(i, 0) >> velF(i, 1) >> velF(i, 2) >>
+            accF(i, 0) >> accF(i, 1) >> accF(i, 2);
+    }
+    // Cierro el fichero
+    datosPosF.close();
 
-	pos0 = pos;
-	tBCP = -1.0;
+    pos0 = pos;
+    tBCP = -1.0;
 
-	this->GetValues(0.0);
+    this->GetValues(0.0);
 }
 
-void FairleadBCP::ReadPropertiesASCII(FILE *&pFilePointer, std::string inputFilePath)
+void FairleadBCP::ReadPropertiesASCII(FILE*& pFilePointer, std::string inputFilePath)
 {
-	// Read properties from file
-	BCP::ReadPropertiesASCII(pFilePointer);
+    // Read properties from file
+    BCP::ReadPropertiesASCII(pFilePointer);
 
-	// Check if the actuator file exists
-	std::string actuatorFilePath = JoinPath(inputFilePath, actuatorFileName);
-	std::stringstream ss;
-	ss << "ACTUATOR BCP NUMBER: " << this->GetId();
-	CheckInputFile(actuatorFilePath, ss.str());
+    // Check if the actuator file exists
+    std::string actuatorFilePath = JoinPath(inputFilePath, actuatorFileName);
+    std::stringstream ss;
+    ss << "ACTUATOR BCP NUMBER: " << this->GetId();
+    CheckInputFile(actuatorFilePath, ss.str());
 }
 
 void FairleadBCP::ReadPropertiesYAML(YAML::Node node, std::string inputFilePath)
 {
-	BCP::ReadPropertiesYAML(node);
-	std::string actuatorFilePath = JoinPath(inputFilePath, actuatorFileName);
-	std::stringstream ss;
-	ss << "ACTUATOR BCP NUMBER: " << this->GetId();
-	CheckInputFile(actuatorFilePath, ss.str());
+    BCP::ReadPropertiesYAML(node);
+    std::string actuatorFilePath = JoinPath(inputFilePath, actuatorFileName);
+    std::stringstream ss;
+    ss << "ACTUATOR BCP NUMBER: " << this->GetId();
+    CheckInputFile(actuatorFilePath, ss.str());
 }
 
 void FairleadBCP::Print(void)
 {
-	printf("BCP: %d PROPERTIES:\n", this->GetId());
-	printf("--> PosX: %f m - PosY: %f m - PosZ: %f m\n", this->posG_BCP[0], this->posG_BCP[1], this->posG_BCP[2]);
-	printf("--> Winch Id: %d\n", this->winchId);
-	printf("--> Actuator Filename: %s\n\n", actuatorFileName.c_str());
+    printf("BCP: %d PROPERTIES:\n", this->GetId());
+    printf("--> PosX: %f m - PosY: %f m - PosZ: %f m\n", this->posG_BCP[0], this->posG_BCP[1], this->posG_BCP[2]);
+    printf("--> Winch Id: %d\n", this->winchId);
+    printf("--> Actuator Filename: %s\n\n", actuatorFileName.c_str());
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -302,59 +304,61 @@ void FairleadBCP::Print(void)
 ////////////////////////////////////////////////////////////////////////////
 int JointBCP::GetType(void)
 {
-	return this->typeBcp;
+    return this->typeBcp;
 }
 
 void JointBCP::Initialize(double incG, double incRhoW, double incFondo)
 {
-	g = incG;
-	rhoW = incRhoW;
-	fondo = incFondo;
+    g = incG;
+    rhoW = incRhoW;
+    seabedDepth = incFondo;
 }
 
 void JointBCP::GetValues(double t)
 {
-	iLJ = 0;
-	tBCP = t;
-	pos = arma::mean(posLines).t();
-	vel = arma::mean(velLines).t();
+    iLJ = 0;
+    tBCP = t;
+    pos = arma::mean(posLines).t();
+    vel = arma::mean(velLines).t();
 
-	double zz = arma::as_scalar(pos(2, 0));
-	double vol = 0.0;
-	if (vol_Joint > 0.0)
-	{
-		vol = std::min(std::max(0.0, vol_Joint * (rad_Joint - zz) / (2.0 * rad_Joint)), vol_Joint);
-	}
-	JointForce = arma::zeros(1, 3);
-	double fg = g * (rhoW * vol - mass_Joint);
-	JointForce(0, 2) = fg;
-	JointForce = JointForce - vel.t() * arma::norm(vel) * 0.5 * 0.47 * rhoW * sec_Joint;
-	// SEABED FORCES - TODO: review!!
-	double paramNormal = 0.0, parammuelle1 = 0.0, parammuelle2 = 0.0;
-	double paramVel = 0.0, ultimaCoordVel = 0.0;
-	arma::mat projectionDirection = arma::zeros(1, 3);
-	projectionDirection(0, 2) = 1.0;
-	if (pBcpLineNode[0] == 0)
-	{
-		paramNormal = pLines[0]->paramNormal_1;
-		parammuelle1 = pLines[0]->parammuelle1_1;
-		parammuelle2 = pLines[0]->parammuelle2_1;
-		paramVel = pLines[0]->paramVel_1;
-		ultimaCoordVel = pLines[0]->ultimaCoordVel_1;
-		projectionDirection = pLines[0]->projectionDirection_1;
-	}
-	else
-	{
-		paramNormal = pLines[0]->paramNormal_N;
-		parammuelle1 = pLines[0]->parammuelle1_N;
-		parammuelle2 = pLines[0]->parammuelle2_N;
-		paramVel = pLines[0]->paramVel_N;
-		ultimaCoordVel = pLines[0]->ultimaCoordVel_N;
-		projectionDirection = pLines[0]->projectionDirection_N;
-	}
-	double GC = pLines[0]->GC;
-	double dampCoef = 2.0 * sqrt(mass_Joint * pLines[0]->GK * pLines[0]->d);
-	JointForce = JointForce - (fg * paramNormal + parammuelle1 * parammuelle2 - GC * paramNormal * dampCoef * paramVel * ultimaCoordVel) * projectionDirection;
+    double zz = arma::as_scalar(pos(2, 0));
+    double vol = 0.0;
+    if (vol_Joint > 0.0)
+    {
+        vol = std::min(std::max(0.0, vol_Joint * (rad_Joint - zz) / (2.0 * rad_Joint)), vol_Joint);
+    }
+    JointForce = arma::zeros(1, 3);
+    double fg = g * (rhoW * vol - mass_Joint);
+    JointForce(0, 2) = fg;
+    JointForce = JointForce - vel.t() * arma::norm(vel) * 0.5 * 0.47 * rhoW * sec_Joint;
+    // SEABED FORCES - TODO: review!!
+    double paramNormal = 0.0, parammuelle1 = 0.0, parammuelle2 = 0.0;
+    double paramVel = 0.0, ultimaCoordVel = 0.0;
+    arma::mat projectionDirection = arma::zeros(1, 3);
+    projectionDirection(0, 2) = 1.0;
+    if (pBcpLineNode[0] == 0)
+    {
+        paramNormal = pLines[0]->paramNormal_1;
+        parammuelle1 = pLines[0]->paramSpring1_1;
+        parammuelle2 = pLines[0]->paramSpring2_1;
+        paramVel = pLines[0]->paramVel_1;
+        ultimaCoordVel = pLines[0]->lastVelCoord_1;
+        projectionDirection = pLines[0]->projectionDirection_1;
+    }
+    else
+    {
+        paramNormal = pLines[0]->paramNormal_N;
+        parammuelle1 = pLines[0]->paramSpring1_N;
+        parammuelle2 = pLines[0]->paramSpring2_N;
+        paramVel = pLines[0]->paramVel_N;
+        ultimaCoordVel = pLines[0]->lastVelCoord_N;
+        projectionDirection = pLines[0]->projectionDirection_N;
+    }
+    double GC = pLines[0]->GC;
+    double dampCoef = 2.0 * sqrt(mass_Joint * pLines[0]->GK * pLines[0]->d);
+    JointForce = JointForce - (fg * paramNormal + parammuelle1 * parammuelle2 -
+                               GC * paramNormal * dampCoef * paramVel * ultimaCoordVel) *
+                                  projectionDirection;
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -362,15 +366,15 @@ void JointBCP::GetValues(double t)
 ////////////////////////////////////////////////////////////////////////////
 int BodyBCP::GetType(void)
 {
-	return this->typeBcp;
+    return this->typeBcp;
 }
 
 void BodyBCP::GetValues(double t)
 {
-	tBCP = t;
-	pos = posG_BCP.rows(0, 2);
-	vel = velG_BCP.rows(0, 2);
-	acc = accG_BCP.rows(0, 2);
+    tBCP = t;
+    pos = posG_BCP.rows(0, 2);
+    vel = velG_BCP.rows(0, 2);
+    acc = accG_BCP.rows(0, 2);
 };
 
 ////////////////////////////////////////////////////////////////////////////
@@ -378,85 +382,85 @@ void BodyBCP::GetValues(double t)
 ////////////////////////////////////////////////////////////////////////////
 int ElasticAnchorBCP::GetType(void)
 {
-	return this->typeBcp;
+    return this->typeBcp;
 }
 
 void ElasticAnchorBCP::Initialize(double incG, double incRhoW)
 {
-	g = incG;
-	rhoW = incRhoW;
+    g = incG;
+    rhoW = incRhoW;
 }
 
 arma::vec ElasticAnchorBCP::ComputeRestoringForce(void)
 {
-	// Compute displacement from reference position
-	arma::vec disp = pos - pos_ref;
-	double x = arma::norm(disp);
+    // Compute displacement from reference position
+    arma::vec disp = pos - pos_ref;
+    double x = arma::norm(disp);
 
-	// Handle singularity at zero displacement
-	if (x < 1e-10)
-	{
-		return arma::zeros(3, 1);
-	}
+    // Handle singularity at zero displacement
+    if (x < 1e-10)
+    {
+        return arma::zeros(3, 1);
+    }
 
-	// Compute unit direction vector (from reference toward current position)
-	arma::vec direction = disp / x;
+    // Compute unit direction vector (from reference toward current position)
+    arma::vec direction = disp / x;
 
-	// Compute exponential restoring force magnitude (negative sign makes it point back)
-	// F = -c*(1 - exp(-k*x)) directed opposite to displacement
-	double F_mag = -c_param * (1.0 - exp(-k_param * x));
+    // Compute exponential restoring force magnitude (negative sign makes it point back)
+    // F = -c*(1 - exp(-k*x)) directed opposite to displacement
+    double F_mag = -c_param * (1.0 - exp(-k_param * x));
 
-	// Return force vector pointing toward reference position
-	return F_mag * direction;
+    // Return force vector pointing toward reference position
+    return F_mag * direction;
 }
 
 void ElasticAnchorBCP::GetValues(double t)
 {
-	iLJ = 0;
-	tBCP = t;
+    iLJ = 0;
+    tBCP = t;
 
-	// Update position and velocity by averaging from connected lines
-	pos = arma::mean(posLines).t();
-	vel = arma::mean(velLines).t();
+    // Update position and velocity by averaging from connected lines
+    pos = arma::mean(posLines).t();
+    vel = arma::mean(velLines).t();
 
-	// Compute exponential restoring force: F = -c*(1 - exp(-k*x)) toward reference
-	arma::vec F_restoring = ComputeRestoringForce();
+    // Compute exponential restoring force: F = -c*(1 - exp(-k*x)) toward reference
+    arma::vec F_restoring = ComputeRestoringForce();
 
-	// Compute buoyancy/gravity force (same pattern as JointBCP)
-	double zz = arma::as_scalar(pos(2, 0));
-	double vol = 0.0;
-	if (anchor_vol > 0.0)
-	{
-		vol = std::min(std::max(0.0, anchor_vol * (rad_anchor - zz) / (2.0 * rad_anchor)), anchor_vol);
-	}
-	double fg = g * (rhoW * vol - anchor_mass);
+    // Compute buoyancy/gravity force (same pattern as JointBCP)
+    double zz = arma::as_scalar(pos(2, 0));
+    double vol = 0.0;
+    if (anchor_vol > 0.0)
+    {
+        vol = std::min(std::max(0.0, anchor_vol * (rad_anchor - zz) / (2.0 * rad_anchor)), anchor_vol);
+    }
+    double fg = g * (rhoW * vol - anchor_mass);
 
-	// Total external force into JointForce for coupling matrix assembly
-	JointForce = arma::zeros(1, 3);
-	JointForce(0, 2) = fg;
-	JointForce += F_restoring.t();
-	// Add quadratic drag force (Cd = 0.47 for sphere)
-	JointForce = JointForce - vel.t() * arma::norm(vel) * 0.5 * 0.47 * rhoW * sec_anchor;
+    // Total external force into JointForce for coupling matrix assembly
+    JointForce = arma::zeros(1, 3);
+    JointForce(0, 2) = fg;
+    JointForce += F_restoring.t();
+    // Add quadratic drag force (Cd = 0.47 for sphere)
+    JointForce = JointForce - vel.t() * arma::norm(vel) * 0.5 * 0.47 * rhoW * sec_anchor;
 }
 
 void ElasticAnchorBCP::Print(void)
 {
-	std::cout << "ElasticAnchorBCP [" << this->GetId() << "]" << std::endl;
-	std::cout << "  Type: " << this->GetType() << std::endl;
-	std::cout << "  Position: (" << pos(0) << ", " << pos(1) << ", " << pos(2) << ")" << std::endl;
-	std::cout << "  Reference: (" << pos_ref(0) << ", " << pos_ref(1) << ", " << pos_ref(2) << ")" << std::endl;
-	std::cout << "  Mass: " << anchor_mass << " kg" << std::endl;
-	std::cout << "  Volume: " << anchor_vol << " m³" << std::endl;
-	std::cout << "  c_param: " << c_param << " N" << std::endl;
-	std::cout << "  k_param: " << k_param << " 1/m" << std::endl;
+    std::cout << "ElasticAnchorBCP [" << this->GetId() << "]" << std::endl;
+    std::cout << "  Type: " << this->GetType() << std::endl;
+    std::cout << "  Position: (" << pos(0) << ", " << pos(1) << ", " << pos(2) << ")" << std::endl;
+    std::cout << "  Reference: (" << pos_ref(0) << ", " << pos_ref(1) << ", " << pos_ref(2) << ")" << std::endl;
+    std::cout << "  Mass: " << anchor_mass << " kg" << std::endl;
+    std::cout << "  Volume: " << anchor_vol << " m³" << std::endl;
+    std::cout << "  c_param: " << c_param << " N" << std::endl;
+    std::cout << "  k_param: " << k_param << " 1/m" << std::endl;
 
-	arma::vec disp = pos - pos_ref;
-	double x = arma::norm(disp);
-	std::cout << "  Displacement: " << x << " m" << std::endl;
+    arma::vec disp = pos - pos_ref;
+    double x = arma::norm(disp);
+    std::cout << "  Displacement: " << x << " m" << std::endl;
 
-	if (x > 1e-10)
-	{
-		double F_mag = c_param * (1.0 - exp(-k_param * x));
-		std::cout << "  Restoring force magnitude: " << F_mag << " N" << std::endl;
-	}
+    if (x > 1e-10)
+    {
+        double F_mag = c_param * (1.0 - exp(-k_param * x));
+        std::cout << "  Restoring force magnitude: " << F_mag << " N" << std::endl;
+    }
 }

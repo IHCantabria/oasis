@@ -22,8 +22,8 @@ class WindTurbine
 {
 public:
     int idWindTurbine; // Turbine number
-    Simulation *pSim;  // Pointer to simulation instance
-    Body *pBody;       // Pointer to corresponding body
+    Simulation* pSim;  // Pointer to simulation instance
+    Body* pBody;       // Pointer to corresponding body
 
     char InputFileName_AD[INTERFACE_STRING_LENGTH];
     char InputFileName_IW[INTERFACE_STRING_LENGTH];
@@ -56,12 +56,12 @@ public:
     double genTrq = 0.0;
     double yawTrq = 0.0;
 
-    WindTurbine(int n, Simulation *pSimInp)
+    WindTurbine(int n, Simulation* pSimInp)
     {
         idWindTurbine = n + 1;
         pSim = pSimInp;
     }
-    void ReadPropertiesASCII(FILE *pFile);
+    void ReadPropertiesASCII(FILE* pFile);
     void ReadPropertiesYAML(YAML::Node node);
     void Initialize(void);
     void Finalize(void);
@@ -83,8 +83,8 @@ class WindTurbine
 {
 public:
     int idWindTurbine;
-    Simulation *pSim;
-    Body *pBody;
+    Simulation* pSim;
+    Body* pBody;
 
     double rotIner = 0.0;
     arma::mat bodyInerMat = arma::zeros(6, 6);
@@ -105,12 +105,12 @@ public:
     double genTrq = 0.0;
     double yawTrq = 0.0;
 
-    WindTurbine(int n, Simulation *pSimInp)
+    WindTurbine(int n, Simulation* pSimInp)
     {
         idWindTurbine = n + 1;
         pSim = pSimInp;
     }
-    void ReadPropertiesASCII(FILE *pFile)
+    void ReadPropertiesASCII(FILE* pFile)
     {
         std::cerr << "ERROR: WindTurbine requires compilation with -DOASIS_USE_OPENFAST=ON" << std::endl;
     }
@@ -118,14 +118,30 @@ public:
     {
         std::cerr << "ERROR: WindTurbine requires compilation with -DOASIS_USE_OPENFAST=ON" << std::endl;
     }
-    void Initialize(void) {}
-    void Finalize(void) {}
-    void WriteOut(double t) {}
-    void ComputeForces(double time) {}
-    void SetInputsFAST(void) {}
-    void ComputeControler(double time) {}
-    void ComputeRotorAcc(void) {}
-    void CheckError(void) {}
+    void Initialize(void)
+    {
+    }
+    void Finalize(void)
+    {
+    }
+    void WriteOut(double t)
+    {
+    }
+    void ComputeForces(double time)
+    {
+    }
+    void SetInputsFAST(void)
+    {
+    }
+    void ComputeControler(double time)
+    {
+    }
+    void ComputeRotorAcc(void)
+    {
+    }
+    void CheckError(void)
+    {
+    }
 };
 
 #endif // OASIS_USE_OPENFAST

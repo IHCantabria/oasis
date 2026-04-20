@@ -13,13 +13,13 @@
 
 // OWC Turbine type methods ------------------------------------------------------
 
-OWCTurbineType::OWCTurbineType(int n, Simulation *pSimInp)
+OWCTurbineType::OWCTurbineType(int n, Simulation* pSimInp)
 {
     idOWCTurbineType = n + 1;
     pSim = pSimInp;
 }
 
-void OWCTurbineType::ReadPropertiesASCII(FILE *pFile)
+void OWCTurbineType::ReadPropertiesASCII(FILE* pFile)
 {
     // Declare variables
     char buffer_line[1000];
@@ -102,7 +102,7 @@ void OWCTurbineType::ReadPropertiesYAML(YAML::Node node)
     std::cout << "  --> ...done! Number of points in curves: " << buck_curve_adim_pressure.n_elem << std::endl;
 }
 
-void OWCTurbineType::Initialize(FILE *pFile)
+void OWCTurbineType::Initialize(FILE* pFile)
 {
     // Read properties from the file (skip if already read via YAML)
     if (pFile != nullptr)
@@ -133,7 +133,7 @@ void OWCTurbineType::Finalize(void)
 
 // OWC Turbine methods ------------------------------------------------------
 
-OWCTurbine::OWCTurbine(Simulation *pSimInp, int id_OWCTurbineType)
+OWCTurbine::OWCTurbine(Simulation* pSimInp, int id_OWCTurbineType)
 {
     pSim = pSimInp;
     pOWCTurbineType = pSim->pOWCTurbines[id_OWCTurbineType - 1];
@@ -172,30 +172,39 @@ bool OWCTurbine::IsAdimPressureInRange(double adim_pressure)
 
 void OWCTurbine::ComputeMassFlowRate(double pressure_diff, double stagnation_density)
 {
-    double adim_pressure = abs(pressure_diff) / (stagnation_density * pow(pOWCTurbineType->rotor_diameter, 2) * pow(angular_velocity, 2));
+    double adim_pressure =
+        abs(pressure_diff) / (stagnation_density * pow(pOWCTurbineType->rotor_diameter, 2) * pow(angular_velocity, 2));
     if (!IsAdimPressureInRange(adim_pressure))
     {
-        std::cout << "WARNING: The adimensional pressure is out of range. The turbine may not work properly." << std::endl;
-        adim_pressure = std::clamp(adim_pressure, pOWCTurbineType->buck_curve_adim_pressure.min(), pOWCTurbineType->buck_curve_adim_pressure.max());
+        std::cout << "WARNING: The adimensional pressure is out of range. The turbine may not work properly."
+                  << std::endl;
+        adim_pressure = std::clamp(adim_pressure, pOWCTurbineType->buck_curve_adim_pressure.min(),
+                                   pOWCTurbineType->buck_curve_adim_pressure.max());
     }
     arma::vec adim_pressure_vec = adim_pressure * arma::ones<arma::vec>(1);
     arma::vec adim_mass_flow_rate_vec;
-    arma::interp1(pOWCTurbineType->buck_curve_adim_pressure, pOWCTurbineType->buck_curve_adim_mass_flow_rate, adim_pressure_vec, adim_mass_flow_rate_vec);
+    arma::interp1(pOWCTurbineType->buck_curve_adim_pressure, pOWCTurbineType->buck_curve_adim_mass_flow_rate,
+                  adim_pressure_vec, adim_mass_flow_rate_vec);
     double adim_mass_flow_rate = arma::as_scalar(adim_mass_flow_rate_vec(0));
-    mass_flow_rate = adim_mass_flow_rate * stagnation_density * pow(pOWCTurbineType->rotor_diameter, 3) * angular_velocity * arma::sign(pressure_diff);
+    mass_flow_rate = adim_mass_flow_rate * stagnation_density * pow(pOWCTurbineType->rotor_diameter, 3) *
+                     angular_velocity * arma::sign(pressure_diff);
 }
 
 void OWCTurbine::ComputeAirTorque(double pressure_diff, double stagnation_density)
 {
-    double adim_pressure = abs(pressure_diff) / (stagnation_density * pow(pOWCTurbineType->rotor_diameter, 2) * pow(angular_velocity, 2));
+    double adim_pressure =
+        abs(pressure_diff) / (stagnation_density * pow(pOWCTurbineType->rotor_diameter, 2) * pow(angular_velocity, 2));
     if (!IsAdimPressureInRange(adim_pressure))
     {
-        std::cout << "WARNING: The adimensional pressure is out of range. The turbine may not work properly." << std::endl;
-        adim_pressure = std::clamp(adim_pressure, pOWCTurbineType->buck_curve_adim_pressure.min(), pOWCTurbineType->buck_curve_adim_pressure.max());
+        std::cout << "WARNING: The adimensional pressure is out of range. The turbine may not work properly."
+                  << std::endl;
+        adim_pressure = std::clamp(adim_pressure, pOWCTurbineType->buck_curve_adim_pressure.min(),
+                                   pOWCTurbineType->buck_curve_adim_pressure.max());
     }
     arma::vec adim_pressure_vec = adim_pressure * arma::ones<arma::vec>(1);
     arma::vec adim_power_vec;
-    arma::interp1(pOWCTurbineType->buck_curve_adim_pressure, pOWCTurbineType->buck_curve_efficiency, adim_pressure_vec, adim_power_vec);
+    arma::interp1(pOWCTurbineType->buck_curve_adim_pressure, pOWCTurbineType->buck_curve_efficiency, adim_pressure_vec,
+                  adim_power_vec);
     double adim_power = arma::as_scalar(adim_power_vec(0));
     power = adim_power * stagnation_density * pow(pOWCTurbineType->rotor_diameter, 5) * pow(angular_velocity, 3);
     air_torque = power / angular_velocity;
@@ -203,12 +212,14 @@ void OWCTurbine::ComputeAirTorque(double pressure_diff, double stagnation_densit
 
 void OWCTurbine::ComputeCriticalPressure(double stagnation_density)
 {
-    critical_pressure = pOWCTurbineType->adim_critical_pressure * stagnation_density * pow(pOWCTurbineType->rotor_diameter, 2) * pow(angular_velocity, 2);
+    critical_pressure = pOWCTurbineType->adim_critical_pressure * stagnation_density *
+                        pow(pOWCTurbineType->rotor_diameter, 2) * pow(angular_velocity, 2);
 }
 
 void OWCTurbine::ComputeCriticalMassFlowRate(double stagnation_density)
 {
-    critical_mass_flow_rate = pOWCTurbineType->adim_critical_mass_flow_rate * stagnation_density * pow(pOWCTurbineType->rotor_diameter, 3) * angular_velocity;
+    critical_mass_flow_rate = pOWCTurbineType->adim_critical_mass_flow_rate * stagnation_density *
+                              pow(pOWCTurbineType->rotor_diameter, 3) * angular_velocity;
 }
 
 void OWCTurbine::ComputeAngularAcceleration(double pressure_diff, double stagnation_density)
@@ -245,13 +256,13 @@ void OWCTurbine::ComputeGenTorque(void)
 
 // OWC methods ------------------------------------------------------
 
-OWC::OWC(int n, Simulation *pSimInp)
+OWC::OWC(int n, Simulation* pSimInp)
 {
     idOWC = n + 1;
     pSim = pSimInp;
 }
 
-void OWC::ReadPropertiesASCII(FILE *pFile)
+void OWC::ReadPropertiesASCII(FILE* pFile)
 {
     // Declare variables
     char buffer_line[1000];
@@ -274,35 +285,40 @@ void OWC::ReadPropertiesASCII(FILE *pFile)
     if (pBodyOWC->numDofs != 1)
     {
         std::stringstream ss;
-        ss << "The OWC body must have a single degree of freedom. The body " << idBodyOWC + 1 << " has " << pBodyOWC->numDofs << " degrees of freedom.\n";
+        ss << "The OWC body must have a single degree of freedom. The body " << idBodyOWC + 1 << " has "
+           << pBodyOWC->numDofs << " degrees of freedom.\n";
         throw ValueError(ss.str());
     }
     // Check if the single degree of freedom is vertical
     if (pBodyOWC->pDofs[0] != 2)
     {
         std::stringstream ss;
-        ss << "The OWC body must have a single degree of freedom in the vertical direction. The body " << idBodyOWC + 1 << " has the degree of freedom " << pBodyOWC->pDofs[0] + 1 << ".\n";
+        ss << "The OWC body must have a single degree of freedom in the vertical direction. The body " << idBodyOWC + 1
+           << " has the degree of freedom " << pBodyOWC->pDofs[0] + 1 << ".\n";
         throw ValueError(ss.str());
     }
     // Check that the OWC body has no BCPs
     if (pBodyOWC->numBcps != 0)
     {
         std::stringstream ss;
-        ss << "The OWC body must not have any BCPs. The body " << idBodyOWC + 1 << " has " << pBodyOWC->numBcps << " BCPs.\n";
+        ss << "The OWC body must not have any BCPs. The body " << idBodyOWC + 1 << " has " << pBodyOWC->numBcps
+           << " BCPs.\n";
         throw ValueError(ss.str());
     }
     // Check that the OWC body has no wind turbines
     if (pBodyOWC->numWindTurbs != 0)
     {
         std::stringstream ss;
-        ss << "The OWC body must not have any wind turbines. The body " << idBodyOWC + 1 << " has " << pBodyOWC->numWindTurbs << " wind turbines.\n";
+        ss << "The OWC body must not have any wind turbines. The body " << idBodyOWC + 1 << " has "
+           << pBodyOWC->numWindTurbs << " wind turbines.\n";
         throw ValueError(ss.str());
     }
     // Check that the OWC body has linear hydrostatics
     if (pBodyOWC->flag_hydrostatics != 0)
     {
         std::stringstream ss;
-        ss << "The OWC body must have linear hydrostatics. The body " << idBodyOWC + 1 << " has flag_hydrostatics = " << pBodyOWC->flag_hydrostatics << ".\n";
+        ss << "The OWC body must have linear hydrostatics. The body " << idBodyOWC + 1
+           << " has flag_hydrostatics = " << pBodyOWC->flag_hydrostatics << ".\n";
         throw ValueError(ss.str());
     }
 
@@ -336,31 +352,36 @@ void OWC::ReadPropertiesYAML(YAML::Node node)
     if (pBodyOWC->numDofs != 1)
     {
         std::stringstream ss;
-        ss << "The OWC body must have a single degree of freedom. The body " << idBodyOWC + 1 << " has " << pBodyOWC->numDofs << " degrees of freedom.\n";
+        ss << "The OWC body must have a single degree of freedom. The body " << idBodyOWC + 1 << " has "
+           << pBodyOWC->numDofs << " degrees of freedom.\n";
         throw ValueError(ss.str());
     }
     if (pBodyOWC->pDofs[0] != 2)
     {
         std::stringstream ss;
-        ss << "The OWC body must have a single degree of freedom in the vertical direction. The body " << idBodyOWC + 1 << " has the degree of freedom " << pBodyOWC->pDofs[0] + 1 << ".\n";
+        ss << "The OWC body must have a single degree of freedom in the vertical direction. The body " << idBodyOWC + 1
+           << " has the degree of freedom " << pBodyOWC->pDofs[0] + 1 << ".\n";
         throw ValueError(ss.str());
     }
     if (pBodyOWC->numBcps != 0)
     {
         std::stringstream ss;
-        ss << "The OWC body must not have any BCPs. The body " << idBodyOWC + 1 << " has " << pBodyOWC->numBcps << " BCPs.\n";
+        ss << "The OWC body must not have any BCPs. The body " << idBodyOWC + 1 << " has " << pBodyOWC->numBcps
+           << " BCPs.\n";
         throw ValueError(ss.str());
     }
     if (pBodyOWC->numWindTurbs != 0)
     {
         std::stringstream ss;
-        ss << "The OWC body must not have any wind turbines. The body " << idBodyOWC + 1 << " has " << pBodyOWC->numWindTurbs << " wind turbines.\n";
+        ss << "The OWC body must not have any wind turbines. The body " << idBodyOWC + 1 << " has "
+           << pBodyOWC->numWindTurbs << " wind turbines.\n";
         throw ValueError(ss.str());
     }
     if (pBodyOWC->flag_hydrostatics != 0)
     {
         std::stringstream ss;
-        ss << "The OWC body must have linear hydrostatics. The body " << idBodyOWC + 1 << " has flag_hydrostatics = " << pBodyOWC->flag_hydrostatics << ".\n";
+        ss << "The OWC body must have linear hydrostatics. The body " << idBodyOWC + 1
+           << " has flag_hydrostatics = " << pBodyOWC->flag_hydrostatics << ".\n";
         throw ValueError(ss.str());
     }
 
@@ -376,7 +397,7 @@ void OWC::ReadPropertiesYAML(YAML::Node node)
         pos_local(ii, 0) = posNode[ii].as<double>();
 }
 
-void OWC::Initialize(FILE *pFile)
+void OWC::Initialize(FILE* pFile)
 {
     // Read properties from the file (skip if already read via YAML)
     if (pFile != nullptr)
@@ -405,7 +426,8 @@ void OWC::Initialize(FILE *pFile)
         if (pSim->numOWCTurbines < turbine_type)
         {
             std::stringstream ss;
-            ss << "OWC turbine type: " << turbine_type << " in OWC " << idOWC + 1 << " was not declared in dataOWCTurbines.dat\n";
+            ss << "OWC turbine type: " << turbine_type << " in OWC " << idOWC + 1
+               << " was not declared in dataOWCTurbines.dat\n";
             throw ValueError(ss.str());
         }
         pOWCTurbine = new OWCTurbine(pSim, turbine_type);
@@ -514,7 +536,8 @@ void OWC::ComputePressure(double time)
         double hole_pressure_diff = pSim->airAtmPres - air_pressure;
         double hole_stagnation_air_density = std::max(air_density, pSim->airAtmPresDensity);
 
-        air_mass_dot = ComputeHoleMassFlowRate(hole_pressure_diff, hole_stagnation_air_density, hole_area, hole_discharge_coef);
+        air_mass_dot =
+            ComputeHoleMassFlowRate(hole_pressure_diff, hole_stagnation_air_density, hole_area, hole_discharge_coef);
     }
     else if (turbine_type > 0)
     {
@@ -535,17 +558,17 @@ void OWC::ComputePressure(double time)
             turb_pressure_diff = pSim->airAtmPres - air_pressure;
             turb_stagnation_air_density = std::max(air_density, pSim->airAtmPresDensity);
             pOWCTurbine->ComputeMassFlowRate(turb_pressure_diff, turb_stagnation_air_density);
-            double valve_mass_flow_rate = ComputeHoleMassFlowRate(turb_pressure_diff,
-                                                                  turb_stagnation_air_density,
-                                                                  pOWCTurbine->pOWCTurbineType->bypass_valve_area,
-                                                                  pOWCTurbine->pOWCTurbineType->bypass_valve_discharge_coef);
+            double valve_mass_flow_rate = ComputeHoleMassFlowRate(
+                turb_pressure_diff, turb_stagnation_air_density, pOWCTurbine->pOWCTurbineType->bypass_valve_area,
+                pOWCTurbine->pOWCTurbineType->bypass_valve_discharge_coef);
             air_mass_dot = pOWCTurbine->mass_flow_rate + valve_mass_flow_rate;
         }
         else if (turb_valve_type == 2) // Case with a throttle valve
         {
             pOWCTurbine->gap_air_pressure = pSim->airAtmPres * pOWCTurbine->gap_rel_pressure;
             pOWCTurbine->gap_air_density = ComputeAirDensity(pOWCTurbine->gap_air_pressure);
-            pOWCTurbine->gap_air_mass = pOWCTurbine->gap_air_density * pOWCTurbine->pOWCTurbineType->throttle_gap_air_volume;
+            pOWCTurbine->gap_air_mass =
+                pOWCTurbine->gap_air_density * pOWCTurbine->pOWCTurbineType->throttle_gap_air_volume;
 
             turb_pressure_diff = pSim->airAtmPres - pOWCTurbine->gap_air_pressure;
             turb_stagnation_air_density = std::max(pOWCTurbine->gap_air_density, pSim->airAtmPresDensity);
@@ -553,10 +576,9 @@ void OWC::ComputePressure(double time)
 
             double valve_pressure_diff = pOWCTurbine->gap_air_pressure - air_pressure;
             double valve_stagnation_air_density = std::max(air_density, pOWCTurbine->gap_air_density);
-            double valve_mass_flow_rate = ComputeHoleMassFlowRate(valve_pressure_diff,
-                                                                  valve_stagnation_air_density,
-                                                                  pOWCTurbine->pOWCTurbineType->throttle_valve_area,
-                                                                  pOWCTurbine->pOWCTurbineType->throttle_valve_discharge_coef);
+            double valve_mass_flow_rate = ComputeHoleMassFlowRate(
+                valve_pressure_diff, valve_stagnation_air_density, pOWCTurbine->pOWCTurbineType->throttle_valve_area,
+                pOWCTurbine->pOWCTurbineType->throttle_valve_discharge_coef);
 
             air_mass_dot = valve_mass_flow_rate;
             pOWCTurbine->gap_mass_flow_rate = pOWCTurbine->mass_flow_rate - valve_mass_flow_rate;
@@ -565,7 +587,8 @@ void OWC::ComputePressure(double time)
         {
             pOWCTurbine->gap_air_pressure = pSim->airAtmPres * pOWCTurbine->gap_rel_pressure;
             pOWCTurbine->gap_air_density = ComputeAirDensity(pOWCTurbine->gap_air_pressure);
-            pOWCTurbine->gap_air_mass = pOWCTurbine->gap_air_density * pOWCTurbine->pOWCTurbineType->throttle_gap_air_volume;
+            pOWCTurbine->gap_air_mass =
+                pOWCTurbine->gap_air_density * pOWCTurbine->pOWCTurbineType->throttle_gap_air_volume;
 
             turb_pressure_diff = pSim->airAtmPres - pOWCTurbine->gap_air_pressure;
             turb_stagnation_air_density = std::max(pOWCTurbine->gap_air_density, pSim->airAtmPresDensity);
@@ -573,16 +596,16 @@ void OWC::ComputePressure(double time)
 
             double throttle_valve_pressure_diff = pOWCTurbine->gap_air_pressure - air_pressure;
             double throttle_valve_stagnation_air_density = std::max(air_density, pOWCTurbine->gap_air_density);
-            double throttle_valve_mass_flow_rate = ComputeHoleMassFlowRate(throttle_valve_pressure_diff,
-                                                                           throttle_valve_stagnation_air_density,
-                                                                           pOWCTurbine->pOWCTurbineType->throttle_valve_area,
-                                                                           pOWCTurbine->pOWCTurbineType->throttle_valve_discharge_coef);
+            double throttle_valve_mass_flow_rate =
+                ComputeHoleMassFlowRate(throttle_valve_pressure_diff, throttle_valve_stagnation_air_density,
+                                        pOWCTurbine->pOWCTurbineType->throttle_valve_area,
+                                        pOWCTurbine->pOWCTurbineType->throttle_valve_discharge_coef);
             double bypass_valve_pressure_diff = pSim->airAtmPres - air_pressure;
             double bypass_valve_stagnation_air_density = std::max(air_density, pSim->airAtmPresDensity);
-            double bypass_valve_mass_flow_rate = ComputeHoleMassFlowRate(bypass_valve_pressure_diff,
-                                                                         bypass_valve_stagnation_air_density,
-                                                                         pOWCTurbine->pOWCTurbineType->bypass_valve_area,
-                                                                         pOWCTurbine->pOWCTurbineType->bypass_valve_discharge_coef);
+            double bypass_valve_mass_flow_rate =
+                ComputeHoleMassFlowRate(bypass_valve_pressure_diff, bypass_valve_stagnation_air_density,
+                                        pOWCTurbine->pOWCTurbineType->bypass_valve_area,
+                                        pOWCTurbine->pOWCTurbineType->bypass_valve_discharge_coef);
 
             air_mass_dot = throttle_valve_mass_flow_rate + bypass_valve_mass_flow_rate;
             pOWCTurbine->gap_mass_flow_rate = pOWCTurbine->mass_flow_rate - throttle_valve_mass_flow_rate;
@@ -597,11 +620,9 @@ void OWC::ComputePressure(double time)
         // Compute the relative pressure rate in the gap
         if (turb_valve_type == 2 || turb_valve_type == 3)
         {
-            pOWCTurbine->gap_rel_pressure_dot = ComputeRelPressureRate(pOWCTurbine->gap_air_pressure,
-                                                                       pOWCTurbine->gap_mass_flow_rate,
-                                                                       pOWCTurbine->gap_air_mass,
-                                                                       0.0,
-                                                                       pOWCTurbine->pOWCTurbineType->throttle_gap_air_volume);
+            pOWCTurbine->gap_rel_pressure_dot = ComputeRelPressureRate(
+                pOWCTurbine->gap_air_pressure, pOWCTurbine->gap_mass_flow_rate, pOWCTurbine->gap_air_mass, 0.0,
+                pOWCTurbine->pOWCTurbineType->throttle_gap_air_volume);
         }
 
         // Compute the turbine angular acceleration
@@ -633,7 +654,8 @@ double OWC::ComputeAirDensity(double pressure)
     return air_density;
 }
 
-double OWC::ComputeHoleMassFlowRate(double pressure_diff, double stagnation_density, double hole_area, double hole_discharge_coef)
+double OWC::ComputeHoleMassFlowRate(double pressure_diff, double stagnation_density, double hole_area,
+                                    double hole_discharge_coef)
 {
     if (rel_pressure < 0.0)
     {
@@ -651,11 +673,13 @@ double OWC::ComputeHoleMassFlowRate(double pressure_diff, double stagnation_dens
     // Regularize sqrt(|Dp|)*sign(Dp) -> Dp/sqrt(|Dp|+eps) to avoid infinite derivative at Dp=0
     // which causes numerical Jacobian inaccuracy in the ESDIRK solver
     double eps_dp = 1.0; // [Pa] small regularization parameter
-    double hole_mass_flow_rate = hole_discharge_coef * hole_area * sqrt(2.0 * stagnation_density) * pressure_diff / sqrt(abs(pressure_diff) + eps_dp);
+    double hole_mass_flow_rate = hole_discharge_coef * hole_area * sqrt(2.0 * stagnation_density) * pressure_diff /
+                                 sqrt(abs(pressure_diff) + eps_dp);
     return hole_mass_flow_rate;
 }
 
-double OWC::ComputeRelPressureRate(double air_pressure, double mass_flow_rate, double air_mass, double air_volume_dot, double air_volume)
+double OWC::ComputeRelPressureRate(double air_pressure, double mass_flow_rate, double air_mass, double air_volume_dot,
+                                   double air_volume)
 {
     if (rel_pressure < 0.0)
     {
@@ -664,5 +688,6 @@ double OWC::ComputeRelPressureRate(double air_pressure, double mass_flow_rate, d
         throw ValueError(ss.str());
     }
     // Compute the relative pressure rate using the orifice equation
-    return pSim->airAdiabaticDilation * (mass_flow_rate / air_mass - air_volume_dot / air_volume) * air_pressure / pSim->airAtmPres;
+    return pSim->airAdiabaticDilation * (mass_flow_rate / air_mass - air_volume_dot / air_volume) * air_pressure /
+           pSim->airAtmPres;
 }

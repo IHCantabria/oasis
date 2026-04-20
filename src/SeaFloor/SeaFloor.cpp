@@ -24,7 +24,7 @@ int SeaFloor::GetId(void)
     return this->id;
 }
 
-void SeaFloor::ReadPropertiesASCII(FILE *&pFilePointer)
+void SeaFloor::ReadPropertiesASCII(FILE*& pFilePointer)
 {
     // Declare local variables
     std::string header_check;
@@ -57,7 +57,7 @@ void SeaFloor::ReadPropertiesASCII(FILE *&pFilePointer)
     }
     if (this->GetType() == 1)
     {
-        fscanf(pFilePointer, "%lf %[^\n]\n", &fondo, buffer_line);
+        fscanf(pFilePointer, "%lf %[^\n]\n", &seabedDepth, buffer_line);
     }
 }
 
@@ -70,15 +70,21 @@ void SeaFloor::ReadPropertiesYAML(YAML::Node node)
     if (this->GetType() == 2)
     {
         YAML::Node p1n = node["p1"];
-        p1(0, 0) = p1n[0].as<double>(); p1(0, 1) = p1n[1].as<double>(); p1(0, 2) = p1n[2].as<double>();
+        p1(0, 0) = p1n[0].as<double>();
+        p1(0, 1) = p1n[1].as<double>();
+        p1(0, 2) = p1n[2].as<double>();
         YAML::Node p2n = node["p2"];
-        p2(0, 0) = p2n[0].as<double>(); p2(0, 1) = p2n[1].as<double>(); p2(0, 2) = p2n[2].as<double>();
+        p2(0, 0) = p2n[0].as<double>();
+        p2(0, 1) = p2n[1].as<double>();
+        p2(0, 2) = p2n[2].as<double>();
         YAML::Node p3n = node["p3"];
-        p3(0, 0) = p3n[0].as<double>(); p3(0, 1) = p3n[1].as<double>(); p3(0, 2) = p3n[2].as<double>();
+        p3(0, 0) = p3n[0].as<double>();
+        p3(0, 1) = p3n[1].as<double>();
+        p3(0, 2) = p3n[2].as<double>();
     }
     if (this->GetType() == 1)
     {
-        fondo = node["depth"].as<double>();
+        seabedDepth = node["depth"].as<double>();
     }
 }
 
@@ -89,19 +95,19 @@ int Flat::GetType(void)
     return this->seaFloorType;
 }
 
-arma::field<arma::mat> Flat::projectPoints(arma::mat nodos)
+arma::field<arma::mat> Flat::projectPoints(arma::mat nodes)
 {
     arma::field<arma::mat> output(1, 3);
-    // INICIALIZACION DE NODOS
-    int numNodos = nodos.n_rows;
-    arma::mat projected_points = nodos; // aqui se devolveran los puntos ya proyectados
-    // INICIALIZACION DE Z
-    arma::mat zCoordinates = arma::zeros(numNodos, 1);
-    // INICIALIZACION DE LAS NORMALES  RETORNAR
-    arma::mat normales = arma::zeros(numNodos, 3);
-    normales.col(2) = arma::ones(numNodos, 1);
-    projected_points.col(2) = fondo * arma::ones(numNodos, 1);
-    zCoordinates = nodos.col(2) - fondo * arma::ones(numNodos, 1);
+    // NODE INITIALISATION
+    int numNodes = nodes.n_rows;
+    arma::mat projected_points = nodes; // output: projected points
+    // Z INITIALISATION
+    arma::mat zCoordinates = arma::zeros(numNodes, 1);
+    // NORMALS INITIALISATION
+    arma::mat normales = arma::zeros(numNodes, 3);
+    normales.col(2) = arma::ones(numNodes, 1);
+    projected_points.col(2) = seabedDepth * arma::ones(numNodes, 1);
+    zCoordinates = nodes.col(2) - seabedDepth * arma::ones(numNodes, 1);
     output(0, 0) = projected_points;
     output(0, 2) = normales;
     output(0, 1) = zCoordinates;
@@ -109,27 +115,27 @@ arma::field<arma::mat> Flat::projectPoints(arma::mat nodos)
 }
 
 // INCLINED DEFINITION
-// ¿No seria mejor que los puntos estuvieran en el constructor, que este calculara la normal?
+// Consider moving point initialisation to the constructor so the normal is computed there.
 void Inclined::getPlaneEquation(void)
 {
     arma::mat Lado1 = p2 - p1;
     arma::mat Lado2 = p3 - p1;
-    arma::mat prodCross = arma::cross(Lado1, Lado2);
-    normalPlano = prodCross / arma::norm(prodCross, 2);
+    arma::mat crossProduct = arma::cross(Lado1, Lado2);
+    planeNormal = crossProduct / arma::norm(crossProduct, 2);
     double tol = 1e-10;
-    if (arma::norm(prodCross, 2) < tol)
+    if (arma::norm(crossProduct, 2) < tol)
     {
         std::stringstream ss;
         ss << "The input points are aligned\n";
         throw ValueError(ss.str());
     }
-    if (normalPlano(2) < -1e-10)
+    if (planeNormal(2) < -1e-10)
     {
-        normalPlano = -normalPlano;
+        planeNormal = -planeNormal;
     }
-    this->a = arma::as_scalar(normalPlano(0));
-    this->b = arma::as_scalar(normalPlano(1));
-    this->c = arma::as_scalar(normalPlano(2));
+    this->a = arma::as_scalar(planeNormal(0));
+    this->b = arma::as_scalar(planeNormal(1));
+    this->c = arma::as_scalar(planeNormal(2));
     this->d = a * arma::as_scalar(p1(0)) + b * arma::as_scalar(p1(1)) + c * arma::as_scalar(p1(2));
 }
 
@@ -138,37 +144,39 @@ int Inclined::GetType(void)
     return this->seaFloorType;
 }
 
-arma::field<arma::mat> Inclined::projectPoints(arma::mat nodos)
+arma::field<arma::mat> Inclined::projectPoints(arma::mat nodes)
 {
     arma::field<arma::mat> aRetornar(1, 3);
-    // INICIALIZACION DE NODOS
-    int numNodos = nodos.n_rows;
-    arma::mat projected_points = arma::zeros(numNodos, 3); // aqui se devolveran los puntos ya proyectados
-    // INICIALIZACION DE Z
-    arma::mat zCoordinates = arma::zeros(numNodos, 1);
-    // INICIALIZACION DE LAS NORMALES  RETORNAR
-    arma::mat normales = arma::zeros(numNodos, 3);
-    double t; // parametricas de la recta que une el punto con su proyeccion
-    for (int i = 0; i < numNodos; i++)
+    // NODE INITIALISATION
+    int numNodes = nodes.n_rows;
+    arma::mat projected_points = arma::zeros(numNodes, 3); // output: projected points
+    // Z INITIALISATION
+    arma::mat zCoordinates = arma::zeros(numNodes, 1);
+    // NORMALS INITIALISATION
+    arma::mat normales = arma::zeros(numNodes, 3);
+    double t; // parameter for the line connecting the point to its projection
+    for (int i = 0; i < numNodes; i++)
     {
-        t = (d - a * arma::as_scalar(nodos(i, 0)) - b * arma::as_scalar(nodos(i, 1)) - c * arma::as_scalar(nodos(i, 2))) / (a * a + b * b + c * c);
-        projected_points(i, 0) = arma::as_scalar(nodos(i, 0)) + this->a * t;
-        projected_points(i, 1) = arma::as_scalar(nodos(i, 1)) + this->b * t;
-        projected_points(i, 2) = arma::as_scalar(nodos(i, 2)) + this->c * t;
-        arma::mat vector = nodos.row(i) - projected_points.row(i); // vector del puntoPro. al nodo
+        t = (d - a * arma::as_scalar(nodes(i, 0)) - b * arma::as_scalar(nodes(i, 1)) -
+             c * arma::as_scalar(nodes(i, 2))) /
+            (a * a + b * b + c * c);
+        projected_points(i, 0) = arma::as_scalar(nodes(i, 0)) + this->a * t;
+        projected_points(i, 1) = arma::as_scalar(nodes(i, 1)) + this->b * t;
+        projected_points(i, 2) = arma::as_scalar(nodes(i, 2)) + this->c * t;
+        arma::mat vector = nodes.row(i) - projected_points.row(i); // vector from projected point to node
         if (vector(2) > -1e-10)
         {
-            // porque la normal apunta hacia arriba y se proyecta en esa direcciomm
-            zCoordinates(i) = arma::norm(vector, 2); // esto si esta por encima
+            // normal points upward, so this is above the floor
+            zCoordinates(i) = arma::norm(vector, 2);
         }
         else
         {
             zCoordinates(i) = -arma::norm(vector, 2);
         }
     }
-    normales.col(0) = normalPlano(0) * arma::ones(numNodos, 1);
-    normales.col(1) = normalPlano(1) * arma::ones(numNodos, 1);
-    normales.col(2) = normalPlano(2) * arma::ones(numNodos, 1);
+    normales.col(0) = planeNormal(0) * arma::ones(numNodes, 1);
+    normales.col(1) = planeNormal(1) * arma::ones(numNodes, 1);
+    normales.col(2) = planeNormal(2) * arma::ones(numNodes, 1);
     aRetornar(0, 0) = projected_points;
     aRetornar(0, 2) = normales;
     aRetornar(0, 1) = zCoordinates;
@@ -176,7 +184,7 @@ arma::field<arma::mat> Inclined::projectPoints(arma::mat nodos)
 }
 
 // BATHYMETRY DEFINITION
-void Bathymetry::ReadPropertiesASCII(FILE *&pFilePointer, std::string inputFilePath)
+void Bathymetry::ReadPropertiesASCII(FILE*& pFilePointer, std::string inputFilePath)
 {
 
     // Read properties from file
@@ -185,19 +193,18 @@ void Bathymetry::ReadPropertiesASCII(FILE *&pFilePointer, std::string inputFileP
     std::string header_check;
     // Check if the mesh file exists
     std::string meshFilePath = JoinPath(inputFilePath, meshFileName);
-    std::cout << "meshFileName = " << std::endl
-              << meshFileName << std::endl;
-    FILE *file_pointer = fopen(meshFilePath.c_str(), "r");
+    std::cout << "meshFileName = " << std::endl << meshFileName << std::endl;
+    FILE* file_pointer = fopen(meshFilePath.c_str(), "r");
     if (file_pointer == NULL)
     {
         std::stringstream ss;
-        ss << "Not possible to open the file in which the bathymetry data is\n    ->Dir: " << inputFilePath << std::endl;
+        ss << "Not possible to open the file in which the bathymetry data is\n    ->Dir: " << inputFilePath
+           << std::endl;
         throw IOError(ss.str());
     }
-    fscanf(file_pointer, "%d %[^\n]\n", &numPuntosNube, buffer_line);
-    std::cout << "Number of points (mesh) = " << std::endl
-              << numPuntosNube << std::endl;
-    pointMatrix = arma::zeros(numPuntosNube, 3);
+    fscanf(file_pointer, "%d %[^\n]\n", &numCloudPoints, buffer_line);
+    std::cout << "Number of points (mesh) = " << std::endl << numCloudPoints << std::endl;
+    pointMatrix = arma::zeros(numCloudPoints, 3);
 
     for (int ii = 0; ii < 3; ii++)
     {
@@ -206,16 +213,18 @@ void Bathymetry::ReadPropertiesASCII(FILE *&pFilePointer, std::string inputFileP
         if (header_check.substr(0, 3).compare("///"))
         {
             std::stringstream ss;
-            ss << "Error while parsing file HINT SEAFLOOR ID: " << this->GetId() << " - Please check that each type of seafloor has its correct number of inputs.";
+            ss << "Error while parsing file HINT SEAFLOOR ID: " << this->GetId()
+               << " - Please check that each type of seafloor has its correct number of inputs.";
             throw IOError(ss.str());
         }
     }
     // no lee bin esto y no se por que
     // voy a cambiar pFilePointer por file_pointer OK, ESTA BIEN
     // bufferline da un salto, pero se están acumulando dos saltos. VOY A QUITARLO
-    for (int i = 0; i < numPuntosNube; i++)
+    for (int i = 0; i < numCloudPoints; i++)
     {
-        fscanf(file_pointer, "%lf %lf %lf %\n", &pointMatrix(i, 0), &pointMatrix(i, 1), &pointMatrix(i, 2), buffer_line);
+        fscanf(file_pointer, "%lf %lf %lf %\n", &pointMatrix(i, 0), &pointMatrix(i, 1), &pointMatrix(i, 2),
+               buffer_line);
     }
     // LECTURA DE TRIANGULOS
     // se salta 3 lineas de nuevo
@@ -226,13 +235,13 @@ void Bathymetry::ReadPropertiesASCII(FILE *&pFilePointer, std::string inputFileP
         if (header_check.substr(0, 3).compare("///"))
         {
             std::stringstream ss;
-            ss << "Error. SeaFloor ID:" << this->GetId() << " - Please check that each type of SeaFloor has its correct number of inputs.";
+            ss << "Error. SeaFloor ID:" << this->GetId()
+               << " - Please check that each type of SeaFloor has its correct number of inputs.";
             throw IOError(ss.str());
         }
     }
-    fscanf(file_pointer, "%d %[^\n]\n", &numTriangulos, buffer_line);
-    std::cout << "Number of triangles = " << std::endl
-              << numTriangulos << std::endl;
+    fscanf(file_pointer, "%d %[^\n]\n", &numTriangles, buffer_line);
+    std::cout << "Number of triangles = " << std::endl << numTriangles << std::endl;
     // se salta 3 lineas de nuevo
     for (int ii = 0; ii < 3; ii++)
     {
@@ -241,14 +250,16 @@ void Bathymetry::ReadPropertiesASCII(FILE *&pFilePointer, std::string inputFileP
         if (header_check.substr(0, 3).compare("///"))
         {
             std::stringstream ss;
-            ss << "Error. SeaFlor ID: " << this->GetId() << " - Please check that each type of SeaFloor has its correct number of inputs.";
+            ss << "Error. SeaFlor ID: " << this->GetId()
+               << " - Please check that each type of SeaFloor has its correct number of inputs.";
             throw IOError(ss.str());
         }
     }
-    triangleMatrix.zeros(numTriangulos, 3);
-    for (int i = 0; i < numTriangulos; i++)
+    triangleMatrix.zeros(numTriangles, 3);
+    for (int i = 0; i < numTriangles; i++)
     {
-        fscanf(file_pointer, "%d %d %d %\n", &triangleMatrix(i, 0), &triangleMatrix(i, 1), &triangleMatrix(i, 2), buffer_line);
+        fscanf(file_pointer, "%d %d %d %\n", &triangleMatrix(i, 0), &triangleMatrix(i, 1), &triangleMatrix(i, 2),
+               buffer_line);
     }
     // se salta 3 lineas de nuevo
     for (int ii = 0; ii < 3; ii++)
@@ -258,7 +269,8 @@ void Bathymetry::ReadPropertiesASCII(FILE *&pFilePointer, std::string inputFileP
         if (header_check.substr(0, 3).compare("///"))
         {
             std::stringstream ss;
-            ss << "Error. SeaFloor ID:" << this->GetId() << " - Please check that each type of SeaFloor has its correct number of inputs.";
+            ss << "Error. SeaFloor ID:" << this->GetId()
+               << " - Please check that each type of SeaFloor has its correct number of inputs.";
             throw IOError(ss.str());
         }
     }
@@ -268,80 +280,83 @@ void Bathymetry::ReadPropertiesASCII(FILE *&pFilePointer, std::string inputFileP
 
 void Bathymetry::ReadPropertiesYAML(YAML::Node node, std::string inputFilePath)
 {
-	SeaFloor::ReadPropertiesYAML(node);
+    SeaFloor::ReadPropertiesYAML(node);
 
-	std::string meshFilePath = JoinPath(inputFilePath, meshFileName);
-	std::cout << "meshFileName = " << std::endl << meshFileName << std::endl;
-	FILE *file_pointer = fopen(meshFilePath.c_str(), "r");
-	if (file_pointer == NULL)
-	{
-		std::stringstream ss;
-		ss << "Not possible to open the file in which the bathymetry data is\n    ->Dir: " << inputFilePath << std::endl;
-		throw IOError(ss.str());
-	}
-	char buffer_line[1000];
-	std::string header_check;
-	fscanf(file_pointer, "%d %[^\n]\n", &numPuntosNube, buffer_line);
-	std::cout << "Number of points (mesh) = " << std::endl << numPuntosNube << std::endl;
-	pointMatrix = arma::zeros(numPuntosNube, 3);
+    std::string meshFilePath = JoinPath(inputFilePath, meshFileName);
+    std::cout << "meshFileName = " << std::endl << meshFileName << std::endl;
+    FILE* file_pointer = fopen(meshFilePath.c_str(), "r");
+    if (file_pointer == NULL)
+    {
+        std::stringstream ss;
+        ss << "Not possible to open the file in which the bathymetry data is\n    ->Dir: " << inputFilePath
+           << std::endl;
+        throw IOError(ss.str());
+    }
+    char buffer_line[1000];
+    std::string header_check;
+    fscanf(file_pointer, "%d %[^\n]\n", &numCloudPoints, buffer_line);
+    std::cout << "Number of points (mesh) = " << std::endl << numCloudPoints << std::endl;
+    pointMatrix = arma::zeros(numCloudPoints, 3);
 
-	for (int ii = 0; ii < 3; ii++)
-	{
-		fgets(buffer_line, sizeof(buffer_line), file_pointer);
-		header_check = buffer_line;
-		if (header_check.substr(0, 3).compare("///"))
-		{
-			std::stringstream ss;
-			ss << "Error while parsing file HINT SEAFLOOR ID: " << this->GetId();
-			throw IOError(ss.str());
-		}
-	}
-	for (int i = 0; i < numPuntosNube; i++)
-	{
-		fscanf(file_pointer, "%lf %lf %lf %\n", &pointMatrix(i, 0), &pointMatrix(i, 1), &pointMatrix(i, 2), buffer_line);
-	}
-	for (int ii = 0; ii < 3; ii++)
-	{
-		fgets(buffer_line, sizeof(buffer_line), file_pointer);
-		header_check = buffer_line;
-		if (header_check.substr(0, 3).compare("///"))
-		{
-			std::stringstream ss;
-			ss << "Error. SeaFloor ID:" << this->GetId();
-			throw IOError(ss.str());
-		}
-	}
-	fscanf(file_pointer, "%d %[^\n]\n", &numTriangulos, buffer_line);
-	std::cout << "Number of triangles = " << std::endl << numTriangulos << std::endl;
-	for (int ii = 0; ii < 3; ii++)
-	{
-		fgets(buffer_line, sizeof(buffer_line), file_pointer);
-		header_check = buffer_line;
-		if (header_check.substr(0, 3).compare("///"))
-		{
-			std::stringstream ss;
-			ss << "Error. SeaFloor ID:" << this->GetId();
-			throw IOError(ss.str());
-		}
-	}
-	triangleMatrix.zeros(numTriangulos, 3);
-	for (int i = 0; i < numTriangulos; i++)
-	{
-		fscanf(file_pointer, "%d %d %d %\n", &triangleMatrix(i, 0), &triangleMatrix(i, 1), &triangleMatrix(i, 2), buffer_line);
-	}
-	for (int ii = 0; ii < 3; ii++)
-	{
-		fgets(buffer_line, sizeof(buffer_line), file_pointer);
-		header_check = buffer_line;
-		if (header_check.substr(0, 3).compare("///"))
-		{
-			std::stringstream ss;
-			ss << "Error. SeaFloor ID:" << this->GetId();
-			throw IOError(ss.str());
-		}
-	}
-	fscanf(file_pointer, "%d %[^\n]\n", &flagBarycenter, buffer_line);
-	fclose(file_pointer);
+    for (int ii = 0; ii < 3; ii++)
+    {
+        fgets(buffer_line, sizeof(buffer_line), file_pointer);
+        header_check = buffer_line;
+        if (header_check.substr(0, 3).compare("///"))
+        {
+            std::stringstream ss;
+            ss << "Error while parsing file HINT SEAFLOOR ID: " << this->GetId();
+            throw IOError(ss.str());
+        }
+    }
+    for (int i = 0; i < numCloudPoints; i++)
+    {
+        fscanf(file_pointer, "%lf %lf %lf %\n", &pointMatrix(i, 0), &pointMatrix(i, 1), &pointMatrix(i, 2),
+               buffer_line);
+    }
+    for (int ii = 0; ii < 3; ii++)
+    {
+        fgets(buffer_line, sizeof(buffer_line), file_pointer);
+        header_check = buffer_line;
+        if (header_check.substr(0, 3).compare("///"))
+        {
+            std::stringstream ss;
+            ss << "Error. SeaFloor ID:" << this->GetId();
+            throw IOError(ss.str());
+        }
+    }
+    fscanf(file_pointer, "%d %[^\n]\n", &numTriangles, buffer_line);
+    std::cout << "Number of triangles = " << std::endl << numTriangles << std::endl;
+    for (int ii = 0; ii < 3; ii++)
+    {
+        fgets(buffer_line, sizeof(buffer_line), file_pointer);
+        header_check = buffer_line;
+        if (header_check.substr(0, 3).compare("///"))
+        {
+            std::stringstream ss;
+            ss << "Error. SeaFloor ID:" << this->GetId();
+            throw IOError(ss.str());
+        }
+    }
+    triangleMatrix.zeros(numTriangles, 3);
+    for (int i = 0; i < numTriangles; i++)
+    {
+        fscanf(file_pointer, "%d %d %d %\n", &triangleMatrix(i, 0), &triangleMatrix(i, 1), &triangleMatrix(i, 2),
+               buffer_line);
+    }
+    for (int ii = 0; ii < 3; ii++)
+    {
+        fgets(buffer_line, sizeof(buffer_line), file_pointer);
+        header_check = buffer_line;
+        if (header_check.substr(0, 3).compare("///"))
+        {
+            std::stringstream ss;
+            ss << "Error. SeaFloor ID:" << this->GetId();
+            throw IOError(ss.str());
+        }
+    }
+    fscanf(file_pointer, "%d %[^\n]\n", &flagBarycenter, buffer_line);
+    fclose(file_pointer);
 }
 
 int Bathymetry::GetType(void)
@@ -351,12 +366,12 @@ int Bathymetry::GetType(void)
 
 void Bathymetry::getVertexNormals(void)
 {
-    // se usa las matrices leidas pointMatrix y triangleMatrix
-    // se itera con cada triangulo y se sacan las coordenadas de sus vertices
-    // OJO si triangleMatrix(i)= 1 2 3, las filas donde hay que buscar las coordenadas son 1-1 2-1 3-1 por venir de Matlab
-    arma::mat normaTriangulo = arma::ones(numTriangulos, 3);
-    barycenter = arma::ones(numTriangulos, 3);
-    for (int i = 0; i < numTriangulos; i++)
+    // Uses the pointMatrix and triangleMatrix already read in.
+    // Iterates over each triangle to extract vertex coordinates.
+    // NOTE: if triangleMatrix(i) = 1 2 3, the rows to look up are 0 1 2 (0-based, converted from MATLAB 1-based)
+    arma::mat triangleNormal = arma::ones(numTriangles, 3);
+    barycenter = arma::ones(numTriangles, 3);
+    for (int i = 0; i < numTriangles; i++)
     {
         arma::mat V0 = arma::ones(1, 3);
         arma::mat V1 = arma::ones(1, 3);
@@ -365,39 +380,40 @@ void Bathymetry::getVertexNormals(void)
         V1 = vertexCoordinates(i).row(1);
         V2 = vertexCoordinates(i).row(2);
         // coordenadas del baricentro
-        barycenter.row(i) = (V0 + V1 + V2) / 3.0; // media de las coordenadas de los vertices
-        // lados
+        barycenter.row(i) = (V0 + V1 + V2) / 3.0; // average of vertex coordinates (barycenter)
+        // edges
         arma::mat Lado1 = V1 - V0;
         arma::mat Lado2 = V2 - V0;
-        // norma del triangulo
-        arma::mat prodCross = arma::cross(Lado1, Lado2);
-        normaTriangulo.row(i) = prodCross / arma::norm(prodCross, 2);
+        // triangle normal
+        arma::mat crossProduct = arma::cross(Lado1, Lado2);
+        triangleNormal.row(i) = crossProduct / arma::norm(crossProduct, 2);
         // baricentro del triangulo
     }
-    vertexNormals = arma::zeros(numPuntosNube, 3);
-    for (int i = 0; i < numPuntosNube; i++)
+    vertexNormals = arma::zeros(numCloudPoints, 3);
+    for (int i = 0; i < numCloudPoints; i++)
     {
-        arma::mat sumaNormal = arma::zeros(1, 3);
-        int numTrianguloVertice = 0;
-        for (int j = 0; j < numTriangulos; j++)
+        arma::mat normalSum = arma::zeros(1, 3);
+        int numTrianglesPerVertex = 0;
+        for (int j = 0; j < numTriangles; j++)
         {
-            if ((triangleMatrix(j, 0) == (i + 1)) || (triangleMatrix(j, 1) == (i + 1)) || (triangleMatrix(j, 2) == (i + 1)))
+            if ((triangleMatrix(j, 0) == (i + 1)) || (triangleMatrix(j, 1) == (i + 1)) ||
+                (triangleMatrix(j, 2) == (i + 1)))
             {
-                sumaNormal = sumaNormal + normaTriangulo.row(j);
-                numTrianguloVertice++;
+                normalSum = normalSum + triangleNormal.row(j);
+                numTrianglesPerVertex++;
             }
         }
-        vertexNormals.row(i) = sumaNormal / numTrianguloVertice;
+        vertexNormals.row(i) = normalSum / numTrianglesPerVertex;
         vertexNormals.row(i) = vertexNormals.row(i) / arma::norm(vertexNormals.row(i), 2);
     }
 }
 void Bathymetry::getProjectionMatrix(void)
 {
     // inicializacion
-    projectionMatrix = arma::field<arma::mat>(numTriangulos, 7);
-    changeFrameMatrix = arma::field<arma::mat>(numTriangulos, 4);
-    normalsTriangle = arma::field<arma::mat>(numTriangulos, 3);
-    for (int k = 0; k < numTriangulos; k++)
+    projectionMatrix = arma::field<arma::mat>(numTriangles, 7);
+    changeFrameMatrix = arma::field<arma::mat>(numTriangles, 4);
+    normalsTriangle = arma::field<arma::mat>(numTriangles, 3);
+    for (int k = 0; k < numTriangles; k++)
     {
         arma::mat V0 = arma::ones(1, 3);
         arma::mat V1 = arma::ones(1, 3);
@@ -477,12 +493,14 @@ void Bathymetry::getProjectionMatrix(void)
 }
 arma::uvec Bathymetry::closerTriangles(arma::mat point)
 {
-    arma::mat distanceMatrix = arma::ones(numTriangulos, 1);
+    arma::mat distanceMatrix = arma::ones(numTriangles, 1);
     // std::cout << "hola pepsi" << std::endl;
-    for (int k = 0; k < numTriangulos; k++)
+    for (int k = 0; k < numTriangles; k++)
     {
         // encuentra las distsncias del baricentro al punto
-        distanceMatrix(k) = arma::norm(barycenter.row(k) - point, 2); // distancia del baricentro al punto en XY porque hemos cambiado de sist.ref. Punto tiene tamaño 4x1
+        distanceMatrix(k) = arma::norm(
+            barycenter.row(k) - point,
+            2); // distancia del baricentro al punto en XY porque hemos cambiado de sist.ref. Punto tiene tamaño 4x1
     }
     arma::uvec indicesOrdenados = arma::sort_index(distanceMatrix);
     // estaria bien que devolviera no solo la distancia sino el punto en el sist. de ref 2D
@@ -490,39 +508,39 @@ arma::uvec Bathymetry::closerTriangles(arma::mat point)
     return indicesOrdenados;
 }
 
-arma::field<arma::mat> Bathymetry::projectPoints(arma::mat nodos)
+arma::field<arma::mat> Bathymetry::projectPoints(arma::mat nodes)
 {
     // se inicializa lo que se devuelve
     // el primer elemeto seran los puntos proyectados
     // el segundo elemento seran las z en 2d, que es un vector
     // el tercer elemento seran las normales en cada punto
     arma::field<arma::mat> aRetornar(1, 3);
-    // INICIALIZACION DE NODOS
-    int numNodos = nodos.n_rows;
-    arma::mat estaProyectado = arma::zeros(numNodos, 1);   // valdra 0 si no ha sido aun proyectado
-    arma::mat projected_points = arma::zeros(numNodos, 3); // aqui se devolveran los puntos ya proyectados
+    // INICIALIZACION DE nodes
+    int numNodes = nodes.n_rows;
+    arma::mat estaProyectado = arma::zeros(numNodes, 1);   // valdra 0 si no ha sido aun proyectado
+    arma::mat projected_points = arma::zeros(numNodes, 3); // aqui se devolveran los puntos ya proyectados
     // INICIALIZACION DE Z
-    arma::mat zCoordinates = arma::zeros(numNodos, 1);
+    arma::mat zCoordinates = arma::zeros(numNodes, 1);
     // INICIALIZACION DE LAS NORMALES  RETORNAR
-    arma::mat normales = arma::zeros(numNodos, 3);
+    arma::mat normales = arma::zeros(numNodes, 3);
     double tol = 1e-10;
     if (flagBarycenter == 1)
     {
         int k;
         // std::cout << "hola cocacola" << std::endl;
-        for (int i = 0; i < numNodos; i++)
+        for (int i = 0; i < numNodes; i++)
         {
-            arma::uvec triangulosCerca = closerTriangles(nodos.row(i));
-            for (int j = 0; j < numTriangulos; j++)
+            arma::uvec triangulosCerca = closerTriangles(nodes.row(i));
+            for (int j = 0; j < numTriangles; j++)
             {
                 if (estaProyectado(i) == 0)
                 {
                     k = triangulosCerca(j);
                     arma::mat punto = arma::zeros(4, 1);
                     punto(0) = 1;
-                    punto(1) = nodos(i, 0);
-                    punto(2) = nodos(i, 1);
-                    punto(3) = nodos(i, 2);
+                    punto(1) = nodes(i, 0);
+                    punto(2) = nodes(i, 1);
+                    punto(3) = nodes(i, 2);
                     arma::mat puntoGirado = changeFrameMatrix(k, 0) * punto;
                     // la z ya esta en el buen sistema de referencia
                     double z = puntoGirado(3);
@@ -561,7 +579,8 @@ arma::field<arma::mat> Bathymetry::projectPoints(arma::mat nodos)
                         // calculo de las normales
                         arma::mat normalNoBien = arma::zeros(1, 3);
                         // normals triangle te las devuelve bien
-                        normalNoBien = normalsTriangle(k, 0) + (normalsTriangle(k, 1) - normalsTriangle(k, 0)) * s + (normalsTriangle(k, 2) - normalsTriangle(k, 0)) * t;
+                        normalNoBien = normalsTriangle(k, 0) + (normalsTriangle(k, 1) - normalsTriangle(k, 0)) * s +
+                                       (normalsTriangle(k, 2) - normalsTriangle(k, 0)) * t;
                         arma::mat normal3D = changeFrameMatrix(k, 1) * normalNoBien;
                         normales(i, 0) = normal3D(1);
                         normales(i, 1) = normal3D(2);
@@ -574,17 +593,17 @@ arma::field<arma::mat> Bathymetry::projectPoints(arma::mat nodos)
 
     if (flagBarycenter == 0)
     {
-        for (int k = 0; k < numTriangulos; k++)
+        for (int k = 0; k < numTriangles; k++)
         {
-            for (int i = 0; i < numNodos; i++)
+            for (int i = 0; i < numNodes; i++)
             {
                 if (estaProyectado(i) == 0)
                 {
                     arma::mat punto = arma::zeros(4, 1);
                     punto(0) = 1;
-                    punto(1) = nodos(i, 0);
-                    punto(2) = nodos(i, 1);
-                    punto(3) = nodos(i, 2);
+                    punto(1) = nodes(i, 0);
+                    punto(2) = nodes(i, 1);
+                    punto(3) = nodes(i, 2);
                     arma::mat puntoGirado = changeFrameMatrix(k, 0) * punto;
                     // la z ya esta en el buen sistema de referencia
                     double z = puntoGirado(3);
@@ -623,7 +642,8 @@ arma::field<arma::mat> Bathymetry::projectPoints(arma::mat nodos)
                         // calculo de las normales
                         arma::mat normalNoBien = arma::zeros(1, 3);
                         // normals triangle te las devuelve bien
-                        normalNoBien = normalsTriangle(k, 0) + (normalsTriangle(k, 1) - normalsTriangle(k, 0)) * s + (normalsTriangle(k, 2) - normalsTriangle(k, 0)) * t;
+                        normalNoBien = normalsTriangle(k, 0) + (normalsTriangle(k, 1) - normalsTriangle(k, 0)) * s +
+                                       (normalsTriangle(k, 2) - normalsTriangle(k, 0)) * t;
                         arma::mat normal3D = changeFrameMatrix(k, 1) * normalNoBien;
                         normales(i, 0) = normal3D(1);
                         normales(i, 1) = normal3D(2);
@@ -638,11 +658,12 @@ arma::field<arma::mat> Bathymetry::projectPoints(arma::mat nodos)
     aRetornar(0, 1) = zCoordinates;
     aRetornar(0, 2) = normales;
     int hayError = 0; // para lanzar un aviso por lo del baricentro mas cercano
-    for (int i = 0; i < numNodos; i++)
+    for (int i = 0; i < numNodes; i++)
     {
         if (projected_points(i, 0) == 0 && projected_points(i, 1) == 0 && projected_points(i, 2) == 0)
         {
-            std::cout << "     WARNING: Probably, node" << i + 1 << " could not be projected. Check the floor size. " << std::endl;
+            std::cout << "     WARNING: Probably, node" << i + 1 << " could not be projected. Check the floor size. "
+                      << std::endl;
             hayError = 1;
         }
     }

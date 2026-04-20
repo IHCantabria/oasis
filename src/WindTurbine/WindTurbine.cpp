@@ -30,7 +30,7 @@ namespace fs = boost::filesystem;
 #endif
 #endif
 
-void WindTurbine::ReadPropertiesASCII(FILE *pFile)
+void WindTurbine::ReadPropertiesASCII(FILE* pFile)
 {
 
     // Declare variables
@@ -40,19 +40,19 @@ void WindTurbine::ReadPropertiesASCII(FILE *pFile)
     char cSDFileName[1000];
     char cEDFileName[1000];
 
-    // Ignoro las tres primeras lineas, donde pone "New Turbine"
+    // Skip the first three header lines ("New Turbine" block)
     for (int ii = 0; ii < 3; ii++)
     {
         fgets(buffer_line, sizeof(buffer_line), pFile);
     }
 
-    // Leo y asigno el cuerpo correspondiente a la turbina
+    // Read and assign the body corresponding to this turbine
     int tmp_body_id;
     fscanf(pFile, "%d %[^\n]\n", &tmp_body_id, buffer_line);
     tmp_body_id--;
     pBody = pSim->pBodies[tmp_body_id];
 
-    // Leo y uno al path el nombre del archivo de input de AeroDyn
+    // Read and build the full path for the AeroDyn input file
     if (fscanf(pFile, "%s %[^\n]\n", cADFileName, buffer_line) != 2)
     {
         std::stringstream ss;
@@ -60,45 +60,40 @@ void WindTurbine::ReadPropertiesASCII(FILE *pFile)
         throw ValueError(ss.str());
     }
     std::string ADFileName = JoinPath(pSim->inputFolderPath, cADFileName);
-    std::copy(ADFileName.data(),
-              ADFileName.data() + (ADFileName.size() + 1),
-              InputFileName_AD);
+    std::copy(ADFileName.data(), ADFileName.data() + (ADFileName.size() + 1), InputFileName_AD);
 
-    // Leo y uno al path el nombre del archivo de input de InflowWind
+    // Read and build the full path for the InflowWind input file
     if (fscanf(pFile, "%s %[^\n]\n", cIWFileName, buffer_line) != 2)
     {
         std::stringstream ss;
-        ss << "An error occurred when trying to read the InflowWind input file name in Turbine: " << idWindTurbine << "\n";
+        ss << "An error occurred when trying to read the InflowWind input file name in Turbine: " << idWindTurbine
+           << "\n";
         throw ValueError(ss.str());
     }
     std::string IWFileName = JoinPath(pSim->inputFolderPath, cIWFileName);
-    std::copy(IWFileName.data(),
-              IWFileName.data() + (IWFileName.size() + 1),
-              InputFileName_IW);
+    std::copy(IWFileName.data(), IWFileName.data() + (IWFileName.size() + 1), InputFileName_IW);
 
-    // Leo y uno al path el nombre del archivo de input de ServoDyn
+    // Read and build the full path for the ServoDyn input file
     if (fscanf(pFile, "%s %[^\n]\n", cSDFileName, buffer_line) != 2)
     {
         std::stringstream ss;
-        ss << "An error occurred when trying to read the ServoDyn input file name in Turbine: " << idWindTurbine << "\n";
+        ss << "An error occurred when trying to read the ServoDyn input file name in Turbine: " << idWindTurbine
+           << "\n";
         throw ValueError(ss.str());
     }
     std::string SDFileName = JoinPath(pSim->inputFolderPath, cSDFileName);
-    std::copy(SDFileName.data(),
-              SDFileName.data() + (SDFileName.size() + 1),
-              InputFileName_SD);
+    std::copy(SDFileName.data(), SDFileName.data() + (SDFileName.size() + 1), InputFileName_SD);
 
-    // Leo y uno al path el nombre del archivo de input de ElastoDyn
+    // Read and build the full path for the ElastoDyn input file
     if (fscanf(pFile, "%s %[^\n]\n", cEDFileName, buffer_line) != 2)
     {
         std::stringstream ss;
-        ss << "An error occurred when trying to read the ElastoDyn input file name in Turbine: " << idWindTurbine << "\n";
+        ss << "An error occurred when trying to read the ElastoDyn input file name in Turbine: " << idWindTurbine
+           << "\n";
         throw ValueError(ss.str());
     }
     std::string EDFileName = JoinPath(pSim->inputFolderPath, cEDFileName);
-    std::copy(EDFileName.data(),
-              EDFileName.data() + (EDFileName.size() + 1),
-              InputFileName_ED);
+    std::copy(EDFileName.data(), EDFileName.data() + (EDFileName.size() + 1), InputFileName_ED);
 }
 
 void WindTurbine::ReadPropertiesYAML(YAML::Node node)
@@ -124,9 +119,7 @@ void WindTurbine::Initialize(void)
 
     std::cout << "    WindTurbine::Initialize" << std::endl;
     std::string OutputPath = JoinPath(pSim->outputFolderPath, "FAST");
-    std::copy(OutputPath.data(),
-              OutputPath.data() + (OutputPath.size() + 1),
-              OutputPathName);
+    std::copy(OutputPath.data(), OutputPath.data() + (OutputPath.size() + 1), OutputPathName);
     fs::create_directory(OutputPath);
 
     std::cout << "        --> Introduce inputs in FSTW_InitInput" << std::endl;
@@ -139,17 +132,8 @@ void WindTurbine::Initialize(void)
     FSTW_InitInput.flag_input_pos = 1;
 
     std::cout << "        --> FSTW_Init..." << std::endl;
-    FSTW_Init(&idWindTurbine,
-              InputFileName_AD,
-              InputFileName_IW,
-              InputFileName_SD,
-              InputFileName_ED,
-              OutputPathName,
-              &FSTW_InitInput,
-              &FSTW_Input,
-              &FSTW_Output,
-              &ErrStat,
-              ErrMsg);
+    FSTW_Init(&idWindTurbine, InputFileName_AD, InputFileName_IW, InputFileName_SD, InputFileName_ED, OutputPathName,
+              &FSTW_InitInput, &FSTW_Input, &FSTW_Output, &ErrStat, ErrMsg);
     CheckError();
     std::cout << "        --> ... done!" << std::endl;
 
@@ -190,7 +174,8 @@ void WindTurbine::Initialize(void)
     if (YCMode > 0)
     {
         std::stringstream ss;
-        ss << "Option with YAW control not implemented yet, fix ServoDyn Input for wind turbine " << idWindTurbine << "\n";
+        ss << "Option with YAW control not implemented yet, fix ServoDyn Input for wind turbine " << idWindTurbine
+           << "\n";
         throw ValueError(ss.str());
     }
 

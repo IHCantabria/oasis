@@ -53,7 +53,8 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
             this->pBodiesFree[ii]->pos(itemp, 0) = y(ini);
             ini = ini + 1;
         }
-        // std::cout << "Simulation::CalculateSystemDynamics - Body " << this->pBodiesFree[ii]->GetId() + 1 << " pos: " << this->pBodiesFree[ii]->pos.t() << std::endl;
+        // std::cout << "Simulation::CalculateSystemDynamics - Body " << this->pBodiesFree[ii]->GetId() + 1 << " pos: "
+        // << this->pBodiesFree[ii]->pos.t() << std::endl;
     }
     for (int ii = 0; ii < numLines; ii++)
     {
@@ -82,7 +83,8 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
             this->pBodiesFree[ii]->vel(itemp, 0) = y(ini);
             ini = ini + 1;
         }
-        // std::cout << "Simulation::CalculateSystemDynamics - Body " << this->pBodiesFree[ii]->GetId() + 1 << " vel: " << this->pBodiesFree[ii]->vel.t() << std::endl;
+        // std::cout << "Simulation::CalculateSystemDynamics - Body " << this->pBodiesFree[ii]->GetId() + 1 << " vel: "
+        // << this->pBodiesFree[ii]->vel.t() << std::endl;
     }
     for (int ii = 0; ii < numLines; ii++)
     {
@@ -158,7 +160,8 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
         }
     }
     // Set boundary conditions on pos and vel of Lines if the BCP is a joint or elastic anchor
-    // std::cout << "Simulation::CalculateSystemDynamics - Set Boundary conditios if BCP is a Joint or ElasticAnchor" << std::endl;
+    // std::cout << "Simulation::CalculateSystemDynamics - Set Boundary conditios if BCP is a Joint or ElasticAnchor" <<
+    // std::endl;
     for (int ii = 0; ii < numLines; ii++)
     {
         if (pLines[ii]->pLineBcps[0]->GetType() == 3 || pLines[ii]->pLineBcps[0]->GetType() == 5)
@@ -169,8 +172,10 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
         }
         if (pLines[ii]->pLineBcps[1]->GetType() == 3 || pLines[ii]->pLineBcps[1]->GetType() == 5)
         {
-            pLines[ii]->pLineBcps[1]->posLines.row(pLines[ii]->pLineBcps[1]->iLJ) = pLines[ii]->pos.row(pLines[ii]->N - 1);
-            pLines[ii]->pLineBcps[1]->velLines.row(pLines[ii]->pLineBcps[1]->iLJ) = pLines[ii]->vel.row(pLines[ii]->N - 1);
+            pLines[ii]->pLineBcps[1]->posLines.row(pLines[ii]->pLineBcps[1]->iLJ) =
+                pLines[ii]->pos.row(pLines[ii]->N - 1);
+            pLines[ii]->pLineBcps[1]->velLines.row(pLines[ii]->pLineBcps[1]->iLJ) =
+                pLines[ii]->vel.row(pLines[ii]->N - 1);
             pLines[ii]->pLineBcps[1]->iLJ = pLines[ii]->pLineBcps[1]->iLJ + 1;
         }
     }
@@ -213,32 +218,37 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
 
     // Initialize forces vector
     arma::mat Fb = arma::zeros(6 * numBodiesFree, 1);
-    double coefHydro = ((time - lastHydroTime_old) * (time - lastHydroTime_old2)) / ((lastHydroTime - lastHydroTime_old) * (lastHydroTime - lastHydroTime_old2));
-    double coefHydro_old = ((time - lastHydroTime) * (time - lastHydroTime_old2)) / ((lastHydroTime_old - lastHydroTime) * (lastHydroTime_old - lastHydroTime_old2));
-    double coefHydro_old2 = ((time - lastHydroTime) * (time - lastHydroTime_old)) / ((lastHydroTime_old2 - lastHydroTime) * (lastHydroTime_old2 - lastHydroTime_old));
+    double coefHydro = ((time - lastHydroTime_old) * (time - lastHydroTime_old2)) /
+                       ((lastHydroTime - lastHydroTime_old) * (lastHydroTime - lastHydroTime_old2));
+    double coefHydro_old = ((time - lastHydroTime) * (time - lastHydroTime_old2)) /
+                           ((lastHydroTime_old - lastHydroTime) * (lastHydroTime_old - lastHydroTime_old2));
+    double coefHydro_old2 = ((time - lastHydroTime) * (time - lastHydroTime_old)) /
+                            ((lastHydroTime_old2 - lastHydroTime) * (lastHydroTime_old2 - lastHydroTime_old));
 
     // Compute hydrostatic and hydrodynamic forces
     // std::cout << "Simulation::CalculateSystemDynamics - Compute hydrodynamic and hydrostatic forces" << std::endl;
     for (int ii = 0; ii < numBodiesFree; ii++)
     {
-        // Fb(arma::span(6 * ii, 6 * (ii + 1) - 1), 0) = pBodies[ii]->pHydro->CalculateHydrodynamicForces(time) + pBodies[ii]->pHydro->CalculateHydrostaticForces(time);
-        Fb(arma::span(6 * ii, 6 * (ii + 1) - 1), 0) = coefHydro * pBodiesFree[ii]->Fb + coefHydro_old * pBodiesFree[ii]->Fb_old + coefHydro_old2 * pBodiesFree[ii]->Fb_old2;
+        // Fb(arma::span(6 * ii, 6 * (ii + 1) - 1), 0) = pBodies[ii]->pHydro->CalculateHydrodynamicForces(time) +
+        // pBodies[ii]->pHydro->CalculateHydrostaticForces(time);
+        Fb(arma::span(6 * ii, 6 * (ii + 1) - 1), 0) = coefHydro * pBodiesFree[ii]->Fb +
+                                                      coefHydro_old * pBodiesFree[ii]->Fb_old +
+                                                      coefHydro_old2 * pBodiesFree[ii]->Fb_old2;
     }
     if (Fb.has_nan() | Fb.has_inf())
     {
         std::cout << std::endl
                   << "ERROR: NaN or Inf detected in Fb for hydrostatic or hydrodynamic forces" << std::endl;
         std::cout << "  time = " << time << std::endl;
-        std::cout << "  coefHydro = " << coefHydro << ", coefHydro_old = " << coefHydro_old << ", coefHydro_old2 = " << coefHydro_old2 << std::endl;
-        std::cout << "  lastHydroTime = " << lastHydroTime << ", lastHydroTime_old = " << lastHydroTime_old << ", lastHydroTime_old2 = " << lastHydroTime_old2 << std::endl;
+        std::cout << "  coefHydro = " << coefHydro << ", coefHydro_old = " << coefHydro_old
+                  << ", coefHydro_old2 = " << coefHydro_old2 << std::endl;
+        std::cout << "  lastHydroTime = " << lastHydroTime << ", lastHydroTime_old = " << lastHydroTime_old
+                  << ", lastHydroTime_old2 = " << lastHydroTime_old2 << std::endl;
         for (int ii = 0; ii < numBodiesFree; ii++)
         {
-            std::cout << "  body " << pBodiesFree[ii]->GetId() + 1
-                      << " Fb: " << pBodiesFree[ii]->Fb.t()
-                      << "  Fb_old: " << pBodiesFree[ii]->Fb_old.t()
-                      << "  Fb_old2: " << pBodiesFree[ii]->Fb_old2.t()
-                      << "  pos: " << pBodiesFree[ii]->pos.t()
-                      << "  pos_eq: " << pBodiesFree[ii]->pos_eq.t()
+            std::cout << "  body " << pBodiesFree[ii]->GetId() + 1 << " Fb: " << pBodiesFree[ii]->Fb.t()
+                      << "  Fb_old: " << pBodiesFree[ii]->Fb_old.t() << "  Fb_old2: " << pBodiesFree[ii]->Fb_old2.t()
+                      << "  pos: " << pBodiesFree[ii]->pos.t() << "  pos_eq: " << pBodiesFree[ii]->pos_eq.t()
                       << "  vel: " << pBodiesFree[ii]->vel.t();
         }
         throw std::exception();
@@ -249,12 +259,12 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     for (int ii = 0; ii < numBodiesFree; ii++)
     {
         pBodiesFree[ii]->ComputeBcpForces();
-        Fb(arma::span(6 * ii, 6 * (ii + 1) - 1), 0) = Fb(arma::span(6 * ii, 6 * (ii + 1) - 1), 0) + pBodiesFree[ii]->bcpForces;
+        Fb(arma::span(6 * ii, 6 * (ii + 1) - 1), 0) =
+            Fb(arma::span(6 * ii, 6 * (ii + 1) - 1), 0) + pBodiesFree[ii]->bcpForces;
     }
     if (Fb.has_nan() | Fb.has_inf())
     {
-        std::cout << std::endl
-                  << "ERROR: NaN or Inf detected in Fb for BCP forces" << std::endl;
+        std::cout << std::endl << "ERROR: NaN or Inf detected in Fb for BCP forces" << std::endl;
         throw std::exception();
     }
 
@@ -263,12 +273,12 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     for (int ii = 0; ii < numBodiesFree; ii++)
     {
         pBodiesFree[ii]->ComputeWindTurbForces();
-        Fb(arma::span(6 * ii, 6 * (ii + 1) - 1), 0) = Fb(arma::span(6 * ii, 6 * (ii + 1) - 1), 0) + pBodiesFree[ii]->windTurbForces;
+        Fb(arma::span(6 * ii, 6 * (ii + 1) - 1), 0) =
+            Fb(arma::span(6 * ii, 6 * (ii + 1) - 1), 0) + pBodiesFree[ii]->windTurbForces;
     }
     if (Fb.has_nan() | Fb.has_inf())
     {
-        std::cout << std::endl
-                  << "ERROR: NaN or Inf detected in Fb for wind turbine forces" << std::endl;
+        std::cout << std::endl << "ERROR: NaN or Inf detected in Fb for wind turbine forces" << std::endl;
         throw std::exception();
     }
 
@@ -283,7 +293,8 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     }
     for (int ii = 0; ii < numBodiesFree; ii++)
     {
-        Fb(arma::span(6 * ii, 6 * (ii + 1) - 1), 0) = Fb(arma::span(6 * ii, 6 * (ii + 1) - 1), 0) + pBodiesFree[ii]->owcForces;
+        Fb(arma::span(6 * ii, 6 * (ii + 1) - 1), 0) =
+            Fb(arma::span(6 * ii, 6 * (ii + 1) - 1), 0) + pBodiesFree[ii]->owcForces;
     }
 
     // Compute also everything for locked bodies so it can be displayed on the output files
@@ -312,7 +323,8 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
             if (rotSimpFlag)
             { // If simplification, always use same matrix
 
-                accB = (*pSystemMatrixFFInv) * (Fb.rows(sysMatIndFree) - (*pSystemMatrixFL) * accAll.rows(sysMatIndLock));
+                accB =
+                    (*pSystemMatrixFFInv) * (Fb.rows(sysMatIndFree) - (*pSystemMatrixFL) * accAll.rows(sysMatIndLock));
             }
             else
             { // If no simplification, update matrix for new rotation states
@@ -328,11 +340,13 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
                     phi_dot = pBodiesFree[ii]->vel.rows(arma::span(3, 5));
 
                     auxM = tmpMat(arma::span(6 * ii + 3, 6 * (ii + 1) - 1), arma::span(6 * ii + 3, 6 * (ii + 1) - 1));
-                    tmpMat(arma::span(6 * ii + 3, 6 * (ii + 1) - 1), arma::span(6 * ii + 3, 6 * (ii + 1) - 1)) = auxM * invRotMat * aMat;
+                    tmpMat(arma::span(6 * ii + 3, 6 * (ii + 1) - 1), arma::span(6 * ii + 3, 6 * (ii + 1) - 1)) =
+                        auxM * invRotMat * aMat;
 
                     auxV = tmpVec(arma::span(6 * ii + 3, 6 * (ii + 1) - 1), 0);
-                    tmpVec(arma::span(6 * ii + 3, 6 * (ii + 1) - 1), 0) = auxV - auxM * invRotMat * aMat_dot * phi_dot -
-                                                                          arma::cross(invRotMat * aMat * phi_dot, auxM * invRotMat * aMat * phi_dot);
+                    tmpVec(arma::span(6 * ii + 3, 6 * (ii + 1) - 1), 0) =
+                        auxV - auxM * invRotMat * aMat_dot * phi_dot -
+                        arma::cross(invRotMat * aMat * phi_dot, auxM * invRotMat * aMat * phi_dot);
                 }
 
                 arma::mat tmpMat_FF = tmpMat(sysMatIndFree, sysMatIndFree);
@@ -364,11 +378,13 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
                     phi_dot = pBodies[ii]->vel.rows(arma::span(3, 5));
 
                     auxM = tmpMat(arma::span(6 * ii + 3, 6 * (ii + 1) - 1), arma::span(6 * ii + 3, 6 * (ii + 1) - 1));
-                    tmpMat(arma::span(6 * ii + 3, 6 * (ii + 1) - 1), arma::span(6 * ii + 3, 6 * (ii + 1) - 1)) = auxM * invRotMat * aMat;
+                    tmpMat(arma::span(6 * ii + 3, 6 * (ii + 1) - 1), arma::span(6 * ii + 3, 6 * (ii + 1) - 1)) =
+                        auxM * invRotMat * aMat;
 
                     auxV = tmpVec(arma::span(6 * ii + 3, 6 * (ii + 1) - 1), 0);
-                    tmpVec(arma::span(6 * ii + 3, 6 * (ii + 1) - 1), 0) = auxV - auxM * invRotMat * aMat_dot * phi_dot -
-                                                                          arma::cross(invRotMat * aMat * phi_dot, auxM * invRotMat * aMat * phi_dot);
+                    tmpVec(arma::span(6 * ii + 3, 6 * (ii + 1) - 1), 0) =
+                        auxV - auxM * invRotMat * aMat_dot * phi_dot -
+                        arma::cross(invRotMat * aMat * phi_dot, auxM * invRotMat * aMat * phi_dot);
                 }
 
                 accB = arma::solve(tmpMat, tmpVec);
@@ -377,8 +393,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     }
     if (accB.has_nan() | accB.has_inf())
     {
-        std::cout << std::endl
-                  << "ERROR: NaN or Inf detected in bodies accelerations" << std::endl;
+        std::cout << std::endl << "ERROR: NaN or Inf detected in bodies accelerations" << std::endl;
         std::cout << "  time = " << time << std::endl;
         std::cout << "  accB: " << accB.t();
         std::cout << "  Fb: " << Fb.t();
@@ -429,8 +444,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     {
         if (pLines[ii]->F.has_nan() | pLines[ii]->F.has_inf())
         {
-            std::cout << std::endl
-                      << "ERROR: NaN or Inf detected in Force vector for Line " << ii << std::endl;
+            std::cout << std::endl << "ERROR: NaN or Inf detected in Force vector for Line " << ii << std::endl;
             throw std::exception();
         }
         LinesCouplingVector.rows(pLines[ii]->ind4CouplingMat) += pLines[ii]->F;
@@ -444,8 +458,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     }
     if (LinesCouplingVector.has_nan() | LinesCouplingVector.has_inf())
     {
-        std::cout << std::endl
-                  << "ERROR: NaN or Inf detected in lines force vector" << std::endl;
+        std::cout << std::endl << "ERROR: NaN or Inf detected in lines force vector" << std::endl;
         throw std::exception();
     }
 
@@ -472,8 +485,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     }
     if (LinesAccelerations.has_nan() | LinesAccelerations.has_inf())
     {
-        std::cout << std::endl
-                  << "ERROR: NaN or Inf detected in lines accelerations" << std::endl;
+        std::cout << std::endl << "ERROR: NaN or Inf detected in lines accelerations" << std::endl;
         throw std::exception();
     }
     for (int ii = 0; ii < numLines; ii++)
@@ -489,7 +501,8 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     }
 
     // Recompute Lines coupling matrix for new dL values
-    // std::cout << "Simulation::CalculateSystemDynamics - Recompute Lines coupling matrix for new dL values" << std::endl;
+    // std::cout << "Simulation::CalculateSystemDynamics - Recompute Lines coupling matrix for new dL values" <<
+    // std::endl;
     if (useWinches && numJointBcps > 0)
     {
         ComputeLinesCouplingMatrix();
@@ -591,8 +604,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     // std::cout << "Simulation::CalculateSystemDynamics - Check if yprime has a NaN" << std::endl;
     if (yprime.has_nan() | yprime.has_inf())
     {
-        std::cout << std::endl
-                  << "ERROR: NaN or Inf Detected! yprime = " << std::endl;
+        std::cout << std::endl << "ERROR: NaN or Inf Detected! yprime = " << std::endl;
         std::cout << yprime << std::endl;
         throw std::exception();
     }
@@ -650,8 +662,10 @@ void Simulation::CalculateSystemDynamicsStatic(double time)
         }
         if (pLines[ii]->pLineBcps[1]->GetType() == 3 || pLines[ii]->pLineBcps[1]->GetType() == 5)
         {
-            pLines[ii]->pLineBcps[1]->posLines.row(pLines[ii]->pLineBcps[1]->iLJ) = pLines[ii]->pos.row(pLines[ii]->N - 1);
-            pLines[ii]->pLineBcps[1]->velLines.row(pLines[ii]->pLineBcps[1]->iLJ) = pLines[ii]->vel.row(pLines[ii]->N - 1);
+            pLines[ii]->pLineBcps[1]->posLines.row(pLines[ii]->pLineBcps[1]->iLJ) =
+                pLines[ii]->pos.row(pLines[ii]->N - 1);
+            pLines[ii]->pLineBcps[1]->velLines.row(pLines[ii]->pLineBcps[1]->iLJ) =
+                pLines[ii]->vel.row(pLines[ii]->N - 1);
             pLines[ii]->pLineBcps[1]->iLJ = pLines[ii]->pLineBcps[1]->iLJ + 1;
         }
     }
@@ -932,7 +946,8 @@ void Simulation::Initialize()
         else if (this->timeIntMethod == 2)
         {
             std::cout << "Initializing BDF" << timeIntOrder << " temporal solver..." << std::endl;
-            pTimeSolver = new BDFN(this->timeIntOrder, this->timeIntAdaptivity, start_time, this->simulationTime, this->maxTimeStep, this->writeTimeStep, y, this);
+            pTimeSolver = new BDFN(this->timeIntOrder, this->timeIntAdaptivity, start_time, this->simulationTime,
+                                   this->maxTimeStep, this->writeTimeStep, y, this);
             std::cout << "  BDF" << timeIntOrder << " constructor done!" << std::endl;
             pTimeSolver->init();
             pTimeSolver->atol = this->timeIntAbsTol;
@@ -943,7 +958,8 @@ void Simulation::Initialize()
         else if (this->timeIntMethod == 3)
         {
             std::cout << "Initializing ESDIRK temporal solver..." << std::endl;
-            pTimeSolver = new ESDIRK(this->timeIntAdaptivity, start_time, this->simulationTime, this->maxTimeStep, this->writeTimeStep, this->timeIntJacNumStepsMax, y, this);
+            pTimeSolver = new ESDIRK(this->timeIntAdaptivity, start_time, this->simulationTime, this->maxTimeStep,
+                                     this->writeTimeStep, this->timeIntJacNumStepsMax, y, this);
             std::cout << "  ESDIRK constructor done!" << std::endl;
             pTimeSolver->atol = this->timeIntAbsTol;
             pTimeSolver->rtol = this->timeIntRelTol;
@@ -959,7 +975,8 @@ void Simulation::Initialize()
     else
     {
         std::cout << "WARNING: numSystem == 0. No ODE solver needed." << std::endl;
-        std::cout << "Using simple time-stepping for static analysis (e.g., wave loads on fixed structure)." << std::endl;
+        std::cout << "Using simple time-stepping for static analysis (e.g., wave loads on fixed structure)."
+                  << std::endl;
         pTimeSolver = nullptr;
     }
 
@@ -1032,7 +1049,7 @@ void Simulation::ReadBcpsASCII()
 
     // Open file
     std::string file_path = JoinPath(inputFolderPath, "dataBCPs.dat");
-    FILE *file_pointer = fopen(file_path.c_str(), "r");
+    FILE* file_pointer = fopen(file_path.c_str(), "r");
     if (file_pointer == NULL)
     {
         std::cout << "    --> WARNING: dataBCPs.dat was not found! Setting numBCPs = 0!" << std::endl;
@@ -1041,11 +1058,11 @@ void Simulation::ReadBcpsASCII()
         numJointBcps = 0;
         numBodyBcps = 0;
         numBcps = 0;
-        pBcps = new BCP *[0];
-        pFairleadBcps = new FairleadBCP *[0];
-        pAnchorBcps = new AnchorBCP *[0];
-        pJointBcps = new JointBCP *[0];
-        pBodyBcps = new BodyBCP *[0];
+        pBcps = new BCP*[0];
+        pFairleadBcps = new FairleadBCP*[0];
+        pAnchorBcps = new AnchorBCP*[0];
+        pJointBcps = new JointBCP*[0];
+        pBodyBcps = new BodyBCP*[0];
         return;
     }
 
@@ -1063,20 +1080,20 @@ void Simulation::ReadBcpsASCII()
     // printf("Number of body: %d\n", numBodyBcps);
 
     // Allocate a vector of BCP pointers
-    pBcps = new BCP *[numBcps];
+    pBcps = new BCP*[numBcps];
     int bcp_count = 0;
 
     // Read each BCP
-    pFairleadBcps = new FairleadBCP *[numFairBcps];
+    pFairleadBcps = new FairleadBCP*[numFairBcps];
     for (int ii = 0; ii < numFairBcps; ii++)
     {
         pFairleadBcps[ii] = new FairleadBCP(bcp_count);
         pFairleadBcps[ii]->ReadPropertiesASCII(file_pointer, inputFolderPath);
-        dynamic_cast<FairleadBCP *>(pFairleadBcps[ii])->Initialize(inputFolderPath);
+        dynamic_cast<FairleadBCP*>(pFairleadBcps[ii])->Initialize(inputFolderPath);
         pBcps[bcp_count] = pFairleadBcps[ii];
         bcp_count++;
     }
-    pAnchorBcps = new AnchorBCP *[numAnchorBcps];
+    pAnchorBcps = new AnchorBCP*[numAnchorBcps];
     for (int ii = 0; ii < numAnchorBcps; ii++)
     {
         pAnchorBcps[ii] = new AnchorBCP(bcp_count);
@@ -1084,16 +1101,16 @@ void Simulation::ReadBcpsASCII()
         pBcps[bcp_count] = pAnchorBcps[ii];
         bcp_count++;
     }
-    pJointBcps = new JointBCP *[numJointBcps];
+    pJointBcps = new JointBCP*[numJointBcps];
     for (int ii = 0; ii < numJointBcps; ii++)
     {
         pJointBcps[ii] = new JointBCP(bcp_count);
         pJointBcps[ii]->ReadPropertiesASCII(file_pointer);
-        dynamic_cast<JointBCP *>(pJointBcps[ii])->Initialize(this->gravity, this->waterDensity, this->waterDepth);
+        dynamic_cast<JointBCP*>(pJointBcps[ii])->Initialize(this->gravity, this->waterDensity, this->waterDepth);
         pBcps[bcp_count] = pJointBcps[ii];
         bcp_count++;
     }
-    pBodyBcps = new BodyBCP *[numBodyBcps];
+    pBodyBcps = new BodyBCP*[numBodyBcps];
     for (int ii = 0; ii < numBodyBcps; ii++)
     {
         pBodyBcps[ii] = new BodyBCP(bcp_count);
@@ -1101,12 +1118,12 @@ void Simulation::ReadBcpsASCII()
         pBcps[bcp_count] = pBodyBcps[ii];
         bcp_count++;
     }
-    pElasticAnchorBcps = new ElasticAnchorBCP *[numElasticAnchorBcps];
+    pElasticAnchorBcps = new ElasticAnchorBCP*[numElasticAnchorBcps];
     for (int ii = 0; ii < numElasticAnchorBcps; ii++)
     {
         pElasticAnchorBcps[ii] = new ElasticAnchorBCP(bcp_count);
         pElasticAnchorBcps[ii]->ReadPropertiesASCII(file_pointer);
-        dynamic_cast<ElasticAnchorBCP *>(pElasticAnchorBcps[ii])->Initialize(this->gravity, this->waterDensity);
+        dynamic_cast<ElasticAnchorBCP*>(pElasticAnchorBcps[ii])->Initialize(this->gravity, this->waterDensity);
         pBcps[bcp_count] = pElasticAnchorBcps[ii];
         bcp_count++;
     }
@@ -1139,12 +1156,12 @@ void Simulation::ReadBcpsYAML()
         numBodyBcps = 0;
         numElasticAnchorBcps = 0;
         numBcps = 0;
-        pBcps = new BCP *[0];
-        pFairleadBcps = new FairleadBCP *[0];
-        pAnchorBcps = new AnchorBCP *[0];
-        pJointBcps = new JointBCP *[0];
-        pBodyBcps = new BodyBCP *[0];
-        pElasticAnchorBcps = new ElasticAnchorBCP *[0];
+        pBcps = new BCP*[0];
+        pFairleadBcps = new FairleadBCP*[0];
+        pAnchorBcps = new AnchorBCP*[0];
+        pJointBcps = new JointBCP*[0];
+        pBodyBcps = new BodyBCP*[0];
+        pElasticAnchorBcps = new ElasticAnchorBCP*[0];
         return;
     }
 
@@ -1158,19 +1175,19 @@ void Simulation::ReadBcpsYAML()
     numElasticAnchorBcps = bcpsNode["elastic_anchors"] ? (int)bcpsNode["elastic_anchors"].size() : 0;
     numBcps = numFairBcps + numAnchorBcps + numJointBcps + numBodyBcps + numElasticAnchorBcps;
 
-    pBcps = new BCP *[numBcps];
+    pBcps = new BCP*[numBcps];
     int bcp_count = 0;
 
-    pFairleadBcps = new FairleadBCP *[numFairBcps];
+    pFairleadBcps = new FairleadBCP*[numFairBcps];
     for (int ii = 0; ii < numFairBcps; ii++)
     {
         pFairleadBcps[ii] = new FairleadBCP(bcp_count);
         pFairleadBcps[ii]->ReadPropertiesYAML(bcpsNode["fairleads"][ii], inputFolderPath);
-        dynamic_cast<FairleadBCP *>(pFairleadBcps[ii])->Initialize(inputFolderPath);
+        dynamic_cast<FairleadBCP*>(pFairleadBcps[ii])->Initialize(inputFolderPath);
         pBcps[bcp_count] = pFairleadBcps[ii];
         bcp_count++;
     }
-    pAnchorBcps = new AnchorBCP *[numAnchorBcps];
+    pAnchorBcps = new AnchorBCP*[numAnchorBcps];
     for (int ii = 0; ii < numAnchorBcps; ii++)
     {
         pAnchorBcps[ii] = new AnchorBCP(bcp_count);
@@ -1178,16 +1195,16 @@ void Simulation::ReadBcpsYAML()
         pBcps[bcp_count] = pAnchorBcps[ii];
         bcp_count++;
     }
-    pJointBcps = new JointBCP *[numJointBcps];
+    pJointBcps = new JointBCP*[numJointBcps];
     for (int ii = 0; ii < numJointBcps; ii++)
     {
         pJointBcps[ii] = new JointBCP(bcp_count);
         pJointBcps[ii]->ReadPropertiesYAML(bcpsNode["joints"][ii]);
-        dynamic_cast<JointBCP *>(pJointBcps[ii])->Initialize(this->gravity, this->waterDensity, this->waterDepth);
+        dynamic_cast<JointBCP*>(pJointBcps[ii])->Initialize(this->gravity, this->waterDensity, this->waterDepth);
         pBcps[bcp_count] = pJointBcps[ii];
         bcp_count++;
     }
-    pBodyBcps = new BodyBCP *[numBodyBcps];
+    pBodyBcps = new BodyBCP*[numBodyBcps];
     for (int ii = 0; ii < numBodyBcps; ii++)
     {
         pBodyBcps[ii] = new BodyBCP(bcp_count);
@@ -1195,12 +1212,12 @@ void Simulation::ReadBcpsYAML()
         pBcps[bcp_count] = pBodyBcps[ii];
         bcp_count++;
     }
-    pElasticAnchorBcps = new ElasticAnchorBCP *[numElasticAnchorBcps];
+    pElasticAnchorBcps = new ElasticAnchorBCP*[numElasticAnchorBcps];
     for (int ii = 0; ii < numElasticAnchorBcps; ii++)
     {
         pElasticAnchorBcps[ii] = new ElasticAnchorBCP(bcp_count);
         pElasticAnchorBcps[ii]->ReadPropertiesYAML(bcpsNode["elastic_anchors"][ii]);
-        dynamic_cast<ElasticAnchorBCP *>(pElasticAnchorBcps[ii])->Initialize(this->gravity, this->waterDensity);
+        dynamic_cast<ElasticAnchorBCP*>(pElasticAnchorBcps[ii])->Initialize(this->gravity, this->waterDensity);
         pBcps[bcp_count] = pElasticAnchorBcps[ii];
         bcp_count++;
     }
@@ -1239,7 +1256,7 @@ void Simulation::ReadBodiesASCII()
     std::cout << "Parsing file: dataBodies.dat" << std::endl;
     std::string file_path = JoinPath(inputFolderPath, "dataBodies.dat");
     // Check if file exists first
-    FILE *test_file = fopen(file_path.c_str(), "r");
+    FILE* test_file = fopen(file_path.c_str(), "r");
     if (test_file == NULL)
     {
         std::cout << "    --> WARNING: dataBodies.dat was not found! Setting numBodies = 0!" << std::endl;
@@ -1256,7 +1273,7 @@ void Simulation::ReadBodiesASCII()
     {
         // Open file
         std::cout << "Opening file: dataBodies.dat" << std::endl;
-        FILE *pFile = fopen(file_path.c_str(), "r");
+        FILE* pFile = fopen(file_path.c_str(), "r");
         if (pFile == NULL)
         {
             std::stringstream ss;
@@ -1265,7 +1282,7 @@ void Simulation::ReadBodiesASCII()
         }
 
         // Read all bodies
-        pBodies = new Body *[numBodies];
+        pBodies = new Body*[numBodies];
         for (int ii = 0; ii < numBodies; ii++)
         {
             std::cout << "  ... Including Body: " << ii + 1 << std::endl;
@@ -1325,17 +1342,18 @@ void Simulation::ReadBodiesASCII()
         }
 
         // Pre-determine the number of bodies in each HDB file
-        int *numBodiesPerHDB = new int[hydro_database_count];
+        int* numBodiesPerHDB = new int[hydro_database_count];
         for (int ii = 0; ii < hydro_database_count; ii++)
         {
             std::string hdb_path = JoinPath(inputFolderPath, hydro_databases_name[ii]);
             numBodiesPerHDB[ii] = HydroDatabase::GetNumBodiesFromFile(hdb_path);
-            std::cout << "    --> HDB: " << hydro_databases_name[ii] << " contains " << numBodiesPerHDB[ii] << " bodies" << std::endl;
+            std::cout << "    --> HDB: " << hydro_databases_name[ii] << " contains " << numBodiesPerHDB[ii] << " bodies"
+                      << std::endl;
         }
 
         // Arrange all the bodies by database (different logic for single vs multi-body HDBs)
-        Body **pBodiesSort = new Body *[numBodies];
-        int *pBody_found = new int[numBodies];
+        Body** pBodiesSort = new Body*[numBodies];
+        int* pBody_found = new int[numBodies];
         for (int ii = 0; ii < numBodies; ii++)
         {
             pBody_found[ii] = 0;
@@ -1347,7 +1365,8 @@ void Simulation::ReadBodiesASCII()
                 // Single-body HDB: multiple OASIS bodies can share it, add sequentially
                 for (int jj = 0; jj < numBodies; jj++)
                 {
-                    if ((hydro_databases_name[ii].compare(pBodies[jj]->hydroDatabaseName) == 0) && (pBody_found[jj] == 0))
+                    if ((hydro_databases_name[ii].compare(pBodies[jj]->hydroDatabaseName) == 0) &&
+                        (pBody_found[jj] == 0))
                     {
                         pBody_found[jj] = 1;
                         pBodiesSort[body_count] = pBodies[jj];
@@ -1363,7 +1382,8 @@ void Simulation::ReadBodiesASCII()
                 arma::uvec temp_hdb_ind(temp_nB_hdb);
                 for (int jj = 0; jj < numBodies; jj++)
                 {
-                    if ((hydro_databases_name[ii].compare(pBodies[jj]->hydroDatabaseName) == 0) && (pBody_found[jj] == 0))
+                    if ((hydro_databases_name[ii].compare(pBodies[jj]->hydroDatabaseName) == 0) &&
+                        (pBody_found[jj] == 0))
                     {
                         pBody_found[jj] = 1;
                         pBodiesSort[body_count + pBodies[jj]->hydroDatabaseIndex] = pBodies[jj];
@@ -1413,8 +1433,8 @@ void Simulation::ReadBodiesASCII()
                 numBodiesFree++;
             }
         }
-        pBodiesLock = new Body *[numBodiesLock];
-        pBodiesFree = new Body *[numBodiesFree];
+        pBodiesLock = new Body*[numBodiesLock];
+        pBodiesFree = new Body*[numBodiesFree];
         int indL = 0;
         int indF = 0;
         for (int ii = 0; ii < numBodies; ii++)
@@ -1450,14 +1470,14 @@ void Simulation::ReadBodiesASCII()
             if (nBodiesInHDB == 1)
             {
                 // Single-body HDB: create a private 1-element body array for this body
-                Body **pSingleBodyArray = new Body *[1];
+                Body** pSingleBodyArray = new Body*[1];
                 pSingleBodyArray[0] = pBodies[ii];
                 this->pBodies[ii]->LoadHydrodynamicDatabase(pSingleBodyArray, 0);
             }
             else
             {
                 // Multi-body HDB: build shared body array indexed by hydroDatabaseIndex
-                Body **pMultiBodyArray = new Body *[nBodiesInHDB];
+                Body** pMultiBodyArray = new Body*[nBodiesInHDB];
                 for (int jj = 0; jj < nBodiesInHDB; jj++)
                 {
                     pMultiBodyArray[jj] = pBodies[ii - pBodies[ii]->hydroDatabaseIndex + jj];
@@ -1596,7 +1616,7 @@ void Simulation::ReadBodiesYAML()
         std::string hydro_databases_name[300];
         int pos_database = 0;
 
-        pBodies = new Body *[numBodies];
+        pBodies = new Body*[numBodies];
         for (int ii = 0; ii < numBodies; ii++)
         {
             YAML::Node bodyNode = yamlRoot["bodies"][ii];
@@ -1613,7 +1633,8 @@ void Simulation::ReadBodiesYAML()
             else
             {
                 std::stringstream ss;
-                ss << "Error in YAML bodies section: Unexpected body type '" << body_type << "' for body " << ii << "\n";
+                ss << "Error in YAML bodies section: Unexpected body type '" << body_type << "' for body " << ii
+                   << "\n";
                 throw ValueError(ss.str());
             }
         }
@@ -1647,17 +1668,18 @@ void Simulation::ReadBodiesYAML()
         }
 
         // Pre-determine the number of bodies in each HDB file
-        int *numBodiesPerHDB = new int[hydro_database_count];
+        int* numBodiesPerHDB = new int[hydro_database_count];
         for (int ii = 0; ii < hydro_database_count; ii++)
         {
             std::string hdb_path = JoinPath(inputFolderPath, hydro_databases_name[ii]);
             numBodiesPerHDB[ii] = HydroDatabase::GetNumBodiesFromFile(hdb_path);
-            std::cout << "    --> HDB: " << hydro_databases_name[ii] << " contains " << numBodiesPerHDB[ii] << " bodies" << std::endl;
+            std::cout << "    --> HDB: " << hydro_databases_name[ii] << " contains " << numBodiesPerHDB[ii] << " bodies"
+                      << std::endl;
         }
 
         // Arrange all the bodies by database (same logic as ASCII)
-        Body **pBodiesSort = new Body *[numBodies];
-        int *pBody_found = new int[numBodies];
+        Body** pBodiesSort = new Body*[numBodies];
+        int* pBody_found = new int[numBodies];
         for (int ii = 0; ii < numBodies; ii++)
         {
             pBody_found[ii] = 0;
@@ -1668,7 +1690,8 @@ void Simulation::ReadBodiesYAML()
             {
                 for (int jj = 0; jj < numBodies; jj++)
                 {
-                    if ((hydro_databases_name[ii].compare(pBodies[jj]->hydroDatabaseName) == 0) && (pBody_found[jj] == 0))
+                    if ((hydro_databases_name[ii].compare(pBodies[jj]->hydroDatabaseName) == 0) &&
+                        (pBody_found[jj] == 0))
                     {
                         pBody_found[jj] = 1;
                         pBodiesSort[body_count] = pBodies[jj];
@@ -1683,7 +1706,8 @@ void Simulation::ReadBodiesYAML()
                 arma::uvec temp_hdb_ind(temp_nB_hdb);
                 for (int jj = 0; jj < numBodies; jj++)
                 {
-                    if ((hydro_databases_name[ii].compare(pBodies[jj]->hydroDatabaseName) == 0) && (pBody_found[jj] == 0))
+                    if ((hydro_databases_name[ii].compare(pBodies[jj]->hydroDatabaseName) == 0) &&
+                        (pBody_found[jj] == 0))
                     {
                         pBody_found[jj] = 1;
                         pBodiesSort[body_count + pBodies[jj]->hydroDatabaseIndex] = pBodies[jj];
@@ -1731,8 +1755,8 @@ void Simulation::ReadBodiesYAML()
                 numBodiesFree++;
             }
         }
-        pBodiesLock = new Body *[numBodiesLock];
-        pBodiesFree = new Body *[numBodiesFree];
+        pBodiesLock = new Body*[numBodiesLock];
+        pBodiesFree = new Body*[numBodiesFree];
         int indL = 0;
         int indF = 0;
         for (int ii = 0; ii < numBodies; ii++)
@@ -1766,13 +1790,13 @@ void Simulation::ReadBodiesYAML()
             int nBodiesInHDB = numBodiesPerHDB[pos_database];
             if (nBodiesInHDB == 1)
             {
-                Body **pSingleBodyArray = new Body *[1];
+                Body** pSingleBodyArray = new Body*[1];
                 pSingleBodyArray[0] = pBodies[ii];
                 this->pBodies[ii]->LoadHydrodynamicDatabase(pSingleBodyArray, 0);
             }
             else
             {
-                Body **pMultiBodyArray = new Body *[nBodiesInHDB];
+                Body** pMultiBodyArray = new Body*[nBodiesInHDB];
                 for (int jj = 0; jj < nBodiesInHDB; jj++)
                 {
                     pMultiBodyArray[jj] = pBodies[ii - pBodies[ii]->hydroDatabaseIndex + jj];
@@ -1893,18 +1917,18 @@ void Simulation::ReadLinesASCII()
 
     // Open file
     std::string file_path = JoinPath(inputFolderPath, "dataLines.dat");
-    FILE *file_pointer = fopen(file_path.c_str(), "r");
+    FILE* file_pointer = fopen(file_path.c_str(), "r");
     if (file_pointer == NULL)
     {
         std::cout << "    --> WARNING: dataLines.dat was not found! Setting numLines = 0!" << std::endl;
         numLines = 0;
-        pLines = new Line *[0];
+        pLines = new Line*[0];
         return;
     }
 
     // Read line types
     fscanf(file_pointer, "%d %[^\n]\n", &numLineTypes, bufferLine);
-    pLineTypes = new LineType *[numLineTypes];
+    pLineTypes = new LineType*[numLineTypes];
     for (int ii = 0; ii < numLineTypes; ii++)
     {
         pLineTypes[ii] = new LineType();
@@ -1913,7 +1937,7 @@ void Simulation::ReadLinesASCII()
 
     // Read line instances
     fscanf(file_pointer, "%d %[^\n]\n", &numLines, bufferLine);
-    pLines = new Line *[numLines];
+    pLines = new Line*[numLines];
 
     for (int ii = 0; ii < numLines; ii++)
     {
@@ -1929,21 +1953,26 @@ void Simulation::ReadLinesASCII()
                 std::cout << "ERROR: Line " << pLines[ii]->nLine << " is under the floor level." << std::endl
                           << std::endl;
             if (e == 1)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine << " touches the seafloor and it shouldn't. " << std::endl
+                std::cout << "ERROR: Line " << pLines[ii]->nLine << " touches the seafloor and it shouldn't. "
+                          << std::endl
                           << std::endl;
             if (e == 2)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine << " is not tense and laying on the seafloor. It should be pretensed. " << std::endl
+                std::cout << "ERROR: Line " << pLines[ii]->nLine
+                          << " is not tense and laying on the seafloor. It should be pretensed. " << std::endl
                           << std::endl;
             if (e == 3)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine << " is not tense and vertical. It should be pretensed. " << std::endl
+                std::cout << "ERROR: Line " << pLines[ii]->nLine
+                          << " is not tense and vertical. It should be pretensed. " << std::endl
                           << std::endl;
             if (e == 4)
                 std::cout << "ERROR: Line " << pLines[ii]->nLine << " is not tense and it should. " << std::endl
                           << std::endl;
             if (e == 5)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine << " initial shape can't be computed with QS method. " << std::endl;
+                std::cout << "ERROR: Line " << pLines[ii]->nLine << " initial shape can't be computed with QS method. "
+                          << std::endl;
             if (e == 6)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine << " touches the seafloor althoug none of its ends are there. " << std::endl
+                std::cout << "ERROR: Line " << pLines[ii]->nLine
+                          << " touches the seafloor althoug none of its ends are there. " << std::endl
                           << std::endl;
         }
     }
@@ -1962,7 +1991,7 @@ void Simulation::ReadLinesYAML()
     if (yamlRoot["line_types"])
     {
         numLineTypes = (int)yamlRoot["line_types"].size();
-        pLineTypes = new LineType *[numLineTypes];
+        pLineTypes = new LineType*[numLineTypes];
         for (int ii = 0; ii < numLineTypes; ii++)
         {
             pLineTypes[ii] = new LineType();
@@ -1972,19 +2001,19 @@ void Simulation::ReadLinesYAML()
     else
     {
         numLineTypes = 0;
-        pLineTypes = new LineType *[0];
+        pLineTypes = new LineType*[0];
     }
 
     if (!yamlRoot["lines"])
     {
         std::cout << "    --> WARNING: 'lines' section not found in YAML! Setting numLines = 0!" << std::endl;
         numLines = 0;
-        pLines = new Line *[0];
+        pLines = new Line*[0];
         return;
     }
 
     numLines = (int)yamlRoot["lines"].size();
-    pLines = new Line *[numLines];
+    pLines = new Line*[numLines];
 
     for (int ii = 0; ii < numLines; ii++)
     {
@@ -1997,19 +2026,30 @@ void Simulation::ReadLinesYAML()
         catch (int e)
         {
             if (e == 0)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine << " is under the floor level." << std::endl << std::endl;
+                std::cout << "ERROR: Line " << pLines[ii]->nLine << " is under the floor level." << std::endl
+                          << std::endl;
             if (e == 1)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine << " touches the seafloor and it shouldn't. " << std::endl << std::endl;
+                std::cout << "ERROR: Line " << pLines[ii]->nLine << " touches the seafloor and it shouldn't. "
+                          << std::endl
+                          << std::endl;
             if (e == 2)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine << " is not tense and laying on the seafloor. It should be pretensed. " << std::endl << std::endl;
+                std::cout << "ERROR: Line " << pLines[ii]->nLine
+                          << " is not tense and laying on the seafloor. It should be pretensed. " << std::endl
+                          << std::endl;
             if (e == 3)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine << " is not tense and vertical. It should be pretensed. " << std::endl << std::endl;
+                std::cout << "ERROR: Line " << pLines[ii]->nLine
+                          << " is not tense and vertical. It should be pretensed. " << std::endl
+                          << std::endl;
             if (e == 4)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine << " is not tense and it should. " << std::endl << std::endl;
+                std::cout << "ERROR: Line " << pLines[ii]->nLine << " is not tense and it should. " << std::endl
+                          << std::endl;
             if (e == 5)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine << " initial shape can't be computed with QS method. " << std::endl;
+                std::cout << "ERROR: Line " << pLines[ii]->nLine << " initial shape can't be computed with QS method. "
+                          << std::endl;
             if (e == 6)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine << " touches the seafloor althoug none of its ends are there. " << std::endl << std::endl;
+                std::cout << "ERROR: Line " << pLines[ii]->nLine
+                          << " touches the seafloor althoug none of its ends are there. " << std::endl
+                          << std::endl;
         }
     }
 
@@ -2031,12 +2071,12 @@ void Simulation::ReadSinkingASCII()
 
     // Open file
     std::string file_path = JoinPath(inputFolderPath, "dataSinking.dat");
-    FILE *pFile = fopen(file_path.c_str(), "r");
+    FILE* pFile = fopen(file_path.c_str(), "r");
     if (pFile == NULL)
     {
         std::cout << "    --> WARNING: dataSinking.dat was not found! Setting numSinking = 0!" << std::endl;
         numSinking = 0;
-        pSinking = new Sinking *[0];
+        pSinking = new Sinking*[0];
         return;
     }
 
@@ -2056,7 +2096,7 @@ void Simulation::ReadSinkingASCII()
         }
 
         // Read all sinking bodies
-        pSinking = new Sinking *[numSinking];
+        pSinking = new Sinking*[numSinking];
         for (int ii = 0; ii < numSinking; ii++)
         {
             // Discard header lines
@@ -2080,7 +2120,7 @@ void Simulation::ReadSinkingASCII()
     }
     else
     {
-        pSinking = new Sinking *[0];
+        pSinking = new Sinking*[0];
     }
 
     // Close file
@@ -2097,7 +2137,7 @@ void Simulation::ReadSinkingYAML()
     {
         std::cout << "    --> WARNING: 'sinking' section not found in YAML! Setting numSinking = 0!" << std::endl;
         numSinking = 0;
-        pSinking = new Sinking *[0];
+        pSinking = new Sinking*[0];
         return;
     }
 
@@ -2112,7 +2152,7 @@ void Simulation::ReadSinkingYAML()
             throw IOError(ss.str());
         }
 
-        pSinking = new Sinking *[numSinking];
+        pSinking = new Sinking*[numSinking];
         for (int ii = 0; ii < numSinking; ii++)
         {
             YAML::Node sinkNode = yamlRoot["sinking"][ii];
@@ -2124,7 +2164,7 @@ void Simulation::ReadSinkingYAML()
     }
     else
     {
-        pSinking = new Sinking *[0];
+        pSinking = new Sinking*[0];
     }
 
     std::cout << "--> Sinking Properties Read" << std::endl;
@@ -2144,18 +2184,18 @@ void Simulation::ReadSpringsASCII()
 
     // Open file
     std::string file_path = JoinPath(inputFolderPath, "dataSprings.dat");
-    FILE *file_pointer = fopen(file_path.c_str(), "r");
+    FILE* file_pointer = fopen(file_path.c_str(), "r");
     if (file_pointer == NULL)
     {
         std::cout << "    --> WARNING: dataSprings.dat was not found! Setting numSprings = 0!" << std::endl;
         numSprings = 0;
-        pSprings = new Spring *[0];
+        pSprings = new Spring*[0];
         return;
     }
 
     // Read spring types
     fscanf(file_pointer, "%d %[^\n]\n", &numSpringTypes, bufferLine);
-    pSpringTypes = new SpringType *[numSpringTypes];
+    pSpringTypes = new SpringType*[numSpringTypes];
     for (int ii = 0; ii < numSpringTypes; ii++)
     {
         pSpringTypes[ii] = new SpringType();
@@ -2164,7 +2204,7 @@ void Simulation::ReadSpringsASCII()
 
     // Read spring instances
     fscanf(file_pointer, "%d %[^\n]\n", &numSprings, bufferLine);
-    pSprings = new Spring *[numSprings];
+    pSprings = new Spring*[numSprings];
     for (int ii = 0; ii < numSprings; ii++)
     {
         pSprings[ii] = new Spring(ii);
@@ -2185,7 +2225,7 @@ void Simulation::ReadSpringsYAML()
     if (yamlRoot["spring_types"])
     {
         numSpringTypes = (int)yamlRoot["spring_types"].size();
-        pSpringTypes = new SpringType *[numSpringTypes];
+        pSpringTypes = new SpringType*[numSpringTypes];
         for (int ii = 0; ii < numSpringTypes; ii++)
         {
             pSpringTypes[ii] = new SpringType();
@@ -2195,19 +2235,19 @@ void Simulation::ReadSpringsYAML()
     else
     {
         numSpringTypes = 0;
-        pSpringTypes = new SpringType *[0];
+        pSpringTypes = new SpringType*[0];
     }
 
     if (!yamlRoot["springs"])
     {
         std::cout << "    --> WARNING: 'springs' section not found in YAML! Setting numSprings = 0!" << std::endl;
         numSprings = 0;
-        pSprings = new Spring *[0];
+        pSprings = new Spring*[0];
         return;
     }
 
     numSprings = (int)yamlRoot["springs"].size();
-    pSprings = new Spring *[numSprings];
+    pSprings = new Spring*[numSprings];
 
     for (int ii = 0; ii < numSprings; ii++)
     {
@@ -2233,7 +2273,7 @@ void Simulation::ReadPropertiesASCII()
 
     // Open file
     std::string file_path = JoinPath(inputFolderPath, "dataProblem.dat");
-    FILE *file_pointer = fopen(file_path.c_str(), "r");
+    FILE* file_pointer = fopen(file_path.c_str(), "r");
     if (file_pointer == NULL)
     {
         std::stringstream ss;
@@ -2242,40 +2282,49 @@ void Simulation::ReadPropertiesASCII()
     }
 
     // Read data
-    fscanf(file_pointer, "%lf %[^\n]\n", &gravity, bufferLine);              // Gravity acceleration [m/s^2]
-    fscanf(file_pointer, "%lf %[^\n]\n", &waterDensity, bufferLine);         // Water density [kg/m^3]
-    fscanf(file_pointer, "%lf %[^\n]\n", &airAtmPresDensity, bufferLine);    // Air density at atmospheric pressure [kg/m^3]
-    fscanf(file_pointer, "%lf %[^\n]\n", &airAtmPres, bufferLine);           // Atmospheric pressure [Pa]
+    fscanf(file_pointer, "%lf %[^\n]\n", &gravity, bufferLine);      // Gravity acceleration [m/s^2]
+    fscanf(file_pointer, "%lf %[^\n]\n", &waterDensity, bufferLine); // Water density [kg/m^3]
+    fscanf(file_pointer, "%lf %[^\n]\n", &airAtmPresDensity,
+           bufferLine);                                            // Air density at atmospheric pressure [kg/m^3]
+    fscanf(file_pointer, "%lf %[^\n]\n", &airAtmPres, bufferLine); // Atmospheric pressure [Pa]
     fscanf(file_pointer, "%lf %[^\n]\n", &airAdiabaticDilation, bufferLine); // Air adiabatic dilation [-]
     fscanf(file_pointer, "%lf %[^\n]\n", &waterDepth, bufferLine);           // Seabed vertical coordinate [m]
     fscanf(file_pointer, "%lf %[^\n]\n", &writeTimeStep, bufferLine);        // Output time step [s]
-    fscanf(file_pointer, "%lf %[^\n]\n", &maxTimeStep, bufferLine);          // Maximum time step for time integration [s]
-    fscanf(file_pointer, "%lf %[^\n]\n", &hydroTimeStep, bufferLine);        // Time step for hydrodynamic forces computation [s]
+    fscanf(file_pointer, "%lf %[^\n]\n", &maxTimeStep, bufferLine); // Maximum time step for time integration [s]
+    fscanf(file_pointer, "%lf %[^\n]\n", &hydroTimeStep,
+           bufferLine); // Time step for hydrodynamic forces computation [s]
     lastHydroTime = 0.0;
     lastHydroTime_old = -hydroTimeStep;
     lastHydroTime_old2 = -2.0 * hydroTimeStep;
-    fscanf(file_pointer, "%lf %[^\n]\n", &fastTimeStep, bufferLine);           // Time step for FAST wind turbines forces computation [s]
-    fscanf(file_pointer, "%lf %[^\n]\n", &fastControllerTimeStep, bufferLine); // Time step for FAST wind turbines controller update [s]
-    fscanf(file_pointer, "%lf %[^\n]\n", &timeIRF, bufferLine);                // IRF time [s]
-    fscanf(file_pointer, "%lf %[^\n]\n", &sinkingTimeStep, bufferLine);        // Time step for synking hydrodinamic data bases update [s]
-    fscanf(file_pointer, "%lf %[^\n]\n", &winchesContTimeStep, bufferLine);    // Time step for winches controller [s]
-    fscanf(file_pointer, "%lf %[^\n]\n", &owcsContTimeStep, bufferLine);       // Time step for OWCS controller [s]
-    fscanf(file_pointer, "%lf %[^\n]\n", &simulationTime, bufferLine);         // Total time of simulation [s]
+    fscanf(file_pointer, "%lf %[^\n]\n", &fastTimeStep,
+           bufferLine); // Time step for FAST wind turbines forces computation [s]
+    fscanf(file_pointer, "%lf %[^\n]\n", &fastControllerTimeStep,
+           bufferLine); // Time step for FAST wind turbines controller update [s]
+    fscanf(file_pointer, "%lf %[^\n]\n", &timeIRF, bufferLine); // IRF time [s]
+    fscanf(file_pointer, "%lf %[^\n]\n", &sinkingTimeStep,
+           bufferLine); // Time step for synking hydrodinamic data bases update [s]
+    fscanf(file_pointer, "%lf %[^\n]\n", &winchesContTimeStep, bufferLine); // Time step for winches controller [s]
+    fscanf(file_pointer, "%lf %[^\n]\n", &owcsContTimeStep, bufferLine);    // Time step for OWCS controller [s]
+    fscanf(file_pointer, "%lf %[^\n]\n", &simulationTime, bufferLine);      // Total time of simulation [s]
     fscanf(file_pointer, "%d %[^\n]\n", &dummyBool, bufferLine);
-    rotSimpFlag = dummyBool;                                         // Flag to use simplification for rigid body rotation dynamics [0 No, 1 Yes]
-    fscanf(file_pointer, "%d %[^\n]\n", &timeIntMethod, bufferLine); // Temporal integration alforithm [1: BDF1, 2: BDFN]
-    fscanf(file_pointer, "%d %[^\n]\n", &timeIntOrder, bufferLine);  // Order for temporal integration
+    rotSimpFlag = dummyBool; // Flag to use simplification for rigid body rotation dynamics [0 No, 1 Yes]
+    fscanf(file_pointer, "%d %[^\n]\n", &timeIntMethod,
+           bufferLine);                                             // Temporal integration alforithm [1: BDF1, 2: BDFN]
+    fscanf(file_pointer, "%d %[^\n]\n", &timeIntOrder, bufferLine); // Order for temporal integration
     fscanf(file_pointer, "%d %[^\n]\n", &dummyBool, bufferLine);
-    timeIntAdaptivity = dummyBool;                                           // Time step adaptivity [0 No, 1 Yes]
-    fscanf(file_pointer, "%d %[^\n]\n", &timeIntJacNumStepsMax, bufferLine); // Maximum number of steps for temporal integration Jacobian re-computation.
-    fscanf(file_pointer, "%lf %[^\n]\n", &timeIntAbsTol, bufferLine);        // Absolute tolerance for temporal integration.
-    fscanf(file_pointer, "%lf %[^\n]\n", &timeIntRelTol, bufferLine);        // Relative tolerance for temporal integration.
-    fscanf(file_pointer, "%d %[^\n]\n", &maxIterStep, bufferLine);           // Maximum number of iterations for one step of temporal integration.
+    timeIntAdaptivity = dummyBool; // Time step adaptivity [0 No, 1 Yes]
+    fscanf(file_pointer, "%d %[^\n]\n", &timeIntJacNumStepsMax,
+           bufferLine); // Maximum number of steps for temporal integration Jacobian re-computation.
+    fscanf(file_pointer, "%lf %[^\n]\n", &timeIntAbsTol, bufferLine); // Absolute tolerance for temporal integration.
+    fscanf(file_pointer, "%lf %[^\n]\n", &timeIntRelTol, bufferLine); // Relative tolerance for temporal integration.
+    fscanf(file_pointer, "%d %[^\n]\n", &maxIterStep,
+           bufferLine); // Maximum number of iterations for one step of temporal integration.
     fscanf(file_pointer, "%d %[^\n]\n", &dummyBool, bufferLine);
     readEquilibrium = dummyBool; // Read dataStaticIC.dat? [0 No, 1 Yes]
     fscanf(file_pointer, "%d %[^\n]\n", &dummyBool, bufferLine);
-    writeEquilibrium = dummyBool;                                 // Write dataStaticIC.dat? [0 No, 1 Yes]
-    fscanf(file_pointer, "%d %[^\n]\n", &flagStatic, bufferLine); // Mooring initial condition flag [0: Catenary, 1: Newton's]
+    writeEquilibrium = dummyBool; // Write dataStaticIC.dat? [0 No, 1 Yes]
+    fscanf(file_pointer, "%d %[^\n]\n", &flagStatic,
+           bufferLine); // Mooring initial condition flag [0: Catenary, 1: Newton's]
 
     // Output format [0: txt, 1: csv] — optional, defaults to 0 (txt)
     if (fscanf(file_pointer, "%d %[^\n]\n", &outputFormat, bufferLine) != 1)
@@ -2315,7 +2364,7 @@ void Simulation::ReadPropertiesYAML()
     {
         yamlRoot = YAML::LoadFile(file_path);
     }
-    catch (const YAML::Exception &e)
+    catch (const YAML::Exception& e)
     {
         std::stringstream ss;
         ss << "Error parsing YAML file: " << file_path << "\n    " << e.what();
@@ -2394,7 +2443,7 @@ void Simulation::ReadWavesASCII()
 
     // Open file
     std::string file_path = JoinPath(inputFolderPath, "dataWaves.dat");
-    FILE *file_pointer = fopen(file_path.c_str(), "r");
+    FILE* file_pointer = fopen(file_path.c_str(), "r");
     if (file_pointer == NULL)
     {
         std::cout << "    --> WARNING: dataWaves.dat was not found! Skipping wave definition!" << std::endl;
@@ -2594,12 +2643,12 @@ void Simulation::ReadWinchesASCII()
 
     // Open file
     std::string file_path = JoinPath(inputFolderPath, "dataWinches.dat");
-    FILE *file_pointer = fopen(file_path.c_str(), "r");
+    FILE* file_pointer = fopen(file_path.c_str(), "r");
     if (file_pointer == NULL)
     {
         std::cout << "    --> WARNING: dataWinches.dat was not found! Setting numWinches = 0!" << std::endl;
         numWinches = 0;
-        pWinches = new Winchie *[0];
+        pWinches = new Winchie*[0];
         WinchesController = nullptr;
         useWinches = false;
         return;
@@ -2610,11 +2659,12 @@ void Simulation::ReadWinchesASCII()
 
     if ((numWinches == 0) && useWinches)
     {
-        throw ValueError("Use of winches is requested when loading BCPs but there is no winches specified in dataWinches.dat\n");
+        throw ValueError(
+            "Use of winches is requested when loading BCPs but there is no winches specified in dataWinches.dat\n");
     }
 
     // Allocate a vector of pointers to Winch class objects
-    pWinches = new Winchie *[numWinches];
+    pWinches = new Winchie*[numWinches];
 
     // Read Winches
     for (int ii = 0; ii < numWinches; ii++)
@@ -2661,7 +2711,7 @@ void Simulation::ReadWinchesYAML()
     {
         std::cout << "    --> WARNING: 'winches' section not found in YAML! Setting numWinches = 0!" << std::endl;
         numWinches = 0;
-        pWinches = new Winchie *[0];
+        pWinches = new Winchie*[0];
         WinchesController = nullptr;
         useWinches = false;
         return;
@@ -2676,7 +2726,7 @@ void Simulation::ReadWinchesYAML()
         throw ValueError("Use of winches is requested when loading BCPs but there are no winches specified in YAML\n");
     }
 
-    pWinches = new Winchie *[numWinches];
+    pWinches = new Winchie*[numWinches];
     for (int ii = 0; ii < numWinches; ii++)
     {
         pWinches[ii] = new Winchie(ii);
@@ -2715,7 +2765,7 @@ void Simulation::ReadSeaFloorASCII()
 
     // Open file
     std::string file_path = JoinPath(inputFolderPath, "dataSeaFloor.dat");
-    FILE *file_pointer = fopen(file_path.c_str(), "r");
+    FILE* file_pointer = fopen(file_path.c_str(), "r");
     if (file_pointer == NULL)
     {
         std::cout << "    --> WARNING: dataSeaFloor.dat was not found! Setting flat sea floor!" << std::endl;
@@ -2723,13 +2773,13 @@ void Simulation::ReadSeaFloorASCII()
         numInclined = 0;
         numFlat = 1;
         numFloor = numBathymetry + numInclined + numFlat;
-        pSeaFloor = new SeaFloor *[numFloor];
-        pBathymetry = new Bathymetry *[0];
-        pInclined = new Inclined *[0];
-        pFlat = new Flat *[numFlat];
+        pSeaFloor = new SeaFloor*[numFloor];
+        pBathymetry = new Bathymetry*[0];
+        pInclined = new Inclined*[0];
+        pFlat = new Flat*[numFlat];
         pFlat[0] = new Flat(0);
         pSeaFloor[0] = pFlat[0];
-        pSeaFloor[0]->fondo = this->waterDepth;
+        pSeaFloor[0]->seabedDepth = this->waterDepth;
         std::cout << "--> Floor Properties Read" << std::endl;
         return;
     }
@@ -2746,11 +2796,11 @@ void Simulation::ReadSeaFloorASCII()
     // printf("Number of planes: %d\n", numFlat);
 
     // Allocate a vector of pointers to SeaFloor class objects
-    pSeaFloor = new SeaFloor *[numFloor];
+    pSeaFloor = new SeaFloor*[numFloor];
     int floor_count = 0;
 
     // Read all SeaFloor objects
-    pBathymetry = new Bathymetry *[numBathymetry];
+    pBathymetry = new Bathymetry*[numBathymetry];
     for (int ii = 0; ii < numBathymetry; ii++)
     {
         pBathymetry[ii] = new Bathymetry(floor_count);
@@ -2758,7 +2808,7 @@ void Simulation::ReadSeaFloorASCII()
         pSeaFloor[floor_count] = pBathymetry[ii];
         floor_count++;
     }
-    pInclined = new Inclined *[numInclined];
+    pInclined = new Inclined*[numInclined];
     for (int ii = 0; ii < numInclined; ii++)
     {
         pInclined[ii] = new Inclined(floor_count);
@@ -2766,7 +2816,7 @@ void Simulation::ReadSeaFloorASCII()
         pSeaFloor[floor_count] = pInclined[ii];
         floor_count++;
     }
-    pFlat = new Flat *[numFlat];
+    pFlat = new Flat*[numFlat];
     for (int ii = 0; ii < numFlat; ii++)
     {
         pFlat[ii] = new Flat(floor_count);
@@ -2792,13 +2842,13 @@ void Simulation::ReadSeaFloorYAML()
         numInclined = 0;
         numFlat = 1;
         numFloor = 1;
-        pSeaFloor = new SeaFloor *[numFloor];
-        pBathymetry = new Bathymetry *[0];
-        pInclined = new Inclined *[0];
-        pFlat = new Flat *[numFlat];
+        pSeaFloor = new SeaFloor*[numFloor];
+        pBathymetry = new Bathymetry*[0];
+        pInclined = new Inclined*[0];
+        pFlat = new Flat*[numFlat];
         pFlat[0] = new Flat(0);
         pSeaFloor[0] = pFlat[0];
-        pSeaFloor[0]->fondo = this->waterDepth;
+        pSeaFloor[0]->seabedDepth = this->waterDepth;
         std::cout << "--> Floor Properties Read" << std::endl;
         return;
     }
@@ -2809,10 +2859,10 @@ void Simulation::ReadSeaFloorYAML()
     numFlat = sfNode["flat"] ? (int)sfNode["flat"].size() : 0;
     numFloor = numBathymetry + numInclined + numFlat;
 
-    pSeaFloor = new SeaFloor *[numFloor];
+    pSeaFloor = new SeaFloor*[numFloor];
     int floor_count = 0;
 
-    pBathymetry = new Bathymetry *[numBathymetry];
+    pBathymetry = new Bathymetry*[numBathymetry];
     for (int ii = 0; ii < numBathymetry; ii++)
     {
         pBathymetry[ii] = new Bathymetry(floor_count);
@@ -2820,7 +2870,7 @@ void Simulation::ReadSeaFloorYAML()
         pSeaFloor[floor_count] = pBathymetry[ii];
         floor_count++;
     }
-    pInclined = new Inclined *[numInclined];
+    pInclined = new Inclined*[numInclined];
     for (int ii = 0; ii < numInclined; ii++)
     {
         pInclined[ii] = new Inclined(floor_count);
@@ -2828,7 +2878,7 @@ void Simulation::ReadSeaFloorYAML()
         pSeaFloor[floor_count] = pInclined[ii];
         floor_count++;
     }
-    pFlat = new Flat *[numFlat];
+    pFlat = new Flat*[numFlat];
     for (int ii = 0; ii < numFlat; ii++)
     {
         pFlat[ii] = new Flat(floor_count);
@@ -2854,12 +2904,12 @@ void Simulation::ReadWindTurbinesASCII(void)
 
     // Open file
     std::string file_path = JoinPath(inputFolderPath, "dataWindTurbines.dat");
-    FILE *file_pointer = fopen(file_path.c_str(), "r");
+    FILE* file_pointer = fopen(file_path.c_str(), "r");
     if (file_pointer == NULL)
     {
         std::cout << "    --> WARNING: dataWindTurbines.dat was not found! Setting numWindTurbines = 0!" << std::endl;
         numWindTurbines = 0;
-        pWindTurbines = new WindTurbine *[0];
+        pWindTurbines = new WindTurbine*[0];
         return;
     }
 
@@ -2867,7 +2917,7 @@ void Simulation::ReadWindTurbinesASCII(void)
     fscanf(file_pointer, "%d %[^\n]\n", &numWindTurbines, bufferLine);
 
     // Allocate a vector of pointers to WindTurbine class objects
-    pWindTurbines = new WindTurbine *[numWindTurbines];
+    pWindTurbines = new WindTurbine*[numWindTurbines];
     for (int ii = 0; ii < numWindTurbines; ii++)
     {
         pWindTurbines[ii] = new WindTurbine(ii, this);
@@ -2886,14 +2936,15 @@ void Simulation::ReadWindTurbinesYAML(void)
 
     if (!yamlRoot["wind_turbines"])
     {
-        std::cout << "    --> WARNING: 'wind_turbines' section not found in YAML! Setting numWindTurbines = 0!" << std::endl;
+        std::cout << "    --> WARNING: 'wind_turbines' section not found in YAML! Setting numWindTurbines = 0!"
+                  << std::endl;
         numWindTurbines = 0;
-        pWindTurbines = new WindTurbine *[0];
+        pWindTurbines = new WindTurbine*[0];
         return;
     }
 
     numWindTurbines = (int)yamlRoot["wind_turbines"].size();
-    pWindTurbines = new WindTurbine *[numWindTurbines];
+    pWindTurbines = new WindTurbine*[numWindTurbines];
     for (int ii = 0; ii < numWindTurbines; ii++)
     {
         pWindTurbines[ii] = new WindTurbine(ii, this);
@@ -2915,12 +2966,12 @@ void Simulation::ReadOWCsASCII(void)
     char bufferLineT[1000];
     // Open file
     std::string file_pathT = JoinPath(inputFolderPath, "dataOWCTurbines.dat");
-    FILE *pFileT = fopen(file_pathT.c_str(), "r");
+    FILE* pFileT = fopen(file_pathT.c_str(), "r");
     if (pFileT == NULL)
     {
         std::cout << "    --> WARNING: dataOWCTurbines.dat was not found! Setting numOWCTurbines = 0!" << std::endl;
         numOWCTurbines = 0;
-        pOWCTurbines = new OWCTurbineType *[0];
+        pOWCTurbines = new OWCTurbineType*[0];
     }
     else
     {
@@ -2929,7 +2980,7 @@ void Simulation::ReadOWCsASCII(void)
         if (numOWCTurbines > 0)
         {
             // Initiallice OWC array
-            pOWCTurbines = new OWCTurbineType *[numOWCTurbines];
+            pOWCTurbines = new OWCTurbineType*[numOWCTurbines];
             for (int ii = 0; ii < numOWCTurbines; ii++)
             {
                 pOWCTurbines[ii] = new OWCTurbineType(ii, this);
@@ -2938,7 +2989,7 @@ void Simulation::ReadOWCsASCII(void)
         }
         else
         {
-            pOWCTurbines = new OWCTurbineType *[0];
+            pOWCTurbines = new OWCTurbineType*[0];
         }
         // Close file
         fclose(pFileT);
@@ -2950,12 +3001,12 @@ void Simulation::ReadOWCsASCII(void)
     char bufferLine[1000];
     // Open file
     std::string file_path = JoinPath(inputFolderPath, "dataOWCs.dat");
-    FILE *pFile = fopen(file_path.c_str(), "r");
+    FILE* pFile = fopen(file_path.c_str(), "r");
     if (pFile == NULL)
     {
         std::cout << "    --> WARNING: dataOWCs.dat was not found! Setting numOWCs = 0!" << std::endl;
         numOWCs = 0;
-        pOWCs = new OWC *[0];
+        pOWCs = new OWC*[0];
     }
     else
     {
@@ -2964,7 +3015,7 @@ void Simulation::ReadOWCsASCII(void)
         if (numOWCs > 0)
         {
             // Initiallice OWC array
-            pOWCs = new OWC *[numOWCs];
+            pOWCs = new OWC*[numOWCs];
             for (int ii = 0; ii < numOWCs; ii++)
             {
                 pOWCs[ii] = new OWC(ii, this);
@@ -2973,7 +3024,7 @@ void Simulation::ReadOWCsASCII(void)
         }
         else
         {
-            pOWCs = new OWC *[0];
+            pOWCs = new OWC*[0];
         }
         // Close file
         fclose(pFile);
@@ -2988,9 +3039,10 @@ void Simulation::ReadOWCsYAML(void)
     // Read OWC Turbine Types
     if (!yamlRoot["owcs"] || !yamlRoot["owcs"]["turbine_types"])
     {
-        std::cout << "    --> WARNING: 'owcs.turbine_types' section not found in YAML! Setting numOWCTurbines = 0!" << std::endl;
+        std::cout << "    --> WARNING: 'owcs.turbine_types' section not found in YAML! Setting numOWCTurbines = 0!"
+                  << std::endl;
         numOWCTurbines = 0;
-        pOWCTurbines = new OWCTurbineType *[0];
+        pOWCTurbines = new OWCTurbineType*[0];
     }
     else
     {
@@ -2998,7 +3050,7 @@ void Simulation::ReadOWCsYAML(void)
         numOWCTurbines = (int)turbTypes.size();
         if (numOWCTurbines > 0)
         {
-            pOWCTurbines = new OWCTurbineType *[numOWCTurbines];
+            pOWCTurbines = new OWCTurbineType*[numOWCTurbines];
             for (int ii = 0; ii < numOWCTurbines; ii++)
             {
                 pOWCTurbines[ii] = new OWCTurbineType(ii, this);
@@ -3008,7 +3060,7 @@ void Simulation::ReadOWCsYAML(void)
         }
         else
         {
-            pOWCTurbines = new OWCTurbineType *[0];
+            pOWCTurbines = new OWCTurbineType*[0];
         }
     }
     std::cout << "--> OWCs Turbines Properties Read" << std::endl;
@@ -3018,7 +3070,7 @@ void Simulation::ReadOWCsYAML(void)
     {
         std::cout << "    --> WARNING: 'owcs.chambers' section not found in YAML! Setting numOWCs = 0!" << std::endl;
         numOWCs = 0;
-        pOWCs = new OWC *[0];
+        pOWCs = new OWC*[0];
     }
     else
     {
@@ -3026,7 +3078,7 @@ void Simulation::ReadOWCsYAML(void)
         numOWCs = (int)chambers.size();
         if (numOWCs > 0)
         {
-            pOWCs = new OWC *[numOWCs];
+            pOWCs = new OWC*[numOWCs];
             for (int ii = 0; ii < numOWCs; ii++)
             {
                 pOWCs[ii] = new OWC(ii, this);
@@ -3036,7 +3088,7 @@ void Simulation::ReadOWCsYAML(void)
         }
         else
         {
-            pOWCs = new OWC *[0];
+            pOWCs = new OWC*[0];
         }
     }
     std::cout << "--> OWCs Properties Read" << std::endl;
@@ -3079,11 +3131,8 @@ void Simulation::Run()
                 {
                     fprintf(pLines[ii]->pfile_debug, "s    x    y    z \n");
                     for (int jj = 0; jj < pLines[ii]->N; jj = jj + 1)
-                        fprintf(pLines[ii]->pfile_debug, "%f    %f    %f    %f \n",
-                                pLines[ii]->s(jj, 0),
-                                pLines[ii]->pos(jj, 0),
-                                pLines[ii]->pos(jj, 1),
-                                pLines[ii]->pos(jj, 2));
+                        fprintf(pLines[ii]->pfile_debug, "%f    %f    %f    %f \n", pLines[ii]->s(jj, 0),
+                                pLines[ii]->pos(jj, 0), pLines[ii]->pos(jj, 1), pLines[ii]->pos(jj, 2));
                     fclose(pLines[ii]->pfile_debug);
                 }
             }
@@ -3128,7 +3177,8 @@ void Simulation::Run()
                 {
                     pBodies[ii]->Fb_old2 = pBodies[ii]->Fb_old;
                     pBodies[ii]->Fb_old = pBodies[ii]->Fb;
-                    pBodies[ii]->Fb = pBodies[ii]->pHydro->CalculateHydrodynamicForces(pTimeSolver->t) + pBodies[ii]->pHydro->CalculateHydrostaticForces(pTimeSolver->t);
+                    pBodies[ii]->Fb = pBodies[ii]->pHydro->CalculateHydrodynamicForces(pTimeSolver->t) +
+                                      pBodies[ii]->pHydro->CalculateHydrostaticForces(pTimeSolver->t);
                 }
             }
 
@@ -3347,15 +3397,13 @@ void Simulation::Run()
     if (numSystem > 0)
     {
         std::cout << "    Total function calls: " << numCallsSysFun << std::endl;
-        std::cout << "    Total jac calls: " << pTimeSolver->iJ << std::endl
-                  << std::endl;
+        std::cout << "    Total jac calls: " << pTimeSolver->iJ << std::endl << std::endl;
         std::cout << "    Average Newton iterations: " << pTimeSolver->nNewtonIterAvg << std::endl;
         std::cout << "    Number of times convergence failed: " << pTimeSolver->nConvergenceFailed << std::endl;
     }
     if (writeEquilibrium == 1)
     {
-        std::cout << "  Writting data to dataStaticIC.dat ..." << std::endl
-                  << std::endl;
+        std::cout << "  Writting data to dataStaticIC.dat ..." << std::endl << std::endl;
         std::string filename = JoinPath(outputFolderPath, "dataStaticIC.dat");
         pTimeSolver->y.save(filename, arma::arma_ascii);
     }
@@ -3385,7 +3433,7 @@ void Simulation::SetupCase()
             pBcps[pBodies[ii]->pIndexBcps[jj]]->numBodiesBcp++;
         }
     }
-    bool *pDefined_body_bcps = new bool[numBcps];
+    bool* pDefined_body_bcps = new bool[numBcps];
     for (int ii = 0; ii < numBcps; ii++)
     {
         pDefined_body_bcps[ii] = 0;
@@ -3396,7 +3444,8 @@ void Simulation::SetupCase()
         {
             if (!pDefined_body_bcps[pBodies[ii]->pIndexBcps[jj]])
             {
-                pBcps[pBodies[ii]->pIndexBcps[jj]]->pBodies = new Body *[pBcps[pBodies[ii]->pIndexBcps[jj]]->numBodiesBcp];
+                pBcps[pBodies[ii]->pIndexBcps[jj]]->pBodies =
+                    new Body*[pBcps[pBodies[ii]->pIndexBcps[jj]]->numBodiesBcp];
                 pDefined_body_bcps[pBodies[ii]->pIndexBcps[jj]] = true;
             }
         }
@@ -3416,17 +3465,16 @@ void Simulation::SetupCase()
     {
         if (pSeaFloor[ii]->GetType() == 3)
         {
-            dynamic_cast<Bathymetry *>(pSeaFloor[ii])->getVertexNormals();
-            dynamic_cast<Bathymetry *>(pSeaFloor[ii])->getProjectionMatrix();
+            dynamic_cast<Bathymetry*>(pSeaFloor[ii])->getVertexNormals();
+            dynamic_cast<Bathymetry*>(pSeaFloor[ii])->getProjectionMatrix();
         }
         else if (pSeaFloor[ii]->GetType() == 2)
         {
-            dynamic_cast<Inclined *>(pSeaFloor[ii])->getPlaneEquation();
+            dynamic_cast<Inclined*>(pSeaFloor[ii])->getPlaneEquation();
         }
         else if (pSeaFloor[ii]->GetType() == 1)
         {
-            std::cout << "    --> Floor level: " << std::endl
-                      << pSeaFloor[ii]->fondo << " m" << std::endl;
+            std::cout << "    --> Floor level: " << std::endl << pSeaFloor[ii]->seabedDepth << " m" << std::endl;
         }
     }
     if (numFloor > 0)
@@ -3468,7 +3516,8 @@ void Simulation::SetupCase()
             {
                 std::stringstream ss;
                 ss << "Wind Turbine index: " << pBodies[ii]->pIndexWindTurbs[jj] << " in Body: " << pBodies[ii]->GetId()
-                   << " is out of range when compare with the Number of Wind Turbines (" << numWindTurbines << ") defined in"
+                   << " is out of range when compare with the Number of Wind Turbines (" << numWindTurbines
+                   << ") defined in"
                    << " dataWindTurbines.dat";
                 throw ValueError(ss.str());
             }
@@ -3577,7 +3626,7 @@ void Simulation::SetupCase()
     {
         std::cout << "        Initiallizing Line data for BCPs with lines..." << std::endl;
     }
-    bool *pDefined_lines_bcps = new bool[numBcps];
+    bool* pDefined_lines_bcps = new bool[numBcps];
     for (int ii = 0; ii < numBcps; ii++)
     {
         pDefined_lines_bcps[ii] = false;
@@ -3588,8 +3637,9 @@ void Simulation::SetupCase()
         {
             if (!pDefined_lines_bcps[pLines[ii]->indexBcps[jj]])
             {
-                pBcps[pLines[ii]->indexBcps[jj]]->pLines = new Line *[pBcps[pLines[ii]->indexBcps[jj]]->numLinesBcp];
-                pBcps[pLines[ii]->indexBcps[jj]]->pBcpLineIndex = new int[pBcps[pLines[ii]->indexBcps[jj]]->numLinesBcp];
+                pBcps[pLines[ii]->indexBcps[jj]]->pLines = new Line*[pBcps[pLines[ii]->indexBcps[jj]]->numLinesBcp];
+                pBcps[pLines[ii]->indexBcps[jj]]->pBcpLineIndex =
+                    new int[pBcps[pLines[ii]->indexBcps[jj]]->numLinesBcp];
                 pBcps[pLines[ii]->indexBcps[jj]]->pBcpLineNode = new int[pBcps[pLines[ii]->indexBcps[jj]]->numLinesBcp];
                 pDefined_lines_bcps[pLines[ii]->indexBcps[jj]] = true;
             }
@@ -3666,21 +3716,26 @@ void Simulation::SetupCase()
                 std::cout << "ERROR: Line " << pLines[ii]->nLine << " is under the floor level." << std::endl
                           << std::endl;
             if (e == 1)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine << " touches the seafloor and it shouldn't. " << std::endl
+                std::cout << "ERROR: Line " << pLines[ii]->nLine << " touches the seafloor and it shouldn't. "
+                          << std::endl
                           << std::endl;
             if (e == 2)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine << " is not tense and laying on the seafloor. It should be pretensed. " << std::endl
+                std::cout << "ERROR: Line " << pLines[ii]->nLine
+                          << " is not tense and laying on the seafloor. It should be pretensed. " << std::endl
                           << std::endl;
             if (e == 3)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine << " is not tense and vertical. It should be pretensed. " << std::endl
+                std::cout << "ERROR: Line " << pLines[ii]->nLine
+                          << " is not tense and vertical. It should be pretensed. " << std::endl
                           << std::endl;
             if (e == 4)
                 std::cout << "ERROR: Line " << pLines[ii]->nLine << " is not tense and it should. " << std::endl
                           << std::endl;
             if (e == 5)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine << " initial shape can't be computed with QS method. " << std::endl;
+                std::cout << "ERROR: Line " << pLines[ii]->nLine << " initial shape can't be computed with QS method. "
+                          << std::endl;
             if (e == 6)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine << " touches the seafloor althoug none of its ends are there. " << std::endl
+                std::cout << "ERROR: Line " << pLines[ii]->nLine
+                          << " touches the seafloor althoug none of its ends are there. " << std::endl
                           << std::endl;
         }
 
@@ -3724,7 +3779,8 @@ void Simulation::SetupCase()
     // Build the lines coupling sparse matrix and store the lines index vectors
     if (numLines > 0)
     {
-        std::cout << "  --> Building the lines coupling sparse matrix and storing the lines index vectors ..." << std::endl;
+        std::cout << "  --> Building the lines coupling sparse matrix and storing the lines index vectors ..."
+                  << std::endl;
     }
     int indFirstNodeAvail = 0;
     for (int jj = 0; jj < numLines; jj++)
@@ -3778,7 +3834,7 @@ void Simulation::SetupCase()
     {
         std::cout << "  --> ... done!" << std::endl;
     }
-    // DEBUG print (commented out to avoid using extra memory in output) 
+    // DEBUG print (commented out to avoid using extra memory in output)
     // TODO: 100 should be a parameter
     // if (numAllLinesNodes < 100)
     // {
@@ -3847,7 +3903,7 @@ void Simulation::SetupCase()
     }
     for (int i = 0; i < numLines; i++)
     {
-        pLines[i]->posFriccion = pLines[i]->pLineSeaFloor->projectPoints(pLines[i]->pos)(0, 0);
+        pLines[i]->frictionPos = pLines[i]->pLineSeaFloor->projectPoints(pLines[i]->pos)(0, 0);
     }
     if (numLines > 0)
     {
@@ -3960,7 +4016,8 @@ void Simulation::ComputeLinesCouplingMatrix(void)
             {
                 for (int icol = 0; icol < numLineNodes_tmp; icol++)
                 {
-                    (*pLinesCouplingMatrix_sp)(pLines[jj]->ind4CouplingMat(irow), pLines[jj]->ind4CouplingMat(icol)) += LineMassMat_tmp(irow, icol);
+                    (*pLinesCouplingMatrix_sp)(pLines[jj]->ind4CouplingMat(irow), pLines[jj]->ind4CouplingMat(icol)) +=
+                        LineMassMat_tmp(irow, icol);
                 }
             }
         }
@@ -3976,7 +4033,7 @@ void Simulation::ComputeLinesCouplingMatrix(void)
         if ((pBcps[jj]->GetType() == 3 || pBcps[jj]->GetType() == 5) && (pBcps[jj]->flag_assigned == 1))
         {
             double node_mass = (pBcps[jj]->GetType() == 3) ? pBcps[jj]->mass_Joint
-                                                           : dynamic_cast<ElasticAnchorBCP *>(pBcps[jj])->anchor_mass;
+                                                           : dynamic_cast<ElasticAnchorBCP*>(pBcps[jj])->anchor_mass;
             // TODO: 100 should be a parameter
             if (numAllLinesNodes >= 100)
             {
@@ -4035,7 +4092,8 @@ Simulation::Simulation(std::string incProjectPath, std::string incDataFormat)
     else
     {
         std::stringstream ss;
-        ss << "Simulation data format --> " << incDataFormat << " is not available.\n    Available formats: ASCII | YAML.";
+        ss << "Simulation data format --> " << incDataFormat
+           << " is not available.\n    Available formats: ASCII | YAML.";
         throw ValueError(ss.str());
     }
 }
@@ -4064,7 +4122,8 @@ void Simulation::UpdateSystem(double time)
         else
         {
             arma::mat timeBufferNew = arma::zeros(1, timeBufferSize);
-            timeBufferNew.cols(0, pBodies[0]->pHydro->GetNumPointsIrf() - 1) = timeBuffer.cols(timeBufferSize - pBodies[0]->pHydro->GetNumPointsIrf(), timeBufferSize - 1);
+            timeBufferNew.cols(0, pBodies[0]->pHydro->GetNumPointsIrf() - 1) =
+                timeBuffer.cols(timeBufferSize - pBodies[0]->pHydro->GetNumPointsIrf(), timeBufferSize - 1);
             timeBuffer = timeBufferNew;
             timeBufferCount = pBodies[0]->pHydro->GetNumPointsIrf() - 1;
             restoreMatrix = true;
@@ -4138,7 +4197,8 @@ arma::mat Simulation::ComputeLinesInitialPoint()
     // Remove rows that are not joints
     positionLinesCouplingVector.shed_rows(indexesFairAnchor);
     // Convert to a column vector
-    arma::mat output_position = arma::reshape(arma::strans(positionLinesCouplingVector), 3 * positionLinesCouplingVector.n_rows, 1);
+    arma::mat output_position =
+        arma::reshape(arma::strans(positionLinesCouplingVector), 3 * positionLinesCouplingVector.n_rows, 1);
 
     return output_position;
 }
@@ -4202,7 +4262,8 @@ arma::mat Simulation::ComputeLinesForces(arma::mat posicion)
     // Remove the forces of the nodes that are not joints
     forcesLinesCouplingVector.shed_rows(indexesFairAnchor);
     // Convert the matrix to a column vector
-    arma::mat output_force = arma::reshape(arma::strans(forcesLinesCouplingVector), 3 * forcesLinesCouplingVector.n_rows, 1);
+    arma::mat output_force =
+        arma::reshape(arma::strans(forcesLinesCouplingVector), 3 * forcesLinesCouplingVector.n_rows, 1);
     // Return output force
     return output_force;
 
@@ -4305,7 +4366,8 @@ void Simulation::ComputeLinesEquilibrium(arma::mat x)
 
         if ((iter % 100) == 0)
         {
-            std::cout << "Iteration " << iter << "/" << maxIter << ". Max. force: " << cantidadAbs << " N (goal " << tol << ").  Max. rel. pos. step: " << cantidadRel << " (goal " << relTol << ")." << std::endl;
+            std::cout << "Iteration " << iter << "/" << maxIter << ". Max. force: " << cantidadAbs << " N (goal " << tol
+                      << ").  Max. rel. pos. step: " << cantidadRel << " (goal " << relTol << ")." << std::endl;
         }
         iter = iter + 1;
 
@@ -4320,5 +4382,6 @@ void Simulation::ComputeLinesEquilibrium(arma::mat x)
     {
         std::cout << "WARNING: Convergence for initial condition was not perfectly achieved! " << std::endl;
     }
-    std::cout << "Final Iteration: " << iter << "/" << maxIter << ". Max. force: " << cantidadAbs << " N (goal " << tol << ").  Max. rel. pos. step: " << cantidadRel << " (goal " << relTol << ")." << std::endl;
+    std::cout << "Final Iteration: " << iter << "/" << maxIter << ". Max. force: " << cantidadAbs << " N (goal " << tol
+              << ").  Max. rel. pos. step: " << cantidadRel << " (goal " << relTol << ")." << std::endl;
 }

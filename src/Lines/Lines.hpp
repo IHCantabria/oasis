@@ -11,100 +11,103 @@
 class Line
 {
 private:
-	int id;
-	double fg, fs, fd;
-	arma::mat v, vt, vn;
-	arma::mat FF, ff, t;
-	arma::mat drds, drdsdt, norm_drds, dedt, T;
-	arma::mat e_z;
+    int id;
+    double fg, fs, fd;
+    arma::mat v, vt, vn;
+    arma::mat FF, ff, t;
+    arma::mat drds, drdsdt, norm_drds, dedt, T;
+    arma::mat e_z;
 
 public:
-	int numBcps = 2;
-	int indexBcps[2];
-	int typeIndex;
-	int lineType, nLine, nNodos, p, N, floor_flag, BCP_1, BCP_N, flag_tension, flag_stiffness, smoothstep, frictionModel;
-	double L, dL, dL0, EA, beta, rho0, d, A, Cdt, Cdn, Cmn, CB, GK, GC, Kn, dampCoef, VR, vth, ust, usn, ud, deltamax, fn;
-	double paramNormal_1, paramNormal_N, parammuelle1_1, parammuelle1_N, parammuelle2_1, parammuelle2_N, paramVel_1, paramVel_N, ultimaCoordVel_1, ultimaCoordVel_N;
-	arma::mat projectionDirection_1, projectionDirection_N;
-	arma::mat strain_data, stress_data;
-	arma::mat ten_1 = arma::zeros(3, 1), ten_N = arma::zeros(3, 1);
-	arma::mat pos_1 = arma::zeros(3, 1), pos_N = arma::zeros(3, 1);
-	arma::mat a_1 = arma::zeros(4, 1);				   // Variables para almacenar los coeficientes polinomicos del coeficiente de friccion
-	arma::mat a_2 = arma::zeros(4, 1);				   // Variables para almacenar los coeficientes polinomicos del coeficiente de friccion
-	int num_kernel_coef, num_elastic_coef;
-	arma::mat kernel_lin_coef;
-	arma::mat kernel_exp_coef;
-	arma::mat elastic_coef;		   // Elastic coefficients polynomial, no constant term.
-	arma::mat pos, vel, acc, F, s, xc, zc, dxcds, dzcds, Te, roots, weights, isSlip, posFriccion;
-	arma::mat C, D, MassMatrix, MM, StiffMatrix, MSMatrix, MassMatrix_diag;
-	arma::mat inv_MM, inv_MM_1, inv_MM_N, inv_MM_1N;
-	arma::sp_mat D_sp, MassMatrix_sp, MM_sp, StiffMatrix_sp, MSMatrix_sp;
-	arma::mat projectedPoints, projectionDirection, zCoordinates;
-	BCP *pLineBcps[2];
-	arma::uvec ind4CouplingMat;
-	arma::mat F_1, F_N;
-	int first_node, last_node;
-	double xF, zF, HF, VF, HA, VA, cosa, sina;
-	int indexSeaFloor;
-	SeaFloor *pLineSeaFloor;
+    int numBcps = 2;
+    int indexBcps[2];
+    int typeIndex;
+    int lineType, nLine, nNodos, p, N, floor_flag, BCP_1, BCP_N, flag_tension, flag_stiffness, smoothstep,
+        frictionModel;
+    double L, dL, dL0, EA, beta, rho0, d, A, Cdt, Cdn, Cmn, CB, GK, GC, Kn, dampCoef, VR, vth, ust, usn, ud, deltamax,
+        fn;
+    double paramNormal_1, paramNormal_N, paramSpring1_1, paramSpring1_N, paramSpring2_1, paramSpring2_N, paramVel_1,
+        paramVel_N, lastVelCoord_1, lastVelCoord_N;
+    arma::mat projectionDirection_1, projectionDirection_N;
+    arma::mat strain_data, stress_data;
+    arma::mat ten_1 = arma::zeros(3, 1), ten_N = arma::zeros(3, 1);
+    arma::mat pos_1 = arma::zeros(3, 1), pos_N = arma::zeros(3, 1);
+    arma::mat a_1 = arma::zeros(4, 1); // Polynomial coefficients for the friction coefficient curve
+    arma::mat a_2 = arma::zeros(4, 1); // Polynomial coefficients for the friction coefficient curve
+    int num_kernel_coef, num_elastic_coef;
+    arma::mat kernel_lin_coef;
+    arma::mat kernel_exp_coef;
+    arma::mat elastic_coef; // Elastic coefficients polynomial, no constant term.
+    arma::mat pos, vel, acc, F, s, xc, zc, dxcds, dzcds, Te, roots, weights, isSlip, frictionPos;
+    arma::mat C, D, MassMatrix, MM, StiffMatrix, MSMatrix, MassMatrix_diag;
+    arma::mat inv_MM, inv_MM_1, inv_MM_N, inv_MM_1N;
+    arma::sp_mat D_sp, MassMatrix_sp, MM_sp, StiffMatrix_sp, MSMatrix_sp;
+    arma::mat projectedPoints, projectionDirection, zCoordinates;
+    BCP* pLineBcps[2];
+    arma::uvec ind4CouplingMat;
+    arma::mat F_1, F_N;
+    int first_node, last_node;
+    double xF, zF, HF, VF, HA, VA, cosa, sina;
+    int indexSeaFloor;
+    SeaFloor* pLineSeaFloor;
 
-	int num_time_steps = 0; // number of vector points to integrate. To avoid adding more terms.
-	double last_time = -10.0;
-	// TODO: investigate the effect of dt and tol_zero
-	double dt = 0.01;
-	double tol_zero = 1e-9;
-	int num_buffer;
-	double flag_visc;
-	arma::mat time_vector, strain_vector, strain_rate_vector;
-	arma::mat visc_resp_tmp_vector, gv_tau;
-	arma::mat T_elast;
-	arma::mat T_visc;
+    int num_time_steps = 0; // number of vector points to integrate. To avoid adding more terms.
+    double last_time = -10.0;
+    // TODO: investigate the effect of dt and tol_zero
+    double dt = 0.01;
+    double tol_zero = 1e-9;
+    int num_buffer;
+    double flag_visc;
+    arma::mat time_vector, strain_vector, strain_rate_vector;
+    arma::mat visc_resp_tmp_vector, gv_tau;
+    arma::mat T_elast;
+    arma::mat T_visc;
 
-	double g;
-	double rhoW;
-	double fondo;
+    double g;
+    double rhoW;
+    double seabedDepth;
 
-	FILE *pfile_xpos;
-	FILE *pfile_ypos;
-	FILE *pfile_zpos;
-	FILE *pfile_ten;
-	FILE *pfile_ten_line;
-	FILE *pfile_line_ini;
-	FILE *pfile_debug;
+    FILE* pfile_xpos;
+    FILE* pfile_ypos;
+    FILE* pfile_zpos;
+    FILE* pfile_ten;
+    FILE* pfile_ten_line;
+    FILE* pfile_line_ini;
+    FILE* pfile_debug;
 
-	// CSV output files
-	FILE *pfile_positions_csv = nullptr;
-	FILE *pfile_tensions_csv = nullptr;
-	int outputFormat = 0;
+    // CSV output files
+    FILE* pfile_positions_csv = nullptr;
+    FILE* pfile_tensions_csv = nullptr;
+    int outputFormat = 0;
 
-	Line(int incId, double incG, double incRhoW, double incFondo);
-	int GetId();
-	void ReadPropertiesASCII(FILE *pFilePointer, LineType **pTypes, int numTypes);
-	void ReadPropertiesYAML(YAML::Node node, LineType **pTypes, int numTypes);
-	void OpenOutputFilesASCII(std::string path);
-	void OpenOutputFilesCSV(std::string path);
-	void CloseOutputFilesASCII(void);
-	void CloseOutputFilesCSV(void);
-	void OpenOutputFiles(std::string path, int format);
-	void CloseOutputFiles(void);
-	void print_out(void);
-	void initLine(void);
-	void qs_Functions(double &ff, double &gg, double &DfDH, double &DfDV, double &DgDH, double &DgDV);
-	void qs_GetTen(void);
-	void qs_Solution(void);
-	void WriteOut(double t);
-	void SEM_getBaseFunctions(void);
-	void SEM_coefficients(void);
-	double SEM_poly(double x, int i);
-	double SEM_poly_first_derivative(double x, int i);
-	arma::mat SEM_get_D_local(void);
-	double kernel(double time);
-	void update_buffer(double time);
-	void compute_tension(double time);
-	void SEM_compute_derivarives(void);
-	void SEM_computeF(double time);
-	void initiallize_strain_memory(void);
-	void smooth_tension(void);
+    Line(int incId, double incG, double incRhoW, double incFondo);
+    int GetId();
+    void ReadPropertiesASCII(FILE* pFilePointer, LineType** pTypes, int numTypes);
+    void ReadPropertiesYAML(YAML::Node node, LineType** pTypes, int numTypes);
+    void OpenOutputFilesASCII(std::string path);
+    void OpenOutputFilesCSV(std::string path);
+    void CloseOutputFilesASCII(void);
+    void CloseOutputFilesCSV(void);
+    void OpenOutputFiles(std::string path, int format);
+    void CloseOutputFiles(void);
+    void print_out(void);
+    void initLine(void);
+    void qs_Functions(double& ff, double& gg, double& DfDH, double& DfDV, double& DgDH, double& DgDV);
+    void qs_GetTen(void);
+    void qs_Solution(void);
+    void WriteOut(double t);
+    void SEM_getBaseFunctions(void);
+    void SEM_coefficients(void);
+    double SEM_poly(double x, int i);
+    double SEM_poly_first_derivative(double x, int i);
+    arma::mat SEM_get_D_local(void);
+    double kernel(double time);
+    void update_buffer(double time);
+    void compute_tension(double time);
+    void SEM_compute_derivarives(void);
+    void SEM_computeF(double time);
+    void initiallize_strain_memory(void);
+    void smooth_tension(void);
 };
 
 #endif

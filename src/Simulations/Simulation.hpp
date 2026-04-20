@@ -68,52 +68,52 @@ public:
 
     // Declare time simulation attributes
     int numCallsSysFun = 0;
-    ODE_solver *pTimeSolver;
+    ODE_solver* pTimeSolver;
     int timeBufferSize = 0;
     arma::mat timeBuffer = arma::zeros(1, timeBufferSize);
     int timeBufferCount = 0;
 
     // Declare system properties
-    arma::mat *pSystemMatrix;
-    arma::mat *pSystemMatrixInv;
-    arma::mat *pSystemMatrixFF;
-    arma::mat *pSystemMatrixFFInv;
-    arma::mat *pSystemMatrixFL;
+    arma::mat* pSystemMatrix;
+    arma::mat* pSystemMatrixInv;
+    arma::mat* pSystemMatrixFF;
+    arma::mat* pSystemMatrixFFInv;
+    arma::mat* pSystemMatrixFL;
     arma::uvec sysMatIndFree, sysMatIndLock;
 
     int numAllLinesNodes = 0;
-    arma::sp_mat *pLinesCouplingMatrix_sp;
-    arma::mat *pLinesCouplingMatrix;
-    arma::mat *pLinesCouplingMatrixInv;
+    arma::sp_mat* pLinesCouplingMatrix_sp;
+    arma::mat* pLinesCouplingMatrix;
+    arma::mat* pLinesCouplingMatrixInv;
     arma::uvec indexesNoFairNoAnchor;
     arma::uvec indexesFairAnchor;
     arma::mat removed_rows;
 
     // Declare Components Setup Attributes
-    AnchorBCP **pAnchorBcps;
-    BCP **pBcps;
-    Body **pBodies;
-    Body **pBodiesFree;
-    Body **pBodiesLock;
-    BodyBCP **pBodyBcps;
-    FairleadBCP **pFairleadBcps;
-    JointBCP **pJointBcps;
-    ElasticAnchorBCP **pElasticAnchorBcps;
-    Line **pLines;
-    LineType **pLineTypes = nullptr;
-    Spring **pSprings;
-    SpringType **pSpringTypes = nullptr;
-    Winchie **pWinches;
-    WinchieController *WinchesController = nullptr;
-    Wave *pWave;
-    Sinking **pSinking;
-    SeaFloor **pSeaFloor;
-    Bathymetry **pBathymetry;
-    Inclined **pInclined;
-    Flat **pFlat;
-    WindTurbine **pWindTurbines;
-    OWC **pOWCs;
-    OWCTurbineType **pOWCTurbines;
+    AnchorBCP** pAnchorBcps;
+    BCP** pBcps;
+    Body** pBodies;
+    Body** pBodiesFree;
+    Body** pBodiesLock;
+    BodyBCP** pBodyBcps;
+    FairleadBCP** pFairleadBcps;
+    JointBCP** pJointBcps;
+    ElasticAnchorBCP** pElasticAnchorBcps;
+    Line** pLines;
+    LineType** pLineTypes = nullptr;
+    Spring** pSprings;
+    SpringType** pSpringTypes = nullptr;
+    Winchie** pWinches;
+    WinchieController* WinchesController = nullptr;
+    Wave* pWave;
+    Sinking** pSinking;
+    SeaFloor** pSeaFloor;
+    Bathymetry** pBathymetry;
+    Inclined** pInclined;
+    Flat** pFlat;
+    WindTurbine** pWindTurbines;
+    OWC** pOWCs;
+    OWCTurbineType** pOWCTurbines;
     int numAnchorBcps = 0;
     int numBcps = 0;
     int numBodies = 0;

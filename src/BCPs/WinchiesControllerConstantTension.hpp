@@ -5,15 +5,15 @@
 class WinchieControllerConstantTension : public WinchieController
 {
 public:
-	double targetTension; // Target tension per winch [N]
+    double targetTension; // Target tension per winch [N]
 
-	WinchieControllerConstantTension(int n, Winchie **Ws, Simulation *pIncSim);
-	~WinchieControllerConstantTension() override;
+    WinchieControllerConstantTension(int n, Winchie** Ws, Simulation* pIncSim);
+    ~WinchieControllerConstantTension() override;
 
-	void ReadPropertiesASCII(FILE *pFile) override;
-	void ReadPropertiesYAML(YAML::Node node) override;
-	void SetUpWinchiesController(void) override;
-	void controlWinchies(double time) override;
+    void ReadPropertiesASCII(FILE* pFile) override;
+    void ReadPropertiesYAML(YAML::Node node) override;
+    void SetUpWinchiesController(void) override;
+    void controlWinchies(double time) override;
 };
 
 #endif

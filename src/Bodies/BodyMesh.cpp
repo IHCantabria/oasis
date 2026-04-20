@@ -26,7 +26,7 @@ Library for body meshes
 /////////////////////////// BodyMesh CLASS DEFINITION //////////////////////
 ////////////////////////////////////////////////////////////////////////////
 
-BodyMesh::BodyMesh(int incId, std::string incMeshFileName, Body *incpBody)
+BodyMesh::BodyMesh(int incId, std::string incMeshFileName, Body* incpBody)
 {
     id = incId;
     meshFileName = incMeshFileName;
@@ -66,7 +66,7 @@ void BodyMesh::ReadPropertiesASCII(void)
     {
         for (int inode = 0; inode < numElemNodes; ++inode)
         {
-            const float *c = mesh.vrt_coords(mesh.tri_corner_ind(ielem, inode));
+            const float* c = mesh.vrt_coords(mesh.tri_corner_ind(ielem, inode));
             tmp_nodes.row(3 * ielem + inode) = {c[0], c[1], c[2]};
             tmp_elems(ielem, inode) = 3 * ielem + inode;
         }
@@ -80,7 +80,8 @@ void BodyMesh::ReadPropertiesASCII(void)
     // If iniNodes contains values larger than 1000, convert from millimeters to meters and display a warning
     if (arma::abs(iniNodes).max() > 1000.0)
     {
-        std::cout << "   WARNING: it seems that the mesh is defined in millimeters. Converting to meters..." << std::endl;
+        std::cout << "   WARNING: it seems that the mesh is defined in millimeters. Converting to meters..."
+                  << std::endl;
         iniNodes = iniNodes / 1000.0;
     }
 
