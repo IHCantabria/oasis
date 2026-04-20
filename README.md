@@ -1,6 +1,10 @@
 # OASIS — Offshore Advanced SImulation Software
 
+[![Documentation](https://img.shields.io/badge/docs-ihcantabria.github.io%2Foasis-blue)](https://ihcantabria.github.io/oasis/)
+
 OASIS is a time-domain numerical simulation tool for offshore floating structures, developed in C++ by [IHCantabria](https://ihcantabria.com). It couples potential-flow hydrodynamics with structural and mooring dynamics to predict the motion response of floating platforms under waves, wind and current.
+
+**Documentation:** https://ihcantabria.github.io/oasis/
 
 ## Features
 
