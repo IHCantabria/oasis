@@ -1,0 +1,50 @@
+# Doxyfile — OASIS C++ API Reference
+# Run: doxygen Doxyfile
+
+PROJECT_NAME           = "OASIS"
+PROJECT_BRIEF          = "Offshore Advanced SImulation Software"
+PROJECT_NUMBER         = ""
+OUTPUT_DIRECTORY       = docs/api
+INPUT                  = src
+RECURSIVE              = YES
+FILE_PATTERNS          = *.hpp *.cpp *.h
+
+# Extract everything (existing doc comments are sparse)
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = YES
+
+# Output
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+HTML_OUTPUT            = .
+HTML_COLORSTYLE        = LIGHT
+
+# Source browsing
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = NO
+REFERENCED_BY_RELATION = YES
+REFERENCES_RELATION    = YES
+
+# Graphs
+HAVE_DOT               = NO
+CLASS_DIAGRAMS         = YES
+COLLABORATION_GRAPH    = NO
+INCLUDE_GRAPH          = NO
+INCLUDED_BY_GRAPH      = NO
+
+# Math
+USE_MATHJAX            = YES
+
+# Misc
+QUIET                  = YES
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = NO
+WARN_IF_DOC_ERROR      = YES
+
+# Sorting
+SORT_MEMBER_DOCS       = YES
+SORT_BRIEF_DOCS        = YES
+
+# Exclude build artifacts
+EXCLUDE_PATTERNS       = */build/*

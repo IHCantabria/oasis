@@ -30,3 +30,21 @@ core*
 */output/*
 compilar.sh
 .out
+
+# LaTeX build outputs (docs/theory-manual/)
+docs/theory-manual/*.aux
+docs/theory-manual/*.log
+docs/theory-manual/*.out
+docs/theory-manual/*.toc
+docs/theory-manual/*.lof
+docs/theory-manual/*.lot
+docs/theory-manual/*.fls
+docs/theory-manual/*.fdb_latexmk
+docs/theory-manual/*.synctex.gz
+docs/theory-manual/*.blg
+docs/theory-manual/*.bbl
+docs/theory-manual/*.pdf
+!docs/assets/OASIS_TheoryManual.pdf
+
+# MkDocs generated site (use gh-pages branch instead)
+site/

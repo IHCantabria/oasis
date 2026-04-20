@@ -26,7 +26,9 @@ oasis/
 ├── examples/                       Ready-to-run example cases
 ├── resources/                      Python plotting utilities
 ├── cmake/                          CMake helper modules
-└── doc/                            Theory manual (LaTeX)
+├── docs/                           MkDocs documentation source
+│   └── theory-manual/              Theory manual (LaTeX source + assets)
+└── resources/                      Python plotting utilities
 ```
 
 ---
