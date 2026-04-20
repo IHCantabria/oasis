@@ -28,164 +28,28 @@ Line::Line(int incId, double incG, double incRhoW, double incFondo)
 	fondo = incFondo;
 }
 
-void Line::ReadPropertiesASCII(FILE *pFilePointer)
+void Line::ReadPropertiesASCII(FILE *pFilePointer, LineType **pTypes, int numTypes)
 {
-	// Declare variables
 	char buffer_line[1000];
-	double dtemp;
-	fpos_t carriage_init;
 
-	// Ignoro las tres primeras lineas, donde pone "New line"
+	// Skip 3 header lines ("New line [N]")
 	for (int ii = 0; ii < 3; ii++)
-	{
 		fgets(buffer_line, sizeof(buffer_line), pFilePointer);
-	}
 
-	// Leo todo
+	// Read instance-specific fields
 	fscanf(pFilePointer, "%d %[^\n]\n", &lineType, buffer_line);
-	fscanf(pFilePointer, "%d %[^\n]\n", &flag_tension, buffer_line);
+	fscanf(pFilePointer, "%d %[^\n]\n", &typeIndex, buffer_line);
+	typeIndex -= 1; // convert to 0-based
+	if (typeIndex < 0 || typeIndex >= numTypes)
+	{
+		std::stringstream ss;
+		ss << "Invalid type_index for line " << this->GetId() << "\n";
+		throw ValueError(ss.str());
+	}
+	LineType *pType = pTypes[typeIndex];
 	fscanf(pFilePointer, "%d %[^\n]\n", &nNodos, buffer_line);
 	fscanf(pFilePointer, "%d %[^\n]\n", &p, buffer_line);
 	fscanf(pFilePointer, "%lf %[^\n]\n", &L, buffer_line);
-	fscanf(pFilePointer, "%lf %[^\n]\n", &rho0, buffer_line);
-	fscanf(pFilePointer, "%lf %[^\n]\n", &d, buffer_line);
-	fscanf(pFilePointer, "%d %[^\n]\n", &flag_stiffness, buffer_line);
-	if (flag_stiffness == 0)
-	{
-		fscanf(pFilePointer, "%lf %[^\n]\n", &EA, buffer_line);
-		fscanf(pFilePointer, "%lf %[^\n]\n", &beta, buffer_line);
-	}
-	else if (flag_stiffness == 1)
-	{
-		num_kernel_coef = 0;
-		fgetpos(pFilePointer, &carriage_init);
-		while (fscanf(pFilePointer, "%lf", &dtemp) == 1)
-		{
-			num_kernel_coef++;
-		}
-		fsetpos(pFilePointer, &carriage_init);
-		kernel_lin_coef = arma::zeros(num_kernel_coef, 1);
-		for (int ii = 0; ii < num_kernel_coef; ii++)
-		{
-			if (fscanf(pFilePointer, "%lf", &dtemp) != 1)
-			{
-				std::stringstream ss;
-				ss << "An error ocurred when trying to read the kernel polynomial coefficients for line: " << this->GetId() << "\n";
-				throw ValueError(ss.str());
-			}
-			kernel_lin_coef(ii, 0) = dtemp;
-		}
-		fscanf(pFilePointer, "%[^\n]\n", buffer_line);
-
-		int num_kernel_coef_tmp = 0;
-		fgetpos(pFilePointer, &carriage_init);
-		while (fscanf(pFilePointer, "%lf", &dtemp) == 1)
-		{
-			num_kernel_coef_tmp++;
-		}
-		if (num_kernel_coef_tmp != num_kernel_coef)
-		{
-			std::stringstream ss;
-			ss << "Number of linear and exponential kernel coefficients is not the same for line: " << this->GetId() << "\n";
-			throw ValueError(ss.str());
-		}
-		fsetpos(pFilePointer, &carriage_init);
-		kernel_exp_coef = arma::zeros(num_kernel_coef, 1);
-		for (int ii = 0; ii < num_kernel_coef; ii++)
-		{
-			if (fscanf(pFilePointer, "%lf", &dtemp) != 1)
-			{
-				std::stringstream ss;
-				ss << "An error ocurred when trying to read the kernel polynomial coefficients for line: " << this->GetId() << "\n";
-				throw ValueError(ss.str());
-			}
-			kernel_exp_coef(ii, 0) = dtemp;
-		}
-		fscanf(pFilePointer, "%[^\n]\n", buffer_line);
-
-		num_elastic_coef = 0;
-		fgetpos(pFilePointer, &carriage_init);
-		while (fscanf(pFilePointer, "%lf", &dtemp) == 1)
-		{
-			num_elastic_coef++;
-		}
-		fsetpos(pFilePointer, &carriage_init);
-		elastic_coef = arma::zeros(num_elastic_coef, 1);
-		for (int ii = 0; ii < num_kernel_coef; ii++)
-		{
-			if (fscanf(pFilePointer, "%lf", &dtemp) != 1)
-			{
-				std::stringstream ss;
-				ss << "An error ocurred when trying to read the kernel polynomial coefficients for line: " << this->GetId() << "\n";
-				throw ValueError(ss.str());
-			}
-			elastic_coef(ii, 0) = dtemp;
-		}
-		fscanf(pFilePointer, "%[^\n]\n", buffer_line);
-
-		// Compute EA aproximation for QS initial condition
-		if (elastic_coef(0, 0) > 0.0)
-		{
-			EA = elastic_coef(0, 0);
-		}
-		else
-		{
-			double strain_EA = 0.1;
-			EA = elastic_coef(0, 0) +
-				 2 * elastic_coef(1, 0) * strain_EA +
-				 3 * elastic_coef(2, 0) * strain_EA * strain_EA;
-		}
-	}
-	else if (flag_stiffness > 1)
-	{
-		strain_data = arma::zeros(flag_stiffness, 1);
-		stress_data = arma::zeros(flag_stiffness, 1);
-		for (int ii = 0; ii < this->flag_stiffness; ii++)
-		{
-			if (fscanf(pFilePointer, "%lf", &dtemp) != 1)
-			{
-				std::stringstream ss;
-				ss << "An error occurred when trying to read the strain data for line: " << this->GetId() << "\n";
-				throw ValueError(ss.str());
-			}
-			strain_data(ii, 0) = dtemp;
-		}
-		fscanf(pFilePointer, "%[^\n]\n", buffer_line);
-		for (int ii = 0; ii < this->flag_stiffness; ii++)
-		{
-			if (fscanf(pFilePointer, "%lf", &dtemp) != 1)
-			{
-				std::stringstream ss;
-				ss << "An error occurred when trying to read the stress data for line: " << this->GetId() << "\n";
-				throw ValueError(ss.str());
-			}
-			stress_data(ii, 0) = dtemp;
-		}
-		fscanf(pFilePointer, "%[^\n]\n", buffer_line);
-		fscanf(pFilePointer, "%lf %[^\n]\n", &beta, buffer_line);
-		// Compute EA aproximation for QS initial condition
-		EA = 0;
-		int i_EA = 0;
-		while (EA <= 0)
-		{
-			EA = (stress_data(i_EA + 1, 0) - stress_data(i_EA, 0)) /
-				 (strain_data(i_EA + 1, 0) - strain_data(i_EA, 0));
-			i_EA++;
-			if (i_EA > flag_stiffness - 1)
-			{
-				std::stringstream ss;
-				ss << "Strain-Stress curve should have positive slope for line: " << this->GetId() << "\n";
-				throw ValueError(ss.str());
-			}
-		}
-	}
-
-	fscanf(pFilePointer, "%lf %[^\n]\n", &CB, buffer_line);
-	fscanf(pFilePointer, "%lf %[^\n]\n", &Cmn, buffer_line);
-	fscanf(pFilePointer, "%lf %[^\n]\n", &Cdn, buffer_line);
-	fscanf(pFilePointer, "%lf %[^\n]\n", &Cdt, buffer_line);
-	fscanf(pFilePointer, "%lf %[^\n]\n", &GK, buffer_line);
-	fscanf(pFilePointer, "%lf %[^\n]\n", &GC, buffer_line);
 	fscanf(pFilePointer, "%d %[^\n]\n", &indexSeaFloor, buffer_line);
 	indexSeaFloor--;
 	fscanf(pFilePointer, "%d %[^\n]\n", &BCP_N, buffer_line);
@@ -195,23 +59,43 @@ void Line::ReadPropertiesASCII(FILE *pFilePointer)
 	BCP_1 -= 1;
 	indexBcps[0] = BCP_1;
 
+	// Copy type properties
+	flag_tension     = pType->flag_tension;
+	rho0             = pType->rho0;
+	d                = pType->d;
+	flag_stiffness   = pType->flag_stiffness;
+	EA               = pType->EA;
+	beta             = pType->beta;
+	num_kernel_coef  = pType->num_kernel_coef;
+	num_elastic_coef = pType->num_elastic_coef;
+	kernel_lin_coef  = pType->kernel_lin_coef;
+	kernel_exp_coef  = pType->kernel_exp_coef;
+	elastic_coef     = pType->elastic_coef;
+	strain_data      = pType->strain_data;
+	stress_data      = pType->stress_data;
+	CB               = pType->CB;
+	Cmn              = pType->Cmn;
+	Cdn              = pType->Cdn;
+	Cdt              = pType->Cdt;
+	GK               = pType->GK;
+	GC               = pType->GC;
+	smoothstep       = pType->smoothstep;
+	frictionModel    = pType->frictionModel;
+	vth              = pType->vth;
+	ust              = pType->ust;
+	usn              = pType->usn;
+	ud               = pType->ud;
+	deltamax         = pType->deltamax;
+	a_1              = pType->a_1;
+
 	if (lineType == 1)
-	{
 		floor_flag = 1;
-	}
-	fscanf(pFilePointer, "%d %[^\n]\n", &smoothstep, buffer_line); // UNUSED?!!!!!!!!!
-	fscanf(pFilePointer, "%d %[^\n]\n", &frictionModel, buffer_line);
-	fscanf(pFilePointer, "%lf %[^\n]\n", &vth, buffer_line);
-	fscanf(pFilePointer, "%lf %[^\n]\n", &ust, buffer_line);
-	fscanf(pFilePointer, "%lf %[^\n]\n", &usn, buffer_line);
-	fscanf(pFilePointer, "%lf %[^\n]\n", &ud, buffer_line);
-	fscanf(pFilePointer, "%lf %[^\n]\n", &deltamax, buffer_line);
+
 	A = arma::datum::pi * d * d * 0.25;
 	dL = L / (nNodos - 1);
 	dL0 = dL;
 	N = p * (nNodos - 1) + 1;
 	Kn = Cmn * A * rhoW;
-
 	dampCoef = 2.0 * sqrt(rho0 * GK * d);
 	VR = 0.01 * (d * d * GK) / (dampCoef);
 
@@ -253,25 +137,6 @@ void Line::ReadPropertiesASCII(FILE *pFilePointer)
 	posFriccion = arma::zeros(N, 3);
 	isSlip = arma::zeros(N, 1);
 
-	if (frictionModel == 1)
-	{
-		// voy a resolver un solo sistema que dara los coeficientes por si hay friccion de velocidad al principio del problemna.
-		// es el step fuerte
-		// Los coeficientes van a ser siempre esos asi que solo hace falta hacerlo una vez y asi se obtiene el polinomio
-		arma::mat tmpA = arma::zeros(4, 4);
-		arma::mat tmpB = arma::zeros(4, 1);
-		double x1 = 0;
-		double x2 = 1e-04;
-		tmpA = {{pow(x1, 3), pow(x1, 2), 1 * x1, 1},
-				{3 * pow(x1, 2), 2 * (x1), 1, 0},
-				{pow(x2, 3), pow(x2, 2), 1 * x2, 1},
-				{3 * pow(x2, 2), 2 * x2, 1, 0}};
-		tmpB(0, 0) = 1e-07;
-		tmpB(1, 0) = 0.0;
-		tmpB(2, 0) = x2;
-		tmpB(3, 0) = 1;
-		a_1 = arma::solve(tmpA, tmpB);
-	}
 	double *roots_temp = new double[p + 1];
 	double *weights_temp = new double[p + 1];
 
@@ -291,106 +156,58 @@ void Line::ReadPropertiesASCII(FILE *pFilePointer)
 	}
 }
 
-void Line::ReadPropertiesYAML(YAML::Node node)
+void Line::ReadPropertiesYAML(YAML::Node node, LineType **pTypes, int numTypes)
 {
-	lineType = node["line_type"].as<int>();
-	flag_tension = node["flag_tension"].as<int>();
-	nNodos = node["num_nodes"].as<int>();
-	p = node["polynomial_order"].as<int>();
-	L = node["length"].as<double>();
-	rho0 = node["density"].as<double>();
-	d = node["diameter"].as<double>();
-	flag_stiffness = node["flag_stiffness"].as<int>();
-
-	if (flag_stiffness == 0)
+	// Read instance-specific fields
+	lineType  = node["line_type"].as<int>();
+	typeIndex = node["type_index"].as<int>() - 1; // convert to 0-based
+	if (typeIndex < 0 || typeIndex >= numTypes)
 	{
-		EA = node["EA"].as<double>();
-		beta = node["beta"].as<double>();
+		std::stringstream ss;
+		ss << "Invalid type_index for line " << this->GetId() << "\n";
+		throw ValueError(ss.str());
 	}
-	else if (flag_stiffness == 1)
-	{
-		YAML::Node klNode = node["kernel_lin_coef"];
-		num_kernel_coef = (int)klNode.size();
-		kernel_lin_coef = arma::zeros(num_kernel_coef, 1);
-		for (int ii = 0; ii < num_kernel_coef; ii++)
-			kernel_lin_coef(ii, 0) = klNode[ii].as<double>();
-
-		YAML::Node keNode = node["kernel_exp_coef"];
-		if ((int)keNode.size() != num_kernel_coef)
-		{
-			std::stringstream ss;
-			ss << "Number of linear and exponential kernel coefficients is not the same for line: " << this->GetId() << "\n";
-			throw ValueError(ss.str());
-		}
-		kernel_exp_coef = arma::zeros(num_kernel_coef, 1);
-		for (int ii = 0; ii < num_kernel_coef; ii++)
-			kernel_exp_coef(ii, 0) = keNode[ii].as<double>();
-
-		YAML::Node ecNode = node["elastic_coef"];
-		num_elastic_coef = (int)ecNode.size();
-		elastic_coef = arma::zeros(num_elastic_coef, 1);
-		for (int ii = 0; ii < num_elastic_coef; ii++)
-			elastic_coef(ii, 0) = ecNode[ii].as<double>();
-
-		if (elastic_coef(0, 0) > 0.0)
-			EA = elastic_coef(0, 0);
-		else
-		{
-			double strain_EA = 0.1;
-			EA = elastic_coef(0, 0) +
-				 2 * elastic_coef(1, 0) * strain_EA +
-				 3 * elastic_coef(2, 0) * strain_EA * strain_EA;
-		}
-	}
-	else if (flag_stiffness > 1)
-	{
-		YAML::Node strainNode = node["strain_data"];
-		YAML::Node stressNode = node["stress_data"];
-		strain_data = arma::zeros(flag_stiffness, 1);
-		stress_data = arma::zeros(flag_stiffness, 1);
-		for (int ii = 0; ii < flag_stiffness; ii++)
-			strain_data(ii, 0) = strainNode[ii].as<double>();
-		for (int ii = 0; ii < flag_stiffness; ii++)
-			stress_data(ii, 0) = stressNode[ii].as<double>();
-		beta = node["beta"].as<double>();
-		EA = 0;
-		int i_EA = 0;
-		while (EA <= 0)
-		{
-			EA = (stress_data(i_EA + 1, 0) - stress_data(i_EA, 0)) /
-				 (strain_data(i_EA + 1, 0) - strain_data(i_EA, 0));
-			i_EA++;
-			if (i_EA > flag_stiffness - 1)
-			{
-				std::stringstream ss;
-				ss << "Strain-Stress curve should have positive slope for line: " << this->GetId() << "\n";
-				throw ValueError(ss.str());
-			}
-		}
-	}
-
-	CB = node["CB"].as<double>();
-	Cmn = node["Cmn"].as<double>();
-	Cdn = node["Cdn"].as<double>();
-	Cdt = node["Cdt"].as<double>();
-	GK = node["GK"].as<double>();
-	GC = node["GC"].as<double>();
+	LineType *pType = pTypes[typeIndex];
+	nNodos    = node["num_nodes"].as<int>();
+	p         = node["polynomial_order"].as<int>();
+	L         = node["length"].as<double>();
 	indexSeaFloor = node["seafloor_index"].as<int>() - 1;
 	BCP_N = node["BCP_N"].as<int>() - 1;
 	indexBcps[1] = BCP_N;
 	BCP_1 = node["BCP_1"].as<int>() - 1;
 	indexBcps[0] = BCP_1;
 
+	// Copy type properties
+	flag_tension     = pType->flag_tension;
+	rho0             = pType->rho0;
+	d                = pType->d;
+	flag_stiffness   = pType->flag_stiffness;
+	EA               = pType->EA;
+	beta             = pType->beta;
+	num_kernel_coef  = pType->num_kernel_coef;
+	num_elastic_coef = pType->num_elastic_coef;
+	kernel_lin_coef  = pType->kernel_lin_coef;
+	kernel_exp_coef  = pType->kernel_exp_coef;
+	elastic_coef     = pType->elastic_coef;
+	strain_data      = pType->strain_data;
+	stress_data      = pType->stress_data;
+	CB               = pType->CB;
+	Cmn              = pType->Cmn;
+	Cdn              = pType->Cdn;
+	Cdt              = pType->Cdt;
+	GK               = pType->GK;
+	GC               = pType->GC;
+	smoothstep       = pType->smoothstep;
+	frictionModel    = pType->frictionModel;
+	vth              = pType->vth;
+	ust              = pType->ust;
+	usn              = pType->usn;
+	ud               = pType->ud;
+	deltamax         = pType->deltamax;
+	a_1              = pType->a_1;
+
 	if (lineType == 1)
 		floor_flag = 1;
-
-	smoothstep = node["smoothstep"].as<int>();
-	frictionModel = node["friction_model"].as<int>();
-	vth = node["vth"].as<double>();
-	ust = node["ust"].as<double>();
-	usn = node["usn"].as<double>();
-	ud = node["ud"].as<double>();
-	deltamax = node["deltamax"].as<double>();
 
 	A = arma::datum::pi * d * d * 0.25;
 	dL = L / (nNodos - 1);
@@ -435,22 +252,6 @@ void Line::ReadPropertiesYAML(YAML::Node node)
 	posFriccion = arma::zeros(N, 3);
 	isSlip = arma::zeros(N, 1);
 
-	if (frictionModel == 1)
-	{
-		arma::mat tmpA = arma::zeros(4, 4);
-		arma::mat tmpB = arma::zeros(4, 1);
-		double x1 = 0;
-		double x2 = 1e-04;
-		tmpA = {{pow(x1, 3), pow(x1, 2), 1 * x1, 1},
-				{3 * pow(x1, 2), 2 * (x1), 1, 0},
-				{pow(x2, 3), pow(x2, 2), 1 * x2, 1},
-				{3 * pow(x2, 2), 2 * x2, 1, 0}};
-		tmpB(0, 0) = 1e-07;
-		tmpB(1, 0) = 0.0;
-		tmpB(2, 0) = x2;
-		tmpB(3, 0) = 1;
-		a_1 = arma::solve(tmpA, tmpB);
-	}
 	double *roots_temp = new double[p + 1];
 	double *weights_temp = new double[p + 1];
 	lobatto_set(p + 1, roots_temp, weights_temp);

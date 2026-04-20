@@ -20,58 +20,62 @@ problem:
   time_integration_order: 2
   time_step_adaptivity: 0
   jacobian_recomputation_steps: 1
-  absolute_tolerance: 1.0e-5
-  relative_tolerance: 1.0e-3
+  absolute_tolerance: !!float '1e-05'
+  relative_tolerance: 0.001
   max_iterations_per_step: 50
   read_equilibrium: 0
   write_equilibrium: 0
   mooring_initial_condition: 1
   output_format: csv
-
 waves:
   type: REG
   height: 0.0
   period: 10.0
   heading: 0.0
   ramp_time: 0.0
-
 bcps:
   fairleads:
-    - position: [8.0, 0.0, 0.0]
-      winch_id: 0
-      actuator_file: dataActuator_0.dat
+  - position:
+    - 8.0
+    - 0.0
+    - 0.0
+    winch_id: 0
+    actuator_file: dataActuator_0.dat
   anchors:
-    - position: [0.0, 0.0, 0.0]
-      winch_id: 0
-
-lines:
-  - line_type: 1
-    flag_tension: 1
-    num_nodes: 6
-    polynomial_order: 1
-    length: 10.0
-    density: 20.0
-    diameter: 0.05
-    flag_stiffness: 0
-    EA: 1.0e+07
-    beta: 0.01
-    CB: 0.0
-    Cmn: 3.8
-    Cdn: 2.5
-    Cdt: 0.5
-    GK: 1.0e+06
-    GC: 0.1
-    seafloor_index: 1
-    BCP_N: 1
-    BCP_1: 2
-    smoothstep: 1
-    friction_model: 0
-    vth: 0.01
-    ust: 0.6
-    usn: 0.4
-    ud: 0.3
-    deltamax: 0.03
-
+  - position:
+    - 0.0
+    - 0.0
+    - 0.0
+    winch_id: 0
 seafloor:
   flat:
-    - depth: -50.0
+  - depth: -50.0
+line_types:
+- flag_tension: 1
+  density: 20.0
+  diameter: 0.05
+  flag_stiffness: 0
+  EA: 10000000.0
+  beta: 0.01
+  CB: 0.0
+  Cmn: 3.8
+  Cdn: 2.5
+  Cdt: 0.5
+  GK: 1000000.0
+  GC: 0.1
+  smoothstep: 1
+  friction_model: 0
+  vth: 0.01
+  ust: 0.6
+  usn: 0.4
+  ud: 0.3
+  deltamax: 0.03
+lines:
+- line_type: 1
+  type_index: 1
+  num_nodes: 6
+  polynomial_order: 1
+  length: 10.0
+  seafloor_index: 1
+  BCP_N: 1
+  BCP_1: 2

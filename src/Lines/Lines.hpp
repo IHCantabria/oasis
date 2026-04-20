@@ -6,6 +6,7 @@
 #include <yaml-cpp/yaml.h>
 #include "../BCPs/BCPs.hpp"
 #include "../SeaFloor/SeaFloor.hpp"
+#include "LineType.hpp"
 
 class Line
 {
@@ -20,6 +21,7 @@ private:
 public:
 	int numBcps = 2;
 	int indexBcps[2];
+	int typeIndex;
 	int lineType, nLine, nNodos, p, N, floor_flag, BCP_1, BCP_N, flag_tension, flag_stiffness, smoothstep, frictionModel;
 	double L, dL, dL0, EA, beta, rho0, d, A, Cdt, Cdn, Cmn, CB, GK, GC, Kn, dampCoef, VR, vth, ust, usn, ud, deltamax, fn;
 	double paramNormal_1, paramNormal_N, parammuelle1_1, parammuelle1_N, parammuelle2_1, parammuelle2_N, paramVel_1, paramVel_N, ultimaCoordVel_1, ultimaCoordVel_N;
@@ -77,8 +79,8 @@ public:
 
 	Line(int incId, double incG, double incRhoW, double incFondo);
 	int GetId();
-	void ReadPropertiesASCII(FILE *pFilePointer);
-	void ReadPropertiesYAML(YAML::Node node);
+	void ReadPropertiesASCII(FILE *pFilePointer, LineType **pTypes, int numTypes);
+	void ReadPropertiesYAML(YAML::Node node, LineType **pTypes, int numTypes);
 	void OpenOutputFilesASCII(std::string path);
 	void OpenOutputFilesCSV(std::string path);
 	void CloseOutputFilesASCII(void);

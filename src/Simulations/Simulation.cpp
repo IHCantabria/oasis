@@ -1902,20 +1902,25 @@ void Simulation::ReadLinesASCII()
         return;
     }
 
-    // Read total number of springs to read
-    fscanf(file_pointer, "%d %[^\n]\n", &numLines, bufferLine);
+    // Read line types
+    fscanf(file_pointer, "%d %[^\n]\n", &numLineTypes, bufferLine);
+    pLineTypes = new LineType *[numLineTypes];
+    for (int ii = 0; ii < numLineTypes; ii++)
+    {
+        pLineTypes[ii] = new LineType();
+        pLineTypes[ii]->ReadPropertiesASCII(file_pointer);
+    }
 
-    // Allocate a vector of Line pointers
+    // Read line instances
+    fscanf(file_pointer, "%d %[^\n]\n", &numLines, bufferLine);
     pLines = new Line *[numLines];
 
-    // Read all lines
     for (int ii = 0; ii < numLines; ii++)
     {
         pLines[ii] = new Line(ii, gravity, waterDensity, waterDepth);
-        // TODO: This try-catch block should be removed and the exceptions should be handled in the Line class
         try
         {
-            pLines[ii]->ReadPropertiesASCII(file_pointer);
+            pLines[ii]->ReadPropertiesASCII(file_pointer, pLineTypes, numLineTypes);
             pLines[ii]->OpenOutputFiles(outputFolderPath, outputFormat);
         }
         catch (int e)
@@ -1953,6 +1958,23 @@ void Simulation::ReadLinesYAML()
 {
     std::cout << "--> Reading Lines Properties (YAML format)" << std::endl;
 
+    // Read line types
+    if (yamlRoot["line_types"])
+    {
+        numLineTypes = (int)yamlRoot["line_types"].size();
+        pLineTypes = new LineType *[numLineTypes];
+        for (int ii = 0; ii < numLineTypes; ii++)
+        {
+            pLineTypes[ii] = new LineType();
+            pLineTypes[ii]->ReadPropertiesYAML(yamlRoot["line_types"][ii]);
+        }
+    }
+    else
+    {
+        numLineTypes = 0;
+        pLineTypes = new LineType *[0];
+    }
+
     if (!yamlRoot["lines"])
     {
         std::cout << "    --> WARNING: 'lines' section not found in YAML! Setting numLines = 0!" << std::endl;
@@ -1969,7 +1991,7 @@ void Simulation::ReadLinesYAML()
         pLines[ii] = new Line(ii, gravity, waterDensity, waterDepth);
         try
         {
-            pLines[ii]->ReadPropertiesYAML(yamlRoot["lines"][ii]);
+            pLines[ii]->ReadPropertiesYAML(yamlRoot["lines"][ii], pLineTypes, numLineTypes);
             pLines[ii]->OpenOutputFiles(outputFolderPath, outputFormat);
         }
         catch (int e)
@@ -2131,17 +2153,22 @@ void Simulation::ReadSpringsASCII()
         return;
     }
 
-    // Read file contents
-    fscanf(file_pointer, "%d %[^\n]", &numSprings, bufferLine);
+    // Read spring types
+    fscanf(file_pointer, "%d %[^\n]\n", &numSpringTypes, bufferLine);
+    pSpringTypes = new SpringType *[numSpringTypes];
+    for (int ii = 0; ii < numSpringTypes; ii++)
+    {
+        pSpringTypes[ii] = new SpringType();
+        pSpringTypes[ii]->ReadPropertiesASCII(file_pointer);
+    }
 
-    // Allocate a vector of Spring pointers
+    // Read spring instances
+    fscanf(file_pointer, "%d %[^\n]\n", &numSprings, bufferLine);
     pSprings = new Spring *[numSprings];
-
-    // Read each Spring
     for (int ii = 0; ii < numSprings; ii++)
     {
         pSprings[ii] = new Spring(ii);
-        pSprings[ii]->ReadPropertiesASCII(file_path);
+        pSprings[ii]->ReadPropertiesASCII(file_pointer, pSpringTypes, numSpringTypes);
     }
 
     // Close the file
@@ -2153,6 +2180,23 @@ void Simulation::ReadSpringsASCII()
 void Simulation::ReadSpringsYAML()
 {
     std::cout << "--> Reading Spring Properties (YAML format)" << std::endl;
+
+    // Read spring types
+    if (yamlRoot["spring_types"])
+    {
+        numSpringTypes = (int)yamlRoot["spring_types"].size();
+        pSpringTypes = new SpringType *[numSpringTypes];
+        for (int ii = 0; ii < numSpringTypes; ii++)
+        {
+            pSpringTypes[ii] = new SpringType();
+            pSpringTypes[ii]->ReadPropertiesYAML(yamlRoot["spring_types"][ii]);
+        }
+    }
+    else
+    {
+        numSpringTypes = 0;
+        pSpringTypes = new SpringType *[0];
+    }
 
     if (!yamlRoot["springs"])
     {
@@ -2168,7 +2212,7 @@ void Simulation::ReadSpringsYAML()
     for (int ii = 0; ii < numSprings; ii++)
     {
         pSprings[ii] = new Spring(ii);
-        pSprings[ii]->ReadPropertiesYAML(yamlRoot["springs"][ii]);
+        pSprings[ii]->ReadPropertiesYAML(yamlRoot["springs"][ii], pSpringTypes, numSpringTypes);
     }
 
     std::cout << "--> Spring Properties Read" << std::endl;

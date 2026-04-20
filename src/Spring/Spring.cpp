@@ -9,78 +9,50 @@
 #include "../os_tools.hpp"
 
 // Lee inputs de los muelles
-void Spring::ReadPropertiesASCII(std::string file_path)
+void Spring::ReadPropertiesASCII(FILE *pFilePointer, SpringType **pTypes, int numTypes)
 {
-
-	int ii, jj, kk, ll, temp_N;
-	std::string Dummy;
-	const int nInored = 97; // numero de lineas que se leen para cada nueva linea
+	int ii, jj;
+	char buffer_line[1000];
 	arma::mat temp_vec;
 
 	SpringVectors.set_size(3, 2);
 	data_StressStrain.set_size(6, 2);
 
-	// Abro el fichero
-	std::ifstream datosSprings(file_path);
+	// Skip 3 header lines ("New spring [N]")
+	for (ii = 0; ii < 3; ii++)
+		fgets(buffer_line, sizeof(buffer_line), pFilePointer);
 
-	// Ignoro la primera linea del fichero, que contiene el numero de muelles a estudiar
-	datosSprings >> Dummy;
-	datosSprings.ignore(std::numeric_limits<int>::max(), '\n'); // El ignore sirve para ignorar el texto de la linea
-
-	// Ignoro las lineas que ya se han leido
-	for (ii = 0; ii < nSpring; ii = ii + 1)
+	// Read instance-specific fields
+	fscanf(pFilePointer, "%d %[^\n]\n", &typeIndex, buffer_line);
+	typeIndex -= 1; // convert to 0-based
+	if (typeIndex < 0 || typeIndex >= numTypes)
 	{
-		for (jj = 1; jj <= nInored; jj = jj + 1)
-		{
-			datosSprings >> Dummy;
-			datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
-		}
+		std::stringstream ss;
+		ss << "Invalid type_index for spring " << nSpring + 1 << "\n";
+		throw ValueError(ss.str());
 	}
-
-	// Ignoro las tres primeras lineas, donde pone "New spring"
-	for (ii = 1; ii <= 3; ii = ii + 1)
-	{
-		datosSprings >> Dummy;
-		datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
-	}
-
-	// Leo todo
-	datosSprings >> stressModelFlag;
-	datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
-	datosSprings >> dampingFlag;
-	datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
-	datosSprings >> frictionFlag;
-	datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
-	datosSprings >> frameFlag;
-	datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
-	datosSprings >> BCP_1;
-	datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
-	datosSprings >> BCP_2;
-	datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
-	datosSprings >> BCP_1_type;
-	datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
-	datosSprings >> BCP_2_type;
-	datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
+	SpringType *pType = pTypes[typeIndex];
+	fscanf(pFilePointer, "%d %[^\n]\n", &BCP_1, buffer_line);
 	BCP_1 -= 1;
+	fscanf(pFilePointer, "%d %[^\n]\n", &BCP_2, buffer_line);
 	BCP_2 -= 1;
+	fscanf(pFilePointer, "%d %[^\n]\n", &BCP_1_type, buffer_line);
+	fscanf(pFilePointer, "%d %[^\n]\n", &BCP_2_type, buffer_line);
 
 	if (BCP_1_type > 0 && BCP_2_type > 0)
 	{
 		std::stringstream ss;
-		ss << "One of the BCPs must be a fixed point"
-		   << ".\n";
+		ss << "One of the BCPs must be a fixed point.\n";
 		throw ValueError(ss.str());
 	}
 
-	for (jj = 0; jj < 2; jj = jj + 1)
+	for (jj = 0; jj < 2; jj++)
 	{
-		for (ii = 0; ii < 3; ii = ii + 1)
+		for (ii = 0; ii < 3; ii++)
 		{
 			temp_vec = arma::zeros(3, 1);
-			datosSprings >> temp_vec(0, 0);
-			datosSprings >> temp_vec(1, 0);
-			datosSprings >> temp_vec(2, 0);
-			datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
+			fscanf(pFilePointer, "%lf %lf %lf %[^\n]\n",
+				   &temp_vec(0, 0), &temp_vec(1, 0), &temp_vec(2, 0), buffer_line);
 			SpringVectors(ii, jj) = temp_vec;
 		}
 	}
@@ -90,17 +62,16 @@ void Spring::ReadPropertiesASCII(std::string file_path)
 	arma::field<arma::mat> SpringVectors_new;
 	SpringVectors_new.set_size(3, 2);
 	double temp_norm;
-	for (jj = 0; jj < 2; jj = jj + 1)
+	for (jj = 0; jj < 2; jj++)
 	{
-		for (ii = 0; ii < 3; ii = ii + 1)
+		for (ii = 0; ii < 3; ii++)
 		{
 			temp_vec = SpringVectors(ii, jj);
 			temp_norm = arma::norm(temp_vec);
 			if (temp_norm < 0.99 || temp_norm > 1.01)
 			{
 				std::stringstream ss;
-				ss << "The norm of the spring vectors must be unitary"
-				   << ".\n";
+				ss << "The norm of the spring vectors must be unitary.\n";
 				throw ValueError(ss.str());
 			}
 			temp_vec = temp_vec / temp_norm;
@@ -109,22 +80,21 @@ void Spring::ReadPropertiesASCII(std::string file_path)
 		SpringVectors_new(1, jj) = arma::cross(SpringVectors_new(2, jj), SpringVectors_new(0, jj));
 		SpringVectors_new(1, jj) = SpringVectors_new(1, jj) / arma::norm(SpringVectors_new(1, jj));
 		SpringVectors_new(2, jj) = arma::cross(SpringVectors_new(0, jj), SpringVectors_new(1, jj));
-		for (ii = 0; ii < 3; ii = ii + 1)
+		for (ii = 0; ii < 3; ii++)
 		{
 			temp_norm = arma::norm(SpringVectors_new(ii, jj) - SpringVectors(ii, jj));
 			if (temp_norm > 0.02)
 			{
 				std::stringstream ss;
-				ss << "The spring vectors must form an orthonormal basis"
-				   << ".\n";
+				ss << "The spring vectors must form an orthonormal basis.\n";
 				throw ValueError(ss.str());
 			}
 		}
 	}
-	for (jj = 0; jj < 2; jj = jj + 1)
+	for (jj = 0; jj < 2; jj++)
 	{
 		std::cout << "          Spring " << jj + 1 << " ..." << std::endl;
-		for (ii = 0; ii < 3; ii = ii + 1)
+		for (ii = 0; ii < 3; ii++)
 		{
 			temp_norm = arma::norm(SpringVectors_new(ii, jj) - SpringVectors(ii, jj));
 			if (temp_norm > 1e-6)
@@ -138,115 +108,42 @@ void Spring::ReadPropertiesASCII(std::string file_path)
 	}
 	SpringVectors = SpringVectors_new;
 
-	datosSprings >> Dummy;
-	datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
-	for (jj = 0; jj < 6; jj = jj + 1)
-	{
-		for (kk = 0; kk < 6; kk = kk + 1)
-		{
-			datosSprings >> SpringMatrix_K(jj, kk);
-		}
-		datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
-	}
-
-	datosSprings >> Dummy;
-	datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
-	datosSprings >> mu_d;
-	datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
-	datosSprings >> mu_s;
-	datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
-	datosSprings >> vt;
-	datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
-	datosSprings >> Dt;
-	datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
-
-	arma::mat tmpA, tmpB = arma::zeros(4, 1);
-
-	tmpA = {{pow(vt / 2, 3), pow(vt / 2, 2), vt / 2, 1},
-			{3 * pow(vt / 2, 2), 2 * (vt / 2), 1, 0},
-			{pow(vt, 3), pow(vt, 2), vt, 1},
-			{3 * pow(vt, 2), 2 * vt, 1, 0}};
-	tmpB(0, 0) = mu_s / 2;
-	tmpB(1, 0) = mu_s / vt;
-	tmpB(2, 0) = mu_s;
-	tmpB(3, 0) = 0;
-	a_1 = arma::solve(tmpA, tmpB);
-
-	tmpA = {{pow(vt, 3), pow(vt, 2), vt, 1},
-			{3 * pow(vt, 2), 2 * vt, 1, 0},
-			{pow(vt * 2, 3), pow(vt * 2, 2), vt * 2, 1},
-			{3 * pow(vt * 2, 2), 2 * (vt * 2), 1, 0}};
-	tmpB(0, 0) = mu_s;
-	tmpB(1, 0) = 0;
-	tmpB(2, 0) = mu_d;
-	tmpB(3, 0) = 0;
-	a_2 = arma::solve(tmpA, tmpB);
-
-	datosSprings >> Dummy;
-	datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
-	for (jj = 0; jj < 6; jj = jj + 1)
-	{
-		for (kk = 0; kk < 6; kk = kk + 1)
-		{
-			datosSprings >> SpringMatrix_M(jj, kk);
-		}
-		datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
-	}
-
-	datosSprings >> Dummy;
-	datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
-	for (jj = 0; jj < 6; jj = jj + 1)
-	{
-		datosSprings >> SpringMatrix_D(jj, 0);
-		datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
-	}
-
-	for (jj = 0; jj < 6; jj = jj + 1)
-	{
-		datosSprings >> Dummy;
-		datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
-		datosSprings >> temp_N;
-		datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
-		n_StressStrain[jj] = temp_N;
-		arma::mat temp_vec2 = arma::zeros(temp_N, 1);
-		arma::mat temp_mat = arma::zeros(temp_N, 6);
-		for (ll = 0; ll < temp_N; ll = ll + 1)
-		{
-			datosSprings >> temp_vec2(ll, 0);
-		}
-		datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
-		data_StressStrain(jj, 0) = temp_vec2;
-		temp_mat = arma::zeros(temp_N, 6);
-		for (kk = 0; kk < 6; kk = kk + 1)
-		{
-			for (ll = 0; ll < temp_N; ll = ll + 1)
-			{
-				datosSprings >> temp_mat(ll, kk);
-			}
-			datosSprings.ignore(std::numeric_limits<int>::max(), '\n');
-		}
-		data_StressStrain(jj, 1) = temp_mat;
-		// std::cout << "temp_vec2  " << temp_vec2 << std::endl;
-		// std::cout << "temp_mat  " << temp_mat << std::endl;
-	}
-
-	// Cierro el fichero
-	datosSprings.close();
+	// Copy type properties
+	stressModelFlag = pType->stressModelFlag;
+	dampingFlag     = pType->dampingFlag;
+	frictionFlag    = pType->frictionFlag;
+	frameFlag       = pType->frameFlag;
+	SpringMatrix_K  = pType->SpringMatrix_K;
+	SpringMatrix_D  = pType->SpringMatrix_D;
+	SpringMatrix_M  = pType->SpringMatrix_M;
+	mu_d            = pType->mu_d;
+	mu_s            = pType->mu_s;
+	vt              = pType->vt;
+	Dt              = pType->Dt;
+	a_1             = pType->a_1;
+	a_2             = pType->a_2;
+	for (int kk = 0; kk < 6; kk++)
+		n_StressStrain[kk] = pType->n_StressStrain[kk];
+	data_StressStrain = pType->data_StressStrain;
 }
-
-void Spring::ReadPropertiesYAML(YAML::Node node)
+void Spring::ReadPropertiesYAML(YAML::Node node, SpringType **pTypes, int numTypes)
 {
 	arma::mat temp_vec;
 
 	SpringVectors.set_size(3, 2);
 	data_StressStrain.set_size(6, 2);
 
-	stressModelFlag = node["stress_model_flag"].as<int>();
-	dampingFlag = node["damping_flag"].as<int>();
-	frictionFlag = node["friction_flag"].as<int>();
-	frameFlag = node["frame_flag"].as<int>();
-	BCP_1 = node["BCP_1"].as<int>() - 1;
-	BCP_2 = node["BCP_2"].as<int>() - 1;
+	// Read instance-specific fields
+	typeIndex  = node["type_index"].as<int>() - 1; // convert to 0-based
+	if (typeIndex < 0 || typeIndex >= numTypes)
+	{
+		std::stringstream ss;
+		ss << "Invalid type_index for spring " << nSpring + 1 << "\n";
+		throw ValueError(ss.str());
+	}
+	SpringType *pType = pTypes[typeIndex];
+	BCP_1      = node["BCP_1"].as<int>() - 1;
+	BCP_2      = node["BCP_2"].as<int>() - 1;
 	BCP_1_type = node["BCP_1_type"].as<int>();
 	BCP_2_type = node["BCP_2_type"].as<int>();
 
@@ -322,69 +219,23 @@ void Spring::ReadPropertiesYAML(YAML::Node node)
 	}
 	SpringVectors = SpringVectors_new;
 
-	// Read stiffness matrix
-	YAML::Node kNode = node["stiffness_matrix"];
-	for (int jj = 0; jj < 6; jj++)
-		for (int kk = 0; kk < 6; kk++)
-			SpringMatrix_K(jj, kk) = kNode[jj][kk].as<double>();
-
-	// Read friction parameters
-	mu_d = node["mu_d"].as<double>();
-	mu_s = node["mu_s"].as<double>();
-	vt = node["vt"].as<double>();
-	Dt = node["Dt"].as<double>();
-
-	arma::mat tmpA, tmpB = arma::zeros(4, 1);
-	tmpA = {{pow(vt / 2, 3), pow(vt / 2, 2), vt / 2, 1},
-			{3 * pow(vt / 2, 2), 2 * (vt / 2), 1, 0},
-			{pow(vt, 3), pow(vt, 2), vt, 1},
-			{3 * pow(vt, 2), 2 * vt, 1, 0}};
-	tmpB(0, 0) = mu_s / 2;
-	tmpB(1, 0) = mu_s / vt;
-	tmpB(2, 0) = mu_s;
-	tmpB(3, 0) = 0;
-	a_1 = arma::solve(tmpA, tmpB);
-
-	tmpA = {{pow(vt, 3), pow(vt, 2), vt, 1},
-			{3 * pow(vt, 2), 2 * vt, 1, 0},
-			{pow(vt * 2, 3), pow(vt * 2, 2), vt * 2, 1},
-			{3 * pow(vt * 2, 2), 2 * (vt * 2), 1, 0}};
-	tmpB(0, 0) = mu_s;
-	tmpB(1, 0) = 0;
-	tmpB(2, 0) = mu_d;
-	tmpB(3, 0) = 0;
-	a_2 = arma::solve(tmpA, tmpB);
-
-	// Read mass matrix
-	YAML::Node mNode = node["mass_matrix"];
-	for (int jj = 0; jj < 6; jj++)
-		for (int kk = 0; kk < 6; kk++)
-			SpringMatrix_M(jj, kk) = mNode[jj][kk].as<double>();
-
-	// Read damping vector
-	YAML::Node dNode = node["damping_vector"];
-	for (int jj = 0; jj < 6; jj++)
-		SpringMatrix_D(jj, 0) = dNode[jj].as<double>();
-
-	// Read stress-strain data for each DOF
-	YAML::Node ssNode = node["stress_strain"];
-	for (int jj = 0; jj < 6; jj++)
-	{
-		YAML::Node dofNode = ssNode[jj];
-		int temp_N = (int)dofNode["displacements"].size();
-		n_StressStrain[jj] = temp_N;
-		arma::mat temp_vec2 = arma::zeros(temp_N, 1);
-		for (int ll = 0; ll < temp_N; ll++)
-			temp_vec2(ll, 0) = dofNode["displacements"][ll].as<double>();
-		data_StressStrain(jj, 0) = temp_vec2;
-
-		arma::mat temp_mat = arma::zeros(temp_N, 6);
-		YAML::Node forcesNode = dofNode["forces"];
-		for (int kk = 0; kk < 6; kk++)
-			for (int ll = 0; ll < temp_N; ll++)
-				temp_mat(ll, kk) = forcesNode[kk][ll].as<double>();
-		data_StressStrain(jj, 1) = temp_mat;
-	}
+	// Copy type properties
+	stressModelFlag = pType->stressModelFlag;
+	dampingFlag     = pType->dampingFlag;
+	frictionFlag    = pType->frictionFlag;
+	frameFlag       = pType->frameFlag;
+	SpringMatrix_K  = pType->SpringMatrix_K;
+	SpringMatrix_D  = pType->SpringMatrix_D;
+	SpringMatrix_M  = pType->SpringMatrix_M;
+	mu_d            = pType->mu_d;
+	mu_s            = pType->mu_s;
+	vt              = pType->vt;
+	Dt              = pType->Dt;
+	a_1             = pType->a_1;
+	a_2             = pType->a_2;
+	for (int kk = 0; kk < 6; kk++)
+		n_StressStrain[kk] = pType->n_StressStrain[kk];
+	data_StressStrain = pType->data_StressStrain;
 }
 
 // Calcula las fuerzas que aplica el muelle en los BCPs y las guarda en estos

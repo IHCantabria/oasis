@@ -10,7 +10,9 @@
 #include "../BCPs/Winchies.hpp"
 #include "../BCPs/WinchiesController.hpp"
 #include "../Lines/Lines.hpp"
+#include "../Lines/LineType.hpp"
 #include "../Spring/Spring.hpp"
+#include "../Spring/SpringType.hpp"
 #include "../Waves/Wave.hpp"
 #include "../Sinking/Sinking.hpp"
 #include "../SeaFloor/SeaFloor.hpp"
@@ -98,7 +100,9 @@ public:
     JointBCP **pJointBcps;
     ElasticAnchorBCP **pElasticAnchorBcps;
     Line **pLines;
+    LineType **pLineTypes = nullptr;
     Spring **pSprings;
+    SpringType **pSpringTypes = nullptr;
     Winchie **pWinches;
     WinchieController *WinchesController = nullptr;
     Wave *pWave;
@@ -122,7 +126,9 @@ public:
     int numJointBcps = 0;
     int numElasticAnchorBcps = 0;
     int numLines = 0;
+    int numLineTypes = 0;
     int numSprings = 0;
+    int numSpringTypes = 0;
     int numWinches = 0;
     int numSinking = 0;
     int numFloor = 0;

@@ -6,13 +6,15 @@
 #include <cstdio>
 #include <yaml-cpp/yaml.h>
 #include "../BCPs/BCPs.hpp"
+#include "SpringType.hpp"
 
 class Simulation;
 
 class Spring
 {
 public:
-	int nSpring; // Spring number
+	int nSpring;   // Spring number
+	int typeIndex; // 0-based index into pSpringTypes array
 
 	int stressModelFlag; // Flag que determina que modelo de stress se da, [1: matriz lineal, 2: curva stress-strain]
 	int dampingFlag;	 // Flag que determina si se considera damping en los muelles, [0: no se considera, 1: se considera]
@@ -38,9 +40,9 @@ public:
 	// Para 6 grados de libertad una matriz nx1 con los estados de strain y otra nx6 con los stresses correspondientes
 	arma::field<arma::mat> data_StressStrain;
 
-	Spring(int n) { nSpring = n; }					// Inicializa un objeto de clase muelle dandole el indice
-	void ReadPropertiesASCII(std::string filePath); // Lee inputs de los muelles
-	void ReadPropertiesYAML(YAML::Node node);
+	Spring(int n) { nSpring = n; }									  // Inicializa un objeto de clase muelle dandole el indice
+	void ReadPropertiesASCII(FILE *pFilePointer, SpringType **pTypes, int numTypes); // Lee inputs de los muelles
+	void ReadPropertiesYAML(YAML::Node node, SpringType **pTypes, int numTypes);
 	void computeSpringForces(void);					// Calcula las fuerzas que aplica el muelle en los BCPs y las guarda en variables de los BCPs
 
 	// Output

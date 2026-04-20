@@ -1,117 +1,68 @@
+1 // Number of line types
+//////////////////
+////////////////// New line type [1]
+//////////////////
+2 // Tension model [1: symmetric, 2: tension-only]
+50.0 // Weight over water [kg/m]
+0.09 // Diameter [m]
+0 // Flag for axial stiffness [0: constant EA, 1: viscoelastic, >1: tabulated]
+1.0E+07 // EA - axial stiffness [N]
+0.002 // beta - structural damping coefficient
+0.0 // CB - seabed static friction coefficient
+3.8 // Cmn - hydrodynamic mass coefficient
+2.5 // Cdn - normal drag coefficient
+0.5 // Cdt - tangential drag coefficient
+1.0E+06 // GK - ground normal stiffness [N/m]
+0.1 // GC - fraction of critical damping of ground
+1 // Smoothstep flag
+0 // Friction model [0: None, 1: Isotropic, 2: Anisotropic]
+0.01 // vth - velocity threshold for stick-to-slip [m/s]
+0.6 // ust - static tangential friction coefficient
+0.4 // usn - static normal friction coefficient
+0.3 // ud - dynamic friction coefficient
+0.03 // deltamax - maximum displacement [m]
 4 // Number of lines
-////////////////// 
+//////////////////
 ////////////////// New line [1]
-////////////////// 
-1 // Type of line [1: Mooring, 2: Towing, 3:Tensor]
-2 // Tension model [1: symmetric, 2: tension-only]
-11 // Number of nodes used to divide catenary i
-1 // Order of the elements of catenary i
-140.0 // Length of catenary i [m]
-50.0 // Weight over water of catenary i (kg/m)    
-0.09 // Diameter of the section of catenary i [m]
-0 // Flag for axial stiffness [n=0: constant axial stiffness (next line must contain EA), n=1: variable axial stiffness polynomial , n>1 : variable axial stiffness interpolated]
-1.0E+07 // Youngs module multiplied by the Area for catenary i [N]
-0.002 // Coefficient of the internal damping coefficient as function of EA [Azcona-2016] for i
-0.0 // Coefficient of seabed static friction for i  
-3.8 // Hydrodynamic Mass Coefficient for catenary i (needed for the dynamic model only)  
-2.5 // Normal Drag Coefficient for catenary i (needed for the dynamic model only)  
-0.5 // Tangential Drag Coefficient for catenary i (needed for the dynamic model only)  
-1.0E+06 // Ground Normal stiffness for catenary i (needed for the dynamic model only) [Palm-2013b]  
-0.1 // Fraction of critical damping of ground for catenary i (needed for the dynamic model only) [Palm-2013b]  
-1 // Floor Id assigned to this line [from dataSeaFloor.dat]
-1 // BCP index of the node with index N (Fairlead 1)
-5 // BCP index of node with index 1 [IMPORTANT, THIS SHOULD BE THE LOWER ONE] (ElasticAnchor 1)
- 1 // Smoothstep flag
-0 // Friction model [0: No friction, 1:Isotropic stick and slip, 2:Anisotropic stick and slip (used for inclined plane)]
-0.01 // Limit velocity to pass from stick to slip (m/s) ONLY FOR STICK SLIP
-0.6 // Static friction tangential coefficient [Used in flat floor or at the tangential direction in other floor]
-0.4 // Static friction normal coefficient
-0.3 // Dynamic friction coefficient
-0.03 // Maximum displacement (m) ONLY FOR STICK SLIP [around Diameter/10]
-////////////////// 
+//////////////////
+1 // Type of line [1: Mooring, 2: Towing, 3: Tensor]
+1 // Line type index (1-based)
+11 // Number of nodes
+1 // Polynomial order
+140.0 // Length [m]
+1 // Floor Id [from dataSeaFloor.dat]
+1 // BCP index of node N
+5 // BCP index of node 1
+//////////////////
 ////////////////// New line [2]
-////////////////// 
-1 // Type of line [1: Mooring, 2: Towing, 3:Tensor]
-2 // Tension model [1: symmetric, 2: tension-only]
-11 // Number of nodes used to divide catenary i
-1 // Order of the elements of catenary i
-140.0 // Length of catenary i [m]
-50.0 // Weight over water of catenary i (kg/m)    
-0.09 // Diameter of the section of catenary i [m]
-0 // Flag for axial stiffness [n=0: constant axial stiffness (next line must contain EA), n=1: variable axial stiffness polynomial , n>1 : variable axial stiffness interpolated]
-1.0E+07 // Youngs module multiplied by the Area for catenary i [N]
-0.002 // Coefficient of the internal damping coefficient as function of EA [Azcona-2016] for i
-0.0 // Coefficient of seabed static friction for i  
-3.8 // Hydrodynamic Mass Coefficient for catenary i (needed for the dynamic model only)  
-2.5 // Normal Drag Coefficient for catenary i (needed for the dynamic model only)  
-0.5 // Tangential Drag Coefficient for catenary i (needed for the dynamic model only)  
-1.0E+06 // Ground Normal stiffness for catenary i (needed for the dynamic model only) [Palm-2013b]  
-0.1 // Fraction of critical damping of ground for catenary i (needed for the dynamic model only) [Palm-2013b]  
-1 // Floor Id assigned to this line [from dataSeaFloor.dat]
-2 // BCP index of the node with index N (Fairlead 2)
-6 // BCP index of node with index 1 [IMPORTANT, THIS SHOULD BE THE LOWER ONE] (ElasticAnchor 2)
- 1 // Smoothstep flag
-0 // Friction model [0: No friction, 1:Isotropic stick and slip, 2:Anisotropic stick and slip (used for inclined plane)]
-0.01 // Limit velocity to pass from stick to slip (m/s) ONLY FOR STICK SLIP
-0.6 // Static friction tangential coefficient [Used in flat floor or at the tangential direction in other floor]
-0.4 // Static friction normal coefficient
-0.3 // Dynamic friction coefficient
-0.03 // Maximum displacement (m) ONLY FOR STICK SLIP [around Diameter/10]
-////////////////// 
+//////////////////
+1 // Type of line [1: Mooring, 2: Towing, 3: Tensor]
+1 // Line type index (1-based)
+11 // Number of nodes
+1 // Polynomial order
+140.0 // Length [m]
+1 // Floor Id [from dataSeaFloor.dat]
+2 // BCP index of node N
+6 // BCP index of node 1
+//////////////////
 ////////////////// New line [3]
-////////////////// 
-1 // Type of line [1: Mooring, 2: Towing, 3:Tensor]
-2 // Tension model [1: symmetric, 2: tension-only]
-11 // Number of nodes used to divide catenary i
-1 // Order of the elements of catenary i
-140.0 // Length of catenary i [m]
-50.0 // Weight over water of catenary i (kg/m)    
-0.09 // Diameter of the section of catenary i [m]
-0 // Flag for axial stiffness [n=0: constant axial stiffness (next line must contain EA), n=1: variable axial stiffness polynomial , n>1 : variable axial stiffness interpolated]
-1.0E+07 // Youngs module multiplied by the Area for catenary i [N]
-0.002 // Coefficient of the internal damping coefficient as function of EA [Azcona-2016] for i
-0.0 // Coefficient of seabed static friction for i  
-3.8 // Hydrodynamic Mass Coefficient for catenary i (needed for the dynamic model only)  
-2.5 // Normal Drag Coefficient for catenary i (needed for the dynamic model only)  
-0.5 // Tangential Drag Coefficient for catenary i (needed for the dynamic model only)  
-1.0E+06 // Ground Normal stiffness for catenary i (needed for the dynamic model only) [Palm-2013b]  
-0.1 // Fraction of critical damping of ground for catenary i (needed for the dynamic model only) [Palm-2013b]  
-1 // Floor Id assigned to this line [from dataSeaFloor.dat]
-3 // BCP index of the node with index N (Fairlead 3)
-7 // BCP index of node with index 1 [IMPORTANT, THIS SHOULD BE THE LOWER ONE] (ElasticAnchor 3)
- 1 // Smoothstep flag
-0 // Friction model [0: No friction, 1:Isotropic stick and slip, 2:Anisotropic stick and slip (used for inclined plane)]
-0.01 // Limit velocity to pass from stick to slip (m/s) ONLY FOR STICK SLIP
-0.6 // Static friction tangential coefficient [Used in flat floor or at the tangential direction in other floor]
-0.4 // Static friction normal coefficient
-0.3 // Dynamic friction coefficient
-0.03 // Maximum displacement (m) ONLY FOR STICK SLIP [around Diameter/10]
-////////////////// 
+//////////////////
+1 // Type of line [1: Mooring, 2: Towing, 3: Tensor]
+1 // Line type index (1-based)
+11 // Number of nodes
+1 // Polynomial order
+140.0 // Length [m]
+1 // Floor Id [from dataSeaFloor.dat]
+3 // BCP index of node N
+7 // BCP index of node 1
+//////////////////
 ////////////////// New line [4]
-////////////////// 
-1 // Type of line [1: Mooring, 2: Towing, 3:Tensor]
-2 // Tension model [1: symmetric, 2: tension-only]
-11 // Number of nodes used to divide catenary i
-1 // Order of the elements of catenary i
-140.0 // Length of catenary i [m]
-50.0 // Weight over water of catenary i (kg/m)    
-0.09 // Diameter of the section of catenary i [m]
-0 // Flag for axial stiffness [n=0: constant axial stiffness (next line must contain EA), n=1: variable axial stiffness polynomial , n>1 : variable axial stiffness interpolated]
-1.0E+07 // Youngs module multiplied by the Area for catenary i [N]
-0.002 // Coefficient of the internal damping coefficient as function of EA [Azcona-2016] for i
-0.0 // Coefficient of seabed static friction for i  
-3.8 // Hydrodynamic Mass Coefficient for catenary i (needed for the dynamic model only)  
-2.5 // Normal Drag Coefficient for catenary i (needed for the dynamic model only)  
-0.5 // Tangential Drag Coefficient for catenary i (needed for the dynamic model only)  
-1.0E+06 // Ground Normal stiffness for catenary i (needed for the dynamic model only) [Palm-2013b]  
-0.1 // Fraction of critical damping of ground for catenary i (needed for the dynamic model only) [Palm-2013b]  
-1 // Floor Id assigned to this line [from dataSeaFloor.dat]
-4 // BCP index of the node with index N (Fairlead 4)
-8 // BCP index of node with index 1 [IMPORTANT, THIS SHOULD BE THE LOWER ONE] (ElasticAnchor 4)
- 1 // Smoothstep flag
-0 // Friction model [0: No friction, 1:Isotropic stick and slip, 2:Anisotropic stick and slip (used for inclined plane)]
-0.01 // Limit velocity to pass from stick to slip (m/s) ONLY FOR STICK SLIP
-0.6 // Static friction tangential coefficient [Used in flat floor or at the tangential direction in other floor]
-0.4 // Static friction normal coefficient
-0.3 // Dynamic friction coefficient
-0.03 // Maximum displacement (m) ONLY FOR STICK SLIP [around Diameter/10]
+//////////////////
+1 // Type of line [1: Mooring, 2: Towing, 3: Tensor]
+1 // Line type index (1-based)
+11 // Number of nodes
+1 // Polynomial order
+140.0 // Length [m]
+1 // Floor Id [from dataSeaFloor.dat]
+4 // BCP index of node N
+8 // BCP index of node 1
