@@ -1,0 +1,60 @@
+\babel@toc {english}{}\relax 
+\contentsline {section}{\numberline {1}Introduction}{5}{section.1}%
+\contentsline {section}{\numberline {2}Coordinate Systems and Rigid Body Dynamics}{6}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Reference frames}{6}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Euler angles and rotation matrices}{6}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Newton--Euler equations for the rigid body}{6}{subsection.2.3}%
+\contentsline {section}{\numberline {3}Waves}{7}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Regular waves}{7}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Irregular waves (JONSWAP)}{7}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Directional spreading}{8}{subsection.3.3}%
+\contentsline {section}{\numberline {4}Hydrostatics}{8}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Linear hydrostatic restoring}{8}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Non-linear Froude--Krylov}{8}{subsection.4.2}%
+\contentsline {section}{\numberline {5}Hydrodynamics}{9}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Cummins equation}{9}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Radiation forces}{9}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}First-order excitation forces}{9}{subsection.5.3}%
+\contentsline {subsection}{\numberline {5.4}Second-order excitation forces (QTFs)}{10}{subsection.5.4}%
+\contentsline {subsection}{\numberline {5.5}Viscous corrections}{10}{subsection.5.5}%
+\contentsline {subsection}{\numberline {5.6}Morison wind and current forces}{10}{subsection.5.6}%
+\contentsline {section}{\numberline {6}Mooring and Towing Lines}{10}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Governing equation}{10}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}External forces}{11}{subsection.6.2}%
+\contentsline {subsection}{\numberline {6.3}Internal forces and tension models}{11}{subsection.6.3}%
+\contentsline {subsubsection}{\numberline {6.3.1}Rayleigh damping model}{11}{subsubsection.6.3.1}%
+\contentsline {subsubsection}{\numberline {6.3.2}Viscoelastic (Banks) model}{12}{subsubsection.6.3.2}%
+\contentsline {subsubsection}{\numberline {6.3.3}Tabulated stress--strain curves}{12}{subsubsection.6.3.3}%
+\contentsline {subsection}{\numberline {6.4}Weak formulation}{12}{subsection.6.4}%
+\contentsline {subsection}{\numberline {6.5}SEM spatial discretisation}{12}{subsection.6.5}%
+\contentsline {subsection}{\numberline {6.6}Derivative operator}{13}{subsection.6.6}%
+\contentsline {subsection}{\numberline {6.7}Added mass iteration}{13}{subsection.6.7}%
+\contentsline {subsection}{\numberline {6.8}Boundary conditions}{13}{subsection.6.8}%
+\contentsline {subsubsection}{\numberline {6.8.1}Anchor, fairlead or actuator}{13}{subsubsection.6.8.1}%
+\contentsline {subsubsection}{\numberline {6.8.2}Multi-line joint}{14}{subsubsection.6.8.2}%
+\contentsline {subsubsection}{\numberline {6.8.3}Winch}{14}{subsubsection.6.8.3}%
+\contentsline {subsubsection}{\numberline {6.8.4}Elastic anchor}{14}{subsubsection.6.8.4}%
+\contentsline {subsection}{\numberline {6.9}Quasi-static initial conditions}{14}{subsection.6.9}%
+\contentsline {section}{\numberline {7}Seafloor Interaction}{15}{section.7}%
+\contentsline {subsection}{\numberline {7.1}Flat seafloor}{15}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}Inclined plane}{15}{subsection.7.2}%
+\contentsline {subsection}{\numberline {7.3}Complex bathymetry}{15}{subsection.7.3}%
+\contentsline {subsection}{\numberline {7.4}Ground normal and friction forces}{15}{subsection.7.4}%
+\contentsline {section}{\numberline {8}Springs and Connectors}{16}{section.8}%
+\contentsline {subsection}{\numberline {8.1}Deformation measurement}{16}{subsection.8.1}%
+\contentsline {subsection}{\numberline {8.2}Spring forces}{16}{subsection.8.2}%
+\contentsline {section}{\numberline {9}Winches}{17}{section.9}%
+\contentsline {subsection}{\numberline {9.1}Mechanical model}{17}{subsection.9.1}%
+\contentsline {subsection}{\numberline {9.2}Controllers}{17}{subsection.9.2}%
+\contentsline {section}{\numberline {10}Oscillating Water Columns}{17}{section.10}%
+\contentsline {subsection}{\numberline {10.1}Pneumatic chamber model}{17}{subsection.10.1}%
+\contentsline {subsection}{\numberline {10.2}Turbine model}{18}{subsection.10.2}%
+\contentsline {section}{\numberline {11}Wind Turbines}{18}{section.11}%
+\contentsline {section}{\numberline {12}Sinking}{18}{section.12}%
+\contentsline {section}{\numberline {13}Time Integration}{19}{section.13}%
+\contentsline {subsection}{\numberline {13.1}Adaptive BDF2}{19}{subsection.13.1}%
+\contentsline {subsection}{\numberline {13.2}ESDIRK}{19}{subsection.13.2}%
+\contentsline {section}{\numberline {14}Coupling}{20}{section.14}%
+\contentsline {subsection}{\numberline {14.1}Global state vector}{20}{subsection.14.1}%
+\contentsline {subsection}{\numberline {14.2}RHS evaluation order}{20}{subsection.14.2}%
+\contentsline {subsection}{\numberline {14.3}Multi-rate coupling}{21}{subsection.14.3}%

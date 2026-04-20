@@ -1,0 +1,2210 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Offshore Advanced SImulation Software — User, Developer & API Documentation">
+      
+      
+      
+        <link rel="canonical" href="https://ihcantabria.github.io/oasis/user-manual/input-reference/">
+      
+      
+        <link rel="prev" href="../input-format/">
+      
+      
+        <link rel="next" href="../output-files/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/logo.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Input Reference - OASIS Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#input-reference" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="OASIS Documentation" class="md-header__button md-logo" aria-label="OASIS Documentation" data-md-component="logo">
+      
+  <img src="../../assets/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            OASIS Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Input Reference
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/ihcantabria/oasis" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ihcantabria/oasis
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="OASIS Documentation" class="md-nav__button md-logo" aria-label="OASIS Documentation" data-md-component="logo">
+      
+  <img src="../../assets/logo.png" alt="logo">
+
+    </a>
+    OASIS Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ihcantabria/oasis" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ihcantabria/oasis
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Installation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/windows/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Windows
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/linux/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linux / HPC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Manual
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Manual
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../running-simulations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running Simulations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../input-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Input Format
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Input Reference
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Input Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#dataproblemdat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dataProblem.dat
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#databodiesdat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dataBodies.dat
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#databcpsdat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dataBCPs.dat
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="dataBCPs.dat">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#header" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Header
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bcp-blocks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BCP Blocks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#actuator-motion-file-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Actuator Motion File Format
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#datawavesdat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dataWaves.dat
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="dataWaves.dat">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#basic-section" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic Section
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#irregular-wave-section-only-if-irr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Irregular Wave Section (only if IRR)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#datalinesdat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dataLines.dat
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dataspringsdat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dataSprings.dat
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#datawinchesdat-datawinchescontrollerdat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dataWinches.dat / dataWinchesController.dat
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dataseafloordat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dataSeaFloor.dat
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../output-files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Output Files
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_7" id="__nav_3_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Features
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Features
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../waves/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Waves
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../mooring-lines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mooring Lines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../springs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Springs & Connectors
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../winches/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Winches
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../owc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Oscillating Water Columns
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../wind-turbines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Wind Turbines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../solvers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ODE Solvers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Manual
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Manual
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-manual/code-structure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code Structure
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-manual/building/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-manual/contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../theory-manual/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Theory Manual
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#dataproblemdat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dataProblem.dat
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#databodiesdat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dataBodies.dat
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#databcpsdat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dataBCPs.dat
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="dataBCPs.dat">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#header" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Header
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bcp-blocks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BCP Blocks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#actuator-motion-file-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Actuator Motion File Format
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#datawavesdat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dataWaves.dat
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="dataWaves.dat">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#basic-section" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic Section
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#irregular-wave-section-only-if-irr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Irregular Wave Section (only if IRR)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#datalinesdat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dataLines.dat
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dataspringsdat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dataSprings.dat
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#datawinchesdat-datawinchescontrollerdat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dataWinches.dat / dataWinchesController.dat
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dataseafloordat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dataSeaFloor.dat
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="input-reference">Input Reference<a class="headerlink" href="#input-reference" title="Permanent link">&para;</a></h1>
+<p>This page provides a comprehensive field-by-field reference for all OASIS input files.</p>
+<h2 id="dataproblemdat">dataProblem.dat<a class="headerlink" href="#dataproblemdat" title="Permanent link">&para;</a></h2>
+<p>General simulation parameters. Each line contains a value followed by a comment.</p>
+<table>
+<thead>
+<tr>
+<th>Line</th>
+<th>Field</th>
+<th>Type</th>
+<th>Units</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>gravity</code></td>
+<td>float</td>
+<td>m/s²</td>
+<td>Gravitational acceleration</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>waterDensity</code></td>
+<td>float</td>
+<td>kg/m³</td>
+<td>Water density</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>airAtmPresDensity</code></td>
+<td>float</td>
+<td>kg/m³</td>
+<td>Atmospheric air density</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>airAtmPres</code></td>
+<td>float</td>
+<td>Pa</td>
+<td>Atmospheric pressure</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>airAdiabaticDilation</code></td>
+<td>float</td>
+<td>—</td>
+<td>Adiabatic index for air (≈1.4)</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>waterDepth</code></td>
+<td>float</td>
+<td>m</td>
+<td>Water depth (positive downward from MWL)</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>writeTimeStep</code></td>
+<td>float</td>
+<td>s</td>
+<td>Output writing interval</td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>maxTimeStep</code></td>
+<td>float</td>
+<td>s</td>
+<td>Maximum integration time step</td>
+</tr>
+<tr>
+<td>9</td>
+<td><code>hydroTimeStep</code></td>
+<td>float</td>
+<td>s</td>
+<td>Hydrodynamic force update interval</td>
+</tr>
+<tr>
+<td>10</td>
+<td><code>fastTimeStep</code></td>
+<td>float</td>
+<td>s</td>
+<td>OpenFAST time step</td>
+</tr>
+<tr>
+<td>11</td>
+<td><code>fastControllerTimeStep</code></td>
+<td>float</td>
+<td>s</td>
+<td>OpenFAST controller time step</td>
+</tr>
+<tr>
+<td>12</td>
+<td><code>timeIRF</code></td>
+<td>float</td>
+<td>s</td>
+<td>Impulse response function duration</td>
+</tr>
+<tr>
+<td>13</td>
+<td><code>sinkingTimeStep</code></td>
+<td>float</td>
+<td>s</td>
+<td>Sinking HDB update interval</td>
+</tr>
+<tr>
+<td>14</td>
+<td><code>winchesContTimeStep</code></td>
+<td>float</td>
+<td>s</td>
+<td>Winches controller time step</td>
+</tr>
+<tr>
+<td>15</td>
+<td><code>owcsContTimeStep</code></td>
+<td>float</td>
+<td>s</td>
+<td>OWC turbine controller time step</td>
+</tr>
+<tr>
+<td>16</td>
+<td><code>simulationTime</code></td>
+<td>float</td>
+<td>s</td>
+<td>Total simulation duration</td>
+</tr>
+<tr>
+<td>17</td>
+<td><code>rotSimpFlag</code></td>
+<td>int</td>
+<td>—</td>
+<td>Rotation dynamics simplification (0=No, 1=Yes)</td>
+</tr>
+<tr>
+<td>18</td>
+<td><code>timeIntMethod</code></td>
+<td>int</td>
+<td>—</td>
+<td>ODE solver: 1=BDF1, 2=BDFN, 3=ESDIRK46</td>
+</tr>
+<tr>
+<td>19</td>
+<td><code>timeIntOrder</code></td>
+<td>int</td>
+<td>—</td>
+<td>Solver order (for BDFN: 1–6)</td>
+</tr>
+<tr>
+<td>20</td>
+<td><code>timeIntAdaptivity</code></td>
+<td>int</td>
+<td>—</td>
+<td>Adaptive time stepping (0=No, 1=Yes)</td>
+</tr>
+<tr>
+<td>21</td>
+<td><code>timeIntJacNumStepsMax</code></td>
+<td>int</td>
+<td>—</td>
+<td>Max steps between Jacobian recomputation</td>
+</tr>
+<tr>
+<td>22</td>
+<td><code>timeIntAbsTol</code></td>
+<td>float</td>
+<td>—</td>
+<td>Absolute tolerance</td>
+</tr>
+<tr>
+<td>23</td>
+<td><code>timeIntRelTol</code></td>
+<td>float</td>
+<td>—</td>
+<td>Relative tolerance</td>
+</tr>
+<tr>
+<td>24</td>
+<td><code>maxIterStep</code></td>
+<td>int</td>
+<td>—</td>
+<td>Max Newton iterations per time step</td>
+</tr>
+<tr>
+<td>25</td>
+<td><code>readEquilibrium</code></td>
+<td>int</td>
+<td>—</td>
+<td>Read initial conditions from file (0=No, 1=Yes)</td>
+</tr>
+<tr>
+<td>26</td>
+<td><code>writeEquilibrium</code></td>
+<td>int</td>
+<td>—</td>
+<td>Write equilibrium state to file (0=No, 1=Yes)</td>
+</tr>
+<tr>
+<td>27</td>
+<td><code>flagStatic</code></td>
+<td>int</td>
+<td>—</td>
+<td>Initial mooring condition (0=Catenary, 1=Newton's)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>9.81            // gravity [m/s^2]
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>1025.0          // waterDensity [kg/m^3]
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>1.225           // airAtmPresDensity [kg/m^3]
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>101325.0        // airAtmPres [Pa]
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>1.4             // airAdiabaticDilation [-]
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>50.0            // waterDepth [m]
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>0.1             // writeTimeStep [s]
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>0.1             // maxTimeStep [s]
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>0.1             // hydroTimeStep [s]
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>0.1             // fastTimeStep [s]
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>0.1             // fastControllerTimeStep [s]
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>60.0            // timeIRF [s]
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>1.0             // sinkingTimeStep [s]
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>0.1             // winchesContTimeStep [s]
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>0.1             // owcsContTimeStep [s]
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>300.0           // simulationTime [s]
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>0               // rotSimpFlag
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>3               // timeIntMethod (ESDIRK46)
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>2               // timeIntOrder
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>0               // timeIntAdaptivity
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>0               // timeIntJacNumStepsMax
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>1e-5            // timeIntAbsTol
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>1e-3            // timeIntRelTol
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>20              // maxIterStep
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>0               // readEquilibrium
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>0               // writeEquilibrium
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>0               // flagStatic (catenary)
+</code></pre></div>
+<hr />
+<h2 id="databodiesdat">dataBodies.dat<a class="headerlink" href="#databodiesdat" title="Permanent link">&para;</a></h2>
+<p>Body definitions. The number of bodies is determined automatically by counting <code>///</code> header blocks.</p>
+<p>Each body block contains:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Body type</td>
+<td>string</td>
+<td>Always <code>RAD_DIFF</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td>Take COG from HDB</td>
+<td>int</td>
+<td>0=manual, 1=from database</td>
+</tr>
+<tr>
+<td>3</td>
+<td>DOFs list</td>
+<td>ints</td>
+<td>Active degrees of freedom (1–6)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>BCP indexes</td>
+<td>ints</td>
+<td>Global BCP indices attached to this body</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Wind turbine indexes</td>
+<td>ints</td>
+<td>Wind turbine indices (0 if none)</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Initial position</td>
+<td>6 floats</td>
+<td>[x, y, z, rx, ry, rz] in global frame</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Initial displacement</td>
+<td>6 floats</td>
+<td>[dx, dy, dz, drx, dry, drz] offsets</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Hydro database filename</td>
+<td>string</td>
+<td>Path to <code>.hydb.h5</code> file</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Database index</td>
+<td>int</td>
+<td>Body index within the hydro database (1-based)</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Freedom flag</td>
+<td>int</td>
+<td>0=free, 1=locked, 2=imposed motion</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Imposed motion filename</td>
+<td>string</td>
+<td>File with prescribed motion (if freedom=2)</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Hydrostatics flag</td>
+<td>int</td>
+<td>0=linear, 1=nonlinear flat, 2=nonlinear with waves</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Hydrostatics mesh filename</td>
+<td>string</td>
+<td>STL mesh (if nonlinear)</td>
+</tr>
+<tr>
+<td>14</td>
+<td>Radiation force flag</td>
+<td>int</td>
+<td>0=off, 1=on</td>
+</tr>
+<tr>
+<td>15</td>
+<td>First-order excitation flag</td>
+<td>int</td>
+<td>0=off, 1=on, 2=instantaneous position</td>
+</tr>
+<tr>
+<td>16</td>
+<td>Second-order excitation flag</td>
+<td>int</td>
+<td>0=off, 1=slow-drift, 2=sum-frequency</td>
+</tr>
+<tr>
+<td>17</td>
+<td>Viscous added mass</td>
+<td>6 floats</td>
+<td>Additional added mass per DOF</td>
+</tr>
+<tr>
+<td>18</td>
+<td>Viscous linear damping</td>
+<td>6 floats</td>
+<td>Linear damping per DOF</td>
+</tr>
+<tr>
+<td>19</td>
+<td>Viscous quadratic damping</td>
+<td>6 floats</td>
+<td>Quadratic damping per DOF</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example block:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>//////////////////
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>////////////////// New body [1]
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>//////////////////
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>RAD_DIFF
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>0
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>1 2 3 4 5 6
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>4 5 6 7
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>0
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>0.0 0.0 0.0 0.0 0.0 0.0
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>0.0 0.0 0.0 0.0 0.0 0.0
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>../../../data/one_box.hydb.h5
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>1
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>0
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>none
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>0
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>none
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>1
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>1
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>0
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>0.0 0.0 0.0 0.0 0.0 0.0
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>0.0 0.0 0.0 0.0 0.0 0.0
+<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>0.0 0.0 0.0 0.0 0.0 0.0
+</code></pre></div>
+<hr />
+<h2 id="databcpsdat">dataBCPs.dat<a class="headerlink" href="#databcpsdat" title="Permanent link">&para;</a></h2>
+<p>Boundary Condition Points. The header declares the count of each BCP type.</p>
+<h3 id="header">Header<a class="headerlink" href="#header" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>1       // Number of Actuators (FairleadBCP)
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>2       // Number of Anchors (AnchorBCP)
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>0       // Number of Joints (JointBCP)
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>2       // Number of Fairleads (BodyBCP)
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>0       // Number of Elastic Anchors
+</code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title">Index Order</p>
+<p>Global BCP indices are assigned sequentially: Actuators first (1..nAct), then Anchors, Joints, Fairleads, Elastic Anchors. All references in <code>dataBodies.dat</code> and <code>dataLines.dat</code> use these <strong>global 1-based indices</strong>.</p>
+</div>
+<h3 id="bcp-blocks">BCP Blocks<a class="headerlink" href="#bcp-blocks" title="Permanent link">&para;</a></h3>
+<p><strong>AnchorBCP:</strong>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>//////////////////
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>////////////////// New BCP [N] [Anchor] [i]
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>//////////////////
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>200.0 0.0 -50.0     // Position [x, y, z] in global frame
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>0                    // Winch ID (0 = not connected)
+</code></pre></div></p>
+<p><strong>FairleadBCP (Actuator):</strong>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>//////////////////
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>////////////////// New BCP [N] [Actuator] [i]
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>//////////////////
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>5.0 0.0 -2.0        // Initial position [x, y, z]
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>0                    // Winch ID
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>dataActuator_0.dat   // Prescribed motion file
+</code></pre></div></p>
+<p><strong>JointBCP:</strong>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>//////////////////
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>////////////////// New BCP [N] [Joint] [i]
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>//////////////////
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>100.0 0.0 -30.0      // Position [x, y, z]
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>0                     // Winch ID
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>50.0                  // Mass [kg]
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>0.05                  // Volume [m³]
+</code></pre></div></p>
+<p><strong>BodyBCP:</strong>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>//////////////////
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>////////////////// New BCP [N] [Fairlead] [i]
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>//////////////////
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>10.0 0.0 -5.0        // Position relative to body COG
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>0                     // Winch ID
+</code></pre></div></p>
+<h3 id="actuator-motion-file-format">Actuator Motion File Format<a class="headerlink" href="#actuator-motion-file-format" title="Permanent link">&para;</a></h3>
+<p>The <code>dataActuator_N.dat</code> file prescribes motion for FairleadBCP (actuator) points:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>3001                                    // Number of time steps
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>0.0000 5.000 0.000 -2.000 0.000 0.000 0.000 0.000 0.000 0.000
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>0.0100 5.016 0.000 -2.000 0.000 0.000 0.000 0.000 0.000 0.000
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>...
+</code></pre></div>
+<p>Each data row has 10 columns: <code>t, x, y, z, vx, vy, vz, ax, ay, az</code></p>
+<hr />
+<h2 id="datawavesdat">dataWaves.dat<a class="headerlink" href="#datawavesdat" title="Permanent link">&para;</a></h2>
+<p>See <a href="../waves/">Waves</a> for detailed wave configuration.</p>
+<h3 id="basic-section">Basic Section<a class="headerlink" href="#basic-section" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>//////////////////
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>////////////////// Basic wave data
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>//////////////////
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>IRR             // Wave type: REG or IRR
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>2.0             // Height [m] (H for REG, Hs for IRR)
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>10.0            // Period [s] (T for REG, Tp for IRR)
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>0.0             // Heading [degrees]
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>5.0             // Ramp time [s]
+</code></pre></div>
+<h3 id="irregular-wave-section-only-if-irr">Irregular Wave Section (only if IRR)<a class="headerlink" href="#irregular-wave-section-only-if-irr" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>//////////////////
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>////////////////// Irregular wave data
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>//////////////////
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>1               // Spectrum type: 1=JONSWAP, 2=Time-series, 3=Frequency-domain
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>0               // Piecewise flag: 0=single, 1=piecewise
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>//// JONSWAP
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>3.3             // gamma (peak enhancement)
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>0.0             // s (directional spreading, &lt;1 = no spreading)
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>10.0            // dtheta [degrees]
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>0.001           // factor (min proportion of spectrum average)
+<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>0               // Read phases flag: 0=random, 1=from file
+<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>0.05            // Relative tolerance for phase check
+<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>0.1             // dt [s] for wave time series
+<a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>none            // Phase filename
+<a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>//// CUSTOM
+<a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a>none            // Data filename (wave.dat or wavefreq.dat)
+</code></pre></div>
+<hr />
+<h2 id="datalinesdat">dataLines.dat<a class="headerlink" href="#datalinesdat" title="Permanent link">&para;</a></h2>
+<p>See <a href="../mooring-lines/">Mooring Lines</a> for detailed configuration.</p>
+<p>Each line block reads these fields in order:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>lineType</code></td>
+<td>int</td>
+<td>1=dynamic, 2=quasi-static</td>
+</tr>
+<tr>
+<td><code>flag_tension</code></td>
+<td>int</td>
+<td>0=tension-only, 1=symmetric (tension+compression)</td>
+</tr>
+<tr>
+<td><code>nNodes</code></td>
+<td>int</td>
+<td>Number of finite element nodes</td>
+</tr>
+<tr>
+<td><code>p</code></td>
+<td>int</td>
+<td>Polynomial order per element</td>
+</tr>
+<tr>
+<td><code>L</code></td>
+<td>float</td>
+<td>Unstretched line length [m]</td>
+</tr>
+<tr>
+<td><code>rho0</code></td>
+<td>float</td>
+<td>Mass per unit length [kg/m]</td>
+</tr>
+<tr>
+<td><code>d</code></td>
+<td>float</td>
+<td>Line diameter [m]</td>
+</tr>
+<tr>
+<td><code>flag_stiffness</code></td>
+<td>int</td>
+<td>0=linear, 1=viscoelastic, &gt;1=tabulated</td>
+</tr>
+<tr>
+<td>(stiffness data)</td>
+<td>...</td>
+<td>Depends on <code>flag_stiffness</code></td>
+</tr>
+<tr>
+<td><code>CB</code></td>
+<td>float</td>
+<td>Seabed friction coefficient</td>
+</tr>
+<tr>
+<td><code>Cmn</code></td>
+<td>float</td>
+<td>Normal added mass coefficient</td>
+</tr>
+<tr>
+<td><code>Cdn</code></td>
+<td>float</td>
+<td>Normal drag coefficient</td>
+</tr>
+<tr>
+<td><code>Cdt</code></td>
+<td>float</td>
+<td>Tangential drag coefficient</td>
+</tr>
+<tr>
+<td><code>GK</code></td>
+<td>float</td>
+<td>Ground spring stiffness [N/m³]</td>
+</tr>
+<tr>
+<td><code>GC</code></td>
+<td>float</td>
+<td>Ground damping coefficient</td>
+</tr>
+<tr>
+<td><code>indexSeaFloor</code></td>
+<td>int</td>
+<td>SeaFloor index (0=flat at waterDepth)</td>
+</tr>
+<tr>
+<td><code>BCP_N</code></td>
+<td>int</td>
+<td>BCP index at end node (global, 1-based)</td>
+</tr>
+<tr>
+<td><code>BCP_1</code></td>
+<td>int</td>
+<td>BCP index at start node (global, 1-based)</td>
+</tr>
+<tr>
+<td><code>frictionModel</code></td>
+<td>int</td>
+<td>0=none, 1=isotropic, 2=anisotropic</td>
+</tr>
+<tr>
+<td><code>vth</code></td>
+<td>float</td>
+<td>Threshold velocity for stick-slip [m/s]</td>
+</tr>
+<tr>
+<td><code>ust</code> / <code>usn</code></td>
+<td>float</td>
+<td>Static friction coefficient (tangential/normal)</td>
+</tr>
+<tr>
+<td><code>ud</code></td>
+<td>float</td>
+<td>Dynamic friction coefficient</td>
+</tr>
+<tr>
+<td><code>deltamax</code></td>
+<td>float</td>
+<td>Max displacement for stick phase [m]</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="dataspringsdat">dataSprings.dat<a class="headerlink" href="#dataspringsdat" title="Permanent link">&para;</a></h2>
+<p>See <a href="../springs/">Springs &amp; Connectors</a> for detailed configuration.</p>
+<hr />
+<h2 id="datawinchesdat-datawinchescontrollerdat">dataWinches.dat / dataWinchesController.dat<a class="headerlink" href="#datawinchesdat-datawinchescontrollerdat" title="Permanent link">&para;</a></h2>
+<p>See <a href="../winches/">Winches</a> for detailed configuration.</p>
+<hr />
+<h2 id="dataseafloordat">dataSeaFloor.dat<a class="headerlink" href="#dataseafloordat" title="Permanent link">&para;</a></h2>
+<p>Header declares counts of each seabed type:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>0       // Number of bathymetry (mesh) floors
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>1       // Number of inclined plane floors
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>1       // Number of flat floors
+</code></pre></div>
+<p><strong>Flat floor:</strong> single depth value (overrides <code>waterDepth</code> for specific lines)</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>50.0            // Depth [m]
+</code></pre></div>
+<p><strong>Inclined plane:</strong> three points defining the plane</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>0.0 0.0 -50.0       // Point 1 [x, y, z]
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>100.0 0.0 -45.0     // Point 2 [x, y, z]
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>0.0 100.0 -48.0     // Point 3 [x, y, z]
+</code></pre></div>
+<p><strong>Bathymetry mesh:</strong> STL filename</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>seabed_mesh.stl      // STL mesh file
+</code></pre></div>
+<p>Floor indices are assigned sequentially: bathymetry first, then inclined, then flat.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.expand", "navigation.top", "navigation.indexes", "search.suggest", "search.highlight", "content.code.copy", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
