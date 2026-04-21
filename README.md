@@ -232,6 +232,16 @@ The `resources/` directory provides general-purpose plotting scripts:
 
 ---
 
+## Related projects
+
+| Project | Description |
+|---|---|
+| [SeaMotions](https://github.com/IHCantabria/SeaMotions) | BEM solver by IHCantabria that computes hydrodynamic databases (`.hydb.h5`) consumed by OASIS — covers first-order radiation/diffraction, Froude–Krylov, QTFs, and more for mono- and multi-body layouts including OWCs. |
+| [OpenFAST](https://github.com/OpenFAST/openfast) | Aero-servo-elastic wind turbine simulator; OASIS can couple to it for floating offshore wind simulations. |
+| [FASTurbine wrapper](https://github.com/IHCantabria/FASTurbine_wrapper) | Thin DLL interface around OpenFAST used by OASIS on Windows. |
+
+---
+
 ## License
 
 Developed by IHCantabria. See license terms for details.

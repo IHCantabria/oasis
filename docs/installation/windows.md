@@ -12,7 +12,7 @@
 | BLAS / LAPACK | Yes | OpenBLAS or Intel MKL |
 | [SuperLU](https://portal.nersc.gov/project/sparse/superlu/) | Recommended | Sparse solvers for dynamic mooring lines |
 | [stl_reader](https://github.com/sreiter/stl_reader) | Optional | STL mesh import for body meshes |
-| [OpenFAST](https://github.com/OpenFAST/openfast) + FASTurbine wrapper | Optional | Wind turbine coupling |
+| [OpenFAST](https://github.com/OpenFAST/openfast) + [FASTurbine wrapper](https://github.com/IHCantabria/FASTurbine_wrapper) | Optional | Wind turbine coupling |
 
 ## Using vcpkg (Recommended)
 

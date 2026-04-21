@@ -102,6 +102,16 @@ oasis/
 
 ---
 
+## Related Projects
+
+| Project | Description |
+|---|---|
+| [SeaMotions](https://github.com/IHCantabria/SeaMotions) | BEM solver by IHCantabria that generates the hydrodynamic databases (`.hydb.h5`) consumed by OASIS — first-order radiation/diffraction, QTFs, multi-body and OWC support. |
+| [OpenFAST](https://github.com/OpenFAST/openfast) | Aero-servo-elastic wind turbine simulator; OASIS couples to it for floating offshore wind simulations. |
+| [FASTurbine wrapper](https://github.com/IHCantabria/FASTurbine_wrapper) | Thin DLL interface around OpenFAST used by OASIS on Windows. |
+
+---
+
 ## License
 
 Developed by [IHCantabria](https://ihcantabria.com). See license terms for details.

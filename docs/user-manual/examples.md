@@ -45,6 +45,8 @@ Hydrodynamic databases are stored in `examples/data/` and shared across examples
 | `trl_plus.hydb.h5` | 1 platform | Turbine examples |
 | `isobara_owcs.hydb.h5` | 7 (1 floater + 6 OWCs) | OWC examples |
 
+These `.hydb.h5` files are produced by [**SeaMotions**](https://github.com/IHCantabria/SeaMotions), an open-source BEM solver by IHCantabria. Refer to the [SeaMotions repository](https://github.com/IHCantabria/SeaMotions) if you need to compute hydrodynamic databases for your own geometry.
+
 ## Functional Groups
 
 ### 1. Body Behavior (`body/`)

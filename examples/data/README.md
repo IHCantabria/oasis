@@ -20,3 +20,7 @@ They are distributed as `examples.zip` attached to each [GitHub release](https:/
 1. Go to the [Releases page](https://github.com/IHCantabria/oasis/releases).
 2. Download `examples.zip` from the desired release.
 3. Extract the archive and copy the contents of the `data/` folder here.
+
+## Generating your own databases
+
+The `.hydb.h5` files are produced by [**SeaMotions**](https://github.com/IHCantabria/SeaMotions), an open-source BEM solver developed by IHCantabria. SeaMotions computes first-order hydrodynamic coefficients (added mass, radiation damping, wave excitation forces, QTFs) for arbitrary floating bodies, including multi-body layouts and OWCs, and writes the results in the HDF5 format expected by OASIS.
