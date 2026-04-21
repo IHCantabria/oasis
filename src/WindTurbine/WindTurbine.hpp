@@ -1,3 +1,4 @@
+﻿// SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef WINDTURBINE_FLAG
 #define WINDTURBINE_FLAG

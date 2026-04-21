@@ -1,7 +1,9 @@
+﻿// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <armadillo>
 #include <string>
 #include "Winchies.hpp"
+#include "../Logger.hpp"
 
 // Leer inputs
 void Winchie::ReadPropertiesASCII(FILE* pFile)
@@ -48,7 +50,7 @@ void Winchie::computeWinchie(void)
     }
     else
     {
-        std::cout << std::endl << "ERROR: Options are 1 or 2." << std::endl;
+        Logger::error("Options are 1 or 2.");
         throw std::exception();
     }
 

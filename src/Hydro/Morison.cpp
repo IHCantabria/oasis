@@ -1,3 +1,4 @@
+﻿// SPDX-License-Identifier: GPL-3.0-or-later
 #include <armadillo>
 #include <string>
 #include "Morison.hpp"
@@ -6,6 +7,7 @@
 #include "../CommonTools.hpp"
 #include "../os_tools.hpp"
 #include "../Simulations/Simulation.hpp"
+#include "../Logger.hpp"
 
 Morison::Morison(int numBodies_inp, Simulation* pSim_inp)
 {
@@ -28,7 +30,7 @@ void Morison::ReadMorisonData(void)
 
     if (file_pointer == NULL)
     {
-        std::cout << "    --> WARNING: dataMorison.dat was not found! Setting wind and currents to zero!" << std::endl;
+        Logger::warning("dataMorison.dat was not found! Setting wind and currents to zero!");
         // Set zero wind and current
         flag_wind = false;
         flag_curr = false;
@@ -274,13 +276,13 @@ void Morison::ReadMorisonData(void)
 
         if (arma::accu(arma::abs(wind_spd)) > 0)
         {
-            std::cout << "    --> Morison forces for wind are activated." << std::endl;
+            Logger::info("    --> Morison forces for wind are activated.");
             flag_wind = true;
         }
 
         if (arma::accu(arma::abs(curr_spd)) > 0)
         {
-            std::cout << "    --> Morison forces for currents are activated." << std::endl;
+            Logger::info("    --> Morison forces for currents are activated.");
             flag_curr = true;
         }
     }
@@ -288,20 +290,18 @@ void Morison::ReadMorisonData(void)
 
 void Morison::ReadFlowData_HDF5(void)
 {
-    std::cout << "--> Reading Flow (HDF5 format)" << std::endl;
+    Logger::info("--> Reading Flow (HDF5 format)");
     std::stringstream ss;
     ss << "Method ReadFlowData_HDF5 in class Morison not implemented yet. \n";
     throw NotImplementedError(ss.str());
-    std::cout << "----> Wave Spectrum Read" << std::endl;
 }
 
 void Morison::ReadMorCoeffData_HDF5(void)
 {
-    std::cout << "--> Reading Morison Coefficients (HDF5 format)" << std::endl;
-    std::stringstream ss;
-    ss << "Method ReadMorCoeffData_HDF5 in class Morison not implemented yet. \n";
-    throw NotImplementedError(ss.str());
-    std::cout << "----> Wave Spectrum Read" << std::endl;
+    Logger::info("--> Reading Morison Coefficients (HDF5 format)");
+    std::stringstream ss2;
+    ss2 << "Method ReadMorCoeffData_HDF5 in class Morison not implemented yet. \n";
+    throw NotImplementedError(ss2.str());
 }
 
 arma::mat Morison::ComputeWindForce(int idBody, double yaw, double t)

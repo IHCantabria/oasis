@@ -1,6 +1,8 @@
+﻿// SPDX-License-Identifier: GPL-3.0-or-later
 #include "WinchiesControllerConstantTension.hpp"
 #include "../Simulations/Simulation.hpp"
 #include "../Exceptions/Exception.hpp"
+#include "../Logger.hpp"
 
 WinchieControllerConstantTension::WinchieControllerConstantTension(int n, Winchie** Ws, Simulation* pIncSim)
     : WinchieController(n, Ws, pIncSim)
@@ -28,7 +30,7 @@ void WinchieControllerConstantTension::ReadPropertiesYAML(YAML::Node node)
 void WinchieControllerConstantTension::SetUpWinchiesController(void)
 {
     T = arma::ones(nWinchies, 1) * targetTension;
-    std::cout << "Winches controller: Constant tension = " << targetTension << " N" << std::endl;
+    Logger::info("Winches controller: Constant tension = " + std::to_string(targetTension) + " N");
     applyTensions();
 }
 

@@ -1,3 +1,4 @@
+﻿// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <iostream>
 #include <fstream>
@@ -14,6 +15,8 @@
 #include "../os_tools.hpp"
 #include "../Exceptions/Exception.hpp"
 #include "../SeaFloor/SeaFloor.hpp"
+#include <sstream>
+#include "../Logger.hpp"
 
 int Line::GetId()
 {
@@ -918,13 +921,14 @@ void Line::SEM_computeF(double time)
 
     if (F.has_nan())
     {
-        std::cout << std::endl << "ERROR: NaN Detected on line with id = " << id << std::endl;
-        std::cout << std::endl << "  F = " << F << std::endl;
-        std::cout << std::endl << "  ff = " << ff << std::endl;
-        std::cout << std::endl << "  FF = " << FF << std::endl;
-        std::cout << std::endl << "  pos = " << pos << std::endl;
-        std::cout << std::endl << "  vel = " << vel << std::endl;
-
+        std::ostringstream oss;
+        oss << "NaN Detected on line with id = " << id << "\n"
+            << "  F = " << F << "\n"
+            << "  ff = " << ff << "\n"
+            << "  FF = " << FF << "\n"
+            << "  pos = " << pos << "\n"
+            << "  vel = " << vel;
+        Logger::error(oss.str());
         throw std::exception();
     }
 
@@ -944,10 +948,14 @@ void Line::SEM_computeF(double time)
 void Line::initiallize_strain_memory(void)
 {
     SEM_compute_derivarives();
-    std::cout << "  --> Working on initiallization of strain memory, derivatives computed succesfully ..." << std::endl;
+    Logger::debug("  --> Working on initiallization of strain memory, derivatives computed succesfully ...");
     arma::mat temp_strain = norm_drds - dL / dL0;
-    std::cout << "  --> Working on initiallization of strain memory,norm_drds = " << norm_drds
-              << " dL / dL0 =" << dL / dL0 << " and  " << temp_strain << " = temp_strain ..." << std::endl;
+    {
+        std::ostringstream oss;
+        oss << "  --> Working on initiallization of strain memory,norm_drds = " << norm_drds
+            << " dL / dL0 =" << dL / dL0 << " and  " << temp_strain << " = temp_strain ...";
+        Logger::debug(oss.str());
+    }
     for (int i = 0; i < strain_vector.n_cols; i++)
     {
         strain_vector.col(i) = temp_strain;
@@ -957,30 +965,31 @@ void Line::initiallize_strain_memory(void)
 
 void Line::print_out(void)
 {
-
-    std::cout << "Para la linea " << this->id << " , se ha leido:" << std::endl << std::endl;
-    std::cout << "nNodos   " << this->nNodos << std::endl;
-    std::cout << "p        " << this->p << std::endl;
-    std::cout << "L        " << this->L << std::endl;
-    std::cout << "rho0     " << this->rho0 << std::endl;
-    std::cout << "d        " << this->d << std::endl;
-    std::cout << "EA       " << this->EA << std::endl;
-    std::cout << "beta     " << this->beta << std::endl;
-    std::cout << "CB       " << this->CB << std::endl;
-    std::cout << "Cmn      " << this->Cmn << std::endl;
-    std::cout << "Cdn      " << this->Cdn << std::endl;
-    std::cout << "Cdt      " << this->Cdt << std::endl;
-    std::cout << "GK       " << this->GK << std::endl;
-    std::cout << "GC       " << this->GC << std::endl;
-    std::cout << "pos_N  " << this->pos_N(0, 0) << " " << this->pos_N(1, 0) << " " << this->pos_N(2, 0) << std::endl;
-    std::cout << "pos_1  " << this->pos_1(0, 0) << " " << this->pos_1(1, 0) << " " << this->pos_1(2, 0) << std::endl;
-    std::cout << "smoothstep      " << this->smoothstep << std::endl;
-    std::cout << "frictionModel      " << this->frictionModel << std::endl;
-    std::cout << "vth      " << this->vth << std::endl;
-    std::cout << "us    tangential  " << this->ust << std::endl;
-    std::cout << "us    normal  " << this->usn << std::endl;
-    std::cout << "ud      " << this->ud << std::endl;
-    std::cout << "deltamax      " << this->deltamax << std::endl << std::endl;
+    std::ostringstream oss;
+    oss << "Para la linea " << this->id << " , se ha leido:\n\n"
+        << "nNodos   " << this->nNodos << "\n"
+        << "p        " << this->p << "\n"
+        << "L        " << this->L << "\n"
+        << "rho0     " << this->rho0 << "\n"
+        << "d        " << this->d << "\n"
+        << "EA       " << this->EA << "\n"
+        << "beta     " << this->beta << "\n"
+        << "CB       " << this->CB << "\n"
+        << "Cmn      " << this->Cmn << "\n"
+        << "Cdn      " << this->Cdn << "\n"
+        << "Cdt      " << this->Cdt << "\n"
+        << "GK       " << this->GK << "\n"
+        << "GC       " << this->GC << "\n"
+        << "pos_N  " << this->pos_N(0, 0) << " " << this->pos_N(1, 0) << " " << this->pos_N(2, 0) << "\n"
+        << "pos_1  " << this->pos_1(0, 0) << " " << this->pos_1(1, 0) << " " << this->pos_1(2, 0) << "\n"
+        << "smoothstep      " << this->smoothstep << "\n"
+        << "frictionModel      " << this->frictionModel << "\n"
+        << "vth      " << this->vth << "\n"
+        << "us    tangential  " << this->ust << "\n"
+        << "us    normal  " << this->usn << "\n"
+        << "ud      " << this->ud << "\n"
+        << "deltamax      " << this->deltamax;
+    Logger::debug(oss.str());
 }
 
 void Line::initLine(void)
@@ -1075,23 +1084,28 @@ void Line::initLine(void)
             ten_N = (EA * (nvecN - 1.0) / (0.5 * (roots(1) + 1) * dL * nvecN)) * vecN;
             if (Li == L && pos_1(2, 0) == seabedDepth && pos_N(2, 0) == seabedDepth)
             {
-                std::cout << "     WARNING: Mooring line " << id << " is laying on the floor " << std::endl;
+                Logger::warning("Mooring line " + std::to_string(id) + " is laying on the floor");
             }
             else if (xF < 1e-5)
             {
-                std::cout << "     WARNING: Mooring line " << id << " is vertical. " << std::endl;
+                Logger::warning("Mooring line " + std::to_string(id) + " is vertical.");
             }
             else
             {
-                std::cout << "     WARNING: Mooring line " << id << " tension is high. " << std::endl;
+                Logger::warning("Mooring line " + std::to_string(id) + " tension is high.");
             }
         }
         floor_flag = 1;
-        std::cout << "    Tension at anchor for line: " << id << " ; is: (" << ten_1(0) << " , " << ten_1(1) << " , "
-                  << ten_1(2) << " ) N" << std::endl;
-        std::cout << "    Tension at fairlead for line: " << id << " ; is: (" << ten_N(0) << " , " << ten_N(1) << " , "
-                  << ten_N(2) << " ) N" << std::endl
-                  << std::endl;
+        {
+            std::ostringstream oss;
+            oss << "Tension at anchor for line: " << id << " ; is: (" << ten_1(0) << " , " << ten_1(1) << " , " << ten_1(2) << " ) N";
+            Logger::debug(oss.str());
+        }
+        {
+            std::ostringstream oss;
+            oss << "Tension at fairlead for line: " << id << " ; is: (" << ten_N(0) << " , " << ten_N(1) << " , " << ten_N(2) << " ) N";
+            Logger::debug(oss.str());
+        }
     }
     else if (lineType == 2)
     {
@@ -1152,13 +1166,18 @@ void Line::initLine(void)
             arma::mat vecN(pos.rows(3 * N - 6, 3 * N - 4) - pos.rows(3 * N - 3, 3 * N - 1));
             double nvecN = norm(vecN);
             ten_N = (EA * (nvecN - 1.0) / (0.5 * (roots(1) + 1) * dL * nvecN)) * vecN;
-            std::cout << "    WARNING: Towing line " << id << " tension is high. " << std::endl;
+            Logger::warning("Towing line " + std::to_string(id) + " tension is high.");
         }
-        std::cout << "    Tension at anchor for line: " << id << " ; is: (" << ten_1(0) << " , " << ten_1(1) << " , "
-                  << ten_1(2) << " ) N" << std::endl;
-        std::cout << "    Tension at fairlead for line: " << id << " ; is: (" << ten_N(0) << " , " << ten_N(1) << " , "
-                  << ten_N(2) << " ) N" << std::endl
-                  << std::endl;
+        {
+            std::ostringstream oss;
+            oss << "Tension at anchor for line: " << id << " ; is: (" << ten_1(0) << " , " << ten_1(1) << " , " << ten_1(2) << " ) N";
+            Logger::debug(oss.str());
+        }
+        {
+            std::ostringstream oss;
+            oss << "Tension at fairlead for line: " << id << " ; is: (" << ten_N(0) << " , " << ten_N(1) << " , " << ten_N(2) << " ) N";
+            Logger::debug(oss.str());
+        }
     }
     else if (lineType == 3)
     {
@@ -1193,11 +1212,16 @@ void Line::initLine(void)
         arma::mat vecN(pos.rows(3 * N - 6, 3 * N - 4) - pos.rows(3 * N - 3, 3 * N - 1));
         double nvecN = norm(vecN);
         ten_N = (EA * (nvecN - 1.0) / (0.5 * (this->roots(1) + 1) * dL * nvecN)) * vecN;
-        std::cout << "     Tension at anchor for line: " << id << " ; is: (" << ten_1(0) << " , " << ten_1(1) << " , "
-                  << ten_1(2) << " ) N" << std::endl;
-        std::cout << "     Tension at fairlead for line: " << id << " ; is: (" << ten_N(0) << " , " << ten_N(1) << " , "
-                  << ten_N(2) << " ) N" << std::endl
-                  << std::endl;
+        {
+            std::ostringstream oss;
+            oss << "Tension at anchor for line: " << id << " ; is: (" << ten_1(0) << " , " << ten_1(1) << " , " << ten_1(2) << " ) N";
+            Logger::debug(oss.str());
+        }
+        {
+            std::ostringstream oss;
+            oss << "Tension at fairlead for line: " << id << " ; is: (" << ten_N(0) << " , " << ten_N(1) << " , " << ten_N(2) << " ) N";
+            Logger::debug(oss.str());
+        }
         floor_flag = -1;
     }
     else

@@ -1,3 +1,4 @@
+﻿// SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
 #define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
@@ -86,8 +87,6 @@ inline bool CheckFileExists(const std::string& name)
 
 void CheckInputFile(std::string inputFile, std::string specsStr)
 {
-    std::cout << "Input file name: " << inputFile.c_str() << std::endl;
-    std::cout << !CheckFileExists(inputFile) << std::endl;
     if (inputFile.length() > 4)
     {
         if (inputFile.substr(inputFile.length() - 4, 4).compare(".dat") != 0)

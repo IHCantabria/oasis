@@ -1,12 +1,15 @@
+﻿// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <armadillo>
 #include <string>
+#include <sstream>
 #include <cstdio>
 #include "Spring.hpp"
 #include "../MathTools.hpp"
 #include "../Exceptions/Exception.hpp"
 #include "../Simulations/Simulation.hpp"
 #include "../os_tools.hpp"
+#include "../Logger.hpp"
 
 // Lee inputs de los muelles
 void Spring::ReadPropertiesASCII(FILE* pFilePointer, SpringType** pTypes, int numTypes)
@@ -58,7 +61,7 @@ void Spring::ReadPropertiesASCII(FILE* pFilePointer, SpringType** pTypes, int nu
     }
 
     // Check and post process the spring base
-    std::cout << "        Post-processing Spring " << nSpring + 1 << " vectors..." << std::endl;
+    Logger::debug("        Post-processing Spring " + std::to_string(nSpring + 1) + " vectors...");
     arma::field<arma::mat> SpringVectors_new;
     SpringVectors_new.set_size(3, 2);
     double temp_norm;
@@ -93,18 +96,20 @@ void Spring::ReadPropertiesASCII(FILE* pFilePointer, SpringType** pTypes, int nu
     }
     for (jj = 0; jj < 2; jj++)
     {
-        std::cout << "          Spring " << jj + 1 << " ..." << std::endl;
+        Logger::debug("          Spring " + std::to_string(jj + 1) + " ...");
         for (ii = 0; ii < 3; ii++)
         {
             temp_norm = arma::norm(SpringVectors_new(ii, jj) - SpringVectors(ii, jj));
             if (temp_norm > 1e-6)
             {
-                std::cout << "            Vector " << ii + 1 << " changed from: " << std::endl
-                          << "            " << SpringVectors(ii, jj).t() << "            to" << std::endl
-                          << "            " << SpringVectors_new(ii, jj).t();
+                std::ostringstream oss;
+                oss << "            Vector " << ii + 1 << " changed from: " << std::endl
+                    << "            " << SpringVectors(ii, jj).t() << "            to" << std::endl
+                    << "            " << SpringVectors_new(ii, jj).t();
+                Logger::debug(oss.str());
             }
         }
-        std::cout << "          ... checked! " << std::endl;
+        Logger::debug("          ... checked!");
     }
     SpringVectors = SpringVectors_new;
 
@@ -169,7 +174,7 @@ void Spring::ReadPropertiesYAML(YAML::Node node, SpringType** pTypes, int numTyp
     }
 
     // Check and post process the spring base
-    std::cout << "        Post-processing Spring " << nSpring + 1 << " vectors..." << std::endl;
+    Logger::debug("        Post-processing Spring " + std::to_string(nSpring + 1) + " vectors...");
     arma::field<arma::mat> SpringVectors_new;
     SpringVectors_new.set_size(3, 2);
     double temp_norm;
@@ -204,18 +209,20 @@ void Spring::ReadPropertiesYAML(YAML::Node node, SpringType** pTypes, int numTyp
     }
     for (int jj = 0; jj < 2; jj++)
     {
-        std::cout << "          Spring " << jj + 1 << " ..." << std::endl;
+        Logger::debug("          Spring " + std::to_string(jj + 1) + " ...");
         for (int ii = 0; ii < 3; ii++)
         {
             temp_norm = arma::norm(SpringVectors_new(ii, jj) - SpringVectors(ii, jj));
             if (temp_norm > 1e-6)
             {
-                std::cout << "            Vector " << ii + 1 << " changed from: " << std::endl
-                          << "            " << SpringVectors(ii, jj).t() << "            to" << std::endl
-                          << "            " << SpringVectors_new(ii, jj).t();
+                std::ostringstream oss;
+                oss << "            Vector " << ii + 1 << " changed from: " << std::endl
+                    << "            " << SpringVectors(ii, jj).t() << "            to" << std::endl
+                    << "            " << SpringVectors_new(ii, jj).t();
+                Logger::debug(oss.str());
             }
         }
-        std::cout << "          ... checked! " << std::endl;
+        Logger::debug("          ... checked!");
     }
     SpringVectors = SpringVectors_new;
 

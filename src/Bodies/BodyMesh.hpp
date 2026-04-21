@@ -1,3 +1,4 @@
+﻿// SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef bodymeshdef_hpp__
 #define bodymeshdef_hpp__

@@ -1,3 +1,4 @@
+﻿// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <iostream>
 #include <fstream>
@@ -13,6 +14,7 @@
 #include "../MathTools.hpp"
 #include "../os_tools.hpp"
 #include "../Exceptions/Exception.hpp"
+#include "../Logger.hpp"
 
 SeaFloor::SeaFloor(int incId)
 {
@@ -193,7 +195,7 @@ void Bathymetry::ReadPropertiesASCII(FILE*& pFilePointer, std::string inputFileP
     std::string header_check;
     // Check if the mesh file exists
     std::string meshFilePath = JoinPath(inputFilePath, meshFileName);
-    std::cout << "meshFileName = " << std::endl << meshFileName << std::endl;
+    Logger::debug("meshFileName = " + meshFileName);
     FILE* file_pointer = fopen(meshFilePath.c_str(), "r");
     if (file_pointer == NULL)
     {
@@ -203,7 +205,7 @@ void Bathymetry::ReadPropertiesASCII(FILE*& pFilePointer, std::string inputFileP
         throw IOError(ss.str());
     }
     fscanf(file_pointer, "%d %[^\n]\n", &numCloudPoints, buffer_line);
-    std::cout << "Number of points (mesh) = " << std::endl << numCloudPoints << std::endl;
+    Logger::debug("Number of points (mesh) = " + std::to_string(numCloudPoints));
     pointMatrix = arma::zeros(numCloudPoints, 3);
 
     for (int ii = 0; ii < 3; ii++)
@@ -241,7 +243,7 @@ void Bathymetry::ReadPropertiesASCII(FILE*& pFilePointer, std::string inputFileP
         }
     }
     fscanf(file_pointer, "%d %[^\n]\n", &numTriangles, buffer_line);
-    std::cout << "Number of triangles = " << std::endl << numTriangles << std::endl;
+    Logger::debug("Number of triangles = " + std::to_string(numTriangles));
     // se salta 3 lineas de nuevo
     for (int ii = 0; ii < 3; ii++)
     {
@@ -283,7 +285,7 @@ void Bathymetry::ReadPropertiesYAML(YAML::Node node, std::string inputFilePath)
     SeaFloor::ReadPropertiesYAML(node);
 
     std::string meshFilePath = JoinPath(inputFilePath, meshFileName);
-    std::cout << "meshFileName = " << std::endl << meshFileName << std::endl;
+    Logger::debug("meshFileName = " + meshFileName);
     FILE* file_pointer = fopen(meshFilePath.c_str(), "r");
     if (file_pointer == NULL)
     {
@@ -295,7 +297,7 @@ void Bathymetry::ReadPropertiesYAML(YAML::Node node, std::string inputFilePath)
     char buffer_line[1000];
     std::string header_check;
     fscanf(file_pointer, "%d %[^\n]\n", &numCloudPoints, buffer_line);
-    std::cout << "Number of points (mesh) = " << std::endl << numCloudPoints << std::endl;
+    Logger::debug("Number of points (mesh) = " + std::to_string(numCloudPoints));
     pointMatrix = arma::zeros(numCloudPoints, 3);
 
     for (int ii = 0; ii < 3; ii++)
@@ -326,7 +328,7 @@ void Bathymetry::ReadPropertiesYAML(YAML::Node node, std::string inputFilePath)
         }
     }
     fscanf(file_pointer, "%d %[^\n]\n", &numTriangles, buffer_line);
-    std::cout << "Number of triangles = " << std::endl << numTriangles << std::endl;
+    Logger::debug("Number of triangles = " + std::to_string(numTriangles));
     for (int ii = 0; ii < 3; ii++)
     {
         fgets(buffer_line, sizeof(buffer_line), file_pointer);
@@ -662,8 +664,9 @@ arma::field<arma::mat> Bathymetry::projectPoints(arma::mat nodes)
     {
         if (projected_points(i, 0) == 0 && projected_points(i, 1) == 0 && projected_points(i, 2) == 0)
         {
-            std::cout << "     WARNING: Probably, node" << i + 1 << " could not be projected. Check the floor size. "
-                      << std::endl;
+            std::ostringstream oss;
+            oss << "Probably, node" << i + 1 << " could not be projected. Check the floor size.";
+            Logger::warning(oss.str());
             hayError = 1;
         }
     }

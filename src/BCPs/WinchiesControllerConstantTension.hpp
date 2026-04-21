@@ -1,3 +1,4 @@
+﻿// SPDX-License-Identifier: GPL-3.0-or-later
 #ifndef WINCHIE_CONTROLLER_CONSTANT_TENSION_FLAG
 #define WINCHIE_CONTROLLER_CONSTANT_TENSION_FLAG
 #include "WinchiesController.hpp"

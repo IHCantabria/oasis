@@ -1,3 +1,4 @@
+﻿// SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef isimulationdef_hpp__
 #define isimulationdef_hpp__

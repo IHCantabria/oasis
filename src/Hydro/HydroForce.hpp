@@ -1,3 +1,4 @@
+﻿// SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef hydroforcedef_hpp__
 #define hydroforcedef_hpp__

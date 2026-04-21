@@ -1,3 +1,4 @@
+﻿// SPDX-License-Identifier: GPL-3.0-or-later
 #ifndef SPRINGTYPE_HPP__
 #define SPRINGTYPE_HPP__
 

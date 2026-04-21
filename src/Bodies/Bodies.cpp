@@ -14,6 +14,7 @@
 #include "../ODE_solvers/ODE_solvers.hpp"
 #include "../Exceptions/Exception.hpp"
 #include "../MathTools.hpp"
+#include "../Logger.hpp"
 
 //
 Body::Body(int n, Simulation* pIncSim)
@@ -52,7 +53,7 @@ void Body::ComputeBcpForces(void)
 
     if (bcpForces.has_nan())
     {
-        std::cout << std::endl << "ERROR: NaN Detected on body with id = " << id << std::endl;
+        Logger::error("NaN Detected on body with id = " + std::to_string(id));
         throw std::exception();
     }
 }
@@ -74,7 +75,7 @@ int Body::GetId(void)
 
 void Body::LoadHydrodynamicDatabase(Body** hydroDatabaseBodies, int slotIndex)
 {
-    std::cout << "--> Reading Hydrodynamics Properties (HDF5 format)" << std::endl;
+    Logger::info("--> Reading Hydrodynamics Properties (HDF5 format)");
 
     // File path
     std::string file_path = JoinPath(this->pSim->inputFolderPath, this->hydroDatabaseName);
@@ -82,23 +83,27 @@ void Body::LoadHydrodynamicDatabase(Body** hydroDatabaseBodies, int slotIndex)
     // Load hydrodynamic database
     // slotIndex is the position of this body in the hydroDatabaseBodies array
     this->pHydro = new HydroDatabase(this->hydroDatabaseIndex, slotIndex, hydroDatabaseBodies, this->pSim);
-    std::cout << "    --> Loading hydrodynamic database" << std::endl;
+    Logger::info("    --> Loading hydrodynamic database");
     this->pHydro->LoadHydrodynamicData(file_path);
 
-    std::cout << "    --> Loading and checking the Hydrodynamic C.O.G position" << std::endl;
+    Logger::info("    --> Loading and checking the Hydrodynamic C.O.G position");
     // Load and check the Hydrodynamic C.O.G position
     if (this->takeCOGHydroDatabase == 1)
     {
         // Load COG equilibrium position
         this->pos_eq.rows(0, 2) = this->pHydro->GetCog().t();
 
-        std::cout << "      --> Using HDB COG: " << this->pHydro->GetCog();
+        std::ostringstream oss_hdb;
+        oss_hdb << "      --> Using HDB COG: " << this->pHydro->GetCog();
+        Logger::debug(oss_hdb.str());
 
         // Add initial displacement to the COG equilibrium position
         this->pos = this->pos + this->pos_eq;
         pos_ini = pos;
 
-        std::cout << "      --> Initial Position: " << this->pos.t();
+        std::ostringstream oss_pos;
+        oss_pos << "      --> Initial Position: " << this->pos.t();
+        Logger::debug(oss_pos.str());
     }
     else if ((this->takeCOGHydroDatabase == 0) && (this->pHydro->GetNumBodies() > 1))
     {
@@ -121,7 +126,7 @@ void Body::LoadHydrodynamicDatabase(Body** hydroDatabaseBodies, int slotIndex)
         }
     }
 
-    std::cout << "----> Hydrodynamic Properties Read" << std::endl;
+    Logger::info("----> Hydrodynamic Properties Read");
 }
 
 // Read body properties from the input file
@@ -136,7 +141,7 @@ void Body::ReadPropertiesASCII(FILE* pFile)
     double dtemp;
     int itemp;
 
-    std::cout << "--> Reading Body: " << this->GetId() + 1 << std::endl;
+    Logger::info("--> Reading Body: " + std::to_string(this->GetId() + 1));
 
     // Read flag to take COG from Hydrodynamic database
     if (fscanf(pFile, "%d %[^\n]\n", &takeCOGHydroDatabase, buffer_line) != 2)
@@ -147,7 +152,7 @@ void Body::ReadPropertiesASCII(FILE* pFile)
         throw ValueError(ss.str());
     }
 
-    std::cout << " takeCOGHydroDatabase: " << takeCOGHydroDatabase << std::endl;
+    Logger::debug(" takeCOGHydroDatabase: " + std::to_string(takeCOGHydroDatabase));
 
     // Read dofs considered
     fgetpos(pFile, &carriage_init);
@@ -157,7 +162,7 @@ void Body::ReadPropertiesASCII(FILE* pFile)
     }
     fsetpos(pFile, &carriage_init);
 
-    std::cout << " numDofs: " << numDofs << std::endl;
+    Logger::debug(" numDofs: " + std::to_string(numDofs));
 
     this->pDofs = new int[this->numDofs];
     for (int ii = 0; ii < this->numDofs; ii++)
@@ -173,7 +178,7 @@ void Body::ReadPropertiesASCII(FILE* pFile)
     }
     fscanf(pFile, "%[^\n]\n", buffer_line);
 
-    std::cout << "    --> Degrees of Freedom: " << this->pDofs << std::endl;
+    Logger::debug("    --> Degrees of Freedom: " + std::to_string(numDofs) + " dofs read");
 
     // Read the boundary condition points in the body
     fgetpos(pFile, &carriage_init);
@@ -201,7 +206,7 @@ void Body::ReadPropertiesASCII(FILE* pFile)
     }
     fscanf(pFile, "%[^\n]\n", buffer_line);
 
-    std::cout << "    --> Boundary Condition Points: " << this->pIndexBcps << std::endl;
+    Logger::debug("    --> Boundary Condition Points: " + std::to_string(numBcps) + " BCPs read");
 
     // Read the wind turbines in the body
     fgetpos(pFile, &carriage_init);
@@ -229,7 +234,7 @@ void Body::ReadPropertiesASCII(FILE* pFile)
     }
     fscanf(pFile, "%[^\n]\n", buffer_line);
 
-    std::cout << "    --> Wind Turbines: " << this->pIndexWindTurbs << std::endl;
+    Logger::debug("    --> Wind Turbines: " + std::to_string(numWindTurbs) + " wind turbines read");
 
     // Read COG equilibrium position
     for (int ii = 0; ii < 6; ii++)
@@ -251,7 +256,9 @@ void Body::ReadPropertiesASCII(FILE* pFile)
 
     if (this->takeCOGHydroDatabase == 0)
     {
-        std::cout << "    --> Equilibrium Position: " << this->pos.t() << std::endl;
+        std::ostringstream oss_eq;
+        oss_eq << "    --> Equilibrium Position: " << this->pos.t();
+        Logger::debug(oss_eq.str());
     }
 
     // Read Initial displacement from reference position
@@ -269,7 +276,9 @@ void Body::ReadPropertiesASCII(FILE* pFile)
     fscanf(pFile, "%[^\n]\n", buffer_line);
     pos_ini = pos;
 
-    std::cout << "    --> Initial Disp: " << pos.t() << std::endl;
+    std::ostringstream oss_disp;
+    oss_disp << "    --> Initial Disp: " << pos.t();
+    Logger::debug(oss_disp.str());
 
     // Read hydrodynamic database filename
     if (fscanf(pFile, "%s %[^\n]\n", cHydroDatabaseName, buffer_line) != 2)
@@ -281,7 +290,7 @@ void Body::ReadPropertiesASCII(FILE* pFile)
     }
     this->hydroDatabaseName = cHydroDatabaseName;
 
-    std::cout << "    --> hydrodynamic Database: " << this->hydroDatabaseName << std::endl;
+    Logger::debug("    --> hydrodynamic Database: " + this->hydroDatabaseName);
 
     // Read body index in the associated database
     if (fscanf(pFile, "%d %[^\n]\n", &(this->hydroDatabaseIndex), buffer_line) != 2)
@@ -293,7 +302,7 @@ void Body::ReadPropertiesASCII(FILE* pFile)
     }
     this->hydroDatabaseIndex--;
 
-    std::cout << "    --> hydrodynamic Database Index: " << this->hydroDatabaseIndex + 1 << std::endl;
+    Logger::debug("    --> hydrodynamic Database Index: " + std::to_string(this->hydroDatabaseIndex + 1));
 
     // Read flag for blocking the body
     if (fscanf(pFile, "%d %[^\n]\n", &itemp, buffer_line) != 2)
@@ -315,7 +324,7 @@ void Body::ReadPropertiesASCII(FILE* pFile)
         throw ValueError(ss.str());
     }
 
-    std::cout << "    --> Flag Blocked: " << flag_blocked << std::endl;
+    Logger::debug("    --> Flag Blocked: " + std::to_string(flag_blocked));
 
     // Read movements filename
     if (fscanf(pFile, "%s %[^\n]\n", cMovementsFileName, buffer_line) != 2)
@@ -326,7 +335,7 @@ void Body::ReadPropertiesASCII(FILE* pFile)
     }
     this->movementsFileName = cMovementsFileName;
 
-    std::cout << "    --> Movements File Name: " << this->movementsFileName << std::endl;
+    Logger::debug("    --> Movements File Name: " + this->movementsFileName);
 
     // Read flag for hydrostatics of the body
     if (fscanf(pFile, "%d %[^\n]\n", &itemp, buffer_line) != 2)
@@ -348,7 +357,7 @@ void Body::ReadPropertiesASCII(FILE* pFile)
         throw ValueError(ss.str());
     }
 
-    std::cout << "    --> Flag hydrostatics: " << flag_hydrostatics << std::endl;
+    Logger::debug("    --> Flag hydrostatics: " + std::to_string(flag_hydrostatics));
 
     // Read body mesh file name
     if (fscanf(pFile, "%s %[^\n]\n", cHydrostaticMeshName, buffer_line) != 2)
@@ -359,7 +368,7 @@ void Body::ReadPropertiesASCII(FILE* pFile)
     }
     this->hydrostaticMeshName = cHydrostaticMeshName;
 
-    std::cout << "    --> Hydrostatic Mesh Name: " << this->hydrostaticMeshName << std::endl;
+    Logger::debug("    --> Hydrostatic Mesh Name: " + this->hydrostaticMeshName);
 
     // Read flag for radiation force
     if (fscanf(pFile, "%d %[^\n]\n", &radiationFlag, buffer_line) != 2)
@@ -370,7 +379,7 @@ void Body::ReadPropertiesASCII(FILE* pFile)
         throw ValueError(ss.str());
     }
 
-    std::cout << "    --> Radiation Force Flag: " << firstOrderExcitationFlag << std::endl;
+    Logger::debug("    --> Radiation Force Flag: " + std::to_string(radiationFlag));
 
     // Read flag for first order excitation force
     if (fscanf(pFile, "%d %[^\n]\n", &firstOrderExcitationFlag, buffer_line) != 2)
@@ -381,7 +390,7 @@ void Body::ReadPropertiesASCII(FILE* pFile)
         throw ValueError(ss.str());
     }
 
-    std::cout << "    --> First Order Excitation Flag: " << firstOrderExcitationFlag << std::endl;
+    Logger::debug("    --> First Order Excitation Flag: " + std::to_string(firstOrderExcitationFlag));
 
     // Read flag for second order excitation force
     if (fscanf(pFile, "%d %[^\n]\n", &secondOrderExcitationFlag, buffer_line) != 2)
@@ -392,7 +401,7 @@ void Body::ReadPropertiesASCII(FILE* pFile)
         throw ValueError(ss.str());
     }
 
-    std::cout << "    --> Second Order Excitation Flag: " << secondOrderExcitationFlag << std::endl;
+    Logger::debug("    --> Second Order Excitation Flag: " + std::to_string(secondOrderExcitationFlag));
 
     // Read viscous added mass coefficients
     for (int ii = 0; ii < 6; ii++)
@@ -407,7 +416,9 @@ void Body::ReadPropertiesASCII(FILE* pFile)
     }
     fscanf(pFile, "%[^\n]\n", buffer_line);
 
-    std::cout << "    --> Viscous Added Mass: " << A_visc.t() << std::endl;
+    std::ostringstream oss_av;
+    oss_av << "    --> Viscous Added Mass: " << A_visc.t();
+    Logger::debug(oss_av.str());
 
     // Read viscous damping coefficients
     for (int ii = 0; ii < 6; ii++)
@@ -422,7 +433,9 @@ void Body::ReadPropertiesASCII(FILE* pFile)
     }
     fscanf(pFile, "%[^\n]\n", buffer_line);
 
-    std::cout << "    --> Viscous Damping: " << B_visc.t() << std::endl;
+    std::ostringstream oss_bv;
+    oss_bv << "    --> Viscous Damping: " << B_visc.t();
+    Logger::debug(oss_bv.str());
 
     // Read viscous damping coefficients
     for (int ii = 0; ii < 6; ii++)
@@ -437,16 +450,18 @@ void Body::ReadPropertiesASCII(FILE* pFile)
     }
     fscanf(pFile, "%[^\n]\n", buffer_line);
 
-    std::cout << "    --> Viscous Damping 2: " << B_visc2.t() << std::endl;
+    std::ostringstream oss_bv2;
+    oss_bv2 << "    --> Viscous Damping 2: " << B_visc2.t();
+    Logger::debug(oss_bv2.str());
 
     // Generate array of pointers in order to storage the BCPs pointers
     this->pBodyBcps = new BCP*[this->numBcps];
 
     if (flag_blocked == 2)
     {
-        std::cout << "    --> Reading Body Imposed Movements..." << std::endl;
+        Logger::info("    --> Reading Body Imposed Movements...");
         ReadLockBodyMovements();
-        std::cout << "    --> Body Imposed Movements Read" << std::endl;
+        Logger::info("    --> Body Imposed Movements Read");
     }
 
     // Generate object of hidrostatic mesh if needed
@@ -462,15 +477,15 @@ void Body::ReadPropertiesASCII(FILE* pFile)
 
 void Body::ReadPropertiesYAML(YAML::Node node)
 {
-    std::cout << "--> Reading Body: " << this->GetId() + 1 << std::endl;
+    Logger::info("--> Reading Body: " + std::to_string(this->GetId() + 1));
 
     takeCOGHydroDatabase = node["take_cog_hydro_database"].as<int>();
-    std::cout << " takeCOGHydroDatabase: " << takeCOGHydroDatabase << std::endl;
+    Logger::debug(" takeCOGHydroDatabase: " + std::to_string(takeCOGHydroDatabase));
 
     // Read dofs
     YAML::Node dofsNode = node["dofs"];
     numDofs = (int)dofsNode.size();
-    std::cout << " numDofs: " << numDofs << std::endl;
+    Logger::debug(" numDofs: " + std::to_string(numDofs));
     pDofs = new int[numDofs];
     for (int ii = 0; ii < numDofs; ii++)
     {
@@ -555,9 +570,9 @@ void Body::ReadPropertiesYAML(YAML::Node node)
 
     if (flag_blocked == 2)
     {
-        std::cout << "    --> Reading Body Imposed Movements..." << std::endl;
+        Logger::info("    --> Reading Body Imposed Movements...");
         ReadLockBodyMovements();
-        std::cout << "    --> Body Imposed Movements Read" << std::endl;
+        Logger::info("    --> Body Imposed Movements Read");
     }
 
     // Generate hydrostatic mesh if needed
@@ -580,7 +595,7 @@ void Body::ReadLockBodyMovements(void)
     int itemp;
 
     std::string file_path = JoinPath(pSim->inputFolderPath, movementsFileName);
-    std::cout << "             Reading from file: " << file_path << std::endl;
+    Logger::info("             Reading from file: " + file_path);
 
     // Open file
     FILE* pFile = fopen(file_path.c_str(), "r");
@@ -599,7 +614,7 @@ void Body::ReadLockBodyMovements(void)
     movementTypeFlag = itemp;
     if (movementTypeFlag == 1)
     {
-        std::cout << "             Reading Harmonic Analytic movements..." << std::endl;
+        Logger::info("             Reading Harmonic Analytic movements...");
         // Discard header lines and loop over dofs
         for (int ii = 0; ii < 3; ii++)
         {
@@ -607,7 +622,7 @@ void Body::ReadLockBodyMovements(void)
         }
         for (int ii = 0; ii < 6; ii++)
         {
-            std::cout << "             Reading DOF " << ii << std::endl;
+            Logger::debug("             Reading DOF " + std::to_string(ii));
             // Ignore dof name line
             fgets(buffer_line, sizeof(buffer_line), pFile);
             // Read offset
@@ -657,7 +672,7 @@ void Body::ReadLockBodyMovements(void)
         {
             fgets(buffer_line, sizeof(buffer_line), pFile);
         }
-        std::cout << "             Reading Time series data movements..." << std::endl;
+        Logger::info("             Reading Time series data movements...");
         // Read movements filename
         if (fscanf(pFile, "%s %[^\n]\n", cMovementsTimeSeriesFileName, buffer_line) != 2)
         {
@@ -685,7 +700,7 @@ void Body::ReadLockBodyMovements(void)
         int nt;
         // Abro el fichero
         file_path = JoinPath(pSim->inputFolderPath, movementsTimeSeriesFileName);
-        std::cout << "             Reading from file: " << file_path << std::endl;
+        Logger::info("             Reading from file: " + file_path);
         std::ifstream datosPosF(file_path);
         // Leo el numero de pasos temporales a leer
         datosPosF >> nt;

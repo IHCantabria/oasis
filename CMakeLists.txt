@@ -306,6 +306,7 @@ endif()
 # Core source files (always compiled)
 set(OASIS_SOURCE_FILES 
     "src/CommonTools.cpp" 
+    "src/Logger.cpp"
     "src/main.cpp"
     "src/MathTools.cpp"
     "src/os_tools.cpp"
@@ -336,6 +337,7 @@ set(OASIS_SOURCE_FILES
 # Core header files
 set(OASIS_HEADER_FILES 
     "src/CommonTools.hpp" 
+    "src/Logger.hpp"
     "src/main.cpp"
     "src/MathTools.hpp"
     "src/os_tools.hpp"

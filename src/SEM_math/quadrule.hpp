@@ -1,3 +1,4 @@
+﻿// SPDX-License-Identifier: GPL-3.0-or-later
 void cdgqf(int nt, int kind, double alpha, double beta, double t[], double wts[]);
 void cgqf(int nt, int kind, double alpha, double beta, double a, double b, int lo, double t[], double wts[]);
 void chebyshev_set(int n, double x[], double w[]);

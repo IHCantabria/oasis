@@ -1,6 +1,8 @@
+﻿// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <iostream>
 #include <fstream>
+#include "../Logger.hpp"
 #include <limits>
 #include <string>
 #include <math.h>
@@ -117,7 +119,7 @@ void Line::qs_GetTen(void)
         deter = DfDH * DgDV - DfDV * DgDH;
         if (std::abs(deter) < 1e-12)
         {
-            std::cout << "WARNING: In QS method, singular Jacobian" << std::endl << std::endl;
+            Logger::warning("In QS method, singular Jacobian");
             break;
         };
 

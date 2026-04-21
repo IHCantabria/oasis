@@ -1,3 +1,4 @@
+﻿// SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef hydrodatabasedef_hpp__
 #define hydrodatabasedef_hpp__

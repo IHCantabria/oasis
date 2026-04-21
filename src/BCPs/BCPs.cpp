@@ -1,3 +1,4 @@
+﻿// SPDX-License-Identifier: GPL-3.0-or-later
 /*
 Libreria para las condiciones de contorno
 */
@@ -6,6 +7,7 @@ Libreria para las condiciones de contorno
 #include <fstream>
 #include <limits>
 #include <string>
+#include <sstream>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,6 +15,7 @@ Libreria para las condiciones de contorno
 #include <string>
 #include <armadillo>
 #include "BCPs.hpp"
+#include "../Logger.hpp"
 #include "../Exceptions/Exception.hpp"
 #include "../os_tools.hpp"
 #include "../Lines/Lines.hpp"
@@ -445,22 +448,24 @@ void ElasticAnchorBCP::GetValues(double t)
 
 void ElasticAnchorBCP::Print(void)
 {
-    std::cout << "ElasticAnchorBCP [" << this->GetId() << "]" << std::endl;
-    std::cout << "  Type: " << this->GetType() << std::endl;
-    std::cout << "  Position: (" << pos(0) << ", " << pos(1) << ", " << pos(2) << ")" << std::endl;
-    std::cout << "  Reference: (" << pos_ref(0) << ", " << pos_ref(1) << ", " << pos_ref(2) << ")" << std::endl;
-    std::cout << "  Mass: " << anchor_mass << " kg" << std::endl;
-    std::cout << "  Volume: " << anchor_vol << " m³" << std::endl;
-    std::cout << "  c_param: " << c_param << " N" << std::endl;
-    std::cout << "  k_param: " << k_param << " 1/m" << std::endl;
+    std::ostringstream oss;
+    oss << "ElasticAnchorBCP [" << this->GetId() << "]";
+    Logger::debug(oss.str());
+    oss.str(""); oss << "  Type: " << this->GetType(); Logger::debug(oss.str());
+    oss.str(""); oss << "  Position: (" << pos(0) << ", " << pos(1) << ", " << pos(2) << ")"; Logger::debug(oss.str());
+    oss.str(""); oss << "  Reference: (" << pos_ref(0) << ", " << pos_ref(1) << ", " << pos_ref(2) << ")"; Logger::debug(oss.str());
+    oss.str(""); oss << "  Mass: " << anchor_mass << " kg"; Logger::debug(oss.str());
+    oss.str(""); oss << "  Volume: " << anchor_vol << " m\u00b3"; Logger::debug(oss.str());
+    oss.str(""); oss << "  c_param: " << c_param << " N"; Logger::debug(oss.str());
+    oss.str(""); oss << "  k_param: " << k_param << " 1/m"; Logger::debug(oss.str());
 
     arma::vec disp = pos - pos_ref;
     double x = arma::norm(disp);
-    std::cout << "  Displacement: " << x << " m" << std::endl;
+    oss.str(""); oss << "  Displacement: " << x << " m"; Logger::debug(oss.str());
 
     if (x > 1e-10)
     {
         double F_mag = c_param * (1.0 - exp(-k_param * x));
-        std::cout << "  Restoring force magnitude: " << F_mag << " N" << std::endl;
+        oss.str(""); oss << "  Restoring force magnitude: " << F_mag << " N"; Logger::debug(oss.str());
     }
 }

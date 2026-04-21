@@ -1,3 +1,4 @@
+﻿// SPDX-License-Identifier: GPL-3.0-or-later
 #ifndef seafloordef_hpp__
 #define seafloordef_hpp__
 

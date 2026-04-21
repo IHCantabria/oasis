@@ -1,3 +1,4 @@
+﻿// SPDX-License-Identifier: GPL-3.0-or-later
 
 // WindTurbine.cpp - Only compiled when OASIS_USE_OPENFAST is enabled
 #ifdef OASIS_USE_OPENFAST
@@ -12,6 +13,8 @@
 #include "../Exceptions/Exception.hpp"
 #include "../os_tools.hpp"
 #include "../Simulations/Simulation.hpp"
+#include "../Logger.hpp"
+#include "../Logger.hpp"
 #include "FASTurbW_Library.h"
 #include "FAST_Library.h"
 
@@ -116,13 +119,12 @@ void WindTurbine::ReadPropertiesYAML(YAML::Node node)
 
 void WindTurbine::Initialize(void)
 {
-
-    std::cout << "    WindTurbine::Initialize" << std::endl;
+Logger::info("    WindTurbine::Initialize");
     std::string OutputPath = JoinPath(pSim->outputFolderPath, "FAST");
     std::copy(OutputPath.data(), OutputPath.data() + (OutputPath.size() + 1), OutputPathName);
     fs::create_directory(OutputPath);
 
-    std::cout << "        --> Introduce inputs in FSTW_InitInput" << std::endl;
+    Logger::info("        --> Introduce inputs in FSTW_InitInput");
     FSTW_InitInput.Tmax = pSim->simulationTime;
     FSTW_InitInput.TimeInterval = pSim->fastTimeStep;
     FSTW_InitInput.TimeInterval_SrvD = pSim->fastControllerTimeStep;
@@ -131,13 +133,13 @@ void WindTurbine::Initialize(void)
     // TODO: Implement hub motion option
     FSTW_InitInput.flag_input_pos = 1;
 
-    std::cout << "        --> FSTW_Init..." << std::endl;
+    Logger::info("        --> FSTW_Init...");
     FSTW_Init(&idWindTurbine, InputFileName_AD, InputFileName_IW, InputFileName_SD, InputFileName_ED, OutputPathName,
               &FSTW_InitInput, &FSTW_Input, &FSTW_Output, &ErrStat, ErrMsg);
     CheckError();
-    std::cout << "        --> ... done!" << std::endl;
+    Logger::info("        --> ... done!");
 
-    std::cout << "        --> Compute inertia matrices" << std::endl;
+    Logger::info("        --> Compute inertia matrices");
     rotIner = FSTW_InitInput.rotorInertia;
     for (int ii = 0; ii < 6; ii++)
     {
@@ -148,9 +150,9 @@ void WindTurbine::Initialize(void)
             this->turbInerMat(ii, jj) = FSTW_InitInput.turbInerMat[ii][jj];
         }
     }
-    std::cout << "        --> ... done!" << std::endl;
+    Logger::info("        --> ... done!");
 
-    std::cout << "        --> Save inertia matrices" << std::endl;
+    Logger::info("        --> Save inertia matrices");
     char buffer1[50], buffer2[50], buffer3[50];
     int nn1 = sprintf(buffer1, "FASTurbW_%d_bodyInerMat.dat", idWindTurbine);
     int nn2 = sprintf(buffer2, "FASTurbW_%d_towrInerMat.dat", idWindTurbine);
@@ -158,9 +160,9 @@ void WindTurbine::Initialize(void)
     this->bodyInerMat.save(JoinPath(OutputPath, buffer1), arma::raw_ascii);
     this->towrInerMat.save(JoinPath(OutputPath, buffer2), arma::raw_ascii);
     this->turbInerMat.save(JoinPath(OutputPath, buffer3), arma::raw_ascii);
-    std::cout << "        --> ... done!" << std::endl;
+    Logger::info("        --> ... done!");
 
-    std::cout << "        --> Get initial conditions" << std::endl;
+    Logger::info("        --> Get initial conditions");
     rotSpeed = FSTW_InitInput.turbIniRotSpeed;
     yaw = FSTW_InitInput.turbIniYaw;
     yaw_ini = yaw;
@@ -169,7 +171,7 @@ void WindTurbine::Initialize(void)
     {
         isRotorBlocked = true;
     }
-    std::cout << "        --> ... done!" << std::endl;
+    Logger::info("        --> ... done!");
 
     if (YCMode > 0)
     {
@@ -180,21 +182,22 @@ void WindTurbine::Initialize(void)
     }
 
     // Calculate turbine at time 0.0...
-    std::cout << "        --> Calculate turbine at time 0.0..." << std::endl;
+    Logger::info("        --> Calculate turbine at time 0.0...");
     SetInputsFAST();
-    std::cout << "            --> SetInputsFAST... done!" << std::endl;
+    Logger::info("            --> SetInputsFAST... done!");
     ComputeForces(0.0);
-    std::cout << "            --> ComputeForces... done!" << std::endl;
+    Logger::info("            --> ComputeForces... done!");
     ComputeControler(0.0);
-    std::cout << "            --> ComputeControler... done!" << std::endl;
+    Logger::info("            --> ComputeControler... done!");
     WriteOut(0.0);
-    std::cout << "            --> WriteOut... done!" << std::endl;
-    std::cout << "        --> ... done!" << std::endl;
+    Logger::info("            --> WriteOut... done!");
+    Logger::info("        --> ... done!");
+    Logger::info("        --> ... done!");
 }
 
 void WindTurbine::Finalize(void)
 {
-    std::cout << "    WindTurbine::Finalize" << std::endl;
+    Logger::info("    WindTurbine::Finalize");
     FSTW_End(&ErrStat, ErrMsg);
     CheckError();
 }
@@ -303,7 +306,7 @@ void WindTurbine::CheckError(void)
             FSTW_End(&ErrStat2, ErrMsg2);
             if (ErrStat != ErrStat2)
             {
-                std::cout << "ERROR: " << ErrMsg2 << std::endl;
+                Logger::error(std::string(ErrMsg2));
             }
             throw std::runtime_error(ErrMsg);
         }

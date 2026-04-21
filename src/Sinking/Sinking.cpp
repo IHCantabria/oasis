@@ -1,3 +1,4 @@
+﻿// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <iostream>
 #include <cstdio>
@@ -6,6 +7,7 @@
 #include <ctime>
 #include "Sinking.hpp"
 #include "../CommonTools.hpp"
+#include "../Logger.hpp"
 #include "../Simulations/Simulation.hpp"
 #include "../Exceptions/Exception.hpp"
 #include "../os_tools.hpp"
@@ -51,7 +53,7 @@ void Sinking::ReadPropertiesASCII(FILE* pFile, std::string inputFolderPath)
     // Read number of HDBs
     if (fscanf(pFile, "%d %[^\n]\n", &numHDBs, buffer_line) != 2)
     {
-        std::cout << "Hey 1" << std::endl;
+        Logger::debug("Sinking: numHDBs read failed, itemp=" + std::to_string(numHDBs));
         std::stringstream ss;
         ss << "An error occurred when trying to read the number of HDBs of sinking body: " << indBody << "\n";
         throw ValueError(ss.str());
@@ -91,9 +93,9 @@ void Sinking::ReadPropertiesASCII(FILE* pFile, std::string inputFolderPath)
             throw ValueError(ss.str());
         }
         file_path = JoinPath(inputFolderPath, cHydroDatabaseName);
-        std::cout << "--> Loading Sinking HDB " << ii + 1 << "..." << std::endl;
+        Logger::info("--> Loading Sinking HDB " + std::to_string(ii + 1) + "...");
         pHydro[ii]->LoadHydrodynamicData(file_path);
-        std::cout << "--> Done loading Sinking HDB " << ii + 1 << std::endl;
+        Logger::info("--> Done loading Sinking HDB " + std::to_string(ii + 1));
     }
 
     // Read number of groups
@@ -121,6 +123,7 @@ void Sinking::ReadPropertiesASCII(FILE* pFile, std::string inputFolderPath)
 
     for (int ii = 0; ii < numGroups; ii++)
     {
+        std::ostringstream oss;
         fgets(buffer_line, sizeof(buffer_line), pFile); // Ignore one line
 
         if (fscanf(pFile, "%d %[^\n]\n", &itemp, buffer_line) != 2)
@@ -188,9 +191,15 @@ void Sinking::ReadPropertiesASCII(FILE* pFile, std::string inputFolderPath)
         }
         groupsCenters(ii, 2) = dtemp;
 
-        std::cout << "        For group " << ii << ", the area is: " << groupsAreas(ii, 0) << std::endl;
-        std::cout << "                     the center is at: " << groupsCenters.row(ii);
-        std::cout << "                     and the points read are: " << std::endl << mtemp.t() << std::endl;
+        oss.str("");
+        oss << "        For group " << ii << ", the area is: " << groupsAreas(ii, 0);
+        Logger::debug(oss.str());
+        oss.str("");
+        oss << "                     the center is at: " << groupsCenters.row(ii);
+        Logger::debug(oss.str());
+        oss.str("");
+        oss << "                     and the points read are: " << std::endl << mtemp.t();
+        Logger::debug(oss.str());
 
         if (fscanf(pFile, "%d %[^\n]\n", &itemp, buffer_line) != 2)
         {
@@ -267,9 +276,9 @@ void Sinking::ReadPropertiesYAML(YAML::Node node, std::string inputFolderPath)
     {
         pHydro[ii] = new HydroDatabase(pSinkingBody->hydroDatabaseIndex, indBody - 1, pSim->pBodies, pSim);
         file_path = JoinPath(inputFolderPath, hdbNode[ii].as<std::string>());
-        std::cout << "--> Loading Sinking HDB " << ii + 1 << "..." << std::endl;
+        Logger::info("--> Loading Sinking HDB " + std::to_string(ii + 1) + "...");
         pHydro[ii]->LoadHydrodynamicData(file_path);
-        std::cout << "--> Done loading Sinking HDB " << ii + 1 << std::endl;
+        Logger::info("--> Done loading Sinking HDB " + std::to_string(ii + 1));
     }
 
     // Read groups

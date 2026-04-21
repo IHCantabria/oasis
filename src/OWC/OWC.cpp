@@ -1,3 +1,4 @@
+﻿// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <armadillo>
 #include <algorithm>
@@ -6,6 +7,7 @@
 #include <iostream>
 #include <vector>
 #include "OWC.hpp"
+#include "../Logger.hpp"
 #include "../MathTools.hpp"
 #include "../Exceptions/Exception.hpp"
 #include "../os_tools.hpp"
@@ -50,7 +52,7 @@ void OWCTurbineType::ReadPropertiesASCII(FILE* pFile)
 
     // Load the buckingham curves from the file, a CSV file with columns:
     // adim_pressure, adim_mass_flow_rate, efficiency and adim_power
-    std::cout << "  --> Reading Buckingham curves from file: " << filepath << std::endl;
+    Logger::info("  --> Reading Buckingham curves from file: " + filepath);
 
     arma::field<std::string> header(4);
     header(0) = "adim_pressure";
@@ -64,7 +66,7 @@ void OWCTurbineType::ReadPropertiesASCII(FILE* pFile)
     buck_curve_efficiency = buck_curve_data.col(2);
     buck_curve_adim_power = buck_curve_data.col(3);
 
-    std::cout << "  --> ...done! Number of points in curves: " << buck_curve_adim_pressure.n_elem << std::endl;
+    Logger::info("  --> ...done! Number of points in curves: " + std::to_string(buck_curve_adim_pressure.n_elem));
 }
 
 void OWCTurbineType::ReadPropertiesYAML(YAML::Node node)
@@ -85,21 +87,21 @@ void OWCTurbineType::ReadPropertiesYAML(YAML::Node node)
     std::string filename = node["buck_curves_file"].as<std::string>();
     std::string filepath = JoinPath(this->pSim->inputFolderPath, filename);
 
-    std::cout << "  --> Reading Buckingham curves from file: " << filepath << std::endl;
+    Logger::info("  --> Reading Buckingham curves from file: " + filepath);
 
-    arma::field<std::string> header(4);
-    header(0) = "adim_pressure";
-    header(1) = "adim_mass_flow_rate";
-    header(2) = "efficiency";
-    header(3) = "adim_power";
-    arma::mat buck_curve_data;
-    buck_curve_data.load(arma::csv_name(filepath, header));
-    buck_curve_adim_pressure = buck_curve_data.col(0);
-    buck_curve_adim_mass_flow_rate = buck_curve_data.col(1);
-    buck_curve_efficiency = buck_curve_data.col(2);
-    buck_curve_adim_power = buck_curve_data.col(3);
+    arma::field<std::string> header2(4);
+    header2(0) = "adim_pressure";
+    header2(1) = "adim_mass_flow_rate";
+    header2(2) = "efficiency";
+    header2(3) = "adim_power";
+    arma::mat buck_curve_data2;
+    buck_curve_data2.load(arma::csv_name(filepath, header2));
+    buck_curve_adim_pressure = buck_curve_data2.col(0);
+    buck_curve_adim_mass_flow_rate = buck_curve_data2.col(1);
+    buck_curve_efficiency = buck_curve_data2.col(2);
+    buck_curve_adim_power = buck_curve_data2.col(3);
 
-    std::cout << "  --> ...done! Number of points in curves: " << buck_curve_adim_pressure.n_elem << std::endl;
+    Logger::info("  --> ...done! Number of points in curves: " + std::to_string(buck_curve_adim_pressure.n_elem));
 }
 
 void OWCTurbineType::Initialize(FILE* pFile)
@@ -176,8 +178,7 @@ void OWCTurbine::ComputeMassFlowRate(double pressure_diff, double stagnation_den
         abs(pressure_diff) / (stagnation_density * pow(pOWCTurbineType->rotor_diameter, 2) * pow(angular_velocity, 2));
     if (!IsAdimPressureInRange(adim_pressure))
     {
-        std::cout << "WARNING: The adimensional pressure is out of range. The turbine may not work properly."
-                  << std::endl;
+        Logger::warning("The adimensional pressure is out of range. The turbine may not work properly.");
         adim_pressure = std::clamp(adim_pressure, pOWCTurbineType->buck_curve_adim_pressure.min(),
                                    pOWCTurbineType->buck_curve_adim_pressure.max());
     }
@@ -196,8 +197,7 @@ void OWCTurbine::ComputeAirTorque(double pressure_diff, double stagnation_densit
         abs(pressure_diff) / (stagnation_density * pow(pOWCTurbineType->rotor_diameter, 2) * pow(angular_velocity, 2));
     if (!IsAdimPressureInRange(adim_pressure))
     {
-        std::cout << "WARNING: The adimensional pressure is out of range. The turbine may not work properly."
-                  << std::endl;
+        Logger::warning("The adimensional pressure is out of range. The turbine may not work properly.");
         adim_pressure = std::clamp(adim_pressure, pOWCTurbineType->buck_curve_adim_pressure.min(),
                                    pOWCTurbineType->buck_curve_adim_pressure.max());
     }
@@ -226,7 +226,7 @@ void OWCTurbine::ComputeAngularAcceleration(double pressure_diff, double stagnat
 {
     if ((0.5 * angular_velocity * pOWCTurbineType->rotor_diameter) >= 180.0)
     {
-        std::cout << "WARNING: The turbine is rotating too fast. Shock waves may occur." << std::endl;
+        Logger::warning("The turbine is rotating too fast. Shock waves may occur.");
     }
     ComputeAirTorque(pressure_diff, stagnation_density);
     angular_acceleration = (air_torque - generator_torque) / pOWCTurbineType->inertia;

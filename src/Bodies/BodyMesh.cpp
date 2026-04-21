@@ -1,3 +1,4 @@
+﻿// SPDX-License-Identifier: GPL-3.0-or-later
 /*
 Library for body meshes
 */
@@ -16,6 +17,7 @@ Library for body meshes
 #include "../Bodies/Bodies.hpp"
 #include "../Exceptions/Exception.hpp"
 #include "../Simulations/Simulation.hpp"
+#include "../Logger.hpp"
 #include "../os_tools.hpp"
 #include "../MathTools.hpp"
 #ifdef OASIS_USE_STL_READER
@@ -47,7 +49,7 @@ int BodyMesh::GetType(void)
 
 void BodyMesh::ReadPropertiesASCII(void)
 {
-    std::cout << "--> Reading Body 2D Mesh (ASCII format)" << std::endl;
+    Logger::info("--> Reading Body 2D Mesh (ASCII format)");
 
     int numElemNodes = 3; // HARDCODED to read STL
 
@@ -80,16 +82,15 @@ void BodyMesh::ReadPropertiesASCII(void)
     // If iniNodes contains values larger than 1000, convert from millimeters to meters and display a warning
     if (arma::abs(iniNodes).max() > 1000.0)
     {
-        std::cout << "   WARNING: it seems that the mesh is defined in millimeters. Converting to meters..."
-                  << std::endl;
+        Logger::warning("It seems that the mesh is defined in millimeters. Converting to meters...");
         iniNodes = iniNodes / 1000.0;
     }
 
     // Rearrange elems index
     iniElems = indMat(ind, tmp_elems);
 
-    std::cout << "  --> num_nodes = " << iniNumNodes << std::endl;
-    std::cout << "  --> num_elems = " << iniNumElems << std::endl;
+    Logger::debug("  --> num_nodes = " + std::to_string(iniNumNodes));
+    Logger::debug("  --> num_elems = " + std::to_string(iniNumElems));
 #endif // OASIS_USE_STL_READER
 }
 
@@ -435,7 +436,7 @@ int BodyTri2DMesh::GetType(void)
 
 void BodyTri2DMesh::Preprocess(void)
 {
-    std::cout << "--> Preprocessing Body 2D Mesh..." << std::endl;
+    Logger::info("--> Preprocessing Body 2D Mesh...");
 
     double LAMBDA = 0.4; // RATIO FOR SOME GAUSSIAN NODES
 
@@ -512,6 +513,6 @@ void BodyTri2DMesh::Preprocess(void)
     maxEdgesLength = arma::max(edges_length);
     if (pBody->flag_hydrostatics == 2 && pSim->pWave->lambda_peak < 8 * maxEdgesLength)
     {
-        std::cout << "    WARNING: The mesh is too coarse for the selected waves." << std::endl;
+        Logger::warning("The mesh is too coarse for the selected waves.");
     }
 }

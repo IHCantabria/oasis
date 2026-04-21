@@ -1,3 +1,4 @@
+﻿// SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef simulationdef_hpp__
 #define simulationdef_hpp__

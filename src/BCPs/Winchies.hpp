@@ -1,3 +1,4 @@
+﻿// SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef winchiedef_hpp__
 #define winchiedef_hpp__

@@ -1,3 +1,4 @@
+﻿// SPDX-License-Identifier: GPL-3.0-or-later
 #ifndef odedef_hpp__
 #define odedef_hpp__
 #include <armadillo>

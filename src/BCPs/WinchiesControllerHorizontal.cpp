@@ -1,3 +1,4 @@
+﻿// SPDX-License-Identifier: GPL-3.0-or-later
 #include <armadillo>
 #include <string>
 #include <math.h>
@@ -6,6 +7,7 @@
 #include "../CommonTools.hpp"
 #include "../os_tools.hpp"
 #include "../Exceptions/Exception.hpp"
+#include "../Logger.hpp"
 #include "../MathTools.hpp"
 
 WinchieControllerHorizontal::WinchieControllerHorizontal(int n, Winchie** Ws, Simulation* pIncSim)
@@ -252,7 +254,7 @@ void WinchieControllerHorizontal::ReadPropertiesASCII(FILE* pFile)
     {
         if (fscanf(pFile, "%d", &itemp2) != 1)
         {
-            std::cout << "itemp2 = " << itemp2 << std::endl;
+            Logger::debug("itemp2 = " + std::to_string(itemp2));
             std::stringstream ss;
             ss << "An error occurred when trying to read the indices of lines for positive X force \n";
             throw ValueError(ss.str());
@@ -500,8 +502,8 @@ void WinchieControllerHorizontal::SetUpWinchiesController(void)
 
     T_min = T_min * pSim->gravity * 1000;
     T_max = T_max * pSim->gravity * 1000;
-    std::cout << "Winches controller T_min = " << T_min << " N" << std::endl;
-    std::cout << "Winches controller T_max = " << T_max << " N" << std::endl;
+    Logger::info("Winches controller T_min = " + std::to_string(T_min) + " N");
+    Logger::info("Winches controller T_max = " + std::to_string(T_max) + " N");
 
     T = arma::ones(nWinchies, 1) * T_min;
 
@@ -639,7 +641,7 @@ void WinchieControllerHorizontal::inversorBlock(void)
 
         if (kk > nIterMax)
         {
-            std::cout << " WARNING: Tensions clamped on winches controller! " << std::endl;
+            Logger::warning("Tensions clamped on winches controller!");
         }
 
         T = arma::clamp(x, T_min, T_max);

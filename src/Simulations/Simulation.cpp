@@ -1,11 +1,14 @@
+﻿// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <iostream>
 #include <cstdio>
 #include <string>
 #include <sstream>
+#include <iomanip>
 #include <ctime>
 
 #include "Simulation.hpp"
+#include "../Logger.hpp"
 #include "../CommonTools.hpp"
 #include "../Exceptions/Exception.hpp"
 #include "../os_tools.hpp"
@@ -237,20 +240,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     }
     if (Fb.has_nan() | Fb.has_inf())
     {
-        std::cout << std::endl
-                  << "ERROR: NaN or Inf detected in Fb for hydrostatic or hydrodynamic forces" << std::endl;
-        std::cout << "  time = " << time << std::endl;
-        std::cout << "  coefHydro = " << coefHydro << ", coefHydro_old = " << coefHydro_old
-                  << ", coefHydro_old2 = " << coefHydro_old2 << std::endl;
-        std::cout << "  lastHydroTime = " << lastHydroTime << ", lastHydroTime_old = " << lastHydroTime_old
-                  << ", lastHydroTime_old2 = " << lastHydroTime_old2 << std::endl;
-        for (int ii = 0; ii < numBodiesFree; ii++)
-        {
-            std::cout << "  body " << pBodiesFree[ii]->GetId() + 1 << " Fb: " << pBodiesFree[ii]->Fb.t()
-                      << "  Fb_old: " << pBodiesFree[ii]->Fb_old.t() << "  Fb_old2: " << pBodiesFree[ii]->Fb_old2.t()
-                      << "  pos: " << pBodiesFree[ii]->pos.t() << "  pos_eq: " << pBodiesFree[ii]->pos_eq.t()
-                      << "  vel: " << pBodiesFree[ii]->vel.t();
-        }
+        Logger::error("NaN or Inf in Fb for hydrostatic/hydrodynamic forces (t=" + std::to_string(time) + ")");
         throw std::exception();
     }
 
@@ -264,7 +254,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     }
     if (Fb.has_nan() | Fb.has_inf())
     {
-        std::cout << std::endl << "ERROR: NaN or Inf detected in Fb for BCP forces" << std::endl;
+        Logger::error("NaN or Inf in Fb for BCP forces (t=" + std::to_string(time) + ")");
         throw std::exception();
     }
 
@@ -278,7 +268,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     }
     if (Fb.has_nan() | Fb.has_inf())
     {
-        std::cout << std::endl << "ERROR: NaN or Inf detected in Fb for wind turbine forces" << std::endl;
+        Logger::error("NaN or Inf in Fb for wind turbine forces (t=" + std::to_string(time) + ")");
         throw std::exception();
     }
 
@@ -393,12 +383,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     }
     if (accB.has_nan() | accB.has_inf())
     {
-        std::cout << std::endl << "ERROR: NaN or Inf detected in bodies accelerations" << std::endl;
-        std::cout << "  time = " << time << std::endl;
-        std::cout << "  accB: " << accB.t();
-        std::cout << "  Fb: " << Fb.t();
-        if (pSystemMatrixInv->has_nan() || pSystemMatrixInv->has_inf())
-            std::cout << "  pSystemMatrixInv has NaN/Inf!" << std::endl;
+        Logger::error("NaN or Inf in bodies accelerations (t=" + std::to_string(time) + ")");
         throw std::exception();
     }
     for (int ii = 0; ii < numBodiesFree; ii++)
@@ -444,7 +429,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     {
         if (pLines[ii]->F.has_nan() | pLines[ii]->F.has_inf())
         {
-            std::cout << std::endl << "ERROR: NaN or Inf detected in Force vector for Line " << ii << std::endl;
+            Logger::error("NaN or Inf in force vector for line " + std::to_string(ii + 1) + " (t=" + std::to_string(time) + ")");
             throw std::exception();
         }
         LinesCouplingVector.rows(pLines[ii]->ind4CouplingMat) += pLines[ii]->F;
@@ -458,7 +443,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     }
     if (LinesCouplingVector.has_nan() | LinesCouplingVector.has_inf())
     {
-        std::cout << std::endl << "ERROR: NaN or Inf detected in lines force vector" << std::endl;
+        Logger::error("NaN or Inf in lines force coupling vector (t=" + std::to_string(time) + ")");
         throw std::exception();
     }
 
@@ -485,7 +470,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     }
     if (LinesAccelerations.has_nan() | LinesAccelerations.has_inf())
     {
-        std::cout << std::endl << "ERROR: NaN or Inf detected in lines accelerations" << std::endl;
+        Logger::error("NaN or Inf in lines accelerations (t=" + std::to_string(time) + ")");
         throw std::exception();
     }
     for (int ii = 0; ii < numLines; ii++)
@@ -604,8 +589,7 @@ arma::mat Simulation::CalculateSystemDynamics(double time, arma::mat y)
     // std::cout << "Simulation::CalculateSystemDynamics - Check if yprime has a NaN" << std::endl;
     if (yprime.has_nan() | yprime.has_inf())
     {
-        std::cout << std::endl << "ERROR: NaN or Inf Detected! yprime = " << std::endl;
-        std::cout << yprime << std::endl;
+        Logger::error("NaN or Inf in yprime (t=" + std::to_string(time) + ")");
         throw std::exception();
     }
 
@@ -776,11 +760,11 @@ void Simulation::Initialize()
     double start_time = 0.0;
 
     // Initialize system vector
-    std::cout << "Num. Bodies Free: " << this->numBodiesFree << std::endl;
-    std::cout << "Num. Mooring DOFs Total: " << this->numDofLinesTotal << std::endl;
-    std::cout << "Num. Winchies: " << this->numWinches << std::endl;
-    std::cout << "Num. Wind Turbines: " << this->numWindTurbines << std::endl;
-    std::cout << "Num. OWCs: " << this->numOWCs << std::endl;
+    Logger::debug("Num. Bodies Free    : " + std::to_string(this->numBodiesFree));
+    Logger::debug("Num. Mooring DOFs   : " + std::to_string(this->numDofLinesTotal));
+    Logger::debug("Num. Winches        : " + std::to_string(this->numWinches));
+    Logger::debug("Num. Wind Turbines  : " + std::to_string(this->numWindTurbines));
+    Logger::debug("Num. OWCs           : " + std::to_string(this->numOWCs));
 
     // Get the number of DOFs of second order systems
     numSystem2 = 0;
@@ -822,25 +806,25 @@ void Simulation::Initialize()
             }
             else
             {
-                std::cout << "ERROR: OWC Turbine valve type not implemented!" << std::endl;
+                Logger::error("OWC Turbine valve type not implemented!");
                 throw std::exception();
             }
         }
     }
 
-    std::cout << "System size: " << numSystem << std::endl;
+    Logger::debug("System size: " + std::to_string(numSystem));
 
     arma::mat y = arma::zeros(numSystem, 1);
     arma::mat yprime = arma::zeros(numSystem, 1);
 
     int ini = 0;
     std::string file_path;
-    std::cout << "Initiallizing system vector..." << std::endl;
+    Logger::debug("Initialising system vector...");
     if (this->readEquilibrium == 0)
     {
         for (int ii = 0; ii < this->numBodiesFree; ii = ii + 1)
         {
-            std::cout << "  ... Including Body: " << ii + 1 << std::endl;
+            Logger::debug("  including body " + std::to_string(ii + 1));
             for (int jj = 0; jj < this->pBodiesFree[ii]->numDofs; jj = jj + 1)
             {
                 int itemp = this->pBodiesFree[ii]->pDofs[jj];
@@ -850,7 +834,7 @@ void Simulation::Initialize()
         }
         for (int ii = 0; ii < this->numLines; ii = ii + 1)
         {
-            std::cout << "  ... Including Line: " << ii + 1 << std::endl;
+            Logger::debug("  including line " + std::to_string(ii + 1));
             for (int jj = pLines[ii]->first_node; jj < pLines[ii]->last_node; jj = jj + 1)
             {
                 y.rows(ini, ini + 2) = this->pLines[ii]->pos.row(jj).t();
@@ -859,12 +843,12 @@ void Simulation::Initialize()
         }
         for (int ii = 0; ii < this->numWinches; ii = ii + 1)
         {
-            std::cout << "  ... Including Winch: " << ii + 1 << std::endl;
+            Logger::debug("  including winch " + std::to_string(ii + 1));
             ini = ini + 1;
         }
         for (int ii = 0; ii < this->numWindTurbines; ii = ii + 1)
         {
-            std::cout << "  ... Including Wind Turbine: " << ii + 1 << std::endl;
+            Logger::debug("  including wind turbine " + std::to_string(ii + 1));
             y(ini) = this->pWindTurbines[ii]->rotPos;
             y(numSystem2 + ini) = this->pWindTurbines[ii]->rotSpeed;
             ini = ini + 1;
@@ -872,7 +856,7 @@ void Simulation::Initialize()
         ini = 0;
         for (int ii = 0; ii < this->numOWCs; ii = ii + 1)
         {
-            std::cout << "  ... Including OWC: " << ii + 1 << std::endl;
+            Logger::debug("  including OWC " + std::to_string(ii + 1));
             if (this->pOWCs[ii]->turbine_type >= 0)
             {
                 y(2 * numSystem2 + ini) = this->pOWCs[ii]->rel_pressure;
@@ -898,7 +882,7 @@ void Simulation::Initialize()
     }
     else
     {
-        std::cout << "Reading Equilibrium.dat..." << std::endl;
+        Logger::debug("Reading initial condition from dataStaticIC.dat...");
         file_path = JoinPath(inputFolderPath, "dataStaticIC.dat");
         y.load(file_path, arma::arma_ascii);
 
@@ -934,49 +918,47 @@ void Simulation::Initialize()
     {
         if (this->timeIntMethod == 1)
         {
-            std::cout << "Initializing BDF2 temporal solver..." << std::endl;
+            Logger::info("Initializing BDF2 temporal solver...");
             pTimeSolver = new BDF2(start_time, this->simulationTime, this->maxTimeStep, this->writeTimeStep, y, this);
-            std::cout << "  BDF2 constructor done!" << std::endl;
+            Logger::debug("  BDF2 constructed");
             pTimeSolver->init();
             pTimeSolver->atol = this->timeIntAbsTol;
             pTimeSolver->rtol = this->timeIntRelTol;
             pTimeSolver->nIterMax = this->maxIterStep;
-            std::cout << "  BDF2 initiallized!" << std::endl;
+            Logger::debug("  BDF2 initialised");
         }
         else if (this->timeIntMethod == 2)
         {
-            std::cout << "Initializing BDF" << timeIntOrder << " temporal solver..." << std::endl;
+            Logger::info("Initializing BDF" + std::to_string(timeIntOrder) + " temporal solver...");
             pTimeSolver = new BDFN(this->timeIntOrder, this->timeIntAdaptivity, start_time, this->simulationTime,
                                    this->maxTimeStep, this->writeTimeStep, y, this);
-            std::cout << "  BDF" << timeIntOrder << " constructor done!" << std::endl;
+            Logger::debug("  BDF" + std::to_string(timeIntOrder) + " constructed");
             pTimeSolver->init();
             pTimeSolver->atol = this->timeIntAbsTol;
             pTimeSolver->rtol = this->timeIntRelTol;
             pTimeSolver->nIterMax = this->maxIterStep;
-            std::cout << "  BDF" << timeIntOrder << " initiallized!" << std::endl;
+            Logger::debug("  BDF" + std::to_string(timeIntOrder) + " initialised");
         }
         else if (this->timeIntMethod == 3)
         {
-            std::cout << "Initializing ESDIRK temporal solver..." << std::endl;
+            Logger::info("Initializing ESDIRK temporal solver...");
             pTimeSolver = new ESDIRK(this->timeIntAdaptivity, start_time, this->simulationTime, this->maxTimeStep,
                                      this->writeTimeStep, this->timeIntJacNumStepsMax, y, this);
-            std::cout << "  ESDIRK constructor done!" << std::endl;
+            Logger::debug("  ESDIRK constructed");
             pTimeSolver->atol = this->timeIntAbsTol;
             pTimeSolver->rtol = this->timeIntRelTol;
             pTimeSolver->nIterMax = this->maxIterStep;
-            std::cout << "  ESDIRK initiallized!" << std::endl;
+            Logger::debug("  ESDIRK initialised");
         }
         else
         {
-            std::cout << "ERROR: Time integration method not recognized!" << std::endl;
+            Logger::error("Time integration method not recognised (timeIntMethod=" + std::to_string(timeIntMethod) + ")");
             throw std::exception();
         }
     }
     else
     {
-        std::cout << "WARNING: numSystem == 0. No ODE solver needed." << std::endl;
-        std::cout << "Using simple time-stepping for static analysis (e.g., wave loads on fixed structure)."
-                  << std::endl;
+        Logger::warning("numSystem == 0: no ODE solver needed. Using simple time-stepping.");
         pTimeSolver = nullptr;
     }
 
@@ -986,13 +968,9 @@ void Simulation::Initialize()
     for (int ii = 0; ii < this->numBodies; ii = ii + 1)
         this->pBodies[ii]->WriteOut(start_time);
 
-    std::cout << "Updating system..." << std::endl;
-    // Save first data
-    // Always update system to initialize velocity buffers, even for zero-DOF cases
-    // (needed for bodies with prescribed motion)
+    Logger::debug("Updating system...");
     this->UpdateSystem(start_time);
-
-    std::cout << "  System updated!" << std::endl;
+    Logger::debug("System updated.");
 }
 
 void Simulation::LoadCase()
@@ -1042,7 +1020,7 @@ void Simulation::ReadBcps()
 
 void Simulation::ReadBcpsASCII()
 {
-    std::cout << "--> Reading BCPs Properties (ASCII format)" << std::endl;
+    Logger::info("--> Reading BCPs Properties");
 
     // Declare local variables
     char bufferLine[1000];
@@ -1052,7 +1030,7 @@ void Simulation::ReadBcpsASCII()
     FILE* file_pointer = fopen(file_path.c_str(), "r");
     if (file_pointer == NULL)
     {
-        std::cout << "    --> WARNING: dataBCPs.dat was not found! Setting numBCPs = 0!" << std::endl;
+        Logger::warning("dataBCPs.dat not found. Setting numBCPs = 0.");
         numFairBcps = 0;
         numAnchorBcps = 0;
         numJointBcps = 0;
@@ -1140,16 +1118,16 @@ void Simulation::ReadBcpsASCII()
 
     // Close file
     fclose(file_pointer);
-    std::cout << "--> BCPs Properties Read" << std::endl;
+    Logger::info("--> BCPs Properties Read");
 }
 
 void Simulation::ReadBcpsYAML()
 {
-    std::cout << "--> Reading BCPs Properties (YAML format)" << std::endl;
+    Logger::info("--> Reading BCPs Properties");
 
     if (!yamlRoot["bcps"])
     {
-        std::cout << "    --> WARNING: 'bcps' section not found in YAML! Setting numBCPs = 0!" << std::endl;
+        Logger::warning("'bcps' section not found in YAML. Setting numBCPs = 0.");
         numFairBcps = 0;
         numAnchorBcps = 0;
         numJointBcps = 0;
@@ -1232,7 +1210,7 @@ void Simulation::ReadBcpsYAML()
         }
     }
 
-    std::cout << "--> BCPs Properties Read" << std::endl;
+    Logger::info("--> BCPs Properties Read");
 }
 
 void Simulation::ReadBodies()
@@ -1242,7 +1220,7 @@ void Simulation::ReadBodies()
 
 void Simulation::ReadBodiesASCII()
 {
-    std::cout << "--> Reading Bodies Properties (ASCII format)" << std::endl;
+    Logger::info("--> Reading Bodies Properties");
 
     // Declare local variables
     int body_count = 0;
@@ -1253,13 +1231,13 @@ void Simulation::ReadBodiesASCII()
     int pos_database = 0;
 
     // Parse file in order to guess the number of bodies
-    std::cout << "Parsing file: dataBodies.dat" << std::endl;
+    Logger::debug("Parsing dataBodies.dat...");
     std::string file_path = JoinPath(inputFolderPath, "dataBodies.dat");
     // Check if file exists first
     FILE* test_file = fopen(file_path.c_str(), "r");
     if (test_file == NULL)
     {
-        std::cout << "    --> WARNING: dataBodies.dat was not found! Setting numBodies = 0!" << std::endl;
+        Logger::warning("dataBodies.dat not found. Setting numBodies = 0.");
         this->numBodies = 0;
     }
     else
@@ -1267,12 +1245,12 @@ void Simulation::ReadBodiesASCII()
         fclose(test_file);
         this->numBodies = parse_file(file_path);
     }
-    std::cout << "Number of bodies: " << this->numBodies << std::endl;
+    Logger::debug("Number of bodies: " + std::to_string(this->numBodies));
 
     if (numBodies > 0)
     {
         // Open file
-        std::cout << "Opening file: dataBodies.dat" << std::endl;
+        Logger::debug("Opening dataBodies.dat...");
         FILE* pFile = fopen(file_path.c_str(), "r");
         if (pFile == NULL)
         {
@@ -1285,8 +1263,7 @@ void Simulation::ReadBodiesASCII()
         pBodies = new Body*[numBodies];
         for (int ii = 0; ii < numBodies; ii++)
         {
-            std::cout << "  ... Including Body: " << ii + 1 << std::endl;
-            // Discard header lines and check for body type
+            Logger::debug("  body " + std::to_string(ii + 1));
             for (int ii = 0; ii < 3; ii++)
             {
                 fgets(buffer_line, sizeof(buffer_line), pFile);
@@ -1312,7 +1289,7 @@ void Simulation::ReadBodiesASCII()
 
         // Close file
         fclose(pFile);
-        std::cout << "--> ... done!" << std::endl;
+        Logger::debug("--> Bodies loaded");
 
         // Loop over bodies in order to get the number of hydrodynamic databases
         hydro_databases_name[hydro_database_count] = pBodies[0]->hydroDatabaseName;
@@ -1335,10 +1312,10 @@ void Simulation::ReadBodiesASCII()
             }
         }
 
-        std::cout << "--> HDB files considered:" << std::endl;
+        Logger::debug("--> HDB files:");
         for (int ii = 0; ii < hydro_database_count; ii++)
         {
-            std::cout << "    -->" << hydro_databases_name[ii].c_str() << std::endl;
+            Logger::debug("    " + hydro_databases_name[ii]);
         }
 
         // Pre-determine the number of bodies in each HDB file
@@ -1347,8 +1324,7 @@ void Simulation::ReadBodiesASCII()
         {
             std::string hdb_path = JoinPath(inputFolderPath, hydro_databases_name[ii]);
             numBodiesPerHDB[ii] = HydroDatabase::GetNumBodiesFromFile(hdb_path);
-            std::cout << "    --> HDB: " << hydro_databases_name[ii] << " contains " << numBodiesPerHDB[ii] << " bodies"
-                      << std::endl;
+            Logger::debug("    HDB: " + hydro_databases_name[ii] + " — " + std::to_string(numBodiesPerHDB[ii]) + " bodies");
         }
 
         // Arrange all the bodies by database (different logic for single vs multi-body HDBs)
@@ -1421,7 +1397,7 @@ void Simulation::ReadBodiesASCII()
         delete[] pBodiesSort;
 
         // Checking free bodies
-        std::cout << "Checking for free bodies ..." << std::endl;
+        Logger::debug("Checking for free bodies (ASCII)...");
         for (int ii = 0; ii < numBodies; ii++)
         {
             if (pBodies[ii]->flag_blocked > 0)
@@ -1487,7 +1463,7 @@ void Simulation::ReadBodiesASCII()
         }
 
         // Fill System Matrix
-        std::cout << "Fill system matrix...\n";
+        Logger::debug("Filling system matrix...");
         arma::span a1;
         arma::span a2;
         this->pSystemMatrix = new arma::mat(6 * this->numBodies, 6 * this->numBodies, arma::fill::zeros);
@@ -1512,9 +1488,8 @@ void Simulation::ReadBodiesASCII()
             }
 
             // Fill system matrix
-            std::cout << "  ... Filling system matrix for body: " << ii + 1 << std::endl;
+            Logger::debug("  body " + std::to_string(ii + 1) + " added");
             (*pSystemMatrix)(a1, a2) += pBodies[ii]->pHydro->GetTotalMass();
-            std::cout << "  ... done!" << std::endl;
             pBodies[ii]->sysMatSpan1 = a1;
             pBodies[ii]->sysMatSpan2 = a2;
             pBodies[ii]->sysMatInd1 = arma::regspace<arma::uvec>(6 * ii, 6 * ii + 5);
@@ -1522,20 +1497,18 @@ void Simulation::ReadBodiesASCII()
 
         // Take free dofs index vectors from the system matrix
         sysMatIndFree = arma::zeros<arma::uvec>(6 * numBodiesFree);
-        std::cout << "Take free dofs index vectors from the system matrix...\n";
         for (int ii = 0; ii < this->numBodiesFree; ii++)
         {
             sysMatIndFree(arma::span(6 * ii, 6 * (ii + 1) - 1)) = pBodiesFree[ii]->sysMatInd1;
         }
         sysMatIndLock = arma::zeros<arma::uvec>(6 * numBodiesLock);
-        std::cout << "Take locked dofs index from matrix...\n";
         for (int ii = 0; ii < this->numBodiesLock; ii++)
         {
             sysMatIndLock(arma::span(6 * ii, 6 * (ii + 1) - 1)) = pBodiesLock[ii]->sysMatInd1;
         }
 
-        // Extract submatrices from system matrix
-        std::cout << "Extract submatrices from system matrix...\n";
+        // Extract submatrices and invert system matrix
+        Logger::debug("Inverting system matrix...");
         if (numBodiesFree > 0)
         {
             pSystemMatrixFF = new arma::mat(6 * numBodiesFree, 6 * numBodiesFree, arma::fill::zeros);
@@ -1546,14 +1519,10 @@ void Simulation::ReadBodiesASCII()
                 *pSystemMatrixFL = (*pSystemMatrix)(sysMatIndFree, sysMatIndLock);
             }
         }
-        // Invert system matrix
-        std::cout << "Inverting system matrix...\n";
-        std::cout << "  System matrix diagonal: " << arma::diagvec(*pSystemMatrix).t();
         *pSystemMatrixInv = arma::solve(*pSystemMatrix, eye(size(*pSystemMatrix)));
         if (pSystemMatrixInv->has_nan() || pSystemMatrixInv->has_inf())
         {
-            std::cout << "  WARNING: System matrix inverse has NaN or Inf entries!" << std::endl;
-            std::cout << "  System matrix inverse diagonal: " << arma::diagvec(*pSystemMatrixInv).t();
+            Logger::warning("System matrix inverse has NaN or Inf entries!");
         }
         if (numBodiesFree > 0)
         {
@@ -1561,12 +1530,10 @@ void Simulation::ReadBodiesASCII()
             *pSystemMatrixFFInv = arma::solve(*pSystemMatrixFF, eye(size(*pSystemMatrixFF)));
             if (pSystemMatrixFFInv->has_nan() || pSystemMatrixFFInv->has_inf())
             {
-                std::cout << "  WARNING: Free-body system matrix inverse has NaN or Inf entries!" << std::endl;
-                std::cout << "  Free-body system matrix diagonal: " << arma::diagvec(*pSystemMatrixFF).t();
-                std::cout << "  Free-body system matrix inverse diagonal: " << arma::diagvec(*pSystemMatrixFFInv).t();
+                Logger::warning("Free-body system matrix inverse has NaN or Inf entries!");
             }
         }
-        std::cout << "System matrix inverted...\n";
+        Logger::debug("System matrix inverted.");
 
         // Initialize velocity buffers, checking if it is necessary to increase the buffer size
         int time_buffer_size = this->timeBufferSize;
@@ -1588,17 +1555,17 @@ void Simulation::ReadBodiesASCII()
         // Free memory
         delete[] numBodiesPerHDB;
 
-        std::cout << "--> Bodies Properties Read" << std::endl;
+        Logger::info("--> Bodies Properties Read");
     }
 }
 
 void Simulation::ReadBodiesYAML()
 {
-    std::cout << "--> Reading Bodies Properties (YAML format)" << std::endl;
+    Logger::info("--> Reading Bodies Properties");
 
     if (!yamlRoot["bodies"])
     {
-        std::cout << "    --> WARNING: 'bodies' section not found in YAML! Setting numBodies = 0!" << std::endl;
+        Logger::warning("'bodies' section not found in YAML. Setting numBodies = 0.");
         this->numBodies = 0;
     }
     else
@@ -1606,7 +1573,7 @@ void Simulation::ReadBodiesYAML()
         this->numBodies = (int)yamlRoot["bodies"].size();
     }
 
-    std::cout << "Number of bodies: " << this->numBodies << std::endl;
+    Logger::debug("Number of bodies: " + std::to_string(this->numBodies));
 
     if (numBodies > 0)
     {
@@ -1622,9 +1589,8 @@ void Simulation::ReadBodiesYAML()
             YAML::Node bodyNode = yamlRoot["bodies"][ii];
             std::string body_type = bodyNode["type"].as<std::string>();
 
-            std::cout << "  ... Including Body: " << ii + 1 << std::endl;
-
-            if (body_type == "RAD_DIFF")
+            Logger::debug("  body " + std::to_string(ii + 1));
+            if (body_type.compare("RAD_DIFF") == 0)
             {
                 pBodies[ii] = new Body(ii, this);
                 pBodies[ii]->ReadPropertiesYAML(bodyNode);
@@ -1639,7 +1605,7 @@ void Simulation::ReadBodiesYAML()
             }
         }
 
-        std::cout << "--> ... done!" << std::endl;
+        Logger::debug("--> Bodies loaded");
 
         // Loop over bodies to get the number of hydrodynamic databases
         hydro_databases_name[hydro_database_count] = pBodies[0]->hydroDatabaseName;
@@ -1661,10 +1627,10 @@ void Simulation::ReadBodiesYAML()
             }
         }
 
-        std::cout << "--> HDB files considered:" << std::endl;
+        Logger::debug("--> HDB files:");
         for (int ii = 0; ii < hydro_database_count; ii++)
         {
-            std::cout << "    -->" << hydro_databases_name[ii].c_str() << std::endl;
+            Logger::debug("    " + hydro_databases_name[ii]);
         }
 
         // Pre-determine the number of bodies in each HDB file
@@ -1673,8 +1639,7 @@ void Simulation::ReadBodiesYAML()
         {
             std::string hdb_path = JoinPath(inputFolderPath, hydro_databases_name[ii]);
             numBodiesPerHDB[ii] = HydroDatabase::GetNumBodiesFromFile(hdb_path);
-            std::cout << "    --> HDB: " << hydro_databases_name[ii] << " contains " << numBodiesPerHDB[ii] << " bodies"
-                      << std::endl;
+            Logger::debug("    HDB: " + hydro_databases_name[ii] + " — " + std::to_string(numBodiesPerHDB[ii]) + " bodies");
         }
 
         // Arrange all the bodies by database (same logic as ASCII)
@@ -1743,7 +1708,7 @@ void Simulation::ReadBodiesYAML()
         delete[] pBodiesSort;
 
         // Checking free bodies
-        std::cout << "Checking for free bodies ..." << std::endl;
+        Logger::debug("Checking for free bodies (YAML)...");
         for (int ii = 0; ii < numBodies; ii++)
         {
             if (pBodies[ii]->flag_blocked > 0)
@@ -1806,7 +1771,7 @@ void Simulation::ReadBodiesYAML()
         }
 
         // Fill System Matrix
-        std::cout << "Fill system matrix...\n";
+        Logger::debug("Filling system matrix...");
         arma::span a1;
         arma::span a2;
         this->pSystemMatrix = new arma::mat(6 * this->numBodies, 6 * this->numBodies, arma::fill::zeros);
@@ -1824,9 +1789,8 @@ void Simulation::ReadBodiesYAML()
                 int temp_indHDB = pBodies[ii]->hydroDatabaseIndex;
                 a2 = arma::span(6 * (ii - temp_indHDB), 6 * (ii - temp_indHDB + temp_nB_hdb) - 1);
             }
-            std::cout << "  ... Filling system matrix for body: " << ii + 1 << std::endl;
+            Logger::debug("  body " + std::to_string(ii + 1) + " added");
             (*pSystemMatrix)(a1, a2) += pBodies[ii]->pHydro->GetTotalMass();
-            std::cout << "  ... done!" << std::endl;
             pBodies[ii]->sysMatSpan1 = a1;
             pBodies[ii]->sysMatSpan2 = a2;
             pBodies[ii]->sysMatInd1 = arma::regspace<arma::uvec>(6 * ii, 6 * ii + 5);
@@ -1834,20 +1798,18 @@ void Simulation::ReadBodiesYAML()
 
         // Take free dofs index vectors from the system matrix
         sysMatIndFree = arma::zeros<arma::uvec>(6 * numBodiesFree);
-        std::cout << "Take free dofs index vectors from the system matrix...\n";
         for (int ii = 0; ii < this->numBodiesFree; ii++)
         {
             sysMatIndFree(arma::span(6 * ii, 6 * (ii + 1) - 1)) = pBodiesFree[ii]->sysMatInd1;
         }
         sysMatIndLock = arma::zeros<arma::uvec>(6 * numBodiesLock);
-        std::cout << "Take locked dofs index from matrix...\n";
         for (int ii = 0; ii < this->numBodiesLock; ii++)
         {
             sysMatIndLock(arma::span(6 * ii, 6 * (ii + 1) - 1)) = pBodiesLock[ii]->sysMatInd1;
         }
 
-        // Extract submatrices from system matrix
-        std::cout << "Extract submatrices from system matrix...\n";
+        // Extract submatrices and invert system matrix
+        Logger::debug("Inverting system matrix...");
         if (numBodiesFree > 0)
         {
             pSystemMatrixFF = new arma::mat(6 * numBodiesFree, 6 * numBodiesFree, arma::fill::zeros);
@@ -1858,14 +1820,10 @@ void Simulation::ReadBodiesYAML()
                 *pSystemMatrixFL = (*pSystemMatrix)(sysMatIndFree, sysMatIndLock);
             }
         }
-        // Invert system matrix
-        std::cout << "Inverting system matrix...\n";
-        std::cout << "  System matrix diagonal: " << arma::diagvec(*pSystemMatrix).t();
         *pSystemMatrixInv = arma::solve(*pSystemMatrix, eye(size(*pSystemMatrix)));
         if (pSystemMatrixInv->has_nan() || pSystemMatrixInv->has_inf())
         {
-            std::cout << "  WARNING: System matrix inverse has NaN or Inf entries!" << std::endl;
-            std::cout << "  System matrix inverse diagonal: " << arma::diagvec(*pSystemMatrixInv).t();
+            Logger::warning("System matrix inverse has NaN or Inf entries!");
         }
         if (numBodiesFree > 0)
         {
@@ -1873,12 +1831,10 @@ void Simulation::ReadBodiesYAML()
             *pSystemMatrixFFInv = arma::solve(*pSystemMatrixFF, eye(size(*pSystemMatrixFF)));
             if (pSystemMatrixFFInv->has_nan() || pSystemMatrixFFInv->has_inf())
             {
-                std::cout << "  WARNING: Free-body system matrix inverse has NaN or Inf entries!" << std::endl;
-                std::cout << "  Free-body system matrix diagonal: " << arma::diagvec(*pSystemMatrixFF).t();
-                std::cout << "  Free-body system matrix inverse diagonal: " << arma::diagvec(*pSystemMatrixFFInv).t();
+                Logger::warning("Free-body system matrix inverse has NaN or Inf entries!");
             }
         }
-        std::cout << "System matrix inverted...\n";
+        Logger::debug("System matrix inverted.");
 
         // Initialize velocity buffers
         int time_buffer_size = this->timeBufferSize;
@@ -1899,7 +1855,7 @@ void Simulation::ReadBodiesYAML()
 
         delete[] numBodiesPerHDB;
 
-        std::cout << "--> Bodies Properties Read" << std::endl;
+        Logger::info("--> Bodies Properties Read");
     }
 }
 
@@ -1910,7 +1866,7 @@ void Simulation::ReadLines()
 
 void Simulation::ReadLinesASCII()
 {
-    std::cout << "--> Reading Lines Properties (ASCII format)" << std::endl;
+    Logger::info("--> Reading Lines Properties");
 
     // Declare local variables
     char bufferLine[1000];
@@ -1920,7 +1876,7 @@ void Simulation::ReadLinesASCII()
     FILE* file_pointer = fopen(file_path.c_str(), "r");
     if (file_pointer == NULL)
     {
-        std::cout << "    --> WARNING: dataLines.dat was not found! Setting numLines = 0!" << std::endl;
+        Logger::warning("dataLines.dat not found. Setting numLines = 0.");
         numLines = 0;
         pLines = new Line*[0];
         return;
@@ -1950,42 +1906,31 @@ void Simulation::ReadLinesASCII()
         catch (int e)
         {
             if (e == 0)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine << " is under the floor level." << std::endl
-                          << std::endl;
+                Logger::error("Line " + std::to_string(pLines[ii]->nLine) + " is under the floor level.");
             if (e == 1)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine << " touches the seafloor and it shouldn't. "
-                          << std::endl
-                          << std::endl;
+                Logger::error("Line " + std::to_string(pLines[ii]->nLine) + " touches the seafloor and it shouldn't.");
             if (e == 2)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine
-                          << " is not tense and laying on the seafloor. It should be pretensed. " << std::endl
-                          << std::endl;
+                Logger::error("Line " + std::to_string(pLines[ii]->nLine) + " is not tense and laying on the seafloor. It should be pretensed.");
             if (e == 3)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine
-                          << " is not tense and vertical. It should be pretensed. " << std::endl
-                          << std::endl;
+                Logger::error("Line " + std::to_string(pLines[ii]->nLine) + " is not tense and vertical. It should be pretensed.");
             if (e == 4)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine << " is not tense and it should. " << std::endl
-                          << std::endl;
+                Logger::error("Line " + std::to_string(pLines[ii]->nLine) + " is not tense and it should.");
             if (e == 5)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine << " initial shape can't be computed with QS method. "
-                          << std::endl;
+                Logger::error("Line " + std::to_string(pLines[ii]->nLine) + " initial shape can't be computed with QS method.");
             if (e == 6)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine
-                          << " touches the seafloor althoug none of its ends are there. " << std::endl
-                          << std::endl;
+                Logger::error("Line " + std::to_string(pLines[ii]->nLine) + " touches the seafloor although none of its ends are there.");
         }
     }
 
     // Close the file
     fclose(file_pointer);
 
-    std::cout << "--> Lines Properties Read" << std::endl;
+    Logger::info("--> Lines Properties Read");
 }
 
 void Simulation::ReadLinesYAML()
 {
-    std::cout << "--> Reading Lines Properties (YAML format)" << std::endl;
+    Logger::info("--> Reading Lines Properties");
 
     // Read line types
     if (yamlRoot["line_types"])
@@ -2006,7 +1951,7 @@ void Simulation::ReadLinesYAML()
 
     if (!yamlRoot["lines"])
     {
-        std::cout << "    --> WARNING: 'lines' section not found in YAML! Setting numLines = 0!" << std::endl;
+        Logger::warning("'lines' section not found in YAML. Setting numLines = 0.");
         numLines = 0;
         pLines = new Line*[0];
         return;
@@ -2026,34 +1971,23 @@ void Simulation::ReadLinesYAML()
         catch (int e)
         {
             if (e == 0)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine << " is under the floor level." << std::endl
-                          << std::endl;
+                Logger::error("Line " + std::to_string(pLines[ii]->nLine) + " is under the floor level.");
             if (e == 1)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine << " touches the seafloor and it shouldn't. "
-                          << std::endl
-                          << std::endl;
+                Logger::error("Line " + std::to_string(pLines[ii]->nLine) + " touches the seafloor and it shouldn't.");
             if (e == 2)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine
-                          << " is not tense and laying on the seafloor. It should be pretensed. " << std::endl
-                          << std::endl;
+                Logger::error("Line " + std::to_string(pLines[ii]->nLine) + " is not tense and laying on the seafloor. It should be pretensed.");
             if (e == 3)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine
-                          << " is not tense and vertical. It should be pretensed. " << std::endl
-                          << std::endl;
+                Logger::error("Line " + std::to_string(pLines[ii]->nLine) + " is not tense and vertical. It should be pretensed.");
             if (e == 4)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine << " is not tense and it should. " << std::endl
-                          << std::endl;
+                Logger::error("Line " + std::to_string(pLines[ii]->nLine) + " is not tense and it should.");
             if (e == 5)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine << " initial shape can't be computed with QS method. "
-                          << std::endl;
+                Logger::error("Line " + std::to_string(pLines[ii]->nLine) + " initial shape can't be computed with QS method.");
             if (e == 6)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine
-                          << " touches the seafloor althoug none of its ends are there. " << std::endl
-                          << std::endl;
+                Logger::error("Line " + std::to_string(pLines[ii]->nLine) + " touches the seafloor although none of its ends are there.");
         }
     }
 
-    std::cout << "--> Lines Properties Read" << std::endl;
+    Logger::info("--> Lines Properties Read");
 }
 
 void Simulation::ReadSinking()
@@ -2063,7 +1997,7 @@ void Simulation::ReadSinking()
 
 void Simulation::ReadSinkingASCII()
 {
-    std::cout << "--> Reading Sinking Properties (ASCII format)" << std::endl;
+    Logger::info("--> Reading Sinking Properties");
 
     // Declare local variables
     char bufferLine[1000];
@@ -2074,7 +2008,7 @@ void Simulation::ReadSinkingASCII()
     FILE* pFile = fopen(file_path.c_str(), "r");
     if (pFile == NULL)
     {
-        std::cout << "    --> WARNING: dataSinking.dat was not found! Setting numSinking = 0!" << std::endl;
+        Logger::warning("dataSinking.dat not found. Setting numSinking = 0.");
         numSinking = 0;
         pSinking = new Sinking*[0];
         return;
@@ -2126,16 +2060,16 @@ void Simulation::ReadSinkingASCII()
     // Close file
     fclose(pFile);
 
-    std::cout << "--> Sinking Properties Read" << std::endl;
+    Logger::info("--> Sinking Properties Read");
 }
 
 void Simulation::ReadSinkingYAML()
 {
-    std::cout << "--> Reading Sinking Properties (YAML format)" << std::endl;
+    Logger::info("--> Reading Sinking Properties");
 
     if (!yamlRoot["sinking"])
     {
-        std::cout << "    --> WARNING: 'sinking' section not found in YAML! Setting numSinking = 0!" << std::endl;
+        Logger::warning("'sinking' section not found in YAML. Setting numSinking = 0.");
         numSinking = 0;
         pSinking = new Sinking*[0];
         return;
@@ -2167,7 +2101,7 @@ void Simulation::ReadSinkingYAML()
         pSinking = new Sinking*[0];
     }
 
-    std::cout << "--> Sinking Properties Read" << std::endl;
+    Logger::info("--> Sinking Properties Read");
 }
 
 void Simulation::ReadSprings()
@@ -2177,7 +2111,7 @@ void Simulation::ReadSprings()
 
 void Simulation::ReadSpringsASCII()
 {
-    std::cout << "--> Reading Spring Properties (ASCII format)" << std::endl;
+    Logger::info("--> Reading Spring Properties");
 
     // Declare local variables
     char bufferLine[1000];
@@ -2187,7 +2121,7 @@ void Simulation::ReadSpringsASCII()
     FILE* file_pointer = fopen(file_path.c_str(), "r");
     if (file_pointer == NULL)
     {
-        std::cout << "    --> WARNING: dataSprings.dat was not found! Setting numSprings = 0!" << std::endl;
+        Logger::warning("dataSprings.dat not found. Setting numSprings = 0.");
         numSprings = 0;
         pSprings = new Spring*[0];
         return;
@@ -2214,12 +2148,12 @@ void Simulation::ReadSpringsASCII()
     // Close the file
     fclose(file_pointer);
 
-    std::cout << "--> Spring Properties Read" << std::endl;
+    Logger::info("--> Spring Properties Read");
 }
 
 void Simulation::ReadSpringsYAML()
 {
-    std::cout << "--> Reading Spring Properties (YAML format)" << std::endl;
+    Logger::info("--> Reading Spring Properties");
 
     // Read spring types
     if (yamlRoot["spring_types"])
@@ -2240,7 +2174,7 @@ void Simulation::ReadSpringsYAML()
 
     if (!yamlRoot["springs"])
     {
-        std::cout << "    --> WARNING: 'springs' section not found in YAML! Setting numSprings = 0!" << std::endl;
+        Logger::warning("'springs' section not found in YAML. Setting numSprings = 0.");
         numSprings = 0;
         pSprings = new Spring*[0];
         return;
@@ -2255,7 +2189,7 @@ void Simulation::ReadSpringsYAML()
         pSprings[ii]->ReadPropertiesYAML(yamlRoot["springs"][ii], pSpringTypes, numSpringTypes);
     }
 
-    std::cout << "--> Spring Properties Read" << std::endl;
+    Logger::info("--> Spring Properties Read");
 }
 
 void Simulation::ReadProperties()
@@ -2265,7 +2199,7 @@ void Simulation::ReadProperties()
 
 void Simulation::ReadPropertiesASCII()
 {
-    std::cout << "--> Reading Simulation Properties (ASCII format)" << std::endl;
+    Logger::info("--> Reading Simulation Properties");
 
     // Declare local variables
     char bufferLine[1000];
@@ -2351,12 +2285,12 @@ void Simulation::ReadPropertiesASCII()
         std::cout << "Static Equilibrium Method: " << flagStatic << std::endl;
     }
 
-    std::cout << "--> Simulation Properties Read" << std::endl;
+    Logger::info("--> Simulation Properties Read");
 }
 
 void Simulation::ReadPropertiesYAML()
 {
-    std::cout << "--> Reading Simulation Properties (YAML format)" << std::endl;
+    Logger::info("--> Reading Simulation Properties");
 
     // Open and parse YAML file
     std::string file_path = JoinPath(inputFolderPath, "dataProblem.yaml");
@@ -2416,15 +2350,15 @@ void Simulation::ReadPropertiesYAML()
             outputFormat = 1;
         else
             outputFormat = 0;
-        std::cout << "    Output format: " << fmt << " (" << outputFormat << ")" << std::endl;
+        Logger::debug("Output format: " + fmt + " (" + std::to_string(outputFormat) + ")");
     }
     else
     {
         outputFormat = 0;
-        std::cout << "    Output format: txt (default)" << std::endl;
+        Logger::debug("Output format: txt (default)");
     }
 
-    std::cout << "--> Simulation Properties Read" << std::endl;
+    Logger::info("--> Simulation Properties Read");
 }
 
 void Simulation::ReadWaves()
@@ -2434,7 +2368,7 @@ void Simulation::ReadWaves()
 
 void Simulation::ReadWavesASCII()
 {
-    std::cout << "--> Reading Waves (ASCII format)" << std::endl;
+    Logger::info("--> Reading Waves");
 
     // Declare local variables
     char bufferLine[1000];
@@ -2446,7 +2380,7 @@ void Simulation::ReadWavesASCII()
     FILE* file_pointer = fopen(file_path.c_str(), "r");
     if (file_pointer == NULL)
     {
-        std::cout << "    --> WARNING: dataWaves.dat was not found! Skipping wave definition!" << std::endl;
+        Logger::warning("dataWaves.dat not found. Using zero-height wave.");
         pWave = new RegularWave(this, 0.0, 1.0, 0.0, 0.0);
         return;
     }
@@ -2539,12 +2473,12 @@ void Simulation::ReadWavesASCII()
         }
     }
 
-    std::cout << "--> ... wave read!" << std::endl;
+    Logger::info("--> Wave read");
 
     // Preprocess wave data if H>0
     if (H > 0.0)
     {
-        std::cout << "-->  Preprocessing wave..." << std::endl;
+        Logger::info("-->  Preprocessing wave...");
         pWave->CheckBreakingWave();
         pWave->GetWaveSpectrum();
         if (strncmp(wave_type, "IRR", 3) == 0)
@@ -2554,20 +2488,20 @@ void Simulation::ReadWavesASCII()
     }
     else
     {
-        std::cout << "-->  Preprocessing dummy wave..." << std::endl;
+        Logger::debug("-->  Zero-height wave: skipping preprocessing.");
         pWave->SetZeroHeight();
     }
 
-    std::cout << "--> ... wave preprocessed!" << std::endl;
+    Logger::info("--> Wave preprocessed");
 }
 
 void Simulation::ReadWavesYAML()
 {
-    std::cout << "--> Reading Waves (YAML format)" << std::endl;
+    Logger::info("--> Reading Waves");
 
     if (!yamlRoot["waves"])
     {
-        std::cout << "    --> WARNING: 'waves' section not found in YAML! Skipping wave definition!" << std::endl;
+        Logger::warning("'waves' section not found in YAML. Using zero-height wave.");
         pWave = new RegularWave(this, 0.0, 1.0, 0.0, 0.0);
         return;
     }
@@ -2607,12 +2541,12 @@ void Simulation::ReadWavesYAML()
         throw ValueError(ss.str());
     }
 
-    std::cout << "--> ... wave read!" << std::endl;
+    Logger::info("--> Wave read");
 
     // Preprocess wave data if H>0
     if (H > 0.0)
     {
-        std::cout << "-->  Preprocessing wave..." << std::endl;
+        Logger::info("-->  Preprocessing wave...");
         pWave->CheckBreakingWave();
         pWave->GetWaveSpectrum();
         if (wave_type == "IRR")
@@ -2622,11 +2556,11 @@ void Simulation::ReadWavesYAML()
     }
     else
     {
-        std::cout << "-->  Preprocessing dummy wave..." << std::endl;
+        Logger::debug("-->  Zero-height wave: skipping preprocessing.");
         pWave->SetZeroHeight();
     }
 
-    std::cout << "--> ... wave preprocessed!" << std::endl;
+    Logger::info("--> Wave preprocessed");
 }
 
 void Simulation::ReadWinches()
@@ -2636,7 +2570,7 @@ void Simulation::ReadWinches()
 
 void Simulation::ReadWinchesASCII()
 {
-    std::cout << "--> Reading Winches Properties (ASCII format)" << std::endl;
+    Logger::info("--> Reading Winches Properties");
 
     // Declare local variables
     char bufferLine[1000];
@@ -2646,7 +2580,7 @@ void Simulation::ReadWinchesASCII()
     FILE* file_pointer = fopen(file_path.c_str(), "r");
     if (file_pointer == NULL)
     {
-        std::cout << "    --> WARNING: dataWinches.dat was not found! Setting numWinches = 0!" << std::endl;
+        Logger::warning("dataWinches.dat not found. Setting numWinches = 0.");
         numWinches = 0;
         pWinches = new Winchie*[0];
         WinchesController = nullptr;
@@ -2676,10 +2610,10 @@ void Simulation::ReadWinchesASCII()
 
     // Close the file
     fclose(file_pointer);
-    std::cout << "--> Winches Properties Read" << std::endl;
+    Logger::info("--> Winches Properties Read");
 
     // Read Winches Controller
-    std::cout << "--> Reading Winches Controller Properties (ASCII format)" << std::endl;
+    Logger::info("--> Reading Winches Controller Properties");
     file_path = JoinPath(inputFolderPath, "dataWinchesController.dat");
     file_pointer = fopen(file_path.c_str(), "r");
     if (file_pointer == NULL)
@@ -2700,16 +2634,16 @@ void Simulation::ReadWinchesASCII()
     fclose(file_pointer);
     // Open Winches Controller output files
     WinchesController->OpenOutputFiles(outputFolderPath);
-    std::cout << "--> Winches Controller Properties Read" << std::endl;
+    Logger::info("--> Winches Controller Properties Read");
 }
 
 void Simulation::ReadWinchesYAML()
 {
-    std::cout << "--> Reading Winches Properties (YAML format)" << std::endl;
+    Logger::info("--> Reading Winches Properties");
 
     if (!yamlRoot["winches"])
     {
-        std::cout << "    --> WARNING: 'winches' section not found in YAML! Setting numWinches = 0!" << std::endl;
+        Logger::warning("'winches' section not found in YAML. Setting numWinches = 0.");
         numWinches = 0;
         pWinches = new Winchie*[0];
         WinchesController = nullptr;
@@ -2733,10 +2667,10 @@ void Simulation::ReadWinchesYAML()
         pWinches[ii]->ReadPropertiesYAML(winchList[ii]);
         pWinches[ii]->LineW = pLines[pWinches[ii]->nLine - 1];
     }
-    std::cout << "--> Winches Properties Read" << std::endl;
+    Logger::info("--> Winches Properties Read");
 
     // Read Winches Controller
-    std::cout << "--> Reading Winches Controller Properties (YAML format)" << std::endl;
+    Logger::info("--> Reading Winches Controller Properties");
     if (!winchesNode["controller"])
     {
         std::stringstream ss;
@@ -2748,7 +2682,7 @@ void Simulation::ReadWinchesYAML()
     WinchesController = WinchieController::Create(controllerType, numWinches, pWinches, this);
     WinchesController->ReadPropertiesYAML(ctrlNode);
     WinchesController->OpenOutputFiles(outputFolderPath);
-    std::cout << "--> Winches Controller Properties Read" << std::endl;
+    Logger::info("--> Winches Controller Properties Read");
 }
 
 void Simulation::ReadSeaFloor()
@@ -2758,7 +2692,7 @@ void Simulation::ReadSeaFloor()
 
 void Simulation::ReadSeaFloorASCII()
 {
-    std::cout << "--> Reading SeaFloor (ASCII format)" << std::endl;
+    Logger::info("--> Reading SeaFloor");
 
     // Declare local variables
     char bufferLine[1000];
@@ -2768,7 +2702,7 @@ void Simulation::ReadSeaFloorASCII()
     FILE* file_pointer = fopen(file_path.c_str(), "r");
     if (file_pointer == NULL)
     {
-        std::cout << "    --> WARNING: dataSeaFloor.dat was not found! Setting flat sea floor!" << std::endl;
+        Logger::warning("dataSeaFloor.dat not found. Using flat sea floor.");
         numBathymetry = 0;
         numInclined = 0;
         numFlat = 1;
@@ -2780,7 +2714,7 @@ void Simulation::ReadSeaFloorASCII()
         pFlat[0] = new Flat(0);
         pSeaFloor[0] = pFlat[0];
         pSeaFloor[0]->seabedDepth = this->waterDepth;
-        std::cout << "--> Floor Properties Read" << std::endl;
+        Logger::info("--> Floor Properties Read");
         return;
     }
 
@@ -2828,16 +2762,16 @@ void Simulation::ReadSeaFloorASCII()
     // Close file
     fclose(file_pointer);
 
-    std::cout << "--> Floor Properties Read" << std::endl;
+    Logger::info("--> Floor Properties Read");
 }
 
 void Simulation::ReadSeaFloorYAML()
 {
-    std::cout << "--> Reading SeaFloor (YAML format)" << std::endl;
+    Logger::info("--> Reading SeaFloor");
 
     if (!yamlRoot["seafloor"])
     {
-        std::cout << "    --> WARNING: 'seafloor' section not found in YAML! Setting flat sea floor!" << std::endl;
+        Logger::warning("'seafloor' section not found in YAML. Using flat sea floor.");
         numBathymetry = 0;
         numInclined = 0;
         numFlat = 1;
@@ -2849,7 +2783,7 @@ void Simulation::ReadSeaFloorYAML()
         pFlat[0] = new Flat(0);
         pSeaFloor[0] = pFlat[0];
         pSeaFloor[0]->seabedDepth = this->waterDepth;
-        std::cout << "--> Floor Properties Read" << std::endl;
+        Logger::info("--> Floor Properties Read");
         return;
     }
 
@@ -2887,7 +2821,7 @@ void Simulation::ReadSeaFloorYAML()
         floor_count++;
     }
 
-    std::cout << "--> Floor Properties Read" << std::endl;
+    Logger::info("--> Floor Properties Read");
 }
 
 void Simulation::ReadWindTurbines(void)
@@ -2897,7 +2831,7 @@ void Simulation::ReadWindTurbines(void)
 
 void Simulation::ReadWindTurbinesASCII(void)
 {
-    std::cout << "--> Reading Wind Turbines Properties (ASCII format)" << std::endl;
+    Logger::info("--> Reading Wind Turbines Properties");
 
     // Declare local variables
     char bufferLine[1000];
@@ -2907,7 +2841,7 @@ void Simulation::ReadWindTurbinesASCII(void)
     FILE* file_pointer = fopen(file_path.c_str(), "r");
     if (file_pointer == NULL)
     {
-        std::cout << "    --> WARNING: dataWindTurbines.dat was not found! Setting numWindTurbines = 0!" << std::endl;
+        Logger::warning("dataWindTurbines.dat not found. Setting numWindTurbines = 0.");
         numWindTurbines = 0;
         pWindTurbines = new WindTurbine*[0];
         return;
@@ -2927,17 +2861,16 @@ void Simulation::ReadWindTurbinesASCII(void)
     // Close the file
     fclose(file_pointer);
 
-    std::cout << "--> Wind Turbines Properties Read" << std::endl;
+    Logger::info("--> Wind Turbines Properties Read");
 }
 
 void Simulation::ReadWindTurbinesYAML(void)
 {
-    std::cout << "--> Reading Wind Turbines Properties (YAML format)" << std::endl;
+    Logger::info("--> Reading Wind Turbines Properties");
 
     if (!yamlRoot["wind_turbines"])
     {
-        std::cout << "    --> WARNING: 'wind_turbines' section not found in YAML! Setting numWindTurbines = 0!"
-                  << std::endl;
+        Logger::warning("'wind_turbines' section not found in YAML. Setting numWindTurbines = 0.");
         numWindTurbines = 0;
         pWindTurbines = new WindTurbine*[0];
         return;
@@ -2951,7 +2884,7 @@ void Simulation::ReadWindTurbinesYAML(void)
         pWindTurbines[ii]->ReadPropertiesYAML(yamlRoot["wind_turbines"][ii]);
     }
 
-    std::cout << "--> Wind Turbines Properties Read" << std::endl;
+    Logger::info("--> Wind Turbines Properties Read");
 }
 
 void Simulation::ReadOWCs(void)
@@ -2961,7 +2894,7 @@ void Simulation::ReadOWCs(void)
 
 void Simulation::ReadOWCsASCII(void)
 {
-    std::cout << "--> Reading OWCs Turbines Properties (ASCII format)" << std::endl;
+    Logger::info("--> Reading OWC Turbines Properties");
     // Declare local variables
     char bufferLineT[1000];
     // Open file
@@ -2969,7 +2902,7 @@ void Simulation::ReadOWCsASCII(void)
     FILE* pFileT = fopen(file_pathT.c_str(), "r");
     if (pFileT == NULL)
     {
-        std::cout << "    --> WARNING: dataOWCTurbines.dat was not found! Setting numOWCTurbines = 0!" << std::endl;
+        Logger::warning("dataOWCTurbines.dat not found. Setting numOWCTurbines = 0.");
         numOWCTurbines = 0;
         pOWCTurbines = new OWCTurbineType*[0];
     }
@@ -2994,9 +2927,9 @@ void Simulation::ReadOWCsASCII(void)
         // Close file
         fclose(pFileT);
     }
-    std::cout << "--> OWCs Turbines Properties Read" << std::endl;
+    Logger::info("--> OWC Turbines Properties Read");
 
-    std::cout << "--> Reading OWCs Properties (ASCII format)" << std::endl;
+    Logger::info("--> Reading OWCs Properties");
     // Declare local variables
     char bufferLine[1000];
     // Open file
@@ -3004,7 +2937,7 @@ void Simulation::ReadOWCsASCII(void)
     FILE* pFile = fopen(file_path.c_str(), "r");
     if (pFile == NULL)
     {
-        std::cout << "    --> WARNING: dataOWCs.dat was not found! Setting numOWCs = 0!" << std::endl;
+        Logger::warning("dataOWCs.dat not found. Setting numOWCs = 0.");
         numOWCs = 0;
         pOWCs = new OWC*[0];
     }
@@ -3029,18 +2962,17 @@ void Simulation::ReadOWCsASCII(void)
         // Close file
         fclose(pFile);
     }
-    std::cout << "--> OWCs Properties Read" << std::endl;
+    Logger::info("--> OWCs Properties Read");
 }
 
 void Simulation::ReadOWCsYAML(void)
 {
-    std::cout << "--> Reading OWCs Properties (YAML format)" << std::endl;
+    Logger::info("--> Reading OWCs Properties");
 
     // Read OWC Turbine Types
     if (!yamlRoot["owcs"] || !yamlRoot["owcs"]["turbine_types"])
     {
-        std::cout << "    --> WARNING: 'owcs.turbine_types' section not found in YAML! Setting numOWCTurbines = 0!"
-                  << std::endl;
+        Logger::warning("'owcs.turbine_types' section not found in YAML. Setting numOWCTurbines = 0.");
         numOWCTurbines = 0;
         pOWCTurbines = new OWCTurbineType*[0];
     }
@@ -3063,12 +2995,12 @@ void Simulation::ReadOWCsYAML(void)
             pOWCTurbines = new OWCTurbineType*[0];
         }
     }
-    std::cout << "--> OWCs Turbines Properties Read" << std::endl;
+    Logger::info("--> OWC Turbines Properties Read");
 
     // Read OWC Chambers
     if (!yamlRoot["owcs"] || !yamlRoot["owcs"]["chambers"])
     {
-        std::cout << "    --> WARNING: 'owcs.chambers' section not found in YAML! Setting numOWCs = 0!" << std::endl;
+        Logger::warning("'owcs.chambers' section not found in YAML. Setting numOWCs = 0.");
         numOWCs = 0;
         pOWCs = new OWC*[0];
     }
@@ -3091,12 +3023,12 @@ void Simulation::ReadOWCsYAML(void)
             pOWCs = new OWC*[0];
         }
     }
-    std::cout << "--> OWCs Properties Read" << std::endl;
+    Logger::info("--> OWCs Properties Read");
 }
 
 void Simulation::Run()
 {
-    std::cout << "--> Starting Simulation Run..." << std::endl;
+    Logger::info("--> Starting Simulation Run...");
 
     // Declare local variables
     time_t tstart, tend;
@@ -3110,7 +3042,7 @@ void Simulation::Run()
     tstart = time(0);
     bool flag_debug_lines = false;
 
-    std::cout << "    t = " << wallTime << " s" << std::endl;
+    { std::ostringstream _p; _p << std::fixed << std::setprecision(2) << "  t = " << wallTime << " / " << simulationTime << " s"; Logger::progress(_p.str()); }
 
     // Check if system has degrees of freedom
     if (numSystem > 0)
@@ -3141,7 +3073,7 @@ void Simulation::Run()
             {
                 // std::cout<< "In Simulation::Run --> WriteOut() "<< std::endl;
                 wallTime = writeTimeStep * round((wallTime + writeTimeStep) / writeTimeStep);
-                std::cout << "    t = " << wallTime << " s" << std::endl;
+                { std::ostringstream _p; _p << std::fixed << std::setprecision(2) << "  t = " << wallTime << " / " << simulationTime << " s"; Logger::progress(_p.str()); }
                 for (int ii = 0; ii < numLines; ii = ii + 1)
                     pLines[ii]->WriteOut(pTimeSolver->t);
                 for (int ii = 0; ii < numBodies; ii = ii + 1)
@@ -3259,7 +3191,7 @@ void Simulation::Run()
     else
     {
         // Simple time-stepping for systems with zero DOFs (e.g., fixed body under waves)
-        std::cout << "Running static analysis (no DOFs) with simple time-stepping..." << std::endl;
+        Logger::info("Running static analysis (no DOFs)...");
 
         int num_steps = (int)std::ceil(simulationTime / writeTimeStep);
         int output_step = 0;
@@ -3278,9 +3210,9 @@ void Simulation::Run()
             // Write output at specified intervals
             if (current_time >= wallTime - 1e-12)
             {
-                if (output_step > 0) // Skip printing the initial time (already printed above)
+                if (output_step > 0)
                 {
-                    std::cout << "    t = " << current_time << " s" << std::endl;
+                    std::ostringstream _p; _p << std::fixed << std::setprecision(2) << "  t = " << current_time << " / " << simulationTime << " s"; Logger::progress(_p.str());
                 }
                 output_step++;
 
@@ -3382,28 +3314,27 @@ void Simulation::Run()
 
     tend = time(0);
     double computational_time = difftime(tend, tstart);
-    if (computational_time < 60)
     {
-        std::cout << "    Computational time  : " << computational_time << " seconds" << std::endl;
-    }
-    else if (computational_time < 3600)
-    {
-        std::cout << "    Computational time  : " << computational_time / 60 << " minutes" << std::endl;
-    }
-    else
-    {
-        std::cout << "    Computational time  : " << computational_time / 3600 << " hours" << std::endl;
+        std::ostringstream _s;
+        if (computational_time < 60)
+            _s << std::fixed << std::setprecision(1) << "  Computational time : " << computational_time << " s";
+        else if (computational_time < 3600)
+            _s << std::fixed << std::setprecision(2) << "  Computational time : " << computational_time / 60.0 << " min";
+        else
+            _s << std::fixed << std::setprecision(2) << "  Computational time : " << computational_time / 3600.0 << " h";
+        Logger::info(_s.str());
     }
     if (numSystem > 0)
     {
-        std::cout << "    Total function calls: " << numCallsSysFun << std::endl;
-        std::cout << "    Total jac calls: " << pTimeSolver->iJ << std::endl << std::endl;
-        std::cout << "    Average Newton iterations: " << pTimeSolver->nNewtonIterAvg << std::endl;
-        std::cout << "    Number of times convergence failed: " << pTimeSolver->nConvergenceFailed << std::endl;
+        Logger::info("  Total function calls  : " + std::to_string(numCallsSysFun));
+        Logger::info("  Total Jacobian updates: " + std::to_string(pTimeSolver->iJ));
+        Logger::info("  Avg Newton iterations : " + std::to_string(pTimeSolver->nNewtonIterAvg));
+        if (pTimeSolver->nConvergenceFailed > 0)
+            Logger::warning("  Convergence failed " + std::to_string(pTimeSolver->nConvergenceFailed) + " time(s).");
     }
     if (writeEquilibrium == 1)
     {
-        std::cout << "  Writting data to dataStaticIC.dat ..." << std::endl << std::endl;
+        Logger::info("  Writing initial condition to dataStaticIC.dat...");
         std::string filename = JoinPath(outputFolderPath, "dataStaticIC.dat");
         pTimeSolver->y.save(filename, arma::arma_ascii);
     }
@@ -3411,12 +3342,12 @@ void Simulation::Run()
 
 void Simulation::SetupCase()
 {
-    std::cout << "--> Setting up the case configuration ..." << std::endl;
+    Logger::info("--> Setting up case configuration...");
 
     // Count the number of BCP in each body and create pointer array
     if (numBodies > 0)
     {
-        std::cout << "  --> Counting the number of BCPs in each body ..." << std::endl;
+        Logger::debug("Counting BCPs per body");
     }
     for (int ii = 0; ii < numBodies; ii++)
     {
@@ -3453,13 +3384,13 @@ void Simulation::SetupCase()
     delete[] pDefined_body_bcps;
     if (numBodies > 0)
     {
-        std::cout << "  --> ... done!" << std::endl;
+        Logger::debug("BCPs per body done");
     }
 
     // Floor triangulation initialization
     if (numFloor > 0)
     {
-        std::cout << "  --> Initializing floor..." << std::endl;
+        Logger::debug("Initializing floor");
     }
     for (int ii = 0; ii < numFloor; ii++)
     {
@@ -3474,22 +3405,26 @@ void Simulation::SetupCase()
         }
         else if (pSeaFloor[ii]->GetType() == 1)
         {
-            std::cout << "    --> Floor level: " << std::endl << pSeaFloor[ii]->seabedDepth << " m" << std::endl;
+            Logger::debug("Floor level: " + std::to_string(pSeaFloor[ii]->seabedDepth) + " m");
         }
     }
     if (numFloor > 0)
     {
-        std::cout << "  --> ... done!" << std::endl;
+        Logger::debug("Floor initialization done");
     }
 
     // Assing to each BCP the corresponding Body pointer
     if (numBodies > 0)
     {
-        std::cout << "  --> Assigning to each BCP the corresponding body  ..." << std::endl;
+        Logger::debug("Assigning BCPs to bodies");
     }
     for (int ii = 0; ii < numBodies; ii++)
     {
-        std::cout << "    --> Body " << ii + 1 << " pos = " << pBodies[ii]->pos.t() << std::endl;
+        {
+            std::ostringstream oss;
+            oss << "Body " << ii + 1 << " pos = " << pBodies[ii]->pos.t();
+            Logger::debug(oss.str());
+        }
         for (int jj = 0; jj < pBodies[ii]->numBcps; jj++)
         {
             pBodies[ii]->pBodyBcps[jj] = pBcps[pBodies[ii]->pIndexBcps[jj]];
@@ -3500,13 +3435,13 @@ void Simulation::SetupCase()
     }
     if (numBodies > 0)
     {
-        std::cout << "  --> ... done!" << std::endl;
+        Logger::debug("BCPs assigned to bodies");
     }
 
     // Count the number of Wind Turbines in each body and create pointer array
     if (numBodies > 0)
     {
-        std::cout << "  --> Checking the number of Wind Turbines in each body ..." << std::endl;
+        Logger::debug("Checking wind turbines per body");
     }
     for (int ii = 0; ii < numBodies; ii++)
     {
@@ -3547,13 +3482,13 @@ void Simulation::SetupCase()
     }
     if (numBodies > 0)
     {
-        std::cout << "  --> ... done!" << std::endl;
+        Logger::debug("Wind turbine check done");
     }
 
     // Assing to each Body the corresponding Wind Turbine pointers
     if (numBodies > 0)
     {
-        std::cout << "       Assingning to each Body the corresponding Wind Turbine pointers  ..." << std::endl;
+        Logger::debug("Assigning wind turbines to bodies");
     }
     for (int ii = 0; ii < numBodies; ii++)
     {
@@ -3564,13 +3499,13 @@ void Simulation::SetupCase()
     }
     if (numBodies > 0)
     {
-        std::cout << "  --> ... done!" << std::endl;
+        Logger::debug("Wind turbines assigned to bodies");
     }
 
     // Count the number of lines in each joint BCP and elastic anchor BCP
     if (numBcps > 0)
     {
-        std::cout << "  --> Counting the number of lines in each joint BCP and elastic anchor BCP ..." << std::endl;
+        Logger::debug("Counting lines per joint/elastic BCP");
     }
     for (int ii = 0; ii < numBcps; ii++)
     {
@@ -3595,13 +3530,13 @@ void Simulation::SetupCase()
     }
     if (numBcps > 0)
     {
-        std::cout << "  --> ... done!" << std::endl;
+        Logger::debug("Joint/elastic BCP line count done");
     }
 
     // Count the number of Lines in each body and create pointer array
     if (numLines > 0)
     {
-        std::cout << "        Counting the number of Lines in each BCP ..." << std::endl;
+        Logger::debug("Counting lines per BCP");
     }
     for (int ii = 0; ii < numLines; ii++)
     {
@@ -3620,11 +3555,11 @@ void Simulation::SetupCase()
     }
     if (numLines > 0)
     {
-        std::cout << "  --> ... done!" << std::endl;
+        Logger::debug("Lines per BCP count done");
     }
     if (numLines > 0)
     {
-        std::cout << "        Initiallizing Line data for BCPs with lines..." << std::endl;
+        Logger::debug("Initializing BCP line data");
     }
     bool* pDefined_lines_bcps = new bool[numBcps];
     for (int ii = 0; ii < numBcps; ii++)
@@ -3648,13 +3583,13 @@ void Simulation::SetupCase()
     delete[] pDefined_lines_bcps;
     if (numLines > 0)
     {
-        std::cout << "  --> ... done!" << std::endl;
+        Logger::debug("BCP line data init done");
     }
 
     // Assing to each Line the corresponding BCP pointer
     if (numLines > 0)
     {
-        std::cout << "        Assigning to each Line the corresponding BCP ..." << std::endl;
+        Logger::debug("Assigning BCPs to lines");
     }
     for (int ii = 0; ii < numLines; ii++)
     {
@@ -3713,43 +3648,32 @@ void Simulation::SetupCase()
         catch (int e)
         {
             if (e == 0)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine << " is under the floor level." << std::endl
-                          << std::endl;
+                Logger::error("Line " + std::to_string(pLines[ii]->nLine) + " is under the floor level.");
             if (e == 1)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine << " touches the seafloor and it shouldn't. "
-                          << std::endl
-                          << std::endl;
+                Logger::error("Line " + std::to_string(pLines[ii]->nLine) + " touches the seafloor and it shouldn't.");
             if (e == 2)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine
-                          << " is not tense and laying on the seafloor. It should be pretensed. " << std::endl
-                          << std::endl;
+                Logger::error("Line " + std::to_string(pLines[ii]->nLine) + " is not tense and laying on the seafloor. It should be pretensed.");
             if (e == 3)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine
-                          << " is not tense and vertical. It should be pretensed. " << std::endl
-                          << std::endl;
+                Logger::error("Line " + std::to_string(pLines[ii]->nLine) + " is not tense and vertical. It should be pretensed.");
             if (e == 4)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine << " is not tense and it should. " << std::endl
-                          << std::endl;
+                Logger::error("Line " + std::to_string(pLines[ii]->nLine) + " is not tense and it should.");
             if (e == 5)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine << " initial shape can't be computed with QS method. "
-                          << std::endl;
+                Logger::error("Line " + std::to_string(pLines[ii]->nLine) + " initial shape can't be computed with QS method.");
             if (e == 6)
-                std::cout << "ERROR: Line " << pLines[ii]->nLine
-                          << " touches the seafloor althoug none of its ends are there. " << std::endl
-                          << std::endl;
+                Logger::error("Line " + std::to_string(pLines[ii]->nLine) + " touches the seafloor although none of its ends are there.");
         }
 
         pLines[ii]->pLineSeaFloor = pSeaFloor[pLines[ii]->indexSeaFloor];
     }
     if (numLines > 0)
     {
-        std::cout << "  --> ... done!" << std::endl;
+        Logger::debug("BCPs assigned to lines");
     }
 
     // Count the number of line nodes without repetition of joint nodes
     if (numLines > 0)
     {
-        std::cout << "        Counting the number of line nodes without repetition of joint nodes ..." << std::endl;
+        Logger::debug("Counting unique line nodes");
     }
     int numUsedJointBCPs = 0;
     for (int jj = 0; jj < numLines; jj++)
@@ -3773,14 +3697,13 @@ void Simulation::SetupCase()
     numAllLinesNodes -= numUsedJointBCPs;
     if (numLines > 0)
     {
-        std::cout << "  --> ... done!" << std::endl;
+        Logger::debug("Unique line node count done");
     }
 
-    // Build the lines coupling sparse matrix and store the lines index vectors
+    // Build lines coupling sparse matrix
     if (numLines > 0)
     {
-        std::cout << "  --> Building the lines coupling sparse matrix and storing the lines index vectors ..."
-                  << std::endl;
+        Logger::debug("Building lines coupling sparse matrix");
     }
     int indFirstNodeAvail = 0;
     for (int jj = 0; jj < numLines; jj++)
@@ -3818,13 +3741,13 @@ void Simulation::SetupCase()
     }
     if (numLines > 0)
     {
-        std::cout << "  --> ... done!" << std::endl;
+        Logger::debug("Coupling matrix index assignment done");
     }
 
     // Compute the lines coupling matrices
     if (numLines > 0)
     {
-        std::cout << "  --> Computing the lines coupling matrices ..." << std::endl;
+        Logger::debug("Computing lines coupling matrices");
     }
     pLinesCouplingMatrix = new arma::mat(numAllLinesNodes, numAllLinesNodes, arma::fill::zeros);
     pLinesCouplingMatrixInv = new arma::mat(numAllLinesNodes, numAllLinesNodes);
@@ -3832,7 +3755,7 @@ void Simulation::SetupCase()
     ComputeLinesCouplingMatrix();
     if (numLines > 0)
     {
-        std::cout << "  --> ... done!" << std::endl;
+        Logger::debug("Lines coupling matrices done");
     }
     // DEBUG print (commented out to avoid using extra memory in output)
     // TODO: 100 should be a parameter
@@ -3850,7 +3773,7 @@ void Simulation::SetupCase()
     // Compute equilibrium with FEM for all lines at the same time
     if (!readEquilibrium && flagStatic == 1 && numLines > 0) //&& flagStatic == 0?
     {
-        std::cout << "  --> Computing the equilibrium with FEM for all lines at the same time ..." << std::endl;
+        Logger::info("Computing FEM equilibrium for all lines...");
 
         // Store the lines friction model and tension flag
         arma::umat flagLineas;
@@ -3876,7 +3799,7 @@ void Simulation::SetupCase()
         arma::mat posicionInicial = ComputeLinesInitialPoint();
         // Perform the equilibrium computation
         ComputeLinesEquilibrium(posicionInicial);
-        std::cout << "  --> Initial static position computed ..." << std::endl;
+        Logger::info("--> Initial static position computed");
         // Return the original values of the friction model and tension flag
         for (int i = 0; i < numLines; i++)
         {
@@ -3884,7 +3807,7 @@ void Simulation::SetupCase()
             pLines[i]->flag_tension = flagTension(i);
         }
 
-        std::cout << "  --> ... done!" << std::endl;
+        Logger::debug("FEM equilibrium done");
     }
 
     // Initialize strain history vector if viscoelasticity model is used
@@ -3895,11 +3818,11 @@ void Simulation::SetupCase()
             pLines[i]->initiallize_strain_memory();
         }
     }
-    std::cout << "  --> Strain memory initiallized ..." << std::endl;
+    Logger::debug("Strain memory initialized");
     // Store the initial position, required for the stick-slip friction model
     if (numLines > 0)
     {
-        std::cout << "  --> Storing the initial position of the lines ..." << std::endl;
+        Logger::debug("Storing initial line positions");
     }
     for (int i = 0; i < numLines; i++)
     {
@@ -3907,19 +3830,17 @@ void Simulation::SetupCase()
     }
     if (numLines > 0)
     {
-        std::cout << "  --> ... done!" << std::endl;
+        Logger::debug("Initial line positions stored");
     }
 
     // Setup Springs
     if (numSprings > 0)
     {
-        std::cout << "  --> Setting up springs ..." << std::endl;
+        Logger::debug("Setting up springs");
     }
     for (int ii = 0; ii < numSprings; ii++)
     {
-        std::cout << "        Spring: " << ii << "\n";
-        std::cout << "            ->BCP_1 " << pSprings[ii]->BCP_1 << "\n";
-        std::cout << "            ->BCP_2 " << pSprings[ii]->BCP_2 << "\n";
+        Logger::debug("Spring " + std::to_string(ii) + ": BCP_1=" + std::to_string(pSprings[ii]->BCP_1) + " BCP_2=" + std::to_string(pSprings[ii]->BCP_2));
         pSprings[ii]->SpringBCP[0] = pBcps[pSprings[ii]->BCP_1];
         pSprings[ii]->SpringBCP[1] = pBcps[pSprings[ii]->BCP_2];
         pSprings[ii]->pSim = this;
@@ -3927,13 +3848,13 @@ void Simulation::SetupCase()
     }
     if (numSprings > 0)
     {
-        std::cout << "  --> ... done!" << std::endl;
+        Logger::debug("Springs setup done");
     }
 
     // Setup hidro data bases
     if (numBodies > 0)
     {
-        std::cout << "  --> Setting up hydro data bases ..." << std::endl;
+        Logger::debug("Setting up hydro databases");
     }
     for (int ii = 0; ii < numBodies; ii++)
     {
@@ -3941,29 +3862,29 @@ void Simulation::SetupCase()
     }
     if (numBodies > 0)
     {
-        std::cout << "  --> ... done!" << std::endl;
+        Logger::debug("Hydro databases setup done");
     }
 
     // Setup winchies controller
     if (useWinches)
     {
-        std::cout << "  --> Setting up winchies controller ..." << std::endl;
+        Logger::debug("Setting up winch controller");
         WinchesController->SetUpWinchiesController();
-        std::cout << "  --> ... done!" << std::endl;
+        Logger::debug("Winch controller setup done");
     }
 
     if (numWindTurbines > 0)
     {
         // Setup wind turbines
-        std::cout << "  --> Setting up wind turbines ..." << std::endl;
+        Logger::debug("Setting up wind turbines");
         for (int ii = 0; ii < numWindTurbines; ii++)
         {
             pWindTurbines[ii]->Initialize();
         }
-        std::cout << "  --> ... done!" << std::endl;
+        Logger::debug("Wind turbines setup done");
 
         // Computing bodies structural mass considering wind turbines
-        std::cout << "  --> Computing bodies structural mass considering wind turbines ..." << std::endl;
+        Logger::debug("Computing body inertia with wind turbine contributions");
         for (int ii = 0; ii < numBodies; ii++)
         {
             if (pBodies[ii]->numWindTurbs > 0)
@@ -3979,10 +3900,10 @@ void Simulation::SetupCase()
                 }
             }
         }
-        std::cout << "  --> ... done!" << std::endl;
+        Logger::debug("Body inertia with turbines done");
     }
 
-    std::cout << "--> ... case configuration done!" << std::endl;
+    Logger::info("--> Case configuration done");
 }
 
 void Simulation::ComputeLinesCouplingMatrix(void)
@@ -3994,7 +3915,7 @@ void Simulation::ComputeLinesCouplingMatrix(void)
     {
         int numLineNodes_tmp = pLines[jj]->N;
 
-        std::cout << "    Assembling local mass matrix for line " << jj << std::endl;
+        Logger::debug("Assembling local mass matrix for line " + std::to_string(jj));
         arma::mat LineMassMat_tmp = pLines[jj]->MM * pLines[jj]->dL;
         if (pLines[jj]->pLineBcps[0]->GetType() != 3 && pLines[jj]->pLineBcps[0]->GetType() != 5)
         {
@@ -4009,7 +3930,7 @@ void Simulation::ComputeLinesCouplingMatrix(void)
 
         // Add the mass matrix to the global matrix in sparse or full format depending on the size
         // TODO: 100 should be a parameter
-        std::cout << "    Adding local mass matrix to the global matrix" << std::endl;
+        Logger::debug("Adding local mass matrix to global matrix");
         if (numAllLinesNodes >= 100)
         {
             for (int irow = 0; irow < numLineNodes_tmp; irow++)
@@ -4366,8 +4287,10 @@ void Simulation::ComputeLinesEquilibrium(arma::mat x)
 
         if ((iter % 100) == 0)
         {
-            std::cout << "Iteration " << iter << "/" << maxIter << ". Max. force: " << cantidadAbs << " N (goal " << tol
-                      << ").  Max. rel. pos. step: " << cantidadRel << " (goal " << relTol << ")." << std::endl;
+            std::ostringstream oss;
+            oss << "Iteration " << iter << "/" << maxIter << ". Max. force: " << cantidadAbs << " N (goal " << tol
+                << ").  Max. rel. pos. step: " << cantidadRel << " (goal " << relTol << ").";
+            Logger::debug(oss.str());
         }
         iter = iter + 1;
 
@@ -4380,8 +4303,12 @@ void Simulation::ComputeLinesEquilibrium(arma::mat x)
     // Check if the maximum number of iterations was exceeded
     if ((iter >= maxIter) || (step <= minStep))
     {
-        std::cout << "WARNING: Convergence for initial condition was not perfectly achieved! " << std::endl;
+        Logger::warning("Convergence for initial condition was not perfectly achieved!");
     }
-    std::cout << "Final Iteration: " << iter << "/" << maxIter << ". Max. force: " << cantidadAbs << " N (goal " << tol
-              << ").  Max. rel. pos. step: " << cantidadRel << " (goal " << relTol << ")." << std::endl;
+    {
+        std::ostringstream oss;
+        oss << "Final Iteration: " << iter << "/" << maxIter << ". Max. force: " << cantidadAbs << " N (goal " << tol
+            << ").  Max. rel. pos. step: " << cantidadRel << " (goal " << relTol << ").";
+        Logger::debug(oss.str());
+    }
 }

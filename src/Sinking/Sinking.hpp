@@ -1,3 +1,4 @@
+﻿// SPDX-License-Identifier: GPL-3.0-or-later
 #ifndef sinkingdef_hpp__
 #define sinkingdef_hpp__
 

@@ -1,3 +1,4 @@
+﻿// SPDX-License-Identifier: GPL-3.0-or-later
 #include <iostream>
 #include <tuple>
 #include <fstream>
@@ -11,6 +12,7 @@
 #include "ODE_solvers.hpp"
 #include "../Simulations/ISimulation.hpp"
 #include "../os_tools.hpp"
+#include "../Logger.hpp"
 
 // Methods for the BDF2 class
 BDF2::BDF2(double t_u, double tmax_u, double dt_max_u, double dt_out_u, arma::mat y_u, ISimulation* pIncSim)
@@ -47,7 +49,7 @@ BDF2::BDF2(double t_u, double tmax_u, double dt_max_u, double dt_out_u, arma::ma
     debug_flag = false;
     if (debug_flag)
     {
-        std::cout << "DEBUG: BDF2 debug file opened!" << std::endl;
+        Logger::debug("BDF2 debug file opened!");
         // Open the debug file
         char buffer[50];
         int nn = sprintf(buffer, "time_adaptivity_debug.txt");
@@ -106,7 +108,7 @@ void BDF2::init()
     // If the number of iterations is larger than the maximum, return an error
     if (nIter >= nIterMax)
     {
-        std::cout << "ERROR: Convergence Failed!" << std::endl;
+        Logger::error("Convergence Failed!");
         throw std::exception();
     }
     // Otherwise, asign the state computed with the BDF1 scheme to the last state and update the solver time
@@ -120,7 +122,7 @@ void BDF2::finalize(void)
 {
     if (debug_flag)
     {
-        std::cout << "DEBUG: BDF2 debug file closed!" << std::endl;
+        Logger::debug("BDF2 debug file closed!");
         fclose(pfile);
     }
     nNewtonIterAvg = nNewtonIter / nNewton;
@@ -206,7 +208,7 @@ LOOP:
         else
         {
             // Otherwise, return an error
-            std::cout << "ERROR: Convergence Failed!" << std::endl;
+            Logger::error("Convergence Failed!");
             throw std::exception();
         }
     }
@@ -228,12 +230,12 @@ LOOP:
             // recomput the jacobean matrix
             jac(t + h_0, y_0 + h_0 * (y_0 - y_1) / h_1);
             iJ = iJ + 1;
-            std::cout << "	WARNING: In BDF2, NaN detected! Trying again with smaller step size... " << std::endl;
+            Logger::warning("In BDF2, NaN detected! Trying again with smaller step size...");
             goto LOOP;
         }
         else
         {
-            std::cout << std::endl << "ERROR: NaN detected after trying again!" << std::endl;
+            Logger::error("NaN detected after trying again!");
             throw std::exception();
         }
     }
@@ -262,7 +264,7 @@ LOOP:
         if (debug_flag)
             fprintf(pfile, "%d\n", 1);
         h_0 = h_0 * sigma;
-        std::cout << "	WARNING: In BDF2, Error too large! Trying again with smaller step size... " << std::endl;
+        Logger::warning("In BDF2, Error too large! Trying again with smaller step size...");
         goto LOOP;
     }
     if (debug_flag)
@@ -293,34 +295,34 @@ BDFN::BDFN(int N_u, int a_u, double t_u, double tmax_u, double dt_max_u, double 
     // Check for the order of the BDF scheme to be larger than 2
     if (N_u < 1)
     {
-        std::cout << "ERROR: BDFN order must be larger or equal than 1!" << std::endl;
+        Logger::error("BDFN order must be larger or equal than 1!");
         throw std::exception();
     }
     // Check for the order of the BDF scheme to be smaller than 7
     if (N_u > 6)
     {
-        std::cout << "ERROR: BDFN order must be smaller or equal than 6!" << std::endl;
+        Logger::error("BDFN order must be smaller or equal than 6!");
         throw std::exception();
     }
     // Check for the output time step to be larger than the maximum time step
     if (dt_out_u < dt_max_u)
     {
-        std::cout << "ERROR: Output time step must be larger or equal than the maximum time step!" << std::endl;
+        Logger::error("Output time step must be larger or equal than the maximum time step!");
         throw std::exception();
     }
     // If adaptivity is not used, check if the output time step is a multiple of the maximum time step
     if (!a_u & (std::fmod(dt_out_u, dt_max_u) > 1e-15) & (std::fmod(dt_out_u, dt_max_u) < dt_max_u - 1e-15))
     {
-        std::cout << "ERROR: Output time step must be a multiple of the maximum time step!" << std::endl;
+        Logger::error("Output time step must be a multiple of the maximum time step!");
         throw std::exception();
     }
     // If adaptivity is not used, check if the total simulation time is a multiple of the maximum time step
     if (!a_u & (std::fmod(tmax_u, dt_max_u) > 1e-14) & (std::fmod(tmax_u, dt_max_u) < dt_max_u - 1e-14))
     {
-        std::cout << "ERROR: Total simulation time must be a multiple of the maximum time step!" << std::endl;
-        std::cout << "tmax_u: " << tmax_u << std::endl;
-        std::cout << "dt_max_u: " << dt_max_u << std::endl;
-        std::cout << "fmod: " << std::fmod(tmax_u, dt_max_u) << std::endl;
+        Logger::error("Total simulation time must be a multiple of the maximum time step!"
+                      " tmax_u: " + std::to_string(tmax_u) +
+                      " dt_max_u: " + std::to_string(dt_max_u) +
+                      " fmod: " + std::to_string(std::fmod(tmax_u, dt_max_u)));
         throw std::exception();
     }
     // Set the order of the BDF scheme
@@ -400,7 +402,7 @@ std::tuple<arma::vec, double> BDFN::set_coefs(int N_u)
     }
     else
     {
-        std::cout << "ERROR: BDFN order must be between 1 and 6!" << std::endl;
+        Logger::error("BDFN order must be between 1 and 6!");
         throw std::exception();
     }
     return std::make_tuple(tmp_y_coefs, tmp_f_coef);
@@ -510,7 +512,7 @@ void BDFN::init()
         // If the number of iterations is larger than the maximum, return an error
         if (k >= nIterMax)
         {
-            std::cout << "ERROR: Convergence failed in BDFN during init!" << std::endl;
+            Logger::error("Convergence failed in BDFN during init!");
             throw std::exception();
         }
         // Otherwise, update the time and save the state computed with the BDF scheme to the corresponding state vector
@@ -597,9 +599,7 @@ void BDFN::step(void)
 LOOP:
     if ((!adaptivity) && (dt < dt_max))
     {
-        std::cout << std::endl
-                  << "ERROR: In BDFN, without adaptivity, it was not possible to try again with a smaller step size!"
-                  << std::endl;
+        Logger::error("In BDFN, without adaptivity, it was not possible to try again with a smaller step size!");
         throw std::exception();
     }
     // Compute the maximum number of iterations in terms of the number of times the jacobean matrix is recycled
@@ -683,9 +683,7 @@ LOOP:
                 if (dt > 100 * dt_min)
                 {
                     dt = std::max(dt / 100, dt_min);
-                    std::cout << "WARNING: In BDFN, Maximum number of iterations reached! Trying again with smaller "
-                                 "step size... "
-                              << std::endl;
+                    Logger::warning("In BDFN, Maximum number of iterations reached! Trying again with smaller step size...");
                 }
                 else
                 {
@@ -696,9 +694,7 @@ LOOP:
                         q = 1;
                     }
                     dt = dt_min;
-                    std::cout << "WARNING: In BDFN, Maximum number of iterations reached! " << std::endl;
-                    std::cout << "         Trying again with minimum step size and Jacobean matrix recomputation... "
-                              << std::endl;
+                    Logger::warning("In BDFN, Maximum number of iterations reached! Trying again with minimum step size and Jacobean matrix recomputation...");
                 }
             }
             else
@@ -709,22 +705,16 @@ LOOP:
                 {
                     jac(t, y_i.col(N - 1));
                     iJ = iJ + 1;
-                    std::cout << "WARNING: In BDFN, Maximum number of iterations reached! Trying again with recomputed "
-                                 "Jacobean matrix... "
-                              << std::endl;
+                    Logger::warning("In BDFN, Maximum number of iterations reached! Trying again with recomputed Jacobean matrix...");
                 }
                 else if (q == 1)
                 {
                     dt = dt_min;
-                    std::cout << "WARNING: In BDFN, Maximum number of iterations reached! Trying again with minimum "
-                                 "time step..."
-                              << std::endl;
+                    Logger::warning("In BDFN, Maximum number of iterations reached! Trying again with minimum time step...");
                 }
                 else if (q == 2)
                 {
-                    std::cout << "WARNING: In BDFN, Maximum number of iterations reached! Trying again recomputing the "
-                                 "Jacobean matrix at every iteration..."
-                              << std::endl;
+                    Logger::warning("In BDFN, Maximum number of iterations reached! Trying again recomputing the Jacobean matrix at every iteration...");
                 }
             }
             q = q + 1;
@@ -733,7 +723,7 @@ LOOP:
         else
         {
             // Otherwise, return an error
-            std::cout << "ERROR: Convergence Failed!" << std::endl;
+            Logger::error("Convergence Failed!");
             throw std::exception();
         }
     }
@@ -752,12 +742,12 @@ LOOP:
             y = y_ini;
             jac(t + dt, y);
             iJ = iJ + 1;
-            std::cout << "	WARNING: In BDF2, NaN detected! Trying again with smaller step size... " << std::endl;
+            Logger::warning("In BDF2, NaN detected! Trying again with smaller step size...");
             goto LOOP;
         }
         else
         {
-            std::cout << std::endl << "ERROR: NaN detected after trying again!" << std::endl;
+            Logger::error("NaN detected after trying again!");
             throw std::exception();
         }
     }
@@ -900,7 +890,7 @@ ESDIRK::ESDIRK(bool a_u, double t_u, double tmax_u, double dt_max_u, double dt_o
     debug_flag = false;
     if (debug_flag)
     {
-        std::cout << "DEBUG: ESDIRK debug file opened!" << std::endl;
+        Logger::debug("ESDIRK debug file opened!");
         // Open the debug file
         char buffer[50];
         int nn = sprintf(buffer, "time_adaptivity_debug.txt");
@@ -919,8 +909,7 @@ ESDIRK::ESDIRK(bool a_u, double t_u, double tmax_u, double dt_max_u, double dt_o
         FILE* pfile1 = fopen(file_path1.c_str(), "r");
         if (pfile1 == NULL)
         {
-            std::cout << "WARNING: ESDIRK time step adaptive data file not found!" << std::endl;
-            std::cout << "         Using default values instead" << std::endl;
+            Logger::warning("ESDIRK time step adaptive data file not found! Using default values instead");
             adaptivity_type = 2;
             adaptivity_smooth_flag = 2;
             adaptivity_smooth_param = 2.0;
@@ -942,14 +931,14 @@ ESDIRK::ESDIRK(bool a_u, double t_u, double tmax_u, double dt_max_u, double dt_o
 
 void ESDIRK::init(void)
 {
-    std::cout << "WARNING: Initialization of ESDIRK not needed!" << std::endl;
+    Logger::warning("Initialization of ESDIRK not needed!");
 }
 
 void ESDIRK::finalize(void)
 {
     if (debug_flag)
     {
-        std::cout << "DEBUG: ESDIRK debug file closed!" << std::endl;
+        Logger::debug("ESDIRK debug file closed!");
         fclose(pfile);
     }
     nNewtonIterAvg = nNewtonIter / nNewton;
@@ -1069,22 +1058,20 @@ LOOP:
                 {
                     if (dt_reduced)
                     {
-                        std::cout << "ERROR: Convergence failed in ESDIRK!" << std::endl;
+                        Logger::error("Convergence failed in ESDIRK!");
                         throw std::exception();
                     }
                     else
                     {
                         dt = dt_ini;
                         dt_reduced = true;
-                        std::cout << "WARNING: In ESDIRK, Maximum number of iterations reached! Trying again with "
-                                     "minimum step size... "
-                                  << std::endl;
+                        Logger::warning("In ESDIRK, Maximum number of iterations reached! Trying again with minimum step size...");
                         goto LOOP;
                     }
                 }
                 else
                 {
-                    std::cout << "ERROR: Convergence failed in ESDIRK!" << std::endl;
+                    Logger::error("Convergence failed in ESDIRK!");
                     throw std::exception();
                 }
             }
@@ -1094,9 +1081,7 @@ LOOP:
                 jac(t, y);
                 jac_updated = true;
                 nSteps = 0;
-                std::cout << "WARNING: In ESDIRK, Maximum number of iterations reached! Trying again with recomputed "
-                             "Jacobean matrix... "
-                          << std::endl;
+                Logger::warning("In ESDIRK, Maximum number of iterations reached! Trying again with recomputed Jacobean matrix...");
                 goto LOOP;
             }
         }
@@ -1280,7 +1265,7 @@ void ESDIRK::compute_dt(void)
     }
     else
     {
-        std::cout << "ERROR: Invalid LTE norm type!" << std::endl;
+        Logger::error("Invalid LTE norm type!");
         throw std::exception();
     }
 
@@ -1321,7 +1306,7 @@ void ESDIRK::compute_dt(void)
     }
     else
     {
-        std::cout << "ERROR: Invalid adaptivity smooth flag!" << std::endl;
+        Logger::error("Invalid adaptivity smooth flag!");
         throw std::exception();
     }
 }

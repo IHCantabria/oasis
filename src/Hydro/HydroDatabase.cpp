@@ -1,3 +1,4 @@
+﻿// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <armadillo>
 #include <iostream>
@@ -15,6 +16,7 @@
 #include "../os_tools.hpp"
 #include "../Waves/Wave.hpp"
 #include "../Exceptions/Exception.hpp"
+#include "../Logger.hpp"
 
 arma::mat HydroDatabase::CalculateHydrodynamicForces(double time)
 {
@@ -153,8 +155,8 @@ void HydroDatabase::ComputeIRF(std::string HDBname)
     pIRF = new arma::cube*[numBodies];
     pIRFPoints = new arma::mat*[numBodies];
 
-    std::cout << "    IRF Time Points: " << numPointsIRF << std::endl;
-    // std::cout << "    Frequency(0): " << (*pFrequencies)(0) << std::endl;
+    Logger::debug("    IRF Time Points: " + std::to_string(numPointsIRF));
+    // // std::cout << "    Frequency(0): " << (*pFrequencies)(0) << std::endl;
     // std::cout << "    Frequency(1): " << (*pFrequencies)(1) << std::endl;
 
     double df = 1.0 / (2.0 * IRFTotalTime);
@@ -199,7 +201,7 @@ void HydroDatabase::ComputeIRF(std::string HDBname)
 
     std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
     int elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    std::cout << "    Time elapsed ComputeIRF: " << elapsed << std::endl;
+    Logger::info("    Time elapsed ComputeIRF: " + std::to_string(elapsed));
 
     char buffer[50];
     for (int ib = 0; ib < numBodies; ib++)
@@ -271,7 +273,7 @@ void HydroDatabase::ComputeAsymptoticAddedMass(std::string HDBname)
 void HydroDatabase::ComputeTotalMass(void)
 {
     // Create total mass matrix and fill with structural data
-    std::cout << "  Creating total mass matrix...\n";
+    Logger::debug("  Creating total mass matrix...");
     pTotalMass = new arma::mat(6, 6 * numBodies, arma::fill::zeros);
     (*pTotalMass)(arma::span(0, 5), arma::span(6 * (pBodies[idBody]->hydroDatabaseIndex),
                                                6 * (pBodies[idBody]->hydroDatabaseIndex + 1) - 1)) = (*pStructuralMass);
@@ -415,19 +417,18 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
     }
     else
     {
-        std::cout << "ERROR: File name does not have a valid extension. \n";
-        std::cout << "       Valid extensions are: .hydb.h5 or .ehydb \n";
+        Logger::error("File name does not have a valid extension. Valid extensions are: .hydb.h5 or .ehydb");
         throw std::exception();
     }
 
     if (hydroDatabaseFlag == 0)
     {
-        std::cout << "  Loading hydrodynamic data from file: " << filePath << "...\n";
+        Logger::info("  Loading hydrodynamic data from file: " + filePath + "...");
         LoadHydroDataEHYDB(filePath);
     }
     else if (hydroDatabaseFlag == 1)
     {
-        std::cout << "  Loading hydrodynamic data from file: " << filePath << "...\n";
+        Logger::info("  Loading hydrodynamic data from file: " + filePath + "...");
         LoadHydroDataH5(filePath);
     }
 
@@ -449,25 +450,25 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
     }
 
     // Compute IRF function
-    std::cout << "  Computing IRF ...\n";
+    Logger::info("  Computing IRF ...");
     this->ComputeIRF(HDBname);
-    std::cout << "  ... computing IRF done!\n";
+    Logger::info("  ... computing IRF done!");
 
     // Compute Asymptotic added mass if it was not loaded from the file
     if (hydroDatabaseFlag == 1 && !hasAsymptoticData)
     {
-        std::cout << "  Computing asymptotic added mass...\n";
+        Logger::info("  Computing asymptotic added mass...");
         this->ComputeAsymptoticAddedMass(HDBname);
-        std::cout << "  ... computing asymptotic added mass done!\n";
+        Logger::info("  ... computing asymptotic added mass done!");
     }
 
     // Compute total mass matrix
-    std::cout << "  Computing total mass matrix...\n";
+    Logger::info("  Computing total mass matrix...");
     this->ComputeTotalMass();
-    std::cout << "  ... computing total mass matrix done!\n";
+    Logger::info("  ... computing total mass matrix done!");
 
     // Load Morison forces data
-    std::cout << "  Reading Morison forces data ...\n";
+    Logger::info("  Reading Morison forces data ...");
     pMor = new Morison(numBodies, pSim);
     pMor->ReadMorisonData();
 }
@@ -475,8 +476,8 @@ void HydroDatabase::LoadHydrodynamicData(std::string filePath)
 void HydroDatabase::LoadHydroDataEHYDB(std::string filePath)
 {
     // Read number of bodies
-    std::cout << "Loading hydrodynamic data from file: " << filePath << "...\n";
-    std::cout << "  Reading number of bodies...\n";
+    Logger::info("Loading hydrodynamic data from file: " + filePath + "...");
+    Logger::debug("  Reading number of bodies...");
     arma::mat num_bodies_mat;
     num_bodies_mat.load(arma::hdf5_name(filePath, "num_bodies"));
     numBodies = num_bodies_mat(0);
@@ -492,13 +493,13 @@ void HydroDatabase::LoadHydroDataEHYDB(std::string filePath)
     }
 
     // Read position of the center of gravity
-    std::cout << "  Reading position of the center of gravity...\n";
+    Logger::debug("  Reading position of the center of gravity...");
     std::stringstream cog_fn;
     cog_fn << "body_" << this->GetId() << "/cog";
     cog.load(arma::hdf5_name(filePath, cog_fn.str()));
 
     // Read frequencies
-    std::cout << "  Reading frequencies...\n";
+    Logger::debug("  Reading frequencies...");
     std::stringstream frequencies_fn;
     pFrequencies = new arma::vec;
     frequencies_fn << "body_" << this->GetId() << "/frequencies";
@@ -506,7 +507,7 @@ void HydroDatabase::LoadHydroDataEHYDB(std::string filePath)
     numFrequencies = pFrequencies->n_rows;
 
     // Read headings (radians)
-    std::cout << "  Reading headings...\n";
+    Logger::debug("  Reading headings...");
     std::stringstream headings_fn;
     pHeadings = new arma::vec;
     headings_fn << "body_" << this->GetId() << "/headings";
@@ -514,21 +515,21 @@ void HydroDatabase::LoadHydroDataEHYDB(std::string filePath)
     numHeadings = pHeadings->n_rows;
 
     // Read hydrostatic stiffness
-    std::cout << "  Reading hydrostatic matrix...\n";
+    Logger::debug("  Reading hydrostatic matrix...");
     std::stringstream hydrostatic_stiffness_fn;
     pHydrostaticStiffness = new arma::mat;
     hydrostatic_stiffness_fn << "body_" << this->GetId() << "/hydstiffness";
     pHydrostaticStiffness->load(arma::hdf5_name(filePath, hydrostatic_stiffness_fn.str(), arma::hdf5_opts::trans));
 
     // Read structural mass properties
-    std::cout << "  Reading structural mass...\n";
+    Logger::debug("  Reading structural mass...");
     std::stringstream structural_mass_fn;
     pStructuralMass = new arma::mat;
     structural_mass_fn << "body_" << this->GetId() << "/mass";
     pStructuralMass->load(arma::hdf5_name(filePath, structural_mass_fn.str(), arma::hdf5_opts::trans));
 
     // Read Added Mass
-    std::cout << "  Reading Added Mass...\n";
+    Logger::debug("  Reading Added Mass...");
     std::stringstream added_mass_fn;
     pAddedMass = new arma::cube*[numBodies];
     for (int ii = 0; ii < numBodies; ii++)
@@ -540,7 +541,7 @@ void HydroDatabase::LoadHydroDataEHYDB(std::string filePath)
     }
 
     // Read High frequency asymptotic added mass
-    std::cout << "  Reading high frequency...\n";
+    Logger::debug("  Reading high frequency asymptotic added mass...");
     std::stringstream added_mass_hf_fn;
     pAddedMassHf = new arma::mat*[numBodies];
     for (int ii = 0; ii < numBodies; ii++)
@@ -552,7 +553,7 @@ void HydroDatabase::LoadHydroDataEHYDB(std::string filePath)
     }
 
     // Read Low frequency asymptotic added mass
-    std::cout << "  Reading low frequency added mass...\n";
+    Logger::debug("  Reading low frequency added mass...");
     std::stringstream added_mass_lf_fn;
     pAddedMassLf = new arma::mat*[numBodies];
     for (int ii = 0; ii < numBodies; ii++)
@@ -564,7 +565,7 @@ void HydroDatabase::LoadHydroDataEHYDB(std::string filePath)
     }
 
     // Read wave radiation damping coeffients
-    std::cout << "  Reading wave radiation damping...\n";
+    Logger::debug("  Reading wave radiation damping...");
     std::stringstream damping_radiation_fn;
     pDampingRadiation = new arma::cube*[numBodies];
     for (int ii = 0; ii < numBodies; ii++)
@@ -576,7 +577,7 @@ void HydroDatabase::LoadHydroDataEHYDB(std::string filePath)
     }
 
     // Read low frequency asymptotic wave radiation damping
-    std::cout << "  Reading load frequency asymptotic wave radiation damping...\n";
+    Logger::debug("  Reading low frequency asymptotic wave radiation damping...");
     std::stringstream damping_radiation_lf_fn;
     pDampingRadiationLf = new arma::mat*[numBodies];
     for (int ii = 0; ii < numBodies; ii++)
@@ -588,7 +589,7 @@ void HydroDatabase::LoadHydroDataEHYDB(std::string filePath)
     }
 
     // Read Wave exciting data
-    std::cout << "  Reading wave exciting data...\n";
+    Logger::debug("  Reading wave exciting data...");
     std::stringstream wave_exciting_mag_fn;
     if (pBodies[idBody]->flag_hydrostatics == 2)
     {
@@ -616,7 +617,7 @@ void HydroDatabase::LoadHydroDataEHYDB(std::string filePath)
     if (pBodies[idBody]->secondOrderExcitationFlag > 0 && pBodies[idBody]->secondOrderExcitationFlag < 4)
     {
         // Read QTF data
-        std::cout << "  Reading QTF data...\n";
+        Logger::debug("  Reading QTF data...");
         std::stringstream qtf_diff_fn;
         std::stringstream qtf_sum_fn;
         pQtfDiff = new arma::cube**[2];
@@ -642,7 +643,7 @@ void HydroDatabase::LoadHydroDataEHYDB(std::string filePath)
             }
         }
 
-        std::cout << "  Computing mean drift coefficients...\n";
+        Logger::debug("  Computing mean drift coefficients...");
         pMeanDrift = new arma::cube(activeDofs, numFrequencies, numHeadings, arma::fill::zeros);
         int my_count = 0;
         double temp_value = 0.0;
@@ -661,7 +662,7 @@ void HydroDatabase::LoadHydroDataEHYDB(std::string filePath)
     if (pBodies[idBody]->secondOrderExcitationFlag == 4)
     {
         // Read mean drift coefficients
-        std::cout << "Reading mean drift coefficients...\n";
+        Logger::debug("Reading mean drift coefficients...");
         std::stringstream mean_drift_fn;
         pMeanDrift = new arma::cube;
         mean_drift_fn << "body_" << this->GetId() << "/mean_drift";
@@ -688,7 +689,7 @@ void HydroDatabase::LoadHydroDataH5(std::string filePath)
     hsize_t numFrequencies_t;
     frequenciesSpace.getSimpleExtentDims(&numFrequencies_t, NULL);
     numFrequencies = numFrequencies_t;
-    std::cout << "Number of frequencies: " << numFrequencies << std::endl;
+    Logger::debug("Number of frequencies: " + std::to_string(numFrequencies));
     // Allocate memory for the frequencies buffer
     double* buffer_frequencies = new double[numFrequencies];
     // Read the frequencies data
@@ -711,7 +712,7 @@ void HydroDatabase::LoadHydroDataH5(std::string filePath)
     hsize_t numHeadings_t;
     headingsSpace.getSimpleExtentDims(&numHeadings_t, NULL);
     numHeadings = numHeadings_t;
-    std::cout << "Number of headings: " << numHeadings << std::endl;
+    Logger::debug("Number of headings: " + std::to_string(numHeadings));
     // Allocate memory for the headings buffer
     double* buffer_headings = new double[numHeadings];
     // Read the headings data
@@ -739,12 +740,12 @@ void HydroDatabase::LoadHydroDataH5(std::string filePath)
            << std::endl;
         throw IOError(ss.str());
     }
-    std::cout << "Number of bodies: " << numBodies << std::endl;
+    Logger::debug("Number of bodies: " + std::to_string(numBodies));
     // Close the group
     meshGroup.close();
 
     // Read the "added_mass" and "damping_rad" datasets which are 5D arrays [numBodies, numBodies, numFrequencies, 6, 6]
-    std::cout << "Reading added mass and damping radiation data...\n";
+    Logger::debug("Reading added mass and damping radiation data...");
     H5::DataSet addedMassDataset = file.openDataSet("/added_mass");
     H5::DataSpace addedMassSpace = addedMassDataset.getSpace();
     hsize_t dims_am[5];
@@ -797,7 +798,7 @@ void HydroDatabase::LoadHydroDataH5(std::string filePath)
     // "froude_krylov_force_mag", "froude_krylov_force_pha"
     // "wave_exciting_mag" and "wave_exciting_pha"
     // datasets which are 4D arrays [numHeadings, numBodies, numFrequencies, 6]
-    std::cout << "Reading diffraction force magnitude and phase data...\n";
+    Logger::debug("Reading diffraction force magnitude and phase data...");
     // Open "diffraction_force_mag"
     H5::DataSet diffractionForceMagDataset = file.openDataSet("/diffraction_force_mag");
     H5::DataSpace diffractionForceMagSpace = diffractionForceMagDataset.getSpace();
@@ -903,7 +904,7 @@ void HydroDatabase::LoadHydroDataH5(std::string filePath)
     delete[] buffer_wave_exciting_pha;
 
     // Read the "hydstiffness" and "mass" datasets which are 3D arrays [numBodies, 6, 6]
-    std::cout << "Reading hydrostatic stiffness and mass data...\n";
+    Logger::debug("Reading hydrostatic stiffness and mass data...");
     // Open "hydstiffness"
     H5::DataSet hydrostaticStiffnessDataset = file.openDataSet("/hydstiffness");
     H5::DataSpace hydrostaticStiffnessSpace = hydrostaticStiffnessDataset.getSpace();
@@ -959,14 +960,14 @@ void HydroDatabase::LoadHydroDataH5(std::string filePath)
         }
         else
         {
-            std::cout << "WARNING: QTF data not found in file. \n";
+            Logger::warning("QTF data not found in file.");
         }
     }
     else
     {
         if (pBodies[idBody]->secondOrderExcitationFlag > 0 && pBodies[idBody]->secondOrderExcitationFlag < 4)
         {
-            std::cout << "Reading QTF data...\n";
+            Logger::debug("Reading QTF data...");
             // Open "qtf_diff_mag"
             H5::DataSet qtfDiffMagDataset = file.openDataSet("/qtf_diff_mag");
             H5::DataSpace qtfDiffMagSpace = qtfDiffMagDataset.getSpace();
@@ -1072,12 +1073,12 @@ void HydroDatabase::LoadHydroDataH5(std::string filePath)
         }
         else
         {
-            std::cout << "WARNING: Mean drift data not found in file. \n";
+            Logger::warning("Mean drift data not found in file.");
         }
     }
     else
     {
-        std::cout << "Reading mean drift data...\n";
+        Logger::debug("Reading mean drift data...");
         H5::DataSet meanDriftMagDataset = file.openDataSet("/mean_drift_mag");
         H5::DataSpace meanDriftMagSpace = meanDriftMagDataset.getSpace();
         hsize_t dims_mdm[4];
@@ -1112,7 +1113,7 @@ void HydroDatabase::LoadHydroDataH5(std::string filePath)
     // Load asymptotic added mass and damping radiation from file when available
     if (file.nameExists("/added_mass_hf") && file.nameExists("/added_mass_lf") && file.nameExists("/damping_rad_lf"))
     {
-        std::cout << "  Reading asymptotic added mass and damping radiation from file...\n";
+        Logger::debug("  Reading asymptotic added mass and damping radiation from file...");
 
         // Read added_mass_hf and added_mass_lf: 4D [numBodies, numBodies, 6, 6]
         H5::DataSet amHfDataset = file.openDataSet("/added_mass_hf");
@@ -1157,7 +1158,7 @@ void HydroDatabase::LoadHydroDataH5(std::string filePath)
         delete[] buffer_dr_lf;
 
         hasAsymptoticData = true;
-        std::cout << "  ... asymptotic data loaded from file!\n";
+        Logger::debug("  ... asymptotic data loaded from file!");
     }
 
     // Close the file
@@ -1445,9 +1446,7 @@ void HydroDatabase::SetUp(void)
     arma::uvec ind_wave_freqs = arma::regspace<arma::uvec>(0, pWave->num_comps_piece - 1);
     if (((*pFrequencies).min() > (pWave->freqs_piece).min()) || ((*pFrequencies).max() < (pWave->freqs_piece).max()))
     {
-        std::cout
-            << "    --> WARNING: The frequencies provided in the hydrodinamic data base do not cover properly the wave!"
-            << std::endl;
+        Logger::warning("The frequencies provided in the hydrodinamic data base do not cover properly the wave!");
         ind_wave_freqs =
             arma::find((pWave->freqs_piece >= (*pFrequencies).min()) && (pWave->freqs_piece <= (*pFrequencies).max()));
     }
@@ -1589,7 +1588,11 @@ void HydroDatabase::SetUp(void)
         if (pBodies[idBody]->secondOrderExcitationFlag == 3 || pBodies[idBody]->secondOrderExcitationFlag == 4)
         {
             pBodies[idBody]->excitationForces_2 = F_meanDrift;
-            std::cout << "Computed mean drift: \n" << F_meanDrift << "\n";
+            {
+                std::ostringstream oss;
+                oss << "Computed mean drift:\n" << F_meanDrift;
+                Logger::debug(oss.str());
+            }
         }
     }
 
@@ -1605,9 +1608,7 @@ void HydroDatabase::SetUp(void)
         // TODO: Precompute first order forces
         if (pSim->simulationTime <= 0)
         {
-            std::cout << "WARNING: Precomputed first order forces not implemented yet. \n"
-                         "         Using limited instant position version instead. \n"
-                      << std::endl;
+            Logger::warning("Precomputed first order forces not implemented yet. Using limited instant position version instead.");
         }
     }
     if (pBodies[idBody]->secondOrderExcitationFlag == 1)
@@ -1615,9 +1616,7 @@ void HydroDatabase::SetUp(void)
         // TODO: Precompute second order forces
         if (pSim->simulationTime <= 0)
         {
-            std::cout << "WARNING: Precomputed second order forces not implemented yet. \n"
-                         "         Using limited instant position version instead. \n"
-                      << std::endl;
+            Logger::warning("Precomputed second order forces not implemented yet. Using limited instant position version instead.");
         }
     }
 
@@ -1637,9 +1636,9 @@ arma::mat HydroDatabase::ComputeMeanDrift(void)
 
 void HydroDatabase::Print()
 {
-    std::cout << "Number of bodies associated: " << numBodies << std::endl;
-    std::cout << "Number of frequencies: " << numFrequencies << std::endl;
-    std::cout << "Number of headings: " << numHeadings << std::endl;
+    Logger::debug("Number of bodies associated: " + std::to_string(numBodies));
+    Logger::debug("Number of frequencies: " + std::to_string(numFrequencies));
+    Logger::debug("Number of headings: " + std::to_string(numHeadings));
 }
 
 void HydroDatabase::InterpolateHydro(HydroDatabase* pHydro1, HydroDatabase* pHydro2, double interpCoef)

@@ -1,3 +1,4 @@
+﻿// SPDX-License-Identifier: GPL-3.0-or-later
 #ifndef morisondef_hpp__
 #define morisondef_hpp__
 #include <armadillo>

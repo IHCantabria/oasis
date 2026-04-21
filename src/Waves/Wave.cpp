@@ -1,3 +1,4 @@
+﻿// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <armadillo>
 #include <tuple>
@@ -9,6 +10,7 @@
 #include "../MathTools.hpp"
 #include "../os_tools.hpp"
 #include "../Simulations/Simulation.hpp"
+#include "../Logger.hpp"
 
 Wave::Wave(Simulation* pSimInc, double H, double T, double D, double RT)
 {
@@ -67,7 +69,7 @@ void Wave::SetZeroHeight(void)
 
 void Wave::CheckBreakingWave(void)
 {
-    std::cout << "    --> Checking wave breaking limits..." << std::endl;
+    Logger::info("    --> Checking wave breaking limits...");
 
     double lambda = solve_lambda(period);
     double hL = waterDepth / lambda;
@@ -85,23 +87,25 @@ void Wave::CheckBreakingWave(void)
 
     if (height > hmax)
     {
-        std::cout << "    --> ... WARNING: The wave is outside of the breaking limits! (hmax = " << hmax
-                  << "; height = " << height << ")" << std::endl;
+        std::ostringstream oss;
+        oss << "    --> ... WARNING: The wave is outside of the breaking limits! (hmax = " << hmax
+            << "; height = " << height << ")";
+        Logger::warning(oss.str());
     }
     else
     {
-        std::cout << "    --> ... wave within wave breaking limits!" << std::endl;
+        Logger::info("    --> ... wave within wave breaking limits!");
     }
 }
 
 void Wave::GetWaveLengths(void)
 {
-    std::cout << "    --> Computing wave lengths..." << std::endl;
+    Logger::info("    --> Computing wave lengths...");
 
     std::tie(this->lambdas, this->k, this->kx, this->ky, this->kx_1D, this->ky_1D) =
         this->GetWaveLengths(this->periods, this->headings);
 
-    std::cout << "    --> ... done!" << std::endl;
+    Logger::info("    --> ... done!");
 }
 
 std::tuple<arma::vec, // lambdas
@@ -205,10 +209,10 @@ double Wave::df_lambda(double lambda, double T)
 
 void Wave::GetFreeSurface(void)
 {
-    std::cout << "    --> Computing Free Surface" << std::endl;
+    Logger::info("    --> Computing Free Surface");
     this->t_FS = arma::linspace(0.0, this->simulationTime, this->num_points);
     this->eta_FS = GetFreeSurface(this->amplitudes, this->phases, this->num_points);
-    std::cout << "    --> Free Surface Computed" << std::endl;
+    Logger::info("    --> Free Surface Computed");
 }
 
 arma::vec Wave::GetFreeSurface(arma::mat amplitudes, arma::mat phases, int num_points)
@@ -369,7 +373,7 @@ void Wave::SetSinglePiece(void)
 
 void Wave::WriteOut(std::string path)
 {
-    std::cout << "    --> Writing wave spectrum to output folder..." << std::endl;
+    Logger::info("    --> Writing wave spectrum to output folder...");
 
     char buffer1[50];
     int nn1 = sprintf(buffer1, "WaveSpectrum.txt");
@@ -396,7 +400,7 @@ void Wave::WriteOut(std::string path)
         fprintf(pfile_SPEC, "%.6f  %.8e  %.6f\n", freqs(ii), spectral_density(ii), amp);
     }
     fclose(pfile_SPEC);
-    std::cout << "    --> Wave spectrum written to " << file_path1 << std::endl;
+    Logger::info("    --> Wave spectrum written to " + file_path1);
 
     char buffer2[50];
     int nn2 = sprintf(buffer2, "WaveTimeSeries.txt");
@@ -486,13 +490,13 @@ void IrregularWave::GetWaveSpectrum(void)
         if (this->num_pieces > 1)
         {
             t_FS = arma::regspace(0, this->dt, simulationTime + 2 * this->time_piece) - this->time_piece;
-            std::cout << "    --> Computing Wave Spectrum (JONSWAP) in pieces" << std::endl;
-            std::cout << "    --> Number of pieces: " << this->num_pieces << std::endl;
+            Logger::info("    --> Computing Wave Spectrum (JONSWAP) in pieces");
+            Logger::info("    --> Number of pieces: " + std::to_string(this->num_pieces));
         }
         else
         {
             t_FS = arma::regspace(0, this->dt, simulationTime);
-            std::cout << "    --> Computing Wave Spectrum (JONSWAP) in a single piece" << std::endl;
+            Logger::info("    --> Computing Wave Spectrum (JONSWAP) in a single piece");
         }
         // Compute the frequency spectrum
         num_points = t_FS.n_elem;
@@ -545,7 +549,7 @@ void IrregularWave::GetWaveSpectrum(void)
         // Get the wave lengths
         GetWaveLengths();
 
-        std::cout << "    --> Wave Spectrum Computed" << std::endl;
+        Logger::info("    --> Wave Spectrum Computed");
     }
     else if (specType_flag == 2)
     {
@@ -575,7 +579,7 @@ void IrregularWave::GetWaveSpectrum(void)
         // No piecewise decomposition for frequency domain waves
         num_pieces = 1;
         time_piece = simulationTime;
-        std::cout << "    --> Frequency domain wave read without piecewise decomposition" << std::endl;
+        Logger::info("    --> Frequency domain wave read without piecewise decomposition");
     }
     else
     {
@@ -681,7 +685,7 @@ void IrregularWave::GetCheckedFreeSurface(void)
     {
         int ii = 1;
         int nIterMax = 200;
-        std::cout << "    --> Generating random phases..." << std::endl;
+        Logger::info("    --> Generating random phases...");
         while ((flag == 0) && (ii <= nIterMax))
         {
             this->phases = arma::randn(size(this->amplitudes)) * arma::datum::pi;
@@ -690,7 +694,7 @@ void IrregularWave::GetCheckedFreeSurface(void)
             ii++;
             if (flag == 0)
             {
-                std::cout << "    --> Iteration: " << ii << " / " << nIterMax << std::endl;
+                Logger::debug("    --> Iteration: " + std::to_string(ii) + " / " + std::to_string(nIterMax));
             }
         }
         if (flag == 0)
@@ -701,14 +705,14 @@ void IrregularWave::GetCheckedFreeSurface(void)
         }
         else
         {
-            std::cout << "    --> ... random phases generated!" << std::endl;
+            Logger::info("    --> ... random phases generated!");
             // Save the original phases to write them out without zero-cutting
             original_phases = phases;
         }
     }
     else if (readPhases_flag == 1)
     {
-        std::cout << "    --> Reading wave phases..." << std::endl;
+        Logger::info("    --> Reading wave phases...");
         arma::mat phases_tmp;
         phases_tmp.load(this->filePhases_path, arma::arma_ascii);
         int num_comps_tmp = phases_tmp.n_rows;
@@ -734,7 +738,7 @@ void IrregularWave::GetCheckedFreeSurface(void)
         }
         else
         {
-            std::cout << "    --> ... wave phases read!" << std::endl;
+            Logger::info("    --> ... wave phases read!");
         }
     }
     else
@@ -776,8 +780,8 @@ int IrregularWave::CheckPhases(arma::vec t, arma::vec eta)
         }
         else
         {
-            std::cout << "      --> Tmean: " << Tmean << " / " << TmeanC << std::endl;
-            std::cout << "      --> Hsig: " << Hsig << " / " << HsigC << std::endl;
+            Logger::debug("      --> Tmean: " + std::to_string(Tmean) + " / " + std::to_string(TmeanC));
+            Logger::debug("      --> Hsig: " + std::to_string(Hsig) + " / " + std::to_string(HsigC));
         }
     }
     else
@@ -789,9 +793,9 @@ int IrregularWave::CheckPhases(arma::vec t, arma::vec eta)
         }
         else
         {
-            std::cout << "      --> Tmean: " << Tmean << " / " << TmeanC << std::endl;
-            std::cout << "      --> Hsig: " << Hsig << " / " << HsigC << std::endl;
-            std::cout << "      --> Hmax: " << Hmax << " / " << HmaxC << std::endl;
+            Logger::debug("      --> Tmean: " + std::to_string(Tmean) + " / " + std::to_string(TmeanC));
+            Logger::debug("      --> Hsig: " + std::to_string(Hsig) + " / " + std::to_string(HsigC));
+            Logger::debug("      --> Hmax: " + std::to_string(Hmax) + " / " + std::to_string(HmaxC));
         }
     }
 
@@ -801,7 +805,7 @@ int IrregularWave::CheckPhases(arma::vec t, arma::vec eta)
 void IrregularWave::CutSpectrumZeros(void)
 {
     // Crop the spectrum to avoid zeros
-    std::cout << "    --> Cropping spectrum to avoid zeros..." << std::endl;
+    Logger::info("    --> Cropping spectrum to avoid zeros...");
 
     int number_components_original = this->num_comps * this->num_headings;
 
@@ -833,13 +837,12 @@ void IrregularWave::CutSpectrumZeros(void)
     ky_1D = ky_1D.elem(ind_rows);
 
     int number_components_cropped = this->num_comps * this->num_headings;
-    std::cout << "    --> ... pieces spectrum cropped! From " << number_components_original << " to "
-              << number_components_cropped << std::endl;
+    Logger::info("    --> ... pieces spectrum cropped! From " + std::to_string(number_components_original) + " to " + std::to_string(number_components_cropped));
 }
 
 void IrregularWave::ReadWaveTimeSeries(void)
 {
-    std::cout << "    --> Reading and processing wave time series..." << std::endl;
+    Logger::info("    --> Reading and processing wave time series...");
 
     // Declare local variables
     int nn;
@@ -913,12 +916,12 @@ void IrregularWave::ReadWaveTimeSeries(void)
     GetWaveLengths();
     GetFreeSurface();
 
-    std::cout << "    --> ...done!" << std::endl;
+    Logger::info("    --> ...done!");
 }
 
 void IrregularWave::ReadWavePSD(void)
 {
-    std::cout << "    --> Reading wave frequency domain data..." << std::endl;
+    Logger::info("    --> Reading wave frequency domain data...");
 
     // Declare local variables
     int nn;
@@ -946,7 +949,7 @@ void IrregularWave::ReadWavePSD(void)
     arma::vec phases_read = arma::zeros(nn);
 
     // Read the frequency, heading, amplitude, and phase from file
-    std::cout << "    --> Reading " << nn << " frequency components..." << std::endl;
+    Logger::info("    --> Reading " + std::to_string(nn) + " frequency components...");
     for (int ii = 0; ii < nn; ii++)
     {
         // frequency [Hz]
@@ -967,7 +970,7 @@ void IrregularWave::ReadWavePSD(void)
     // Close file
     fclose(file_pointer);
 
-    std::cout << "    --> Processing frequency domain data..." << std::endl;
+    Logger::info("    --> Processing frequency domain data...");
 
     // Find unique frequencies and headings
     arma::vec freqs_unique = arma::unique(freqs_read);
@@ -976,10 +979,9 @@ void IrregularWave::ReadWavePSD(void)
     num_comps = freqs_unique.n_elem;
     num_headings = headings_unique.n_elem;
 
-    std::cout << "    --> Number of unique frequencies: " << num_comps << std::endl;
-    std::cout << "    --> Number of unique headings: " << num_headings << std::endl;
-    std::cout << "    --> Frequency range: " << freqs_unique.min() << " to " << freqs_unique.max() << " Hz"
-              << std::endl;
+    Logger::info("    --> Number of unique frequencies: " + std::to_string(num_comps));
+    Logger::info("    --> Number of unique headings: " + std::to_string(num_headings));
+    Logger::info("    --> Frequency range: " + std::to_string(freqs_unique.min()) + " to " + std::to_string(freqs_unique.max()) + " Hz");
 
     // Set frequency-related variables
     freqs = freqs_unique;
@@ -1082,8 +1084,8 @@ void IrregularWave::ReadWavePSD(void)
     // Compute significant wave parameters for output
     double Hs = 4.0 * std::sqrt(arma::sum(spectral_density) * df);
     double Tp = 1.0 / freqs(arma::index_max(spectral_density));
-    std::cout << "    --> Computed Hs = " << Hs << " m" << std::endl;
-    std::cout << "    --> Computed Tp = " << Tp << " s" << std::endl;
+    Logger::info("    --> Computed Hs = " + std::to_string(Hs) + " m");
+    Logger::info("    --> Computed Tp = " + std::to_string(Tp) + " s");
 
     // No piecewise decomposition for frequency domain input
     num_pieces = 1;
@@ -1093,22 +1095,22 @@ void IrregularWave::ReadWavePSD(void)
     // Compute wave lengths
     GetWaveLengths();
 
-    std::cout << "    --> ...done!" << std::endl;
+    Logger::info("    --> ...done!");
 }
 
 void IrregularWave::FindSpectrumWidth(void)
 {
-    std::cout << "    --> Computing wave spectrum width" << std::endl;
+    Logger::info("    --> Computing wave spectrum width");
     // Define the search frequency vector
     arma::vec fm = arma::linspace(0.0, 1.0, 100001);
     if (specType_flag == 1)
     {
         // Search of FWHM Jonswap spectrum
-        std::cout << "    --> Computing Wave JONSWAP with finer frequency step..." << std::endl;
+        Logger::info("    --> Computing Wave JONSWAP with finer frequency step...");
         arma::vec S = GetJonswapSpectrum(fm, this->height, this->period, this->gamma);
-        std::cout << "    --> ...done!" << std::endl;
+        Logger::info("    --> ...done!");
 
-        std::cout << "    --> Find spectrum peak..." << std::endl;
+        Logger::debug("    --> Find spectrum peak...");
         double Smax = S.max();
         if (Smax == 0)
         {
@@ -1116,26 +1118,26 @@ void IrregularWave::FindSpectrumWidth(void)
             ss << "Error while parsing file: dataWaves.dat; Zero spectrum peak. \n";
             throw ValueError(ss.str());
         }
-        std::cout << "    --> ...done!" << std::endl;
+        Logger::debug("    --> ...done!");
 
-        std::cout << "    --> Find first spectrum half height crossing..." << std::endl;
+        Logger::debug("    --> Find first spectrum half height crossing...");
         arma::uvec i1 = arma::find(S > (Smax / 2), 1, "first");
         double f1 = arma::as_scalar(fm(i1));
-        std::cout << "    --> ...done!" << std::endl;
+        Logger::debug("    --> ...done!");
 
-        std::cout << "    --> Find last spectrum half height crossing..." << std::endl;
+        Logger::debug("    --> Find last spectrum half height crossing...");
         arma::uvec i2 = arma::find(S > (Smax / 2), 1, "last");
         double f2 = arma::as_scalar(fm(i2));
-        std::cout << "    --> ...done!" << std::endl;
+        Logger::debug("    --> ...done!");
 
         this->spectrum_width = f2 - f1;
-        std::cout << "    --> Spectrum width (FWHM): " << this->spectrum_width << " Hz" << std::endl;
+        Logger::info("    --> Spectrum width (FWHM): " + std::to_string(this->spectrum_width) + " Hz");
     }
     else if (specType_flag == 2)
     {
         // For time series, compute FWHM from the spectral density
         // First, smooth the spectrum to handle noise
-        std::cout << "    --> Smoothing spectrum to handle noise..." << std::endl;
+        Logger::debug("    --> Smoothing spectrum to handle noise...");
 
         // Apply moving average filter
         int window_size = std::max(5, static_cast<int>(this->num_comps / 100)); // Use ~1% of spectrum as window
@@ -1154,9 +1156,9 @@ void IrregularWave::FindSpectrumWidth(void)
             S_smoothed(ii) = sum / window_size;
         }
 
-        std::cout << "    --> Smoothing complete (window size: " << window_size << " points)" << std::endl;
+        Logger::debug("    --> Smoothing complete (window size: " + std::to_string(window_size) + " points)");
 
-        std::cout << "    --> Find spectrum peak..." << std::endl;
+        Logger::debug("    --> Find spectrum peak...");
         double Smax = S_smoothed.max();
         if (Smax == 0)
         {
@@ -1164,9 +1166,9 @@ void IrregularWave::FindSpectrumWidth(void)
             ss << "Error: Zero spectrum peak in time series data. \n";
             throw ValueError(ss.str());
         }
-        std::cout << "    --> Maximum smoothed spectral density: " << Smax << " m^2/Hz" << std::endl;
+        Logger::debug("    --> Maximum smoothed spectral density: " + std::to_string(Smax) + " m^2/Hz");
 
-        std::cout << "    --> Find first spectrum half height crossing..." << std::endl;
+        Logger::debug("    --> Find first spectrum half height crossing...");
         arma::uvec i1 = arma::find(S_smoothed > (Smax / 2), 1, "first");
         if (i1.n_elem == 0)
         {
@@ -1175,9 +1177,9 @@ void IrregularWave::FindSpectrumWidth(void)
             throw ValueError(ss.str());
         }
         double f1 = arma::as_scalar(this->freqs(i1));
-        std::cout << "    --> f1 (half-max): " << f1 << " Hz" << std::endl;
+        Logger::debug("    --> f1 (half-max): " + std::to_string(f1) + " Hz");
 
-        std::cout << "    --> Find last spectrum half height crossing..." << std::endl;
+        Logger::debug("    --> Find last spectrum half height crossing...");
         arma::uvec i2 = arma::find(S_smoothed > (Smax / 2), 1, "last");
         if (i2.n_elem == 0)
         {
@@ -1186,10 +1188,10 @@ void IrregularWave::FindSpectrumWidth(void)
             throw ValueError(ss.str());
         }
         double f2 = arma::as_scalar(this->freqs(i2));
-        std::cout << "    --> f2 (half-max): " << f2 << " Hz" << std::endl;
+        Logger::debug("    --> f2 (half-max): " + std::to_string(f2) + " Hz");
 
         this->spectrum_width = f2 - f1;
-        std::cout << "    --> Spectrum width (FWHM): " << this->spectrum_width << " Hz" << std::endl;
+        Logger::info("    --> Spectrum width (FWHM): " + std::to_string(this->spectrum_width) + " Hz");
     }
     else if (specType_flag == 3)
     {
@@ -1203,41 +1205,41 @@ void IrregularWave::FindSpectrumWidth(void)
         ss << "Error while parsing file: dataWaves.dat; Unexpected spectrum type. \n";
         throw ValueError(ss.str());
     }
-    std::cout << "    --> ... done!" << std::endl;
+    Logger::info("    --> ... done!");
 }
 
 void IrregularWave::GetPiecesNumber(void)
 {
-    std::cout << "    --> Computing number of pieces to divide wave time series..." << std::endl;
+    Logger::info("    --> Computing number of pieces to divide wave time series...");
     double time_sim = this->simulationTime;
     int tmp_int;
 
-    std::cout << "    --> Computing the gap time between two pieces..." << std::endl;
+    Logger::info("    --> Computing the gap time between two pieces...");
     this->time_gap = std::min(1.2 * this->period, time_sim * (0.5 - std::sqrt(6.0) / 6.0));
-    std::cout << "        --> Time gap: " << this->time_gap << " s" << std::endl;
+    Logger::info("        --> Time gap: " + std::to_string(this->time_gap) + " s");
 
-    std::cout << "    --> Imposing basic constraints..." << std::endl;
+    Logger::info("    --> Imposing basic constraints...");
     // Constraint given because each piece uses 3*time_piece for fft spectrum computation
     int n_min = 4;
-    std::cout << "        --> n_min: 4" << std::endl;
+    Logger::debug("        --> n_min: 4");
     // Constraint to avoid gap times overlapping
     int n_max = std::floor((time_sim - this->time_gap) / this->time_gap);
-    std::cout << "        --> n_max: " << n_max << std::endl;
+    Logger::debug("        --> n_max: " + std::to_string(n_max));
 
     // Check the maximum frequency step constraint
     if (this->time_gap < 1.0 / (3.0 * this->df_max))
     {
-        std::cout << "    --> Imposing maximum frequency step constraint..." << std::endl;
+        Logger::debug("    --> Imposing maximum frequency step constraint...");
         tmp_int =
             std::floor(3.0 * this->df_max * (time_sim - this->time_gap) / (1.0 - 3.0 * this->df_max * this->time_gap));
         n_max = std::min(n_max, tmp_int);
-        std::cout << "        --> n_max (frequency): " << n_max << std::endl;
+        Logger::debug("        --> n_max (frequency): " + std::to_string(n_max));
     }
 
     // Check the memory saving constraints
     // For piecewise to save memory: C(n) < C(1) where C(n) = (time_sim + (n-1)*time_gap)^2 / n
     // This yields: 1 < n < (time_sim/time_gap - 1)^2 for time_sim/time_gap >= 2
-    std::cout << "    --> Checking memory saving constraints..." << std::endl;
+    Logger::debug("    --> Checking memory saving constraints...");
     double ratio = time_sim / this->time_gap;
     if (ratio >= 2.0)
     {
@@ -1248,25 +1250,24 @@ void IrregularWave::GetPiecesNumber(void)
         if (n_min < n_min_memory)
         {
             n_min = n_min_memory;
-            std::cout << "        --> n_min (memory): " << n_min << std::endl;
+            Logger::debug("        --> n_min (memory): " + std::to_string(n_min));
         }
         if (n_max > n_max_memory)
         {
             n_max = n_max_memory;
-            std::cout << "        --> n_max (memory): " << n_max << std::endl;
+            Logger::debug("        --> n_max (memory): " + std::to_string(n_max));
         }
-        std::cout << "        --> Memory constraint: 1 < n < " << n_max_memory << " (ratio = " << ratio << ")"
-                  << std::endl;
+        Logger::debug("        --> Memory constraint: 1 < n < " + std::to_string(n_max_memory) + " (ratio = " + std::to_string(ratio) + ")");
     }
     else
     {
-        std::cout << "        --> WARNING: time_sim/time_gap = " << ratio << " < 2" << std::endl;
-        std::cout << "        --> Piecewise representation will NOT provide memory savings!" << std::endl;
-        std::cout << "        --> Consider using single-piece representation (piecewise_flag = 0)" << std::endl;
+        Logger::warning("        --> time_sim/time_gap = " + std::to_string(ratio) + " < 2");
+        Logger::warning("        --> Piecewise representation will NOT provide memory savings!");
+        Logger::warning("        --> Consider using single-piece representation (piecewise_flag = 0)");
     }
 
     // If it is possible, get the optimum number of pieces
-    std::cout << "    --> Finding optimum number of pieces..." << std::endl;
+    Logger::info("    --> Finding optimum number of pieces...");
     if (n_min <= n_max)
     {
         double cost_min = std::pow(time_sim + (n_min - 1) * this->time_gap, 2) / n_min;
@@ -1302,30 +1303,30 @@ void IrregularWave::GetPiecesNumber(void)
                 this->num_pieces = n_max;
             }
         }
-        std::cout << "        --> Optimum number of pieces: " << this->num_pieces << std::endl;
+Logger::info("        --> Optimum number of pieces: " + std::to_string(this->num_pieces));
     }
     else
     {
-        std::cout << "        --> It is not worthed to split the wave in pieces!" << std::endl;
+        Logger::info("        --> It is not worthed to split the wave in pieces!");
         this->num_pieces = 1;
     }
     this->time_piece = (this->simulationTime + (this->num_pieces - 1) * this->time_gap) / this->num_pieces;
-    std::cout << "    --> ... done!" << std::endl;
+    Logger::info("    --> ... done!");
 }
 
 void IrregularWave::GetPiecesWaveLengths(void)
 {
-    std::cout << "    --> Getting pieces wave lengths..." << std::endl;
+    Logger::info("    --> Getting pieces wave lengths...");
 
     std::tie(this->lambdas_piece, this->k_piece, this->kx_piece, this->ky_piece, this->kx_1D_piece, this->ky_1D_piece) =
         this->GetWaveLengths(this->periods_piece, this->headings_piece);
 
-    std::cout << "    --> ... pieces wave lengths computed!" << std::endl;
+    Logger::info("    --> ... pieces wave lengths computed!");
 }
 
 void IrregularWave::CutPiecesSpectrumZeros(void)
 {
-    std::cout << "    --> Cropping pieces spectrum to avoid zeros..." << std::endl;
+    Logger::info("    --> Cropping pieces spectrum to avoid zeros...");
 
     // Find the maximum amplitude value among the pieces
     int number_components_original = this->num_comps_piece * this->num_headings_piece;
@@ -1383,25 +1384,25 @@ void IrregularWave::CutPiecesSpectrumZeros(void)
     this->num_comps_piece = ind_rows.n_elem;
     this->num_headings_piece = ind_cols.n_elem;
     int number_components_cropped = this->num_comps_piece * this->num_headings_piece;
-    std::cout << "        -> cropping periods..." << std::endl;
+    Logger::debug("        -> cropping periods...");
     this->periods_piece = this->periods_piece.elem(ind_rows);
-    std::cout << "        -> cropping freqs..." << std::endl;
+    Logger::debug("        -> cropping freqs...");
     this->freqs_piece = this->freqs_piece.elem(ind_rows);
-    std::cout << "        -> cropping ang_freqs..." << std::endl;
+    Logger::debug("        -> cropping ang_freqs...");
     this->ang_freqs_piece = this->ang_freqs_piece.elem(ind_rows);
-    std::cout << "        -> cropping headings..." << std::endl;
+    Logger::debug("        -> cropping headings...");
     this->headings_piece = this->headings_piece.elem(ind_cols);
-    std::cout << "        -> cropping wave numbers..." << std::endl;
+    Logger::debug("        -> cropping wave numbers...");
     this->k_piece = this->k_piece.elem(ind_rows);
-    std::cout << "        -> cropping wave numbers 2D (X)..." << std::endl;
+    Logger::debug("        -> cropping wave numbers 2D (X)...");
     this->kx_piece = this->kx_piece.submat(ind_rows, ind_cols);
-    std::cout << "        -> cropping wave numbers 2D (Y)..." << std::endl;
+    Logger::debug("        -> cropping wave numbers 2D (Y)...");
     this->ky_piece = this->ky_piece.submat(ind_rows, ind_cols);
-    std::cout << "        -> cropping wave numbers 1D (X)..." << std::endl;
+    Logger::debug("        -> cropping wave numbers 1D (X)...");
     this->kx_1D_piece = this->kx_1D_piece.elem(ind_rows);
-    std::cout << "        -> cropping wave numbers 1D (Y)..." << std::endl;
+    Logger::debug("        -> cropping wave numbers 1D (Y)...");
     this->ky_1D_piece = this->ky_1D_piece.elem(ind_rows);
-    std::cout << "        -> cropping amplitudes..." << std::endl;
+    Logger::debug("        -> cropping amplitudes...");
     for (int ii = 0; ii < this->num_pieces; ii++)
     {
         this->amplitudes_piece(ii) = this->amplitudes_piece(ii).submat(ind_rows, ind_cols);
@@ -1410,8 +1411,7 @@ void IrregularWave::CutPiecesSpectrumZeros(void)
         this->phases_1D_piece(ii) = this->phases_1D_piece(ii).elem(ind_rows);
     }
 
-    std::cout << "    --> ... pieces spectrum cropped! From " << number_components_original << " to "
-              << number_components_cropped << std::endl;
+    Logger::info("    --> ... pieces spectrum cropped! From " + std::to_string(number_components_original) + " to " + std::to_string(number_components_cropped));
 }
 
 void IrregularWave::GetPiecesTimeIntervals(void)
@@ -1438,7 +1438,7 @@ void IrregularWave::GetPiecesTimeIntervals(void)
 
 void IrregularWave::GetPiecesSpectra(void)
 {
-    std::cout << "    --> Computing piecewise spectrums..." << std::endl;
+    Logger::info("    --> Computing piecewise spectrums...");
 
     int number_components_original = this->num_comps * this->num_headings;
 
@@ -1469,10 +1469,10 @@ void IrregularWave::GetPiecesSpectra(void)
     // For time-series data, generate extended synthetic time series from the original spectrum
     if (specType_flag == 2)
     {
-        std::cout << "    --> Using spectrum-based approach for time-series..." << std::endl;
-        std::cout << "    --> Original time series range: " << t_FS(0) << " to " << t_FS.max() << " s" << std::endl;
-        std::cout << "    --> Simulation time: " << this->simulationTime << " s" << std::endl;
-        std::cout << "    --> Time per piece: " << this->time_piece << " s" << std::endl;
+        Logger::info("    --> Using spectrum-based approach for time-series...");
+        Logger::info("    --> Original time series range: " + std::to_string(t_FS(0)) + " to " + std::to_string(t_FS.max()) + " s");
+        Logger::info("    --> Simulation time: " + std::to_string(this->simulationTime) + " s");
+        Logger::info("    --> Time per piece: " + std::to_string(this->time_piece) + " s");
 
         // Determine the required time range for all pieces
         double t_min_required = 1e10;
@@ -1486,8 +1486,7 @@ void IrregularWave::GetPiecesSpectra(void)
             t_max_required = std::max(t_max_required, t_end);
         }
 
-        std::cout << "    --> Required time range for all pieces: " << t_min_required << " to " << t_max_required
-                  << " s" << std::endl;
+        Logger::info("    --> Required time range for all pieces: " + std::to_string(t_min_required) + " to " + std::to_string(t_max_required) + " s");
 
         // Optimize: only generate synthetic data for times outside original range
         arma::vec t_before, eta_before, t_after, eta_after;
@@ -1497,7 +1496,7 @@ void IrregularWave::GetPiecesSpectra(void)
             // Generate synthetic data for negative times
             t_before = arma::regspace(t_min_required, this->dt, -this->dt);
             int n_before = t_before.n_elem;
-            std::cout << "    --> Generating " << n_before << " synthetic points for t < 0 s..." << std::endl;
+            Logger::info("    --> Generating " + std::to_string(n_before) + " synthetic points for t < 0 s...");
 
             eta_before.zeros(n_before);
             for (int ii = 0; ii < this->num_comps; ii++)
@@ -1517,8 +1516,7 @@ void IrregularWave::GetPiecesSpectra(void)
             // Generate synthetic data for times beyond original data
             t_after = arma::regspace(t_FS.max() + this->dt, this->dt, t_max_required);
             int n_after = t_after.n_elem;
-            std::cout << "    --> Generating " << n_after << " synthetic points for t > " << t_FS.max() << " s..."
-                      << std::endl;
+            Logger::info("    --> Generating " + std::to_string(n_after) + " synthetic points for t > " + std::to_string(t_FS.max()) + " s...");
 
             eta_after.zeros(n_after);
             for (int ii = 0; ii < this->num_comps; ii++)
@@ -1557,8 +1555,7 @@ void IrregularWave::GetPiecesSpectra(void)
             eta_combined = eta_FS;
         }
 
-        std::cout << "    --> Combined time series: " << t_combined.n_elem << " points (range: [" << t_combined.min()
-                  << ", " << t_combined.max() << "] s)" << std::endl;
+        Logger::info("    --> Combined time series: " + std::to_string(t_combined.n_elem) + " points (range: [" + std::to_string(t_combined.min()) + ", " + std::to_string(t_combined.max()) + "] s)");
 
         // Now extract pieces from the combined time series
         for (int ii = 0; ii < this->num_pieces; ii++)
@@ -1568,10 +1565,8 @@ void IrregularWave::GetPiecesSpectra(void)
             double t_start = t_ref;
             double t_end = t_ref + 3.0 * this->time_piece;
 
-            std::cout << "    --> Piece " << ii << ": extracting window from t=" << t_start << " to t=" << t_end
-                      << " (time_ref: " << t_ref << ")" << std::endl;
-            std::cout << "    --> Piece " << ii << ": time_ini=" << this->time_ini(ii)
-                      << ", time_end=" << this->time_end(ii) << std::endl;
+            Logger::debug("    --> Piece " + std::to_string(ii) + ": extracting window from t=" + std::to_string(t_start) + " to t=" + std::to_string(t_end) + " (time_ref: " + std::to_string(t_ref) + ")");
+            Logger::debug("    --> Piece " + std::to_string(ii) + ": time_ini=" + std::to_string(this->time_ini(ii)) + ", time_end=" + std::to_string(this->time_end(ii)));
 
             // Create time vector for this piece (matching JONSWAP approach)
             arma::vec tmp_t = arma::regspace(t_start, this->dt, t_end);
@@ -1607,10 +1602,9 @@ void IrregularWave::GetPiecesSpectra(void)
                 arma::atan2(arma::imag(yf.rows(0, num_comps_piece - 1)), arma::real(yf.rows(0, num_comps_piece - 1))) -
                 ang_freqs_piece * t_ref;
 
-            std::cout << "    --> Piece " << ii << ": max amplitude = " << this->amplitudes_piece(ii).col(0).max()
-                      << " m" << std::endl;
+            Logger::info("    --> Piece " + std::to_string(ii) + ": max amplitude = " + std::to_string(this->amplitudes_piece(ii).col(0).max()) + " m");
         }
-        std::cout << "    --> Time-series piecewise spectra completed" << std::endl;
+        Logger::info("    --> Time-series piecewise spectra completed");
     }
     else
     {
@@ -1655,13 +1649,13 @@ void IrregularWave::GetPiecesSpectra(void)
     if (specType_flag == 2)
     {
         // For time-series, 1D wave is already computed above
-        std::cout << "    --> Copying to 1D wave arrays (time-series)..." << std::endl;
+        Logger::info("    --> Copying to 1D wave arrays (time-series)...");
         for (int ii = 0; ii < this->num_pieces; ii++)
         {
             this->amplitudes_1D_piece(ii) = this->amplitudes_piece(ii).col(0);
             this->phases_1D_piece(ii) = this->phases_piece(ii).col(0);
         }
-        std::cout << "    --> 1D wave arrays populated" << std::endl;
+        Logger::info("    --> 1D wave arrays populated");
     }
     else
     {
@@ -1685,6 +1679,5 @@ void IrregularWave::GetPiecesSpectra(void)
 
     int number_components_piecewise = this->num_comps_piece * this->num_headings_piece;
 
-    std::cout << "    --> ...piecewise spectrums computed! From " << number_components_original << " to "
-              << number_components_piecewise << std::endl;
+    Logger::info("    --> ...piecewise spectrums computed! From " + std::to_string(number_components_original) + " to " + std::to_string(number_components_piecewise));
 }
