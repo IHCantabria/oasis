@@ -232,6 +232,39 @@ The `resources/` directory provides general-purpose plotting scripts:
 
 ---
 
+## Authors & Contributors
+
+OASIS is developed at [IHCantabria](https://ihcantabria.com).
+
+| Name | Role |
+|---|---|
+| [Álvaro Rodríguez Luis](https://ihcantabria.com) | Lead developer |
+| Sergio Fernández Ruano | Contributor |
+| Paula Desiré Valdor | Contributor |
+| Pablo García Pérez | Contributor |
+| María García de la Santa Viñuela | Contributor |
+
+---
+
+## How to cite
+
+If you use OASIS in your research or engineering work, please cite it as:
+
+> Rodríguez Luis, Á. *et al.* (2025). **OASIS — Offshore Advanced SImulation Software** [Computer software]. IHCantabria. https://github.com/IHCantabria/oasis
+
+BibTeX:
+```bibtex
+@software{oasis,
+  author    = {Rodríguez-Luis, Álvaro and Fernández-Ruano, Sergio and Desiré, Paula and García-Pérez, Pablo and García de la Santa, María},
+  title     = {{OASIS} -- Offshore Advanced {SImulation} Software},
+  year      = {2025},
+  publisher = {IHCantabria},
+  url       = {https://github.com/IHCantabria/oasis}
+}
+```
+
+---
+
 ## Related projects
 
 | Project | Description |
