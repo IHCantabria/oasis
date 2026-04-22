@@ -8,10 +8,10 @@
 // --------------------------------------------------------------------------
 1 // Flag to indicate flow definition [1: Constant, 2: Oscillatory]
 // Constant flow data case
-0.0 // Wind speed [m/s]
-0.0 // Wind direction [deg]
-0.0 // Currents speed [m/s]
-0.0 // Currents direction [deg]
+0.0  // Wind speed [m/s]
+0.0  // Wind direction [deg]
+0.5  // Currents speed [m/s]
+0.0  // Currents direction [deg]
 // Variable flow data case
 dataWindCurr.h5 // File containing time series of wind and currents
 // --------------------------------------------------------------------------
@@ -31,8 +31,8 @@ dataMorisonCoeff.h5 // File containing Morison coefficients for different headin
 0 0
 0 0
 // WIND Drag matrix for symmetry axis heading (X) [6x2]
-1 0
-0 1
+0 0
+0 0
 0 0
 0 0
 0 0
@@ -45,8 +45,8 @@ dataMorisonCoeff.h5 // File containing Morison coefficients for different headin
 0 0
 0 0
 // WIND Drag matrix for heading tangent to symmetry axis (Y) [6x2]
-1 0
-0 1
+0 0
+0 0
 0 0
 0 0
 0 0
@@ -59,12 +59,12 @@ dataMorisonCoeff.h5 // File containing Morison coefficients for different headin
 0 0
 0 0
 // CURRENTS Drag matrix for symmetry axis heading (X) [6x2]
-1 0
-0 1
-0 0
-0 0
-0 0
-0 0
+400.0 0.0
+0.0   0.0
+0.0   0.0
+0.0   0.0
+0.0   0.0
+0.0   0.0
 // CURRENTS Froude-Krylov matrix for heading tangent to symmetry axis (Y) [6x2]
 0 0
 0 0
@@ -73,9 +73,9 @@ dataMorisonCoeff.h5 // File containing Morison coefficients for different headin
 0 0
 0 0
 // CURRENTS Drag matrix for heading tangent to symmetry axis (Y) [6x2]
-1 0
-0 1
-0 0
-0 0
-0 0
-0 0
+0.0   0.0
+0.0 400.0
+0.0   0.0
+0.0   0.0
+0.0   0.0
+0.0   0.0

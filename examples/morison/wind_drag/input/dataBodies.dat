@@ -1,0 +1,22 @@
+//////////////////
+////////////////// New body [1]
+//////////////////
+RAD_DIFF
+1 // Take COG from HDB
+1 2 3 4 5 6 // DOFs
+// BCPs indexes
+// Wind Turbines indexes
+0.0 0.0 0.0 0.0 0.0 0.0 // Initial position
+0.0 0.0 0.0 0.0 0.0 0.0 // Initial displacement
+../../../data/one_box.hydb.h5 // Hydrodynamic database
+1 // HDB body index
+0 // Freedom flag [0: free]
+dummy.dat // Imposed motion file
+0 // Hydrostatics flag [0: linear]
+dummy.stl // Hydrostatics mesh
+1 // Radiation flag
+0 // First-order excitation flag
+0 // Second-order excitation flag
+0.000 0.000 0.000 0.000 0.000 0.000 // Viscous added mass
+0.000 0.000 0.000 0.000 0.000 0.000 // Viscous linear damping
+0.000 0.000 0.000 0.000 0.000 0.000 // Viscous quadratic damping

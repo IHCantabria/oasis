@@ -1,6 +1,9 @@
 ﻿// SPDX-License-Identifier: GPL-3.0-or-later
 #include <armadillo>
 #include <string>
+#include <fstream>
+#include <limits>
+#include <sstream>
 #include "Morison.hpp"
 #include "../Exceptions/Exception.hpp"
 #include "../MathTools.hpp"
@@ -12,279 +15,291 @@
 Morison::Morison(int numBodies_inp, Simulation* pSim_inp)
 {
     pi = arma::datum::pi;
-
     numBodies = numBodies_inp;
     pSim = pSim_inp;
 
-    pWindFKCoeff = new arma::cube*[numBodies];
+    flag_wind = new bool[numBodies]();  // value-initialised to false
+    flag_curr = new bool[numBodies]();
+
+    wind_spd_body = arma::zeros<arma::vec>(numBodies);
+    wind_dir_body = arma::zeros<arma::vec>(numBodies);
+    curr_spd_body = arma::zeros<arma::vec>(numBodies);
+    curr_dir_body = arma::zeros<arma::vec>(numBodies);
+
+    pHeadings = new arma::mat[numBodies];
+    pWindFKCoeff   = new arma::cube*[numBodies];
     pWindDragCoeff = new arma::cube*[numBodies];
-    pCurrFKCoeff = new arma::cube*[numBodies];
+    pCurrFKCoeff   = new arma::cube*[numBodies];
     pCurrDragCoeff = new arma::cube*[numBodies];
+    for (int ii = 0; ii < numBodies; ii++)
+    {
+        pWindFKCoeff[ii]   = nullptr;
+        pWindDragCoeff[ii] = nullptr;
+        pCurrFKCoeff[ii]   = nullptr;
+        pCurrDragCoeff[ii] = nullptr;
+    }
 }
 
 void Morison::ReadMorisonData(void)
 {
-    std::string file_path = JoinPath(pSim->inputFolderPath, "dataMorison.dat");
-
-    FILE* file_pointer = fopen(file_path.c_str(), "r");
-
-    if (file_pointer == NULL)
-    {
-        Logger::warning("dataMorison.dat was not found! Setting wind and currents to zero!");
-        // Set zero wind and current
-        flag_wind = false;
-        flag_curr = false;
-    }
+    if (pSim->GetDataFormat() == 0)
+        ReadMorisonDataASCII();
     else
+        ReadMorisonDataYAML();
+}
+
+void Morison::ReadMorisonDataASCII(void)
+{
+    std::string file_path = JoinPath(pSim->inputFolderPath, "dataMorison.dat");
+    std::ifstream f(file_path);
+    if (!f.is_open())
     {
-        char bufferLine[1000];
+        Logger::warning("dataMorison.dat was not found! Setting wind and currents to zero for all bodies.");
+        return;
+    }
 
-        // Ignore three header lines for flow definition
-        for (int ii = 0; ii < 3; ii++)
+    // Helpers that read one token + rest-of-line, or skip a full line
+    auto skipLine = [&]() { f.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); };
+    auto readInt  = [&](int& v)    { f >> v;  f.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); };
+    auto readDbl  = [&](double& v) { f >> v;  f.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); };
+    auto readStr  = [&](std::string& v) { f >> v; f.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); };
+    auto readMat6x2 = [&](arma::mat& M) {
+        skipLine(); // header comment line
+        for (int r = 0; r < 6; r++)
         {
-            fgets(bufferLine, sizeof(bufferLine), file_pointer);
+            f >> M(r, 0) >> M(r, 1);
+            f.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
         }
+    };
 
-        // Get flow type line
-        fscanf(file_pointer, "%d %[^\n]\n", &FlowType_flag, bufferLine);
+    // Read number of body sections
+    int numSections;
+    readInt(numSections);
 
-        if (FlowType_flag == 1)
-        {
-            fgets(bufferLine, sizeof(bufferLine), file_pointer); // Ignore one line
-            double wspd, wdir, cspd, cdir;
-            time = arma::linspace(-1, 1e6, 2);
-            wind_spd = arma::zeros(size(time));
-            wind_dir = arma::zeros(size(time));
-            curr_spd = arma::zeros(size(time));
-            curr_dir = arma::zeros(size(time));
+    for (int s = 0; s < numSections; s++)
+    {
+        // Skip 3 header lines  (//, // Body [N], //)
+        skipLine(); skipLine(); skipLine();
 
-            fscanf(file_pointer, "%lf %[^\n]\n", &wspd, bufferLine);
-            wind_spd = wind_spd + wspd;
-            fscanf(file_pointer, "%lf %[^\n]\n", &wdir, bufferLine);
-            wind_dir = wind_dir + wdir;
-            fscanf(file_pointer, "%lf %[^\n]\n", &cspd, bufferLine);
-            curr_spd = curr_spd + cspd;
-            fscanf(file_pointer, "%lf %[^\n]\n", &cdir, bufferLine);
-            curr_dir = curr_dir + cdir;
-
-            // Ignore two lines for variable flow
-            for (int ii = 0; ii < 2; ii++)
-            {
-                fgets(bufferLine, sizeof(bufferLine), file_pointer);
-            }
-        }
-        else if (FlowType_flag == 2)
-        {
-            // Ignore six lines for constant flow
-            for (int ii = 0; ii < 6; ii++)
-            {
-                fgets(bufferLine, sizeof(bufferLine), file_pointer);
-            }
-
-            char cFlowDataFile[1000];
-            fscanf(file_pointer, "%s %[^\n]\n", &cFlowDataFile, bufferLine);
-            FlowDataFile = cFlowDataFile;
-            ReadFlowData_HDF5();
-        }
-        else
+        // Body index (1-based → 0-based)
+        int bodyIndex1;
+        readInt(bodyIndex1);
+        int idx = bodyIndex1 - 1;
+        if (idx < 0 || idx >= numBodies)
         {
             std::stringstream ss;
-            ss << "Error while parsing file: dataMorison.dat; Unexpected flow type. \n";
+            ss << "dataMorison.dat: body index " << bodyIndex1
+               << " is out of range (numBodies=" << numBodies << ").\n";
             throw ValueError(ss.str());
         }
 
-        // Ignore four header lines for coefficients definition
-        for (int ii = 0; ii < 4; ii++)
-        {
-            fgets(bufferLine, sizeof(bufferLine), file_pointer);
-        }
+        // --- WIND AND CURRENT section ---
+        // 3 header lines (// ----, // WIND AND CURRENT DEFINITION, // ----)
+        skipLine(); skipLine(); skipLine();
 
-        // Get symetry line
-        int Sym_flag;
-        fscanf(file_pointer, "%d %[^\n]\n", &Sym_flag, bufferLine);
-
-        if (Sym_flag == 1)
-        {
-            fgets(bufferLine, sizeof(bufferLine), file_pointer); // Ignore one line
-
-            char cMorCoeffDataFile[1000];
-            fscanf(file_pointer, "%s %[^\n]\n", &cMorCoeffDataFile, bufferLine);
-            MorCoeffDataFile = cMorCoeffDataFile;
-            ReadMorCoeffData_HDF5();
-        }
-        else if (Sym_flag == 2)
-        {
-            // Ignore three lines for non symmetric coefficients definition
-            for (int ii = 0; ii < 3; ii++)
-            {
-                fgets(bufferLine, sizeof(bufferLine), file_pointer);
-            }
-
-            // Get flow type line
-            int SymOrder;
-            fscanf(file_pointer, "%d %[^\n]\n", &SymOrder, bufferLine);
-            // Close file
-            fclose(file_pointer);
-
-            arma::mat temp = arma::zeros(6, 2);
-            arma::mat windFKCoef_X = temp, windDragCoef_X = temp, windFKCoef_Y = temp, windDragCoef_Y = temp;
-            arma::mat currFKCoef_X = temp, currDragCoef_X = temp, currFKCoef_Y = temp, currDragCoef_Y = temp;
-
-            // Abro el fichero de nuevo
-            std::ifstream dataMorCoeff(file_path);
-            std::string Dummy;
-            int ii;
-
-            for (ii = 1; ii <= 20; ii = ii + 1)
-            {
-                dataMorCoeff >> Dummy;
-                dataMorCoeff.ignore(std::numeric_limits<int>::max(), '\n');
-            }
-
-            // Read WIND Froude–Krylov matrix for symmetry axis heading (X)
-            dataMorCoeff >> Dummy;
-            dataMorCoeff.ignore(std::numeric_limits<int>::max(), '\n');
-            for (int ii = 0; ii < 6; ii++)
-            {
-                dataMorCoeff >> windFKCoef_X(ii, 0);
-                dataMorCoeff >> windFKCoef_X(ii, 1);
-                dataMorCoeff.ignore(std::numeric_limits<int>::max(), '\n');
-            }
-            // Read WIND Drag matrix for symmetry axis heading (X)
-            dataMorCoeff >> Dummy;
-            dataMorCoeff.ignore(std::numeric_limits<int>::max(), '\n');
-            for (ii = 0; ii < 6; ii = ii + 1)
-            {
-                dataMorCoeff >> windDragCoef_X(ii, 0);
-                dataMorCoeff >> windDragCoef_X(ii, 1);
-                dataMorCoeff.ignore(std::numeric_limits<int>::max(), '\n');
-            }
-            // Read WIND Froude–Krylov matrix for heading tangent to symmetry axis (Y) (only for case with '2' symmetry)
-            dataMorCoeff >> Dummy;
-            dataMorCoeff.ignore(std::numeric_limits<int>::max(), '\n');
-            for (ii = 0; ii < 6; ii = ii + 1)
-            {
-                dataMorCoeff >> windFKCoef_Y(ii, 0);
-                dataMorCoeff >> windFKCoef_Y(ii, 1);
-                dataMorCoeff.ignore(std::numeric_limits<int>::max(), '\n');
-            }
-            // Read WIND Drag matrix for heading tangent to symmetry axis (Y) (only for case with '2' symmetry)
-            dataMorCoeff >> Dummy;
-            dataMorCoeff.ignore(std::numeric_limits<int>::max(), '\n');
-            for (ii = 0; ii < 6; ii = ii + 1)
-            {
-                dataMorCoeff >> windDragCoef_Y(ii, 0);
-                dataMorCoeff >> windDragCoef_Y(ii, 1);
-                dataMorCoeff.ignore(std::numeric_limits<int>::max(), '\n');
-            }
-            // Read CURRENTS Froude–Krylov matrix for symmetry axis heading (X)
-            dataMorCoeff >> Dummy;
-            dataMorCoeff.ignore(std::numeric_limits<int>::max(), '\n');
-            for (ii = 0; ii < 6; ii = ii + 1)
-            {
-                dataMorCoeff >> currFKCoef_X(ii, 0);
-                dataMorCoeff >> currFKCoef_X(ii, 1);
-                dataMorCoeff.ignore(std::numeric_limits<int>::max(), '\n');
-            }
-            // Read CURRENTS Drag matrix for symmetry axis heading (X)
-            dataMorCoeff >> Dummy;
-            dataMorCoeff.ignore(std::numeric_limits<int>::max(), '\n');
-            for (ii = 0; ii < 6; ii = ii + 1)
-            {
-                dataMorCoeff >> currDragCoef_X(ii, 0);
-                dataMorCoeff >> currDragCoef_X(ii, 1);
-                dataMorCoeff.ignore(std::numeric_limits<int>::max(), '\n');
-            }
-            // Read CURRENTS Froude–Krylov matrix for heading tangent to symmetry axis (Y) (only for case with '2'
-            // symmetry)
-            dataMorCoeff >> Dummy;
-            dataMorCoeff.ignore(std::numeric_limits<int>::max(), '\n');
-            for (ii = 0; ii < 6; ii = ii + 1)
-            {
-                dataMorCoeff >> currFKCoef_Y(ii, 0);
-                dataMorCoeff >> currFKCoef_Y(ii, 1);
-                dataMorCoeff.ignore(std::numeric_limits<int>::max(), '\n');
-            }
-            // Read CURRENTS Drag matrix for heading tangent to symmetry axis (Y) (only for case with '2' symmetry)
-            dataMorCoeff >> Dummy;
-            dataMorCoeff.ignore(std::numeric_limits<int>::max(), '\n');
-            for (ii = 0; ii < 6; ii = ii + 1)
-            {
-                dataMorCoeff >> currDragCoef_Y(ii, 0);
-                dataMorCoeff >> currDragCoef_Y(ii, 1);
-                dataMorCoeff.ignore(std::numeric_limits<int>::max(), '\n');
-            }
-
-            // Cierro el fichero
-            dataMorCoeff.close();
-
-            // Postproceso de los datos leidos para generar las matrices usadas por la clase...
-            if (SymOrder > 2)
-            {
-                headings = arma::linspace(0, 360, SymOrder + 1);
-                std::stringstream ss;
-                ss << "FK forces not implemented yet. \n";
-                throw NotImplementedError(ss.str());
-            }
-            if (SymOrder < 2)
-            {
-                headings = arma::linspace(0, 360, SymOrder + 1);
-                std::stringstream ss;
-                ss << "FK forces not implemented yet. \n";
-                throw NotImplementedError(ss.str());
-            }
-            if (SymOrder == 2)
-            {
-                headings = arma::linspace(0, 360, 5);
-                arma::cube WindDragCoeff = arma::zeros(5, 6, 2);
-                arma::cube CurrDragCoeff = arma::zeros(5, 6, 2);
-                arma::cube WindFKCoeff = arma::zeros(5, 6, 2);
-                arma::cube CurrFKCoeff = arma::zeros(5, 6, 2);
-                for (ii = 0; ii < 5; ii = ii + 2)
-                {
-                    WindFKCoeff(arma::span(ii), arma::span::all, arma::span::all) = windFKCoef_X;
-                    WindDragCoeff(arma::span(ii), arma::span::all, arma::span::all) = windDragCoef_X;
-                    CurrFKCoeff(arma::span(ii), arma::span::all, arma::span::all) = currFKCoef_X;
-                    CurrDragCoeff(arma::span(ii), arma::span::all, arma::span::all) = currDragCoef_X;
-                }
-                for (ii = 1; ii < 5; ii = ii + 2)
-                {
-                    WindFKCoeff(arma::span(ii), arma::span::all, arma::span::all) = windFKCoef_Y;
-                    WindDragCoeff(arma::span(ii), arma::span::all, arma::span::all) = windDragCoef_Y;
-                    CurrFKCoeff(arma::span(ii), arma::span::all, arma::span::all) = currFKCoef_Y;
-                    CurrDragCoeff(arma::span(ii), arma::span::all, arma::span::all) = currDragCoef_Y;
-                }
-                for (ii = 0; ii < numBodies; ii = ii + 1)
-                {
-                    pWindFKCoeff[ii] = new arma::cube;
-                    *pWindFKCoeff[ii] = WindFKCoeff;
-                    pWindDragCoeff[ii] = new arma::cube;
-                    *pWindDragCoeff[ii] = WindDragCoeff;
-                    pCurrFKCoeff[ii] = new arma::cube;
-                    *pCurrFKCoeff[ii] = CurrFKCoeff;
-                    pCurrDragCoeff[ii] = new arma::cube;
-                    *pCurrDragCoeff[ii] = CurrDragCoeff;
-                }
-            }
-        }
-        else
+        int flowType;
+        readInt(flowType);
+        if (flowType != 1)
         {
             std::stringstream ss;
-            ss << "Error while parsing file: dataMorison.dat; Unexpected symmetry flag. \n";
+            ss << "dataMorison.dat: flow type " << flowType
+               << " is not implemented. Only FlowType=1 (constant) is supported.\n";
+            throw NotImplementedError(ss.str());
+        }
+
+        // // Constant flow data case
+        skipLine();
+        double wspd, wdir, cspd, cdir;
+        readDbl(wspd);
+        readDbl(wdir);
+        readDbl(cspd);
+        readDbl(cdir);
+
+        // // Variable flow data case  +  placeholder filename (unused)
+        skipLine();
+        std::string dummy;
+        readStr(dummy);
+
+        // --- MORISON COEFFICIENTS section ---
+        // 4 header lines (// ----, // MORISON COEFFICIENTS DEFINITION, // Must include..., // ----)
+        skipLine(); skipLine(); skipLine(); skipLine();
+
+        int symFlag;
+        readInt(symFlag);
+        if (symFlag != 2)
+        {
+            std::stringstream ss;
+            ss << "dataMorison.dat: Sym_flag=" << symFlag
+               << " is not implemented. Only Sym_flag=2 (symmetric) is supported.\n";
+            throw NotImplementedError(ss.str());
+        }
+
+        // // Non-symmetric case comment  +  placeholder filename
+        skipLine();
+        readStr(dummy);
+
+        // // Symmetric case comment
+        skipLine();
+
+        int symOrder;
+        readInt(symOrder);
+        if (symOrder != 2)
+        {
+            std::stringstream ss;
+            ss << "dataMorison.dat: SymOrder=" << symOrder
+               << " is not implemented. Only SymOrder=2 is supported.\n";
+            throw NotImplementedError(ss.str());
+        }
+
+        arma::mat windFK_X  = arma::zeros(6, 2);
+        arma::mat windDrag_X = arma::zeros(6, 2);
+        arma::mat windFK_Y  = arma::zeros(6, 2);
+        arma::mat windDrag_Y = arma::zeros(6, 2);
+        arma::mat currFK_X  = arma::zeros(6, 2);
+        arma::mat currDrag_X = arma::zeros(6, 2);
+        arma::mat currFK_Y  = arma::zeros(6, 2);
+        arma::mat currDrag_Y = arma::zeros(6, 2);
+
+        readMat6x2(windFK_X);
+        readMat6x2(windDrag_X);
+        readMat6x2(windFK_Y);
+        readMat6x2(windDrag_Y);
+        readMat6x2(currFK_X);
+        readMat6x2(currDrag_X);
+        readMat6x2(currFK_Y);
+        readMat6x2(currDrag_Y);
+
+        StoreBodyMorisonData(idx, wspd, wdir, cspd, cdir,
+                             windFK_X, windDrag_X, windFK_Y, windDrag_Y,
+                             currFK_X, currDrag_X, currFK_Y, currDrag_Y);
+    }
+
+    f.close();
+}
+
+void Morison::ReadMorisonDataYAML(void)
+{
+    YAML::Node yamlRoot = pSim->GetYamlRoot();
+    if (!yamlRoot["morison"])
+    {
+        Logger::warning("'morison' section not found in YAML. Setting wind and currents to zero for all bodies.");
+        return;
+    }
+
+    YAML::Node morNode = yamlRoot["morison"];
+
+    for (std::size_t s = 0; s < morNode.size(); s++)
+    {
+        YAML::Node entry = morNode[s];
+
+        int bodyIndex1 = entry["body_index"].as<int>();
+        int idx = bodyIndex1 - 1;
+        if (idx < 0 || idx >= numBodies)
+        {
+            std::stringstream ss;
+            ss << "dataProblem.yaml morison: body_index " << bodyIndex1
+               << " is out of range (numBodies=" << numBodies << ").\n";
             throw ValueError(ss.str());
         }
 
-        if (arma::accu(arma::abs(wind_spd)) > 0)
+        int flowType = entry["flow_type"].as<int>();
+        if (flowType != 1)
         {
-            Logger::info("    --> Morison forces for wind are activated.");
-            flag_wind = true;
+            std::stringstream ss;
+            ss << "dataProblem.yaml morison: flow_type=" << flowType
+               << " is not implemented. Only flow_type=1 (constant) is supported.\n";
+            throw NotImplementedError(ss.str());
         }
 
-        if (arma::accu(arma::abs(curr_spd)) > 0)
+        int symOrder = entry["symmetry_order"].as<int>();
+        if (symOrder != 2)
         {
-            Logger::info("    --> Morison forces for currents are activated.");
-            flag_curr = true;
+            std::stringstream ss;
+            ss << "dataProblem.yaml morison: symmetry_order=" << symOrder
+               << " is not implemented. Only symmetry_order=2 is supported.\n";
+            throw NotImplementedError(ss.str());
         }
+
+        double wspd = entry["wind_speed"].as<double>();
+        double wdir = entry["wind_direction"].as<double>();
+        double cspd = entry["current_speed"].as<double>();
+        double cdir = entry["current_direction"].as<double>();
+
+        // Read each 6x2 matrix from a nested YAML sequence [[a,b],[c,d],...]
+        auto readYAMLMat6x2 = [](YAML::Node node) -> arma::mat {
+            arma::mat M = arma::zeros(6, 2);
+            for (int r = 0; r < 6; r++)
+            {
+                M(r, 0) = node[r][0].as<double>();
+                M(r, 1) = node[r][1].as<double>();
+            }
+            return M;
+        };
+
+        arma::mat windFK_X   = readYAMLMat6x2(entry["wind_fk_x"]);
+        arma::mat windDrag_X = readYAMLMat6x2(entry["wind_drag_x"]);
+        arma::mat windFK_Y   = readYAMLMat6x2(entry["wind_fk_y"]);
+        arma::mat windDrag_Y = readYAMLMat6x2(entry["wind_drag_y"]);
+        arma::mat currFK_X   = readYAMLMat6x2(entry["current_fk_x"]);
+        arma::mat currDrag_X = readYAMLMat6x2(entry["current_drag_x"]);
+        arma::mat currFK_Y   = readYAMLMat6x2(entry["current_fk_y"]);
+        arma::mat currDrag_Y = readYAMLMat6x2(entry["current_drag_y"]);
+
+        StoreBodyMorisonData(idx, wspd, wdir, cspd, cdir,
+                             windFK_X, windDrag_X, windFK_Y, windDrag_Y,
+                             currFK_X, currDrag_X, currFK_Y, currDrag_Y);
+    }
+}
+
+void Morison::StoreBodyMorisonData(int bodyIdx, double wspd, double wdir, double cspd, double cdir,
+                                   const arma::mat& windFK_X,  const arma::mat& windDrag_X,
+                                   const arma::mat& windFK_Y,  const arma::mat& windDrag_Y,
+                                   const arma::mat& currFK_X,  const arma::mat& currDrag_X,
+                                   const arma::mat& currFK_Y,  const arma::mat& currDrag_Y)
+{
+    wind_spd_body(bodyIdx) = wspd;
+    wind_dir_body(bodyIdx) = wdir;
+    curr_spd_body(bodyIdx) = cspd;
+    curr_dir_body(bodyIdx) = cdir;
+
+    // SymOrder=2: headings at 0, 90, 180, 270, 360 (5 points)
+    pHeadings[bodyIdx] = arma::linspace(0.0, 360.0, 5);
+
+    // Build 5×6×2 cubes by assigning X-heading data to even indices, Y-heading to odd indices
+    arma::cube WindFKCoeff   = arma::zeros(5, 6, 2);
+    arma::cube WindDragCoeff = arma::zeros(5, 6, 2);
+    arma::cube CurrFKCoeff   = arma::zeros(5, 6, 2);
+    arma::cube CurrDragCoeff = arma::zeros(5, 6, 2);
+
+    for (int ii = 0; ii < 5; ii += 2)
+    {
+        WindFKCoeff  (arma::span(ii), arma::span::all, arma::span::all) = windFK_X;
+        WindDragCoeff(arma::span(ii), arma::span::all, arma::span::all) = windDrag_X;
+        CurrFKCoeff  (arma::span(ii), arma::span::all, arma::span::all) = currFK_X;
+        CurrDragCoeff(arma::span(ii), arma::span::all, arma::span::all) = currDrag_X;
+    }
+    for (int ii = 1; ii < 5; ii += 2)
+    {
+        WindFKCoeff  (arma::span(ii), arma::span::all, arma::span::all) = windFK_Y;
+        WindDragCoeff(arma::span(ii), arma::span::all, arma::span::all) = windDrag_Y;
+        CurrFKCoeff  (arma::span(ii), arma::span::all, arma::span::all) = currFK_Y;
+        CurrDragCoeff(arma::span(ii), arma::span::all, arma::span::all) = currDrag_Y;
+    }
+
+    pWindFKCoeff[bodyIdx]   = new arma::cube(WindFKCoeff);
+    pWindDragCoeff[bodyIdx] = new arma::cube(WindDragCoeff);
+    pCurrFKCoeff[bodyIdx]   = new arma::cube(CurrFKCoeff);
+    pCurrDragCoeff[bodyIdx] = new arma::cube(CurrDragCoeff);
+
+    if (wspd > 0.0)
+    {
+        Logger::info("    --> Morison wind forces activated for body " + std::to_string(bodyIdx + 1) + ".");
+        flag_wind[bodyIdx] = true;
+    }
+    if (cspd > 0.0)
+    {
+        Logger::info("    --> Morison current forces activated for body " + std::to_string(bodyIdx + 1) + ".");
+        flag_curr[bodyIdx] = true;
     }
 }
 
@@ -299,43 +314,28 @@ void Morison::ReadFlowData_HDF5(void)
 void Morison::ReadMorCoeffData_HDF5(void)
 {
     Logger::info("--> Reading Morison Coefficients (HDF5 format)");
-    std::stringstream ss2;
-    ss2 << "Method ReadMorCoeffData_HDF5 in class Morison not implemented yet. \n";
-    throw NotImplementedError(ss2.str());
+    std::stringstream ss;
+    ss << "Method ReadMorCoeffData_HDF5 in class Morison not implemented yet. \n";
+    throw NotImplementedError(ss.str());
 }
 
 arma::mat Morison::ComputeWindForce(int idBody, double yaw, double t)
 {
     arma::mat F = arma::zeros(6, 1);
 
-    double wspd, wdir;
-
-    if (FlowType_flag == 1)
-    {
-        wspd = arma::as_scalar(wind_spd(0, 0));
-        wdir = arma::as_scalar(wind_dir(0, 0));
-    }
-    if (FlowType_flag == 2)
-    {
-        // arma::mat tt = arma::zeros(1,1) + t;
-        // wspd = arma::as_scalar(arma::interp1(time,wind_spd,tt));
-        // wdir = arma::as_scalar(arma::interp1(time,wind_dir,tt));
-        std::stringstream ss;
-        ss << "FK forces not implemented yet. \n";
-        throw NotImplementedError(ss.str());
-    }
+    double wspd = wind_spd_body(idBody);
+    double wdir = wind_dir_body(idBody);
 
     arma::mat vel = arma::zeros(2, 1);
-    vel(0, 0) = wspd * cos(pi * wdir / 180);
-    vel(1, 0) = wspd * sin(pi * wdir / 180);
+    vel(0, 0) = wspd * cos(pi * wdir / 180.0);
+    vel(1, 0) = wspd * sin(pi * wdir / 180.0);
 
-    arma::mat h = arma::zeros(1, 1) + yaw + wdir; // REVISAR SIGNOS
+    arma::mat h = arma::zeros(1, 1) + yaw + wdir;
 
-    arma::cube temp_B = interp1(headings, *(pWindDragCoeff[idBody]), h);
+    arma::cube temp_B = interp1(pHeadings[idBody], *(pWindDragCoeff[idBody]), h);
     arma::mat B = temp_B(arma::span(0), arma::span::all, arma::span::all);
 
     F = F + B * (vel % arma::abs(vel));
-
     return F;
 }
 
@@ -343,32 +343,18 @@ arma::mat Morison::ComputeCurrForce(int idBody, double yaw, double t)
 {
     arma::mat F = arma::zeros(6, 1);
 
-    double cspd, cdir;
-    if (FlowType_flag == 1)
-    {
-        cspd = arma::as_scalar(curr_spd(0, 0));
-        cdir = arma::as_scalar(curr_dir(0, 0));
-    }
-    if (FlowType_flag == 2)
-    {
-        // arma::mat tt = arma::zeros(1,1) + t;
-        // cspd = arma::as_scalar(arma::interp1(time,curr_spd,tt));
-        // cdir = arma::as_scalar(arma::interp1(time,curr_dir,tt));
-        std::stringstream ss;
-        ss << "FK forces not implemented yet. \n";
-        throw NotImplementedError(ss.str());
-    }
+    double cspd = curr_spd_body(idBody);
+    double cdir = curr_dir_body(idBody);
 
     arma::mat vel = arma::zeros(2, 1);
-    vel(0, 0) = cspd * cos(pi * cdir / 180);
-    vel(1, 0) = cspd * sin(pi * cdir / 180);
+    vel(0, 0) = cspd * cos(pi * cdir / 180.0);
+    vel(1, 0) = cspd * sin(pi * cdir / 180.0);
 
-    arma::mat h = arma::zeros(1, 1) + yaw * 0 + cdir; // REVISAR SIGNOS
+    arma::mat h = arma::zeros(1, 1) + cdir;
 
-    arma::cube temp_B = interp1(headings, *(pCurrDragCoeff[idBody]), h);
+    arma::cube temp_B = interp1(pHeadings[idBody], *(pCurrDragCoeff[idBody]), h);
     arma::mat B = temp_B(arma::span(0), arma::span::all, arma::span::all);
 
     F = F + B * (vel % arma::abs(vel));
-
     return F;
 }

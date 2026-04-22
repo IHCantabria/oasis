@@ -8,21 +8,21 @@ Install the required development libraries using your distribution's package man
 
     ```bash
     sudo apt install build-essential cmake libarmadillo-dev libhdf5-dev \
-        libopenblas-dev libsuperlu-dev
+        libopenblas-dev libsuperlu-dev libyaml-cpp-dev
     ```
 
 === "CentOS / RHEL"
 
     ```bash
     sudo yum install gcc-c++ cmake3 armadillo-devel hdf5-devel \
-        openblas-devel SuperLU-devel
+        openblas-devel SuperLU-devel yaml-cpp-devel
     ```
 
 === "Fedora"
 
     ```bash
     sudo dnf install gcc-c++ cmake armadillo-devel hdf5-devel \
-        openblas-devel SuperLU-devel
+        openblas-devel SuperLU-devel yaml-cpp-devel
     ```
 
 Minimum compiler requirement: **GCC ≥ 10** (C++17 support).

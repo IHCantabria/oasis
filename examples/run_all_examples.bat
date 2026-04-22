@@ -1156,6 +1156,78 @@ if !RESULT! NEQ 0 (
 )
 echo.
 
+REM ==============================================================
+REM Morison examples (Group 11)
+REM ==============================================================
+
+REM --- morison/wind_drag ---
+set /a TEST_NUM+=1
+echo [!TEST_NUM!] Running morison/wind_drag...
+cd morison\wind_drag
+call run.bat
+set RESULT=%ERRORLEVEL%
+cd ..\..
+set /a TOTAL_TESTS+=1
+if !RESULT! NEQ 0 (
+    echo FAILED: morison/wind_drag
+    set FAILED_TESTS=!FAILED_TESTS! morison/wind_drag
+) else (
+    echo PASSED: morison/wind_drag
+    set /a PASSED_TESTS+=1
+)
+echo.
+
+REM --- morison/current_drag ---
+set /a TEST_NUM+=1
+echo [!TEST_NUM!] Running morison/current_drag...
+cd morison\current_drag
+call run.bat
+set RESULT=%ERRORLEVEL%
+cd ..\..
+set /a TOTAL_TESTS+=1
+if !RESULT! NEQ 0 (
+    echo FAILED: morison/current_drag
+    set FAILED_TESTS=!FAILED_TESTS! morison/current_drag
+) else (
+    echo PASSED: morison/current_drag
+    set /a PASSED_TESTS+=1
+)
+echo.
+
+REM --- morison/wind_drag_yaml ---
+set /a TEST_NUM+=1
+echo [!TEST_NUM!] Running morison/wind_drag_yaml...
+cd morison\wind_drag_yaml
+call run.bat
+set RESULT=%ERRORLEVEL%
+cd ..\..
+set /a TOTAL_TESTS+=1
+if !RESULT! NEQ 0 (
+    echo FAILED: morison/wind_drag_yaml
+    set FAILED_TESTS=!FAILED_TESTS! morison/wind_drag_yaml
+) else (
+    echo PASSED: morison/wind_drag_yaml
+    set /a PASSED_TESTS+=1
+)
+echo.
+
+REM --- morison/current_drag_yaml ---
+set /a TEST_NUM+=1
+echo [!TEST_NUM!] Running morison/current_drag_yaml...
+cd morison\current_drag_yaml
+call run.bat
+set RESULT=%ERRORLEVEL%
+cd ..\..
+set /a TOTAL_TESTS+=1
+if !RESULT! NEQ 0 (
+    echo FAILED: morison/current_drag_yaml
+    set FAILED_TESTS=!FAILED_TESTS! morison/current_drag_yaml
+) else (
+    echo PASSED: morison/current_drag_yaml
+    set /a PASSED_TESTS+=1
+)
+echo.
+
 REM --- solvers/bdf1_yaml ---
 set /a TEST_NUM+=1
 echo [!TEST_NUM!] Running solvers/bdf1_yaml...

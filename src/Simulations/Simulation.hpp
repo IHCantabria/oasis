@@ -192,6 +192,10 @@ public:
     void ReadOWCsASCII(void);
     void ReadOWCsYAML(void);
 
+    // Accessors for format and YAML data (used by sub-components e.g. Morison)
+    int GetDataFormat() const { return dataFormat; }
+    YAML::Node& GetYamlRoot() { return yamlRoot; }
+
     // Declare general purpose class methods
     arma::mat CalculateSystemDynamics(double time, arma::mat y);
     void CalculateSystemDynamicsStatic(double time);

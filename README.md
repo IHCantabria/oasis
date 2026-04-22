@@ -70,7 +70,7 @@ oasis/
 
 2. **Install libraries through vcpkg**:
    ```bat
-   C:\vcpkg\vcpkg install armadillo hdf5[cpp] openblas superlu metis:x64-windows
+   C:\vcpkg\vcpkg install armadillo hdf5[cpp] openblas superlu metis yaml-cpp:x64-windows
    ```
 
 3. **Create your user configuration** by copying the template and editing paths:
@@ -238,7 +238,7 @@ OASIS is developed at [IHCantabria](https://ihcantabria.com).
 
 | Name | Role |
 |---|---|
-| [Álvaro Rodríguez Luis](https://ihcantabria.com) | Lead developer |
+| Álvaro Rodríguez Luis | Lead developer |
 | Sergio Fernández Ruano | Contributor |
 | Paula Desiré Valdor | Contributor |
 | Pablo García Pérez | Contributor |

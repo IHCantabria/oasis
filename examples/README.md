@@ -26,6 +26,7 @@ All examples can be run together via `run_all_examples.bat` (Windows) or `run_al
 | 8 | **Multi-body** | `multibody/` | Multiple bodies: shared multi-body HDB with cross-coupling, separate single-body HDBs | Done |
 | 9 | **Integration & Solvers** | `solvers/` | ODE solver comparison (BDF1, BDFN order 2, BDFN order 4, ESDIRK46) on a cable with circular actuator motion | Done |
 | 10 | **Winches** | `winches/` | Winch-controlled mooring: constant tension pretension and horizontal plane positioning (surge/sway/yaw) with state-space controller | Done |
+| 11 | **Morison** | `morison/` | Body-level wind and current drag forces via Morison model | Done |
 
 ## Directory Structure
 
@@ -101,6 +102,13 @@ examples/
 ├── winches/                    # Group 10: Winches (DONE)
 │   ├── README.md
 │   └── horizontal_control/
+├── morison/                    # Group 11: Morison body drag (DONE)
+│   ├── run_group.bat
+│   ├── run_group.sh
+│   ├── wind_drag/
+│   ├── current_drag/
+│   ├── wind_drag_yaml/
+│   └── current_drag_yaml/
 ├── misc/                       # Pre-existing mixed examples
 │   ├── freq_wave_example/
 │   ├── generic_example/

@@ -10,34 +10,48 @@ class Simulation;
 class Morison
 {
 public:
-    // Declare class variables
-    Simulation* pSim; // Pointer to the simulation instance. It gives fast access to the necessary simulation variables
+    // Pointer to simulation — provides access to inputFolderPath, dataFormat, yamlRoot
+    Simulation* pSim;
     int numBodies;
     double pi;
 
-    std::string FlowDataFile;
-    std::string MorCoeffDataFile;
+    // Per-body flags: flag_wind[i] / flag_curr[i] are true only if body i has active flow
+    bool* flag_wind;
+    bool* flag_curr;
 
-    bool flag_wind = false;
-    bool flag_curr = false;
+    // Per-body constant flow scalars (one value per body)
+    arma::vec wind_spd_body;
+    arma::vec wind_dir_body;
+    arma::vec curr_spd_body;
+    arma::vec curr_dir_body;
 
-    int FlowType_flag;
-    arma::mat time, wind_spd, wind_dir, curr_spd, curr_dir, wind_acc, curr_acc;
-    arma::mat headings;
-    arma::cube** pWindFKCoeff;   // Matrix components: [body, headings, dofs, vel_comps];
-    arma::cube** pWindDragCoeff; // Matrix components: [body, headings, dofs, vel_comps];
-    arma::cube** pCurrFKCoeff;   // Matrix components: [body, headings, dofs, vel_comps];
-    arma::cube** pCurrDragCoeff; // Matrix components: [body, headings, dofs, vel_comps];
+    // Per-body heading arrays and drag/FK coefficient cubes
+    // pHeadings[i]: (5,) linspace(0,360,5) when SymOrder=2
+    arma::mat* pHeadings;
+    arma::cube** pWindFKCoeff;   // [numBodies][5 headings x 6 dofs x 2 vel_comps]
+    arma::cube** pWindDragCoeff;
+    arma::cube** pCurrFKCoeff;
+    arma::cube** pCurrDragCoeff;
 
-    // Declare class constructors
+    // Constructor
     Morison(int numBodies_inp, Simulation* pSim_inp);
 
-    // Methods
+    // Top-level read dispatcher (routes to ASCII or YAML based on pSim->GetDataFormat())
     void ReadMorisonData(void);
+    void ReadMorisonDataASCII(void);
+    void ReadMorisonDataYAML(void);
+
+    // Shared helper: store parsed data for one body index (0-based)
+    void StoreBodyMorisonData(int bodyIdx, double wspd, double wdir, double cspd, double cdir,
+                              const arma::mat& windFK_X, const arma::mat& windDrag_X,
+                              const arma::mat& windFK_Y, const arma::mat& windDrag_Y,
+                              const arma::mat& currFK_X, const arma::mat& currDrag_X,
+                              const arma::mat& currFK_Y, const arma::mat& currDrag_Y);
+
     void ReadFlowData_HDF5(void);
     void ReadMorCoeffData_HDF5(void);
-    arma::mat ComputeCurrForce(int idBody, double yaw, double t);
     arma::mat ComputeWindForce(int idBody, double yaw, double t);
+    arma::mat ComputeCurrForce(int idBody, double yaw, double t);
 };
 
 #endif // morisondef_hpp__

@@ -11,6 +11,7 @@
 | HDF5 with C++ bindings | Yes | I/O for hydrodynamic databases |
 | BLAS / LAPACK | Yes | OpenBLAS or Intel MKL |
 | [SuperLU](https://portal.nersc.gov/project/sparse/superlu/) | Recommended | Sparse solvers for dynamic mooring lines |
+| [yaml-cpp](https://github.com/jbeder/yaml-cpp) | Yes | YAML input file parsing |
 | [stl_reader](https://github.com/sreiter/stl_reader) | Optional | STL mesh import for body meshes |
 | [OpenFAST](https://github.com/OpenFAST/openfast) + [FASTurbine wrapper](https://github.com/IHCantabria/FASTurbine_wrapper) | Optional | Wind turbine coupling |
 
@@ -26,7 +27,7 @@ C:\vcpkg\bootstrap-vcpkg.bat
 ### 2. Install dependencies
 
 ```bat
-C:\vcpkg\vcpkg install armadillo hdf5[cpp] openblas superlu metis:x64-windows
+C:\vcpkg\vcpkg install armadillo hdf5[cpp] openblas superlu metis yaml-cpp:x64-windows
 ```
 
 ### 3. Configure the project

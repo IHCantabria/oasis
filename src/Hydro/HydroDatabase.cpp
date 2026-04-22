@@ -62,11 +62,11 @@ arma::mat HydroDatabase::CalculateHydrodynamicForces(double time)
     F = F - pBodies[idBody]->B_visc % vv - pBodies[idBody]->B_visc2 % vv % arma::abs(vv);
 
     // std::cout << "--> Computing wind and current forces..." << std::endl;
-    if (pMor->flag_wind)
+    if (pMor->flag_wind[idBody])
     {
         F = F + pMor->ComputeWindForce(idBody, yaw, time);
     }
-    if (pMor->flag_curr)
+    if (pMor->flag_curr[idBody])
     {
         F = F + pMor->ComputeCurrForce(idBody, yaw, time);
     }

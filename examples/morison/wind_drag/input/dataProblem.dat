@@ -1,0 +1,28 @@
+9.81        // Gravity [m/s^2]
+1025.0      // Water density [kg/m^3]
+1.225       // Air density [kg/m^3]
+101325.0    // Atmospheric pressure [Pa]
+1.4         // Air adiabatic dilation [-]
+-500.0      // Seabed vertical coordinate [m]
+0.1         // Output time step [s]
+0.1         // Maximum time step [s]
+0.1         // Hydro time step [s]
+0.1         // FAST time step [s]
+0.1         // FAST controller time step [s]
+20.0        // IRF time [s]
+15.0        // Sinking time step [s]
+0.1         // Winches controller time step [s]
+0.1         // OWC turbines controller time step [s]
+30.0        // Total time [s]
+1           // Rotation simplification [1 Yes]
+3           // Temporal integration [3: ESDIRK46]
+2           // Integration order
+0           // Adaptivity
+0           // Jacobian recomputation steps
+1e-5        // Absolute tolerance
+1e-3        // Relative tolerance
+5           // Max iterations per step
+0           // Read dataStaticIC
+0           // Write dataStaticIC
+1           // Mooring initial condition
+0           // Output format

@@ -1149,6 +1149,78 @@ else
 fi
 echo
 
+# ==============================================================
+# Morison examples (Group 11)
+# ==============================================================
+
+# --- morison/wind_drag ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running morison/wind_drag..."
+cd morison/wind_drag || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: morison/wind_drag"
+    FAILED_TESTS="$FAILED_TESTS morison/wind_drag"
+else
+    echo "PASSED: morison/wind_drag"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
+# --- morison/current_drag ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running morison/current_drag..."
+cd morison/current_drag || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: morison/current_drag"
+    FAILED_TESTS="$FAILED_TESTS morison/current_drag"
+else
+    echo "PASSED: morison/current_drag"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
+# --- morison/wind_drag_yaml ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running morison/wind_drag_yaml..."
+cd morison/wind_drag_yaml || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: morison/wind_drag_yaml"
+    FAILED_TESTS="$FAILED_TESTS morison/wind_drag_yaml"
+else
+    echo "PASSED: morison/wind_drag_yaml"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
+# --- morison/current_drag_yaml ---
+TEST_NUM=$((TEST_NUM + 1))
+echo "[$TEST_NUM] Running morison/current_drag_yaml..."
+cd morison/current_drag_yaml || exit 1
+sh run.sl .
+RESULT=$?
+cd ../..
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+if [ $RESULT -ne 0 ]; then
+    echo "FAILED: morison/current_drag_yaml"
+    FAILED_TESTS="$FAILED_TESTS morison/current_drag_yaml"
+else
+    echo "PASSED: morison/current_drag_yaml"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+fi
+echo
+
 # --- solvers/bdf1_yaml ---
 TEST_NUM=$((TEST_NUM + 1))
 echo "[$TEST_NUM] Running solvers/bdf1_yaml..."
