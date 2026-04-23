@@ -48,3 +48,6 @@ docs/theory-manual/*.pdf
 
 # MkDocs generated site (use gh-pages branch instead)
 site/
+
+# virual environment for oasis_gui
+oasis_gui/venv/
