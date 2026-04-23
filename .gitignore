@@ -51,3 +51,6 @@ site/
 
 # virual environment for oasis_gui
 oasis_gui/venv/
+
+__pycache__/
+*.pyc
