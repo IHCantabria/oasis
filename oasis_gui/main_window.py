@@ -60,12 +60,24 @@ class MainWindow(QMainWindow):
         self._dirty = False
         self.setWindowTitle("OASIS GUI")
         self.resize(1400, 900)
+        self._set_icon()
 
         self._build_ui()
         self._build_menus()
         self._load_case_into_ui()
 
     # ── Build UI ──────────────────────────────────────────────────────────────
+    def _set_icon(self):
+        candidates = [
+            os.path.join(os.path.dirname(__file__), "..", "docs", "assets", "logo.png"),
+            os.path.join(os.path.dirname(__file__), "..", "docs", "theory-manual", "logo.png"),
+        ]
+        for path in candidates:
+            path = os.path.normpath(path)
+            if os.path.isfile(path):
+                self.setWindowIcon(QIcon(path))
+                return
+
     def _build_ui(self):
         central = QWidget()
         self.setCentralWidget(central)
@@ -92,16 +104,21 @@ class MainWindow(QMainWindow):
 
         # Right: views stacked
         self._view_stack = QStackedWidget()
-        self._schematic = SchematicView()
+        self._schematic = SchematicView(before_refresh=self._collect_all_editors)
         self._run_view = RunView(self._settings)
         self._results_view = ResultsView()
         self._viewer_3d = Viewer3D()
         for view in [self._schematic, self._run_view, self._results_view, self._viewer_3d]:
             self._view_stack.addWidget(view)
 
-        main_h.addWidget(self._mod_list)
-        main_h.addWidget(self._editor_stack, stretch=3)
-        main_h.addWidget(self._view_stack, stretch=4)
+        # Outer splitter — user can drag to resize each panel
+        outer = QSplitter(Qt.Horizontal)
+        outer.addWidget(self._mod_list)
+        outer.addWidget(self._editor_stack)
+        outer.addWidget(self._view_stack)
+        outer.setSizes([130, 500, 700])
+        outer.setChildrenCollapsible(False)
+        main_h.addWidget(outer)
 
         self.setStatusBar(QStatusBar())
         self._status = self.statusBar()

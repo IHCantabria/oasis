@@ -58,6 +58,13 @@ def _flist(d: Any, key: str, default: list) -> list:
     return list(v) if v is not None else list(default)
 
 
+def _fseq(lst) -> CommentedSeq:
+    """Return a ruamel CommentedSeq with inline flow style: [a, b, c]."""
+    cs = CommentedSeq(list(lst))
+    cs.fa.set_flow_style()
+    return cs
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # PARSE (YAML → dataclasses)
 # ──────────────────────────────────────────────────────────────────────────────
@@ -185,6 +192,7 @@ def _parse_bcps(d) -> BCPsData:
 
 def _parse_body(d) -> BodyData:
     b = BodyData()
+    b.name = _g(d, "name", b.name)   # GUI-only label stored as YAML comment-key if present
     b.body_type = _g(d, "type", b.body_type)
     b.take_cog_from_hdb = _g(d, "take_cog_hydro_database", b.take_cog_from_hdb)
     b.dofs = _flist(d, "dofs", b.dofs)
@@ -440,8 +448,8 @@ def _build_seafloor(sf: SeaFloorData) -> dict:
     if sf.flat:
         d["flat"] = [{"depth": f.depth} for f in sf.flat]
     if sf.inclined:
-        d["inclined"] = [{"point1": list(i.point1), "point2": list(i.point2),
-                          "point3": list(i.point3)} for i in sf.inclined]
+        d["inclined"] = [{"point1": _fseq(i.point1), "point2": _fseq(i.point2),
+                          "point3": _fseq(i.point3)} for i in sf.inclined]
     if sf.bathymetry:
         d["bathymetry"] = [{"mesh_file": b.mesh_file} for b in sf.bathymetry]
     return d
@@ -452,22 +460,22 @@ def _build_bcps(bcps: BCPsData) -> dict:
     if bcps.fairleads:
         d["fairleads"] = []
         for b in bcps.fairleads:
-            item: dict = {"position": list(b.position), "winch_id": b.winch_id}
+            item: dict = {"position": _fseq(b.position), "winch_id": b.winch_id}
             if b.actuator_file:
                 item["actuator_file"] = b.actuator_file
             d["fairleads"].append(item)
     if bcps.anchors:
-        d["anchors"] = [{"position": list(b.position), "winch_id": b.winch_id}
+        d["anchors"] = [{"position": _fseq(b.position), "winch_id": b.winch_id}
                          for b in bcps.anchors]
     if bcps.joints:
-        d["joints"] = [{"position": list(b.position), "winch_id": b.winch_id,
+        d["joints"] = [{"position": _fseq(b.position), "winch_id": b.winch_id,
                          "mass": b.mass, "volume": b.volume} for b in bcps.joints]
     if bcps.body_bcps:
-        d["body_bcps"] = [{"position": list(b.position), "winch_id": b.winch_id}
+        d["body_bcps"] = [{"position": _fseq(b.position), "winch_id": b.winch_id}
                            for b in bcps.body_bcps]
     if bcps.elastic_anchors:
         d["elastic_anchors"] = [{
-            "position": list(b.position), "winch_id": b.winch_id,
+            "position": _fseq(b.position), "winch_id": b.winch_id,
             "anchor_mass": b.anchor_mass, "anchor_volume": b.anchor_volume,
             "c_param": b.c_param, "k_param": b.k_param,
         } for b in bcps.elastic_anchors]
@@ -478,11 +486,11 @@ def _build_body(b: BodyData) -> dict:
     return {
         "type": b.body_type,
         "take_cog_hydro_database": b.take_cog_from_hdb,
-        "dofs": list(b.dofs),
-        "bcps_indexes": list(b.bcps_indexes),
-        "wind_turbines_indexes": list(b.wind_turbines_indexes),
-        "initial_position": list(b.initial_position),
-        "initial_displacement": list(b.initial_displacement),
+        "dofs": _fseq(b.dofs),
+        "bcps_indexes": _fseq(b.bcps_indexes),
+        "wind_turbines_indexes": _fseq(b.wind_turbines_indexes),
+        "initial_position": _fseq(b.initial_position),
+        "initial_displacement": _fseq(b.initial_displacement),
         "hydro_database": b.hdb_file,
         "hydro_database_index": b.hdb_index,
         "freedom_flag": b.freedom_flag,
@@ -492,9 +500,9 @@ def _build_body(b: BodyData) -> dict:
         "radiation_flag": b.radiation,
         "excitation_1st_flag": b.excitation_1st,
         "excitation_2nd_flag": b.excitation_2nd,
-        "viscous_added_mass": list(b.viscous_added_mass),
-        "viscous_linear_damping": list(b.viscous_linear_damping),
-        "viscous_quadratic_damping": list(b.viscous_quadratic_damping),
+        "viscous_added_mass": _fseq(b.viscous_added_mass),
+        "viscous_linear_damping": _fseq(b.viscous_linear_damping),
+        "viscous_quadratic_damping": _fseq(b.viscous_quadratic_damping),
     }
 
 
@@ -509,12 +517,12 @@ def _build_line_type(lt: LineTypeData) -> dict:
         d["EA"] = lt.EA
         d["beta"] = lt.beta
     elif lt.flag_stiffness == 1:
-        d["kernel_lin_coef"] = list(lt.kernel_lin_coef)
-        d["kernel_exp_coef"] = list(lt.kernel_exp_coef)
-        d["elastic_coef"] = list(lt.elastic_coef)
+        d["kernel_lin_coef"] = _fseq(lt.kernel_lin_coef)
+        d["kernel_exp_coef"] = _fseq(lt.kernel_exp_coef)
+        d["elastic_coef"] = _fseq(lt.elastic_coef)
     else:
-        d["strain_data"] = list(lt.strain_data)
-        d["stress_data"] = list(lt.stress_data)
+        d["strain_data"] = _fseq(lt.strain_data)
+        d["stress_data"] = _fseq(lt.stress_data)
         d["beta"] = lt.beta
     d.update({
         "CB": lt.CB, "Cmn": lt.Cmn, "Cdn": lt.Cdn, "Cdt": lt.Cdt,
@@ -545,16 +553,16 @@ def _build_spring_type(st: SpringTypeData) -> dict:
         "damping_flag": st.damping_flag,
         "friction_flag": st.friction_flag,
         "frame_flag": st.frame_flag,
-        "stiffness_matrix": [list(row) for row in st.stiffness_matrix],
+        "stiffness_matrix": [_fseq(row) for row in st.stiffness_matrix],
         "mu_d": st.mu_d, "mu_s": st.mu_s, "vt": st.vt, "Dt": st.Dt,
-        "mass_matrix": [list(row) for row in st.mass_matrix],
-        "damping_vector": list(st.damping_vector),
+        "mass_matrix": [_fseq(row) for row in st.mass_matrix],
+        "damping_vector": _fseq(st.damping_vector),
         "stress_strain": [],
     }
     for curve in st.stress_strain:
         d["stress_strain"].append({
-            "displacements": list(curve.displacements),
-            "forces": [list(row) for row in curve.forces],
+            "displacements": _fseq(curve.displacements),
+            "forces": [_fseq(row) for row in curve.forces],
         })
     return d
 
@@ -566,7 +574,7 @@ def _build_spring(s: SpringData) -> dict:
         "BCP_2": s.BCP_2,
         "BCP_1_type": s.BCP_1_type,
         "BCP_2_type": s.BCP_2_type,
-        "vectors": [list(v) for v in s.vectors],
+        "vectors": [_fseq(v) for v in s.vectors],
     }
 
 
@@ -584,7 +592,7 @@ def _build_morison(m: MorisonData) -> dict:
         d["hdf5_file"] = m.hdf5_file
     for mat_key in ("wind_fk_x", "wind_drag_x", "wind_fk_y", "wind_drag_y",
                     "current_fk_x", "current_drag_x", "current_fk_y", "current_drag_y"):
-        d[mat_key] = [list(row) for row in getattr(m, mat_key)]
+        d[mat_key] = _fseq([_fseq(row) for row in getattr(m, mat_key)])
     return d
 
 
@@ -610,25 +618,25 @@ def _build_owc(o: OWCData) -> dict:
         "discharge_coefficient": o.discharge_coefficient,
         "turbine_type": o.turbine_type,
         "initial_omega": o.initial_omega,
-        "position": list(o.position),
+        "position": _fseq(o.position),
     }
 
 
 def _build_sinking(s: SinkingData) -> dict:
     d: dict = {
         "body_index": s.body_index,
-        "structural_mass_diagonal": list(s.structural_mass_diagonal),
-        "interp_masses": list(s.interp_masses),
-        "hdb_files": list(s.hdb_files),
+        "structural_mass_diagonal": _fseq(s.structural_mass_diagonal),
+        "interp_masses": _fseq(s.interp_masses),
+        "hdb_files": _fseq(s.hdb_files),
         "groups": [],
     }
     for g in s.groups:
         d["groups"].append({
-            "polygon_x": list(g.polygon_x),
-            "polygon_y": list(g.polygon_y),
+            "polygon_x": _fseq(g.polygon_x),
+            "polygon_y": _fseq(g.polygon_y),
             "floor_z": g.floor_z,
-            "filling_times": list(g.filling_times),
-            "filling_states": list(g.filling_states),
+            "filling_times": _fseq(g.filling_times),
+            "filling_states": _fseq(g.filling_states),
         })
     return d
 

@@ -125,12 +125,15 @@ class ListFormEditor(BaseEditor):
 
         main = QVBoxLayout(self)
         main.setContentsMargins(4, 4, 4, 4)
+        main.setSpacing(4)
 
         label = QLabel(f"<b>{title}</b>")
+        label.setMaximumHeight(24)
+        label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         main.addWidget(label)
 
         splitter = QSplitter(Qt.Horizontal)
-        main.addWidget(splitter)
+        main.addWidget(splitter, 1)  # stretch=1 → splitter fills all remaining space
 
         # Left: list + buttons
         left = QWidget()
@@ -160,12 +163,14 @@ class ListFormEditor(BaseEditor):
         lv.addLayout(btn_row)
         splitter.addWidget(left)
 
-        # Right: form (subclass builds this)
+        # Right: form (subclass builds this via _build_form which returns a
+        # scrollable widget; we add it directly – no second scroll area wrapper)
         self._form_container = QWidget()
-        self._form_container.setLayout(QVBoxLayout())
-        self._form_container.layout().setContentsMargins(4, 0, 0, 0)
-        form_scroll = make_scrollable(self._form_container)
-        splitter.addWidget(form_scroll)
+        fc_layout = QVBoxLayout(self._form_container)
+        fc_layout.setContentsMargins(4, 0, 0, 0)
+        fc_layout.setAlignment(Qt.AlignTop)
+        self._form_container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        splitter.addWidget(self._form_container)
 
         splitter.setSizes([160, 600])
 

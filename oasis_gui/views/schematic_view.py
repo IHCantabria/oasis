@@ -24,9 +24,10 @@ _BCP_COLORS = {
 class SchematicView(QWidget):
     """2D schematic of bodies, BCPs, lines and springs."""
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, before_refresh=None):
         super().__init__(parent)
         self._case = None
+        self._before_refresh = before_refresh
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(4, 4, 4, 4)
@@ -40,7 +41,7 @@ class SchematicView(QWidget):
         toolbar.addWidget(self._proj)
         toolbar.addStretch()
         btn_refresh = QPushButton("↺ Refresh")
-        btn_refresh.clicked.connect(self.refresh)
+        btn_refresh.clicked.connect(self._do_refresh)
         toolbar.addWidget(btn_refresh)
         layout.addLayout(toolbar)
 
@@ -61,6 +62,12 @@ class SchematicView(QWidget):
 
         self._bcp_positions: list = []  # (label, x, y) for hover
         self._canvas.mpl_connect("motion_notify_event", self._on_hover)
+
+    def _do_refresh(self) -> None:
+        """Called by the Refresh button: collect editors first, then redraw."""
+        if self._before_refresh is not None:
+            self._before_refresh()
+        self.refresh()
 
     def update_case(self, case) -> None:
         self._case = case
@@ -106,6 +113,20 @@ class SchematicView(QWidget):
         for ea in case.bcps.elastic_anchors:
             bcp_map[idx] = ("elastic_anchor", ea.position)
             idx += 1
+
+        # Body BCPs are stored in body-local frame → offset to global for plotting
+        for body in case.bodies:
+            bpos = body.initial_position
+            if len(bpos) < 3:
+                continue
+            for bcp_idx in body.bcps_indexes:
+                if bcp_idx in bcp_map:
+                    bcp_type, bcp_pos = bcp_map[bcp_idx]
+                    if bcp_type == "body_bcp":
+                        global_pos = list(bcp_pos)
+                        for j in range(min(3, len(global_pos))):
+                            global_pos[j] = global_pos[j] + bpos[j]
+                        bcp_map[bcp_idx] = (bcp_type, global_pos)
 
         # Draw bodies as rectangles
         for body in case.bodies:

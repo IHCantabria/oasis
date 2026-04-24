@@ -4,9 +4,25 @@ import os
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QGroupBox,
     QPushButton, QLineEdit, QTextEdit, QProgressBar, QLabel, QComboBox,
-    QFileDialog,
+    QFileDialog, QMessageBox,
 )
 from PyQt5.QtCore import Qt, QProcess, QProcessEnvironment
+
+
+def _find_oasis_exe() -> str:
+    """Try to locate OASIS.exe relative to this file's directory."""
+    here = os.path.dirname(os.path.abspath(__file__))
+    candidates = [
+        os.path.join(here, "..", "bin", "OASIS.exe"),
+        os.path.join(here, "..", "bin", "oasis.exe"),
+        os.path.join(here, "..", "build", "Release", "OASIS.exe"),
+        os.path.join(here, "..", "build", "x64", "Release", "OASIS.exe"),
+    ]
+    for c in candidates:
+        c = os.path.normpath(c)
+        if os.path.isfile(c):
+            return c
+    return ""
 
 
 class RunView(QWidget):
@@ -18,6 +34,12 @@ class RunView(QWidget):
         self._process: QProcess | None = None
         self._case = None
         self._build_ui()
+        # Auto-fill exe path if not yet set
+        if not self._settings.oasis_exe:
+            auto = _find_oasis_exe()
+            if auto:
+                self._settings.oasis_exe = auto
+                self._exe_path.setText(auto)
 
     def _build_ui(self):
         layout = QVBoxLayout(self)
@@ -88,7 +110,11 @@ class RunView(QWidget):
     def _on_run(self):
         exe = self._exe_path.text().strip()
         if not exe or not os.path.isfile(exe):
-            self._log.append("<span style='color:red'>ERROR: OASIS executable not found.</span>")
+            QMessageBox.warning(
+                self, "OASIS executable not found",
+                "Cannot find the OASIS executable.\n\n"
+                "Please use the Browse button to locate OASIS.exe."
+            )
             return
         if self._case is None or not self._case.project_path:
             self._log.append("<span style='color:red'>ERROR: No project path set. Save the case first.</span>")

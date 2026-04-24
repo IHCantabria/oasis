@@ -1,27 +1,21 @@
 """Results view — browse output channels and plot time series."""
 from __future__ import annotations
 import os
+import re
 from PyQt5.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QGroupBox,
-    QPushButton, QLabel, QComboBox, QSplitter, QTreeWidget,
-    QTreeWidgetItem, QLineEdit,
+    QWidget, QVBoxLayout, QHBoxLayout,
+    QPushButton, QLabel, QSplitter, QTreeWidget,
+    QTreeWidgetItem, QLineEdit, QTabWidget, QComboBox,
 )
 from PyQt5.QtCore import Qt
 
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
-from data.output_reader import discover_outputs, load_channel
+from data.output_reader import discover_outputs, load_channel, load_channel_magnitude
 
-
-_PRESETS = {
-    "Custom": None,
-    "Body 1 – 6 DOF positions": ["DOF 1 – Body 1", "DOF 2 – Body 1", "DOF 3 – Body 1",
-                                   "DOF 4 – Body 1", "DOF 5 – Body 1", "DOF 6 – Body 1"],
-    "Line 1 end tensions": ["End tension – Line 1"],
-    "Wave elevation": ["Wave elevation"],
-    "OWC 1 pressure": ["OWC pressure – 1"],
-}
+_TIME_LABEL = "Time [s]"
+_DOF_NAMES = ["Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw"]
 
 
 class ResultsView(QWidget):
@@ -35,7 +29,7 @@ class ResultsView(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(4, 4, 4, 4)
 
-        # Toolbar: open output dir + preset
+        # ── Toolbar: output dir
         toolbar = QHBoxLayout()
         self._output_dir_le = QLineEdit()
         self._output_dir_le.setPlaceholderText("Output directory…")
@@ -49,45 +43,47 @@ class ResultsView(QWidget):
         toolbar.addWidget(btn_scan)
         layout.addLayout(toolbar)
 
-        preset_row = QHBoxLayout()
-        self._preset = QComboBox()
-        for name in _PRESETS:
-            self._preset.addItem(name)
-        self._preset.currentTextChanged.connect(self._apply_preset)
-        preset_row.addWidget(QLabel("Preset:"))
-        preset_row.addWidget(self._preset)
-        preset_row.addStretch()
-        btn_plot = QPushButton("Plot selected")
-        btn_plot.clicked.connect(self._plot_selected)
-        preset_row.addWidget(btn_plot)
-        layout.addLayout(preset_row)
-
-        # Splitter: channel tree | plot
+        # ── Splitter: left panel | tab widget
         splitter = QSplitter(Qt.Horizontal)
 
-        # Left: channel tree
+        # ── Left panel ────────────────────────────────────────────────────────
         left = QWidget()
         lv = QVBoxLayout(left)
-        lv.setContentsMargins(0, 0, 0, 0)
-        lv.addWidget(QLabel("Available channels:"))
+        lv.setContentsMargins(0, 2, 4, 0)
+
+        # X axis selector
+        lv.addWidget(QLabel("X axis:"))
+        self._x_combo = QComboBox()
+        self._x_combo.addItem(_TIME_LABEL)   # time always first
+        lv.addWidget(self._x_combo)
+
+        # Y channel tree (multi-select)
+        lv.addWidget(QLabel("Y channels (multi-select):"))
         self._tree = QTreeWidget()
         self._tree.setHeaderLabel("Channel")
         self._tree.setSelectionMode(QTreeWidget.MultiSelection)
-        lv.addWidget(self._tree)
+        lv.addWidget(self._tree, 1)
+
+        # Buttons
+        btn_row = QHBoxLayout()
+        btn_custom = QPushButton("Plot custom")
+        btn_custom.clicked.connect(self._plot_custom)
+        btn_all = QPushButton("Plot all bodies")
+        btn_all.clicked.connect(self._plot_all_bodies)
+        btn_row.addWidget(btn_custom)
+        btn_row.addWidget(btn_all)
+        lv.addLayout(btn_row)
+
         splitter.addWidget(left)
 
-        # Right: Matplotlib
-        right = QWidget()
-        rv = QVBoxLayout(right)
-        rv.setContentsMargins(0, 0, 0, 0)
-        self._fig = Figure(figsize=(8, 5), tight_layout=True)
-        self._ax = self._fig.add_subplot(111)
-        self._canvas = FigureCanvas(self._fig)
-        rv.addWidget(self._canvas)
-        splitter.addWidget(right)
-        splitter.setSizes([250, 700])
+        # ── Right: tab widget
+        self._tabs = QTabWidget()
+        splitter.addWidget(self._tabs)
+        splitter.setSizes([240, 730])
 
         layout.addWidget(splitter)
+
+    # ── Public API ───────────────────────────────────────────────────────────
 
     def set_case(self, case) -> None:
         self._case = case
@@ -95,6 +91,8 @@ class ResultsView(QWidget):
             output_dir = os.path.join(case.project_path, "output")
             if os.path.isdir(output_dir):
                 self._output_dir_le.setText(output_dir)
+
+    # ── Slots ────────────────────────────────────────────────────────────────
 
     def _browse_output(self):
         from PyQt5.QtWidgets import QFileDialog
@@ -107,53 +105,158 @@ class ResultsView(QWidget):
         if not os.path.isdir(path):
             return
         self._channels = discover_outputs(path)
+
+        # Populate X combo: Time first, then all channel names sorted
+        self._x_combo.blockSignals(True)
+        prev_x = self._x_combo.currentText()
+        self._x_combo.clear()
+        self._x_combo.addItem(_TIME_LABEL)
+        for name in sorted(self._channels):
+            self._x_combo.addItem(name)
+        idx = self._x_combo.findText(prev_x)
+        self._x_combo.setCurrentIndex(idx if idx >= 0 else 0)
+        self._x_combo.blockSignals(False)
+
+        # Populate Y tree
         self._tree.clear()
-        # Group by prefix
         groups: dict[str, list[str]] = {}
         for name in sorted(self._channels):
-            prefix = name.split("–")[0].strip() if "–" in name else name
+            parts = name.split(" / ")
+            prefix = parts[0] if len(parts) > 1 else name
             groups.setdefault(prefix, []).append(name)
         for grp, names in groups.items():
             parent = QTreeWidgetItem(self._tree, [grp])
             for name in names:
-                child = QTreeWidgetItem(parent, [name])
+                QTreeWidgetItem(parent, [name])
             parent.setExpanded(True)
         self._tree.repaint()
 
-    def _apply_preset(self, preset_name: str):
-        channels = _PRESETS.get(preset_name)
-        if not channels:
+    def _plot_custom(self):
+        """Plot user-selected Y channels against the chosen X channel."""
+        # Collect selected leaf names
+        y_names = [item.text(0) for item in self._tree.selectedItems()
+                   if item.parent() is not None]
+        if not y_names:
             return
-        self._tree.clearSelection()
-        for name in channels:
-            items = self._tree.findItems(name, Qt.MatchRecursive | Qt.MatchExactly)
-            for item in items:
-                item.setSelected(True)
 
-    def _plot_selected(self):
-        selected_names = []
-        it = self._tree.selectedItems()
-        for item in it:
-            if item.parent():  # leaf
-                selected_names.append(item.text(0))
+        x_label = self._x_combo.currentText()
+        x_is_time = (x_label == _TIME_LABEL)
+        x_ch = None if x_is_time else self._channels.get(x_label)
 
-        if not selected_names:
-            # also try top-level with no children
-            it2 = self._tree.selectedItems()
-            for item in it2:
-                selected_names.append(item.text(0))
+        fig = Figure(figsize=(9, 5), tight_layout=True)
+        ax = fig.add_subplot(111)
 
-        self._ax.clear()
-        for name in selected_names:
-            ch = self._channels.get(name)
+        for y_name in y_names:
+            ch = self._channels.get(y_name)
             if ch is None:
                 continue
             try:
-                time, values = load_channel(ch.filepath, ch.column_index)
-                self._ax.plot(time, values, label=name)
-            except Exception as e:
+                fy, cy = ch[0], ch[1]
+                if isinstance(cy, tuple):
+                    t_y, y_vals = load_channel_magnitude(fy, cy)
+                else:
+                    t_y, y_vals = load_channel(fy, cy)
+
+                if x_is_time:
+                    ax.plot(t_y, y_vals, label=y_name, linewidth=0.9)
+                else:
+                    if x_ch is None:
+                        continue
+                    fx, cx = x_ch[0], x_ch[1]
+                    if isinstance(cx, tuple):
+                        _, x_vals = load_channel_magnitude(fx, cx)
+                    else:
+                        _, x_vals = load_channel(fx, cx)
+                    # Align lengths
+                    n = min(len(x_vals), len(y_vals))
+                    ax.plot(x_vals[:n], y_vals[:n], label=y_name, linewidth=0.9)
+            except Exception:
                 pass
-        self._ax.set_xlabel("Time [s]")
-        self._ax.legend(fontsize=7)
-        self._ax.grid(True, linestyle="--", linewidth=0.5)
-        self._canvas.draw()
+
+        ax.set_xlabel(x_label, fontsize=8)
+        ax.legend(fontsize=7)
+        ax.grid(True, linestyle="--", linewidth=0.4)
+        ax.tick_params(labelsize=7)
+
+        canvas = FigureCanvas(fig)
+
+        # Replace existing Custom tab if present
+        for i in range(self._tabs.count()):
+            if self._tabs.tabText(i) == "Custom":
+                old = self._tabs.widget(i)
+                self._tabs.removeTab(i)
+                old.deleteLater()
+                break
+        self._tabs.insertTab(0, canvas, "Custom")
+        self._tabs.setCurrentIndex(0)
+
+    def _plot_all_bodies(self):
+        """Scan (if needed), then create one tab per body with 6 DOF subplots."""
+        path = self._output_dir_le.text().strip()
+        if not os.path.isdir(path):
+            return
+        if not self._channels:
+            self._scan_output()
+
+        # Find all body IDs that have position channels
+        body_ids: list[int] = []
+        for name in self._channels:
+            m = re.match(r"Body (\d+) / \w+ / Position", name)
+            if m:
+                bid = int(m.group(1))
+                if bid not in body_ids:
+                    body_ids.append(bid)
+        body_ids.sort()
+
+        if not body_ids:
+            return
+
+        # Remove old body tabs (keep any non-body tabs untouched)
+        for i in reversed(range(self._tabs.count())):
+            if self._tabs.tabText(i).startswith("Body "):
+                widget = self._tabs.widget(i)
+                self._tabs.removeTab(i)
+                widget.deleteLater()
+
+        for bid in body_ids:
+            canvas = self._make_body_tab(bid)
+            self._tabs.addTab(canvas, f"Body {bid}")
+
+        if self._tabs.count():
+            self._tabs.setCurrentIndex(0)
+
+    # ── Helpers ──────────────────────────────────────────────────────────────
+
+    def _make_body_tab(self, bid: int) -> QWidget:
+        """Return a widget containing a 2×3 subplot figure for body *bid*."""
+        fig = Figure(figsize=(10, 7), tight_layout=True)
+        axes = fig.subplots(nrows=2, ncols=3)  # shape (2, 3)
+
+        dof_labels = _DOF_NAMES  # Surge Sway Heave Roll Pitch Yaw
+        flat_axes = [axes[r][c] for r in range(2) for c in range(3)]
+
+        for ax, dof_name in zip(flat_axes, dof_labels):
+            ch_name = f"Body {bid} / {dof_name} / Position"
+            ch = self._channels.get(ch_name)
+            ax.set_title(dof_name, fontsize=9)
+            ax.set_xlabel("Time [s]", fontsize=7)
+            ax.grid(True, linestyle="--", linewidth=0.4)
+            ax.tick_params(labelsize=7)
+            if ch is not None:
+                filepath, col = ch[0], ch[1]
+                try:
+                    if isinstance(col, tuple):
+                        time, values = load_channel_magnitude(filepath, col)
+                    else:
+                        time, values = load_channel(filepath, col)
+                    ax.plot(time, values, linewidth=0.8)
+                    ax.set_ylabel("Position [m / rad]", fontsize=7)
+                except Exception:
+                    ax.text(0.5, 0.5, "load error", transform=ax.transAxes,
+                            ha="center", va="center", fontsize=8, color="red")
+            else:
+                ax.text(0.5, 0.5, "no data", transform=ax.transAxes,
+                        ha="center", va="center", fontsize=8, color="gray")
+
+        canvas = FigureCanvas(fig)
+        return canvas

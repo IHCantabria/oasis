@@ -1,0 +1,271 @@
+﻿/* ======================================================
+   OASIS GUI – Modern Fusion stylesheet
+   ====================================================== */
+
+QMainWindow, QDialog {
+    background-color: #f0f2f5;
+}
+
+/* ── Toolbar ─────────────────────────────────────────── */
+QToolBar {
+    background: #1e3a5f;
+    border: none;
+    spacing: 4px;
+    padding: 4px 6px;
+}
+QToolBar QToolButton {
+    color: #ffffff;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: 12px;
+}
+QToolBar QToolButton:hover {
+    background: #2d5a9e;
+}
+QToolBar QToolButton:pressed {
+    background: #163060;
+}
+QToolBar::separator {
+    background: #4a6fa5;
+    width: 1px;
+    margin: 4px 4px;
+}
+
+/* ── Menu bar ────────────────────────────────────────── */
+QMenuBar {
+    background: #1e3a5f;
+    color: #ffffff;
+    padding: 2px;
+}
+QMenuBar::item:selected {
+    background: #2d5a9e;
+    border-radius: 3px;
+}
+QMenu {
+    background: #ffffff;
+    border: 1px solid #c0c8d8;
+    border-radius: 4px;
+    padding: 4px;
+}
+QMenu::item {
+    padding: 5px 24px 5px 12px;
+    border-radius: 3px;
+}
+QMenu::item:selected {
+    background: #2d5a9e;
+    color: #ffffff;
+}
+
+/* ── Panels & Editors ────────────────────────────────── */
+QWidget#central_widget, QSplitter {
+    background: #f0f2f5;
+}
+
+/* ── Group boxes ─────────────────────────────────────── */
+QGroupBox {
+    font-weight: bold;
+    font-size: 11px;
+    color: #1e3a5f;
+    border: 1px solid #c0c8d8;
+    border-radius: 6px;
+    margin-top: 10px;
+    padding-top: 6px;
+    background: #ffffff;
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    left: 10px;
+    padding: 0 6px;
+    background: #ffffff;
+}
+
+/* ── Push buttons ────────────────────────────────────── */
+QPushButton {
+    background: #2d5a9e;
+    color: #ffffff;
+    border: none;
+    border-radius: 4px;
+    padding: 5px 14px;
+    font-size: 12px;
+    min-height: 26px;
+}
+QPushButton:hover {
+    background: #3a72c8;
+}
+QPushButton:pressed {
+    background: #1e3a5f;
+}
+QPushButton:disabled {
+    background: #b0b8c8;
+    color: #e0e0e0;
+}
+/* small +/- buttons */
+QPushButton[text="+"], QPushButton[text="-"],
+QPushButton[text="↑"], QPushButton[text="↓"] {
+    min-width: 28px;
+    max-width: 36px;
+    padding: 3px 6px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+/* ── List widget ─────────────────────────────────────── */
+QListWidget {
+    background: #ffffff;
+    border: 1px solid #c0c8d8;
+    border-radius: 4px;
+    font-size: 12px;
+}
+QListWidget::item {
+    padding: 5px 8px;
+    border-radius: 3px;
+}
+QListWidget::item:selected {
+    background: #2d5a9e;
+    color: #ffffff;
+}
+QListWidget::item:hover:!selected {
+    background: #e8edf8;
+}
+
+/* ── Tab widget ──────────────────────────────────────── */
+QTabWidget::pane {
+    border: 1px solid #c0c8d8;
+    border-radius: 4px;
+    background: #ffffff;
+    top: -1px;
+}
+QTabBar::tab {
+    background: #e0e6f0;
+    color: #1e3a5f;
+    border: 1px solid #c0c8d8;
+    border-bottom: none;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    padding: 5px 14px;
+    margin-right: 2px;
+    font-size: 11px;
+}
+QTabBar::tab:selected {
+    background: #ffffff;
+    font-weight: bold;
+    border-bottom: 2px solid #2d5a9e;
+}
+QTabBar::tab:hover:!selected {
+    background: #d0d8ec;
+}
+
+/* ── Input widgets ───────────────────────────────────── */
+QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {
+    background: #ffffff;
+    border: 1px solid #c0c8d8;
+    border-radius: 4px;
+    padding: 3px 6px;
+    min-height: 24px;
+    font-size: 12px;
+}
+QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus {
+    border: 1px solid #2d5a9e;
+}
+QComboBox::drop-down {
+    border: none;
+    width: 20px;
+}
+QComboBox QAbstractItemView {
+    border: 1px solid #c0c8d8;
+    selection-background-color: #2d5a9e;
+    selection-color: #ffffff;
+    background: #ffffff;
+}
+
+/* ── Check boxes ─────────────────────────────────────── */
+QCheckBox {
+    font-size: 12px;
+    spacing: 6px;
+}
+QCheckBox::indicator {
+    width: 16px;
+    height: 16px;
+    border: 1px solid #c0c8d8;
+    border-radius: 3px;
+    background: #ffffff;
+}
+QCheckBox::indicator:checked {
+    background: #2d5a9e;
+    border-color: #2d5a9e;
+}
+
+/* ── Scroll bars ─────────────────────────────────────── */
+QScrollBar:vertical {
+    background: #f0f2f5;
+    width: 10px;
+    border-radius: 5px;
+}
+QScrollBar::handle:vertical {
+    background: #b0b8c8;
+    border-radius: 5px;
+    min-height: 30px;
+}
+QScrollBar::handle:vertical:hover {
+    background: #2d5a9e;
+}
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
+QScrollBar:horizontal {
+    background: #f0f2f5;
+    height: 10px;
+    border-radius: 5px;
+}
+QScrollBar::handle:horizontal {
+    background: #b0b8c8;
+    border-radius: 5px;
+    min-width: 30px;
+}
+QScrollBar::handle:horizontal:hover {
+    background: #2d5a9e;
+}
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
+
+/* ── Text/Log areas ──────────────────────────────────── */
+QTextEdit {
+    background: #1a1e2e;
+    color: #d0d8e8;
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 11px;
+    border: 1px solid #3a4060;
+    border-radius: 4px;
+}
+
+/* ── Progress bar ────────────────────────────────────── */
+QProgressBar {
+    border: 1px solid #c0c8d8;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 11px;
+    background: #e8edf8;
+    height: 16px;
+}
+QProgressBar::chunk {
+    background: #2d9e5a;
+    border-radius: 3px;
+}
+
+/* ── Status bar ──────────────────────────────────────── */
+QStatusBar {
+    background: #e0e6f0;
+    color: #1e3a5f;
+    font-size: 11px;
+}
+
+/* ── Splitter handle ─────────────────────────────────── */
+QSplitter::handle {
+    background: #c0c8d8;
+}
+QSplitter::handle:horizontal {
+    width: 2px;
+}
+QSplitter::handle:vertical {
+    height: 2px;
+}

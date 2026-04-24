@@ -29,23 +29,22 @@ def discover_outputs(output_dir: str) -> Dict[str, Channel]:
         if ext not in (".txt", ".csv"):
             continue
 
-        # ── Body DOF files: DOF_<dof>_Body_<id>.{txt,csv}
-        m = re.match(r"DOF_(\d+)_Body_(\d+)\.(txt|csv)$", fname, re.IGNORECASE)
+        # ── Body DOF files: DOF_<dof>_Body_<id>.txt  (ASCII output)
+        m = re.match(r"DOF_(\d+)_Body_(\d+)\.txt$", fname, re.IGNORECASE)
         if m:
             dof, bid = int(m.group(1)), int(m.group(2))
             dof_names = {1: "Surge", 2: "Sway", 3: "Heave",
                          4: "Roll", 5: "Pitch", 6: "Yaw"}
             label = dof_names.get(dof, f"DOF{dof}")
             prefix = f"Body {bid} / {label}"
-            sep = _detect_separator(fpath)
             channels[f"{prefix} / Position"] = (fpath, 1)
             channels[f"{prefix} / Velocity"] = (fpath, 2)
             channels[f"{prefix} / Acceleration"] = (fpath, 3)
             continue
 
-        # ── Body force files
+        # ── Body force files (ASCII)
         m = re.match(r"(WaveRadiationForce|HydroStiffnessForce|BCPForce|"
-                     r"WaveExcitationForce|WindTurbineForce)_Body_(\d+)\.(txt|csv)$",
+                     r"WaveExcitationForce|WindTurbineForce)_Body_(\d+)\.txt$",
                      fname, re.IGNORECASE)
         if m:
             ftype, bid = m.group(1), int(m.group(2))
@@ -54,8 +53,8 @@ def discover_outputs(output_dir: str) -> Dict[str, Channel]:
                 channels[f"Body {bid} / {ftype} / col {ci}"] = (fpath, ci)
             continue
 
-        # ── Line endpoint tensions: EndsTen_<id>.{txt,csv}
-        m = re.match(r"EndsTen_(\d+)\.(txt|csv)$", fname, re.IGNORECASE)
+        # ── Line endpoint tensions: EndsTen_<id>.txt
+        m = re.match(r"EndsTen_(\d+)\.txt$", fname, re.IGNORECASE)
         if m:
             lid = int(m.group(1))
             col_labels = ["TenX_Node1", "TenY_Node1", "TenZ_Node1",
@@ -66,8 +65,8 @@ def discover_outputs(output_dir: str) -> Dict[str, Channel]:
             channels[f"Line {lid} / Fairlead / |Tension| NodeN"] = (fpath, (4, 5, 6))
             continue
 
-        # ── Line node tensions: LineTen_<id>.{txt,csv}
-        m = re.match(r"LineTen_(\d+)\.(txt|csv)$", fname, re.IGNORECASE)
+        # ── Line node tensions: LineTen_<id>.txt
+        m = re.match(r"LineTen_(\d+)\.txt$", fname, re.IGNORECASE)
         if m:
             lid = int(m.group(1))
             n_cols = _count_cols(fpath)
@@ -75,8 +74,8 @@ def discover_outputs(output_dir: str) -> Dict[str, Channel]:
                 channels[f"Line {lid} / Node tension / node {ci}"] = (fpath, ci)
             continue
 
-        # ── Line node positions: NodePos{X,Y,Z}_<id>.{txt,csv}
-        m = re.match(r"NodePos([XYZ])_(\d+)\.(txt|csv)$", fname, re.IGNORECASE)
+        # ── Line node positions: NodePos{X,Y,Z}_<id>.txt
+        m = re.match(r"NodePos([XYZ])_(\d+)\.txt$", fname, re.IGNORECASE)
         if m:
             axis, lid = m.group(1).upper(), int(m.group(2))
             n_cols = _count_cols(fpath)
@@ -85,18 +84,18 @@ def discover_outputs(output_dir: str) -> Dict[str, Channel]:
             continue
 
         # ── Wave time series
-        if re.match(r"WaveTimeSeries\.(txt|csv)$", fname, re.IGNORECASE):
+        if re.match(r"WaveTimeSeries\.txt$", fname, re.IGNORECASE):
             channels["Waves / Elevation"] = (fpath, 1)
             continue
 
         # ── Wave spectrum
-        if re.match(r"WaveSpectrum\.(txt|csv)$", fname, re.IGNORECASE):
+        if re.match(r"WaveSpectrum\.txt$", fname, re.IGNORECASE):
             channels["Waves / Spectrum / SpectralDensity"] = (fpath, 1)
             channels["Waves / Spectrum / Amplitude"] = (fpath, 2)
             continue
 
         # ── OWC
-        m = re.match(r"OWC_(\d+)\.(txt|csv)$", fname, re.IGNORECASE)
+        m = re.match(r"OWC_(\d+)\.txt$", fname, re.IGNORECASE)
         if m:
             oid = int(m.group(1))
             for ci, lbl in enumerate(
@@ -105,25 +104,61 @@ def discover_outputs(output_dir: str) -> Dict[str, Channel]:
                 channels[f"OWC {oid} / {lbl}"] = (fpath, ci)
             continue
 
-        # ── Winches
-        if re.match(r"WinchesTensions\.(txt|csv)$", fname, re.IGNORECASE):
+        # ── Winches (ASCII)
+        if re.match(r"WinchesTensions\.txt$", fname, re.IGNORECASE):
             n_cols = _count_cols(fpath)
             for ci in range(1, n_cols):
                 channels[f"Winches / Tension / winch {ci}"] = (fpath, ci)
             continue
 
-        if re.match(r"WinchedLinesLengths\.(txt|csv)$", fname, re.IGNORECASE):
+        if re.match(r"WinchedLinesLengths\.txt$", fname, re.IGNORECASE):
             n_cols = _count_cols(fpath)
             for ci in range(1, n_cols):
                 channels[f"Winches / LineLength / winch {ci}"] = (fpath, ci)
             continue
 
-        # ── Sinking
-        m = re.match(r"SinkingFillingCOG_Body_(\d+)\.(txt|csv)$", fname, re.IGNORECASE)
+        # ── Sinking (ASCII)
+        m = re.match(r"SinkingFillingCOG_Body_(\d+)\.txt$", fname, re.IGNORECASE)
         if m:
             bid = int(m.group(1))
             for ci, lbl in enumerate(["COG_X", "COG_Y", "COG_Z", "FillingMass"], start=1):
                 channels[f"Sinking Body {bid} / {lbl}"] = (fpath, ci)
+            continue
+
+        # ── CSV output: body_<id>_motion.csv
+        m = re.match(r"body_(\d+)_motion\.csv$", fname, re.IGNORECASE)
+        if m:
+            bid = int(m.group(1))
+            dof_order = [("Surge", "x"), ("Sway", "y"), ("Heave", "z"),
+                         ("Roll", "rl"), ("Pitch", "pt"), ("Yaw", "yw")]
+            for i, (label, _) in enumerate(dof_order):
+                channels[f"Body {bid} / {label} / Position"]     = (fpath, 1 + i)
+                channels[f"Body {bid} / {label} / Velocity"]     = (fpath, 7 + i)
+                channels[f"Body {bid} / {label} / Acceleration"] = (fpath, 13 + i)
+            continue
+
+        # ── CSV output: body_<id>_forces.csv
+        m = re.match(r"body_(\d+)_forces\.csv$", fname, re.IGNORECASE)
+        if m:
+            bid = int(m.group(1))
+            for ci, colname in enumerate(_read_header(fpath)[1:], start=1):
+                channels[f"Body {bid} / Forces / {colname}"] = (fpath, ci)
+            continue
+
+        # ── CSV output: line_<id>_tensions.csv
+        m = re.match(r"line_(\d+)_tensions\.csv$", fname, re.IGNORECASE)
+        if m:
+            lid = int(m.group(1))
+            for ci, colname in enumerate(_read_header(fpath)[1:], start=1):
+                channels[f"Line {lid} / Tensions / {colname}"] = (fpath, ci)
+            continue
+
+        # ── CSV output: line_<id>_positions.csv
+        m = re.match(r"line_(\d+)_positions\.csv$", fname, re.IGNORECASE)
+        if m:
+            lid = int(m.group(1))
+            for ci, colname in enumerate(_read_header(fpath)[1:], start=1):
+                channels[f"Line {lid} / Positions / {colname}"] = (fpath, ci)
             continue
 
     return channels
@@ -191,6 +226,26 @@ def _detect_separator(filepath: str) -> Optional[str]:
     except Exception:
         pass
     return None
+
+
+def _read_header(filepath: str) -> List[str]:
+    """Return column names from the header (first) line of a CSV file."""
+    try:
+        with open(filepath, "r", encoding="utf-8") as fh:
+            first = fh.readline().strip()
+        return [c.strip() for c in first.split(",")]
+    except Exception:
+        return []
+
+
+def _read_header(filepath: str) -> List[str]:
+    """Return column names from the first line of a CSV file."""
+    try:
+        with open(filepath, "r", encoding="utf-8") as fh:
+            first = fh.readline().strip()
+        return [c.strip() for c in first.split(",")]
+    except Exception:
+        return []
 
 
 def _count_cols(filepath: str) -> int:

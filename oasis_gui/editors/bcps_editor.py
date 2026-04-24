@@ -3,7 +3,7 @@ from __future__ import annotations
 from PyQt5.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QFormLayout, QGroupBox,
     QTabWidget, QWidget, QPushButton, QListWidget, QLabel,
-    QDoubleSpinBox, QSplitter, QComboBox,
+    QDoubleSpinBox, QSplitter, QComboBox, QSizePolicy,
 )
 from PyQt5.QtCore import Qt
 
@@ -75,8 +75,12 @@ class _BCPTypeTab(QWidget):
 
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(4, 4, 4, 4)
-        main_layout.addWidget(QLabel(f"<b>{title}</b>"))
-        main_layout.addWidget(splitter)
+        main_layout.setSpacing(4)
+        lbl = QLabel(f"<b>{title}</b>")
+        lbl.setMaximumHeight(24)
+        lbl.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        main_layout.addWidget(lbl)
+        main_layout.addWidget(splitter, 1)
 
         self._btn_add.clicked.connect(self._on_add)
         self._btn_rem.clicked.connect(self._on_rem)
@@ -158,10 +162,10 @@ class _AnchorTab(_BCPTypeTab):
         return AnchorBCPData()
 
 
-class _FairleadTab(_BCPTypeTab):
+class _ActuatorTab(_BCPTypeTab):
     def __init__(self, parent=None):
         self._actuator_le = make_line_edit("")
-        super().__init__("Fairleads (prescribed-motion BCPs)",
+        super().__init__("Actuators (prescribed-motion BCPs, global frame)",
                          extra_fields=[("Actuator file (if driven):", self._actuator_le)],
                          parent=parent)
 
@@ -198,7 +202,7 @@ class _JointTab(_BCPTypeTab):
 
 class _BodyBCPTab(_BCPTypeTab):
     def __init__(self, parent=None):
-        super().__init__("Body BCPs (attachment points on bodies)", parent=parent)
+        super().__init__("Body BCPs (attachment points on body, body-local frame)", parent=parent)
 
     def _make_new(self):
         return BodyBCPData()
@@ -242,28 +246,30 @@ class BCPsEditor(BaseEditor):
         layout.setContentsMargins(4, 4, 4, 4)
 
         info = QLabel(
-            "BCP global index allocation order: "
-            "<b>Fairleads → Anchors → Joints → Body BCPs → Elastic Anchors</b>"
+            "BCP global index allocation order (as seen by OASIS): "
+            "<b>Actuators → Anchors → Joints → Body BCPs → Elastic Anchors</b>"
         )
         info.setWordWrap(True)
+        info.setMaximumHeight(36)
+        info.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         layout.addWidget(info)
 
         tabs = QTabWidget()
-        self._fairlead_tab = _FairleadTab()
-        self._anchor_tab = _AnchorTab()
-        self._joint_tab = _JointTab()
         self._bodybcp_tab = _BodyBCPTab()
+        self._anchor_tab = _AnchorTab()
         self._elastic_tab = _ElasticAnchorTab()
-        tabs.addTab(self._fairlead_tab, "Fairleads")
-        tabs.addTab(self._anchor_tab, "Anchors")
-        tabs.addTab(self._joint_tab, "Joints")
+        self._joint_tab = _JointTab()
+        self._actuator_tab = _ActuatorTab()
         tabs.addTab(self._bodybcp_tab, "Body BCPs")
+        tabs.addTab(self._anchor_tab, "Anchors")
         tabs.addTab(self._elastic_tab, "Elastic Anchors")
-        layout.addWidget(tabs)
+        tabs.addTab(self._joint_tab, "Joints")
+        tabs.addTab(self._actuator_tab, "Actuators")
+        layout.addWidget(tabs, 1)
 
     def load_from_case(self, case) -> None:
         b = case.bcps
-        self._fairlead_tab.set_items(b.fairleads)
+        self._actuator_tab.set_items(b.fairleads)
         self._anchor_tab.set_items(b.anchors)
         self._joint_tab.set_items(b.joints)
         self._bodybcp_tab.set_items(b.body_bcps)
@@ -271,7 +277,7 @@ class BCPsEditor(BaseEditor):
 
     def save_to_case(self, case) -> None:
         case.bcps = BCPsData(
-            fairleads=self._fairlead_tab.get_items(),
+            fairleads=self._actuator_tab.get_items(),
             anchors=self._anchor_tab.get_items(),
             joints=self._joint_tab.get_items(),
             body_bcps=self._bodybcp_tab.get_items(),

@@ -190,8 +190,12 @@ class BodyData:
     viscous_linear_damping: List[float] = field(default_factory=lambda: [0.0] * 6)
     viscous_quadratic_damping: List[float] = field(default_factory=lambda: [0.0] * 6)
     # GUI-only (not written to YAML)
+    name: str = "Body"
     schematic_width: float = 10.0
     schematic_height: float = 5.0
+    stl_3d_file: str = ""
+    cog: List[float] = field(default_factory=lambda: [0.0, 0.0, 0.0])
+    mass_file: str = ""
 
 
 # ──────────────────────────────────────────────────────────────────────────────
