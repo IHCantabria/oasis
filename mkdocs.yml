@@ -38,6 +38,7 @@ nav:
     - Linux / HPC: installation/linux.md
   - User Manual:
     - Overview: user-manual/index.md
+    - Graphical Interface (GUI): user-manual/gui.md
     - Running Simulations: user-manual/running-simulations.md
     - Input Format: user-manual/input-format.md
     - Input Reference: user-manual/input-reference.md

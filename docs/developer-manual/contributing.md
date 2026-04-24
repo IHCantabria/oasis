@@ -48,6 +48,12 @@ src/                    # C++ source code
 examples/               # Functional test suite
 docs/                   # MkDocs documentation
 resources/              # Python utilities
+oasis_gui/              # PyQt5 graphical interface
+├── main.py             # Entry point
+├── requirements.txt    # Python dependencies
+├── data/               # Case data model + YAML I/O + output reader
+├── editors/            # Per-module form editors
+└── views/              # Schematic, run and results views
 ```
 
 See [Code Structure](code-structure.md) for the full class hierarchy and simulation lifecycle.

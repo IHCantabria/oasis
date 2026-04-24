@@ -4,7 +4,8 @@ This section covers everything you need to set up, run, and analyse OASIS simula
 
 ## Getting Started
 
-1. **[Running Simulations](running-simulations.md)** — command-line usage, folder conventions, input format auto-detection
+1. **[Graphical Interface (GUI)](gui.md)** — launch the PyQt5 GUI to build cases, run simulations and plot results without editing files by hand
+2. **[Running Simulations](running-simulations.md)** — command-line usage, folder conventions, input format auto-detection
 2. **[Input Format](input-format.md)** — overview of ASCII (`.dat`) and YAML input systems
 3. **[Input Reference](input-reference.md)** — comprehensive field-by-field reference for all input files
 

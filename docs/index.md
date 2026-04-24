@@ -97,6 +97,12 @@ oasis/
 ├── cmake/                          CMake helper modules
 ├── docs/                           MkDocs documentation source
 │   └── theory-manual/              Theory manual (LaTeX source + assets)
+├── oasis_gui/                      PyQt5 graphical interface
+│   ├── main.py                     Entry point — run with `python main.py`
+│   ├── requirements.txt            Python dependencies
+│   ├── data/                       Case data model + YAML I/O + output reader
+│   ├── editors/                    Per-module form editors
+│   └── views/                      Schematic, run and results views
 └── resources/                      Python plotting utilities
 ```
 

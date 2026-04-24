@@ -32,6 +32,7 @@ oasis/
 ├── cmake/                          CMake helper modules
 ├── docs/                           MkDocs documentation source
 │   └── theory-manual/              Theory manual (LaTeX source + assets)
+├── oasis_gui/                      PyQt5 graphical interface
 └── resources/                      Python plotting utilities
 ```
 
@@ -221,6 +222,45 @@ run_all_examples.bat        &:: Windows
 | `turbine_example` | Floating wind turbine coupled with OpenFAST |
 
 Each example contains a `README.md` with detailed setup instructions and a `plot_results.py` script for post-processing.
+
+### OASIS GUI (graphical interface)
+
+OASIS ships with an optional PyQt5-based GUI (`oasis_gui/`) for setting up cases, running simulations, and visualising results — without editing YAML files by hand.
+
+> **Standalone executable coming soon.** A pre-built `.exe` (no Python required) is planned. In the meantime, follow the steps below to run from source.
+
+#### 1 — Create a virtual environment
+
+```bat
+cd oasis_gui
+python -m venv venv
+venv\Scripts\activate
+```
+
+#### 2 — Install dependencies
+
+```bat
+pip install -r requirements.txt
+```
+
+| Package | Version | Purpose |
+|---|---|---|
+| PyQt5 | ≥ 5.15 | GUI framework |
+| matplotlib | ≥ 3.5 | Schematic + results plots |
+| ruamel.yaml | ≥ 0.17 | YAML I/O |
+| numpy | ≥ 1.21 | Numerics |
+| scipy | ≥ 1.7 | Signal processing |
+| pyvista / pyvistaqt | ≥ 0.42 / 0.11 | 3-D mesh viewer (optional) |
+
+#### 3 — Launch
+
+```bat
+python main.py
+```
+
+The GUI will auto-detect the OASIS executable at `bin/OASIS.exe` (Windows) or `bin/oasis` (Linux). If not found, point to it manually in the **Run** tab.
+
+---
 
 ### Python plotting utilities
 
