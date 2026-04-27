@@ -3096,7 +3096,7 @@ void Simulation::Run()
             if (pTimeSolver->t >= wallTimeHydro + hydroTimeStep - 1e-12)
             {
                 // std::cout<< "In Simulation::Run --> Computing hydrodynamic forces... "<< std::endl;
-                wallTimeHydro = writeTimeStep * round((wallTimeHydro + hydroTimeStep) / hydroTimeStep);
+                wallTimeHydro = hydroTimeStep * round((wallTimeHydro + hydroTimeStep) / hydroTimeStep);
                 if (numBodies > 0)
                 {
                     UpdateSystem();
