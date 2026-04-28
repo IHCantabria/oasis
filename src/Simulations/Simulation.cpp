@@ -3753,22 +3753,15 @@ void Simulation::SetupCase()
     pLinesCouplingMatrixInv = new arma::mat(numAllLinesNodes, numAllLinesNodes);
     pLinesCouplingMatrix_sp = new arma::sp_mat(numAllLinesNodes, numAllLinesNodes);
     ComputeLinesCouplingMatrix();
+    // TODO: 100 should be a parameter
+    if (numAllLinesNodes < 100 && !useWinches)
+    {
+        *pLinesCouplingMatrixInv = arma::inv(*pLinesCouplingMatrix);
+    }
     if (numLines > 0)
     {
         Logger::debug("Lines coupling matrices done");
     }
-    // DEBUG print (commented out to avoid using extra memory in output)
-    // TODO: 100 should be a parameter
-    // if (numAllLinesNodes < 100)
-    // {
-    //     *pLinesCouplingMatrixInv = arma::solve(*pLinesCouplingMatrix, eye(size(*pLinesCouplingMatrix)));
-    //     std::string filename = JoinPath(outputFolderPath, "LinesCouplingMatrix.dat");
-    //     (*pLinesCouplingMatrix).save(filename, arma::arma_ascii);
-    // }
-    // if (numLines > 0)
-    // {
-    //     std::cout << "  --> ... done!" << std::endl;
-    // }
 
     // Compute equilibrium with FEM for all lines at the same time
     if (!readEquilibrium && flagStatic == 1 && numLines > 0) //&& flagStatic == 0?
