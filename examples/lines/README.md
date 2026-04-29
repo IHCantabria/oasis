@@ -8,6 +8,7 @@ Isolated tests for mooring line dynamics. Each example tests a single aspect of 
 |---|---|---|---|
 | `single_line` | Basic mooring coupling | 1 Anchor, 1 Fairlead | 1 line, linear elastic, L=120m, tension-only |
 | `multi_line` | Multi-point mooring system | 4 Anchors, 4 Fairleads | 4 lines at 90° spacing, L=140m each |
+| `complex_bathymetry` | Mooring lines over a sloped triangulated seabed | 4 Anchors, 4 Fairleads | 4 lines, L=120m, bathymetry mesh (10×10 triangulated ramp) |
 | `joint_connection` | Joint BCP coupling between segments | 2 Anchors, 2 Joints, 2 Fairleads | 4 lines: Anchor→Joint→Fairlead chain |
 | `elastic_anchor` | Elastic anchor restoring force | 4 Elastic Anchors, 4 Fairleads | F = −c(1−e^(−kx)), c=50kN, k=0.1/m |
 | `prescribed_motion` | Prescribed endpoint dynamics (no body) | 1 Actuator, 1 Anchor | Sinusoidal surge A=2m T=8s, no floating body |
@@ -50,6 +51,7 @@ sh run_all_examples.sh  # Linux
 
 - **single_line:** Body oscillates in heave with mooring line restoring force; line tension varies cyclically
 - **multi_line:** Symmetric 4-point mooring constrains all DOFs; body decays faster than single_line
+- **complex_bathymetry:** Anchors placed on a sloped triangulated seabed; anchor depths vary between -85m and -95m; lines adapt to uneven seafloor geometry
 - **joint_connection:** Two-segment mooring chain; joint BCP moves freely between upper and lower segments
 - **elastic_anchor:** Anchor positions shift under load (non-zero anchor displacement in output)
 - **prescribed_motion:** No body output; line tension follows 8s sinusoidal cycle matching actuator motion
@@ -66,4 +68,5 @@ sh run_all_examples.sh  # Linux
 - `src/Lines/Lines_QS.cpp` — Quasi-static catenary solver for initialization
 - `src/BCPs/BCPs.cpp` — BCP reading (Actuator/Anchor/Joint/Fairlead/ElasticAnchor)
 - `src/SeaFloor/SeaFloor.cpp` — Seabed geometry (flat, inclined, variable bathymetry)
+- `resources/generate_complex_bathymetry.py` — Generates the triangulated bathymetry mesh `.dat` file for the `complex_bathymetry` example
 - `src/Simulations/Simulation.cpp` — `ReadBcpsASCII()` for BCP index allocation; `ReadLinesASCII()` for line loading

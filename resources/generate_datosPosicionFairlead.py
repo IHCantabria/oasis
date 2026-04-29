@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import os
+
 import numpy as np
 
 
@@ -62,7 +64,9 @@ for i in range(n):
     M[i, :] = m1(t)
 
 
-path = "V:\\09_Mar\\01_cases\\test_case\\input\\"
+path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                    '..', 'examples', 'test', 'input', '')
+os.makedirs(path, exist_ok=True)
 np.savetxt(
     path + "dataPosicionFairlead.dat", M, fmt="%.10e", header=str(n), comments=""
 )

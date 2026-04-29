@@ -20,40 +20,22 @@ problem:
   time_integration_order: 2
   time_step_adaptivity: 0
   jacobian_recomputation_steps: 0
-  absolute_tolerance: !!float '1e-05'
+  absolute_tolerance: 1.0e-05
   relative_tolerance: 0.001
   max_iterations_per_step: 5
   read_equilibrium: 0
   write_equilibrium: 0
   mooring_initial_condition: 1
   output_format: csv
+
 bodies:
 - type: RAD_DIFF
   take_cog_hydro_database: 1
-  dofs:
-  - 1
-  - 2
-  - 3
-  - 4
-  - 5
-  - 6
-  bcps_indexes:
-  - 2
+  dofs: [1, 2, 3, 4, 5, 6]
+  bcps_indexes: [2]
   wind_turbines_indexes: []
-  initial_position:
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  initial_displacement:
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
+  initial_position: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+  initial_displacement: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
   hydro_database: ../../../data/one_box.hydb.h5
   hydro_database_index: 1
   freedom_flag: 0
@@ -63,46 +45,25 @@ bodies:
   radiation_flag: 1
   excitation_1st_flag: 2
   excitation_2nd_flag: 0
-  viscous_added_mass:
-  - 0.1
-  - 0.1
-  - 0.22
-  - 0.85
-  - 0.6
-  - 0.5
-  viscous_linear_damping:
-  - 100000.0
-  - 200000.0
-  - 240000.0
-  - 50000.0
-  - 3000000.0
-  - 1000000.0
-  viscous_quadratic_damping:
-  - 10000.0
-  - 20000.0
-  - 10000.0
-  - 10000.0
-  - 10000.0
-  - 10000.0
+  viscous_added_mass: [0.1, 0.1, 0.22, 0.85, 0.6, 0.5]
+  viscous_linear_damping: [100000.0, 200000.0, 240000.0, 50000.0, 3000000.0, 1000000.0]
+  viscous_quadratic_damping: [10000.0, 20000.0, 10000.0, 10000.0, 10000.0, 10000.0]
+
 waves:
   type: REG
   height: 0.5
   period: 5.0
   heading: 225.0
   ramp_time: 0.0
+
 bcps:
   anchors:
-  - position:
-    - 5.0
-    - 0.0
-    - 0.0
+  - position: [5.0, 0.0, 0.0]
     winch_id: 0
   body_bcps:
-  - position:
-    - 5.0
-    - 0.0
-    - 0.0
+  - position: [5.0, 0.0, 0.0]
     winch_id: 0
+
 spring_types:
 - stress_model_flag: 2
   damping_flag: 1

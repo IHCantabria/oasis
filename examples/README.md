@@ -18,7 +18,7 @@ All examples can be run together via `run_all_examples.bat` (Windows) or `run_al
 |---|---|---|---|---|
 | 1 | **Body Behavior** | `body/` | Floating body dynamics: free/fixed/partial DOFs, imposed motion, radiation, excitation, non-linear hydrostatics, QTF | Done |
 | 2 | **Wave Types** | `waves/` | Regular, irregular (JONSWAP), time-series, frequency-domain, multi-directional, piecewise decomposition | Done |
-| 3 | **Mooring Lines** | `lines/` | Dynamic mooring lines: single/multi-line, BCP types (anchor, fairlead, joint, elastic anchor, actuator), material models (linear, viscoelastic, tabulated), tension models, seabed contact, friction (isotropic, anisotropic) | Done |
+| 3 | **Mooring Lines** | `lines/` | Dynamic mooring lines: single/multi-line, complex bathymetry mesh, BCP types (anchor, fairlead, joint, elastic anchor, actuator), material models (linear, viscoelastic, tabulated), tension models, seabed contact, friction (isotropic, anisotropic) | Done |
 | 4 | **Springs** | `springs/` | Nonlinear springs: pile connector with friction, neoprene+wire body-to-body connector | Done |
 | 5 | **Wind Turbines** | `turbines/` | OpenFAST coupling on fixed and moored bodies | Done |
 | 6 | **OWCs** | `owcs/` | Oscillating Water Columns: chamber dynamics, pneumatic coupling, turbine models | WIP |
@@ -64,6 +64,7 @@ examples/
 │   ├── README.md
 │   ├── single_line/
 │   ├── multi_line/
+│   ├── complex_bathymetry/
 │   ├── joint_connection/
 │   ├── elastic_anchor/
 │   ├── prescribed_motion/

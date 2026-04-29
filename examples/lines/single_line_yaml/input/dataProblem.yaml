@@ -20,35 +20,33 @@ problem:
   time_integration_order: 2
   time_step_adaptivity: 0
   jacobian_recomputation_steps: 0
-  absolute_tolerance: !!float '1e-05'
+  absolute_tolerance: 1.0e-05
   relative_tolerance: 0.001
   max_iterations_per_step: 20
   read_equilibrium: 0
   write_equilibrium: 0
   mooring_initial_condition: 1
   output_format: csv
+
 waves:
   type: REG
   height: 0.0
   period: 10.0
   heading: 0.0
   ramp_time: 0.0
+
 bcps:
   anchors:
-  - position:
-    - 60.0
-    - 0.0
-    - -100.0
+  - position: [60.0, 0.0, -100.0]
     winch_id: 0
   body_bcps:
-  - position:
-    - 5.0
-    - 0.0
-    - -2.0
+  - position: [5.0, 0.0, -2.0]
     winch_id: 0
+
 seafloor:
   flat:
   - depth: -100.0
+
 line_types:
 - flag_tension: 2
   density: 50.0
@@ -69,6 +67,7 @@ line_types:
   usn: 0.4
   ud: 0.3
   deltamax: 0.03
+
 lines:
 - line_type: 1
   type_index: 1

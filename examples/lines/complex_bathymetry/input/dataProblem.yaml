@@ -58,13 +58,13 @@ waves:
 
 bcps:
   anchors:
-  - position: [50.0, 50.0, -100.0]
+  - position: [50.0, 50.0, -85.0]
     winch_id: 0
-  - position: [-50.0, 50.0, -100.0]
+  - position: [-50.0, 50.0, -95.0]
     winch_id: 0
-  - position: [50.0, -50.0, -100.0]
+  - position: [50.0, -50.0, -85.0]
     winch_id: 0
-  - position: [-50.0, -50.0, -100.0]
+  - position: [-50.0, -50.0, -95.0]
     winch_id: 0
   body_bcps:
   - position: [5.0, 5.0, -2.0]
@@ -77,8 +77,8 @@ bcps:
     winch_id: 0
 
 seafloor:
-  flat:
-  - depth: -100.0
+  bathymetry:
+  - mesh_file: complex_bathymetry.dat
 
 line_types:
 - flag_tension: 2
@@ -106,7 +106,7 @@ lines:
   type_index: 1
   num_nodes: 11
   polynomial_order: 1
-  length: 140.0
+  length: 120.0
   seafloor_index: 1
   BCP_N: 5
   BCP_1: 1
@@ -114,7 +114,7 @@ lines:
   type_index: 1
   num_nodes: 11
   polynomial_order: 1
-  length: 140.0
+  length: 120.0
   seafloor_index: 1
   BCP_N: 6
   BCP_1: 2
@@ -122,7 +122,7 @@ lines:
   type_index: 1
   num_nodes: 11
   polynomial_order: 1
-  length: 140.0
+  length: 120.0
   seafloor_index: 1
   BCP_N: 7
   BCP_1: 3
@@ -130,7 +130,7 @@ lines:
   type_index: 1
   num_nodes: 11
   polynomial_order: 1
-  length: 140.0
+  length: 120.0
   seafloor_index: 1
   BCP_N: 8
   BCP_1: 4

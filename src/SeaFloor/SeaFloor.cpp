@@ -529,7 +529,6 @@ arma::field<arma::mat> Bathymetry::projectPoints(arma::mat nodes)
     if (flagBarycenter == 1)
     {
         int k;
-        // std::cout << "hola cocacola" << std::endl;
         for (int i = 0; i < numNodes; i++)
         {
             arma::uvec triangulosCerca = closerTriangles(nodes.row(i));
