@@ -619,6 +619,8 @@
       
         
       
+        
+      
     
     
     
@@ -673,6 +675,34 @@
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-manual/gui/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Graphical Interface (GUI)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
               
             
               
@@ -850,10 +880,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_7" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_8" >
         
           
-          <label class="md-nav__link" for="__nav_3_7" id="__nav_3_7_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3_8" id="__nav_3_8_label" tabindex="0">
             
   
   
@@ -871,8 +901,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3_7">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_8">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1537,6 +1567,11 @@
 <td>Sparse solvers for dynamic mooring lines</td>
 </tr>
 <tr>
+<td><a href="https://github.com/jbeder/yaml-cpp">yaml-cpp</a></td>
+<td>Yes</td>
+<td>YAML input file parsing</td>
+</tr>
+<tr>
 <td><a href="https://github.com/sreiter/stl_reader">stl_reader</a></td>
 <td>Optional</td>
 <td>STL mesh import for body meshes</td>
@@ -1554,7 +1589,7 @@
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>C<span class="p">:</span><span class="nl">\vcpkg\bootstrap-vcpkg.bat</span>
 </code></pre></div>
 <h3 id="2-install-dependencies">2. Install dependencies<a class="headerlink" href="#2-install-dependencies" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>C<span class="p">:</span><span class="nl">\vcpkg\vcpkg</span><span class="c1"> install armadillo hdf5[cpp] openblas superlu metis:x64-windows</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>C<span class="p">:</span><span class="nl">\vcpkg\vcpkg</span><span class="c1"> install armadillo hdf5[cpp] openblas superlu metis yaml-cpp:x64-windows</span>
 </code></pre></div>
 <h3 id="3-configure-the-project">3. Configure the project<a class="headerlink" href="#3-configure-the-project" title="Permanent link">&para;</a></h3>
 <p>Copy the configuration template and set the vcpkg toolchain path:</p>

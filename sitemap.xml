@@ -2,86 +2,90 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://ihcantabria.github.io/oasis/</loc>
-         <lastmod>2026-04-21</lastmod>
+         <lastmod>2026-04-30</lastmod>
     </url>
     <url>
          <loc>https://ihcantabria.github.io/oasis/api-reference/</loc>
-         <lastmod>2026-04-21</lastmod>
+         <lastmod>2026-04-30</lastmod>
     </url>
     <url>
          <loc>https://ihcantabria.github.io/oasis/theory-manual/</loc>
-         <lastmod>2026-04-21</lastmod>
+         <lastmod>2026-04-30</lastmod>
     </url>
     <url>
          <loc>https://ihcantabria.github.io/oasis/developer-manual/building/</loc>
-         <lastmod>2026-04-21</lastmod>
+         <lastmod>2026-04-30</lastmod>
     </url>
     <url>
          <loc>https://ihcantabria.github.io/oasis/developer-manual/code-structure/</loc>
-         <lastmod>2026-04-21</lastmod>
+         <lastmod>2026-04-30</lastmod>
     </url>
     <url>
          <loc>https://ihcantabria.github.io/oasis/developer-manual/contributing/</loc>
-         <lastmod>2026-04-21</lastmod>
+         <lastmod>2026-04-30</lastmod>
     </url>
     <url>
          <loc>https://ihcantabria.github.io/oasis/installation/linux/</loc>
-         <lastmod>2026-04-21</lastmod>
+         <lastmod>2026-04-30</lastmod>
     </url>
     <url>
          <loc>https://ihcantabria.github.io/oasis/installation/windows/</loc>
-         <lastmod>2026-04-21</lastmod>
+         <lastmod>2026-04-30</lastmod>
     </url>
     <url>
          <loc>https://ihcantabria.github.io/oasis/user-manual/</loc>
-         <lastmod>2026-04-21</lastmod>
+         <lastmod>2026-04-30</lastmod>
     </url>
     <url>
          <loc>https://ihcantabria.github.io/oasis/user-manual/examples/</loc>
-         <lastmod>2026-04-21</lastmod>
+         <lastmod>2026-04-30</lastmod>
+    </url>
+    <url>
+         <loc>https://ihcantabria.github.io/oasis/user-manual/gui/</loc>
+         <lastmod>2026-04-30</lastmod>
     </url>
     <url>
          <loc>https://ihcantabria.github.io/oasis/user-manual/input-format/</loc>
-         <lastmod>2026-04-21</lastmod>
+         <lastmod>2026-04-30</lastmod>
     </url>
     <url>
          <loc>https://ihcantabria.github.io/oasis/user-manual/input-reference/</loc>
-         <lastmod>2026-04-21</lastmod>
+         <lastmod>2026-04-30</lastmod>
     </url>
     <url>
          <loc>https://ihcantabria.github.io/oasis/user-manual/mooring-lines/</loc>
-         <lastmod>2026-04-21</lastmod>
+         <lastmod>2026-04-30</lastmod>
     </url>
     <url>
          <loc>https://ihcantabria.github.io/oasis/user-manual/output-files/</loc>
-         <lastmod>2026-04-21</lastmod>
+         <lastmod>2026-04-30</lastmod>
     </url>
     <url>
          <loc>https://ihcantabria.github.io/oasis/user-manual/owc/</loc>
-         <lastmod>2026-04-21</lastmod>
+         <lastmod>2026-04-30</lastmod>
     </url>
     <url>
          <loc>https://ihcantabria.github.io/oasis/user-manual/running-simulations/</loc>
-         <lastmod>2026-04-21</lastmod>
+         <lastmod>2026-04-30</lastmod>
     </url>
     <url>
          <loc>https://ihcantabria.github.io/oasis/user-manual/solvers/</loc>
-         <lastmod>2026-04-21</lastmod>
+         <lastmod>2026-04-30</lastmod>
     </url>
     <url>
          <loc>https://ihcantabria.github.io/oasis/user-manual/springs/</loc>
-         <lastmod>2026-04-21</lastmod>
+         <lastmod>2026-04-30</lastmod>
     </url>
     <url>
          <loc>https://ihcantabria.github.io/oasis/user-manual/waves/</loc>
-         <lastmod>2026-04-21</lastmod>
+         <lastmod>2026-04-30</lastmod>
     </url>
     <url>
          <loc>https://ihcantabria.github.io/oasis/user-manual/winches/</loc>
-         <lastmod>2026-04-21</lastmod>
+         <lastmod>2026-04-30</lastmod>
     </url>
     <url>
          <loc>https://ihcantabria.github.io/oasis/user-manual/wind-turbines/</loc>
-         <lastmod>2026-04-21</lastmod>
+         <lastmod>2026-04-30</lastmod>
     </url>
 </urlset>
