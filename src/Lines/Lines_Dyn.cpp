@@ -413,7 +413,7 @@ double Line::kernel(double time)
      * Proposed Kernel for the memory capability of the viscoelastic material
      */
     double kernel = 0;
-    for (int i = 0; i < num_elastic_coef; i++)
+    for (int i = 0; i < num_kernel_coef; i++)
     {
         kernel = kernel + kernel_lin_coef(i, 0) * exp(time * kernel_exp_coef(i, 0));
     }
